@@ -12,7 +12,7 @@ export interface OtiumLogoProps {
   withAura?: boolean;
 }
 
-// Color palettes for the dynamic vector engine
+// Color palettes for the dynamic vector engine and lighting effects
 const THEME_COLOR_MAP: Record<BrandThemeId, {
   id: string;
   primary: string;
@@ -22,7 +22,6 @@ const THEME_COLOR_MAP: Record<BrandThemeId, {
   faceEnd: string;
   aura: string;
   shadow: string;
-  filterHue: number;
 }> = {
   amoled: {
     id: 'amoled',
@@ -31,9 +30,8 @@ const THEME_COLOR_MAP: Record<BrandThemeId, {
     rim: '#34d399',
     faceStart: 'rgba(16, 185, 129, 0.35)',
     faceEnd: 'rgba(6, 78, 59, 0.25)',
-    aura: 'rgba(16, 185, 129, 0.28)',
-    shadow: 'rgba(0, 255, 136, 0.35)',
-    filterHue: 0
+    aura: 'rgba(16, 185, 129, 0.35)',
+    shadow: 'rgba(0, 255, 136, 0.45)'
   },
   midnight: {
     id: 'midnight',
@@ -42,9 +40,8 @@ const THEME_COLOR_MAP: Record<BrandThemeId, {
     rim: '#7dd3fc',
     faceStart: 'rgba(56, 189, 248, 0.35)',
     faceEnd: 'rgba(12, 74, 110, 0.25)',
-    aura: 'rgba(56, 189, 248, 0.28)',
-    shadow: 'rgba(56, 189, 248, 0.35)',
-    filterHue: 45
+    aura: 'rgba(56, 189, 248, 0.35)',
+    shadow: 'rgba(56, 189, 248, 0.45)'
   },
   amber: {
     id: 'amber',
@@ -53,31 +50,28 @@ const THEME_COLOR_MAP: Record<BrandThemeId, {
     rim: '#fde68a',
     faceStart: 'rgba(245, 158, 11, 0.35)',
     faceEnd: 'rgba(120, 53, 15, 0.25)',
-    aura: 'rgba(245, 158, 11, 0.28)',
-    shadow: 'rgba(245, 158, 11, 0.35)',
-    filterHue: 235
+    aura: 'rgba(245, 158, 11, 0.35)',
+    shadow: 'rgba(245, 158, 11, 0.45)'
   },
   paper: {
     id: 'paper',
     primary: '#d97706',
     glow: '#f59e0b',
     rim: '#fef3c7',
-    faceStart: 'rgba(217, 119, 6, 0.3)',
+    faceStart: 'rgba(217, 119, 6, 0.32)',
     faceEnd: 'rgba(113, 63, 18, 0.22)',
-    aura: 'rgba(217, 119, 6, 0.22)',
-    shadow: 'rgba(217, 119, 6, 0.3)',
-    filterHue: 225
+    aura: 'rgba(217, 119, 6, 0.28)',
+    shadow: 'rgba(217, 119, 6, 0.38)'
   },
   parchment: {
     id: 'parchment',
     primary: '#ca8a04',
     glow: '#eab308',
     rim: '#fef08a',
-    faceStart: 'rgba(202, 138, 4, 0.3)',
+    faceStart: 'rgba(202, 138, 4, 0.32)',
     faceEnd: 'rgba(113, 63, 18, 0.22)',
-    aura: 'rgba(202, 138, 4, 0.24)',
-    shadow: 'rgba(202, 138, 4, 0.3)',
-    filterHue: 220
+    aura: 'rgba(202, 138, 4, 0.28)',
+    shadow: 'rgba(202, 138, 4, 0.38)'
   },
   pure: {
     id: 'pure',
@@ -86,31 +80,28 @@ const THEME_COLOR_MAP: Record<BrandThemeId, {
     rim: '#c7d2fe',
     faceStart: 'rgba(129, 140, 248, 0.35)',
     faceEnd: 'rgba(49, 46, 129, 0.25)',
-    aura: 'rgba(129, 140, 248, 0.28)',
-    shadow: 'rgba(129, 140, 248, 0.35)',
-    filterHue: 105
+    aura: 'rgba(129, 140, 248, 0.35)',
+    shadow: 'rgba(129, 140, 248, 0.45)'
   },
   crystal: {
     id: 'crystal',
     primary: '#ffffff',
     glow: '#e2e8f0',
     rim: '#f8fafc',
-    faceStart: 'rgba(255, 255, 255, 0.35)',
-    faceEnd: 'rgba(148, 163, 184, 0.2)',
-    aura: 'rgba(255, 255, 255, 0.25)',
-    shadow: 'rgba(255, 255, 255, 0.3)',
-    filterHue: 0
+    faceStart: 'rgba(255, 255, 255, 0.38)',
+    faceEnd: 'rgba(148, 163, 184, 0.22)',
+    aura: 'rgba(255, 255, 255, 0.3)',
+    shadow: 'rgba(255, 255, 255, 0.4)'
   },
   eink: {
     id: 'eink',
     primary: '#a1a1aa',
     glow: '#d4d4d8',
     rim: '#f4f4f5',
-    faceStart: 'rgba(161, 161, 170, 0.3)',
-    faceEnd: 'rgba(63, 63, 70, 0.2)',
-    aura: 'rgba(161, 161, 170, 0.18)',
-    shadow: 'rgba(161, 161, 170, 0.25)',
-    filterHue: 0
+    faceStart: 'rgba(161, 161, 170, 0.32)',
+    faceEnd: 'rgba(63, 63, 70, 0.22)',
+    aura: 'rgba(161, 161, 170, 0.22)',
+    shadow: 'rgba(161, 161, 170, 0.3)'
   },
   crimson: {
     id: 'crimson',
@@ -119,9 +110,8 @@ const THEME_COLOR_MAP: Record<BrandThemeId, {
     rim: '#fecdd3',
     faceStart: 'rgba(244, 63, 94, 0.35)',
     faceEnd: 'rgba(136, 19, 55, 0.25)',
-    aura: 'rgba(244, 63, 94, 0.28)',
-    shadow: 'rgba(244, 63, 94, 0.35)',
-    filterHue: 195
+    aura: 'rgba(244, 63, 94, 0.35)',
+    shadow: 'rgba(244, 63, 94, 0.45)'
   }
 };
 
@@ -136,17 +126,15 @@ export const OtiumLogo: React.FC<OtiumLogoProps> = ({
   const currentPalette = THEME_COLOR_MAP[theme] || THEME_COLOR_MAP.amoled;
   const themeFileKey = theme === 'paper' ? 'amber' : theme;
 
-  // Dynamic 3D Squircle App Icon with live theme assets
+  // Ultra-HD High-DPI 3D Squircle App Icon (Always uses crisp 512px/1024px assets)
   if (variant === '3d') {
-    const iconPath = size <= 64
-      ? `/icons/themes/otium-${themeFileKey}-64.png`
-      : size <= 192
-      ? `/icons/themes/otium-${themeFileKey}-192.png`
-      : `/icons/themes/otium-${themeFileKey}.png`;
+    const iconPath = size >= 256
+      ? `/icons/themes/otium-${themeFileKey}.png`
+      : `/icons/themes/otium-${themeFileKey}-512.png`;
 
     return (
       <div
-        className={`relative inline-flex items-center justify-center transition-transform duration-300 ${className}`}
+        className={`relative inline-flex items-center justify-center shrink-0 ${className}`}
         style={{ width: size, height: size }}
       >
         {withAura && (
@@ -154,7 +142,7 @@ export const OtiumLogo: React.FC<OtiumLogoProps> = ({
             className="absolute inset-0 rounded-full blur-xl pointer-events-none transition-colors duration-500"
             style={{
               background: currentPalette.aura,
-              transform: 'scale(1.25)'
+              transform: 'scale(1.2)'
             }}
           />
         )}
@@ -163,23 +151,27 @@ export const OtiumLogo: React.FC<OtiumLogoProps> = ({
           alt={`Otium Logo (${currentPalette.id})`}
           width={size}
           height={size}
-          className="relative rounded-2xl object-contain transition-all duration-500"
+          className="relative rounded-2xl object-contain transition-all duration-500 select-none"
           style={{
-            filter: withGlow ? `drop-shadow(0 4px 16px ${currentPalette.shadow})` : undefined
+            imageRendering: '-webkit-optimize-contrast',
+            filter: withGlow ? `drop-shadow(0 4px 18px ${currentPalette.shadow})` : undefined
           }}
           loading="eager"
+          decoding="async"
         />
       </div>
     );
   }
 
-  // Dynamic 3D Transparent Symbol (No squircle background, pure glass emblem)
+  // Ultra-HD Transparent 3D Glass Emblem (Isolated floating book on pure transparency)
   if (variant === 'transparent') {
-    const symbolPath = `/icons/transparent/otium-symbol-${themeFileKey}.png`;
+    const symbolPath = size >= 256
+      ? `/icons/transparent/otium-symbol-${themeFileKey}.png`
+      : `/icons/transparent/otium-symbol-${themeFileKey}-512.png`;
 
     return (
       <div
-        className={`relative inline-flex items-center justify-center transition-transform duration-300 ${className}`}
+        className={`relative inline-flex items-center justify-center shrink-0 ${className}`}
         style={{ width: size, height: size }}
       >
         {withAura && (
@@ -196,11 +188,13 @@ export const OtiumLogo: React.FC<OtiumLogoProps> = ({
           alt={`Otium Glass Emblem (${currentPalette.id})`}
           width={size}
           height={size}
-          className="relative object-contain transition-all duration-500"
+          className="relative object-contain transition-all duration-500 select-none"
           style={{
-            filter: withGlow ? `drop-shadow(0 6px 20px ${currentPalette.shadow})` : undefined
+            imageRendering: '-webkit-optimize-contrast',
+            filter: withGlow ? `drop-shadow(0 4px 16px ${currentPalette.shadow})` : undefined
           }}
           loading="eager"
+          decoding="async"
         />
       </div>
     );
@@ -242,89 +236,148 @@ export const OtiumLogo: React.FC<OtiumLogoProps> = ({
     );
   }
 
-  // Pure Scalable Vector SVG Engine (Default / variant === 'vector')
+  // Pure Precision Vector SVG Engine (Zero Pixelation at ANY zoom level)
   const gradId = `otium_vec_${currentPalette.id}`;
 
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 100 100"
+      viewBox="0 0 200 200"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={`transition-all duration-500 ${className}`}
+      className={`transition-all duration-500 select-none shrink-0 ${className}`}
       style={{
-        filter: withGlow ? `drop-shadow(0 2px 10px ${currentPalette.shadow})` : undefined
+        filter: withGlow ? `drop-shadow(0 2px 12px ${currentPalette.shadow})` : undefined
       }}
     >
       <defs>
-        {/* Ambient Radial Aura */}
-        <radialGradient id={`aura_${gradId}`} cx="50%" cy="55%" r="48%">
-          <stop offset="0%" stopColor={currentPalette.glow} stopOpacity="0.32" />
-          <stop offset="50%" stopColor={currentPalette.primary} stopOpacity="0.12" />
+        {/* Ambient Floor Glow */}
+        <radialGradient id={`aura_${gradId}`} cx="50%" cy="58%" r="48%">
+          <stop offset="0%" stopColor={currentPalette.glow} stopOpacity="0.38" />
+          <stop offset="45%" stopColor={currentPalette.primary} stopOpacity="0.14" />
           <stop offset="100%" stopColor="#000000" stopOpacity="0" />
         </radialGradient>
 
-        {/* Translucent Frosted Glass Face Gradient */}
-        <linearGradient id={`glass_${gradId}`} x1="15%" y1="15%" x2="85%" y2="85%">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.45" />
-          <stop offset="40%" stopColor={currentPalette.primary} stopOpacity="0.22" />
-          <stop offset="100%" stopColor="#0b111e" stopOpacity="0.35" />
+        {/* Translucent Frosted Glass Face Gradients */}
+        <linearGradient id={`glassLeft_${gradId}`} x1="30" y1="50" x2="100" y2="160" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.4" />
+          <stop offset="35%" stopColor={currentPalette.rim} stopOpacity="0.22" />
+          <stop offset="80%" stopColor={currentPalette.primary} stopOpacity="0.1" />
+          <stop offset="100%" stopColor="#0a101d" stopOpacity="0.35" />
         </linearGradient>
 
-        {/* Laser Glow Rim Gradient */}
-        <linearGradient id={`rim_${gradId}`} x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id={`glassRight_${gradId}`} x1="170" y1="50" x2="100" y2="160" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.4" />
+          <stop offset="35%" stopColor={currentPalette.rim} stopOpacity="0.22" />
+          <stop offset="80%" stopColor={currentPalette.primary} stopOpacity="0.1" />
+          <stop offset="100%" stopColor="#0a101d" stopOpacity="0.35" />
+        </linearGradient>
+
+        {/* Laser Rim Edge Gradients */}
+        <linearGradient id={`rimLeft_${gradId}`} x1="20" y1="50" x2="100" y2="150" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="45%" stopColor={currentPalette.glow} />
+          <stop offset="40%" stopColor={currentPalette.glow} />
           <stop offset="100%" stopColor={currentPalette.primary} />
         </linearGradient>
+
+        <linearGradient id={`rimRight_${gradId}`} x1="180" y1="50" x2="100" y2="150" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="40%" stopColor={currentPalette.glow} />
+          <stop offset="100%" stopColor={currentPalette.primary} />
+        </linearGradient>
+
+        {/* Specular Bloom Filter */}
+        <filter id={`bloom_${gradId}`} x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="2.5" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
 
       {/* Ambient Floor Glow Aura */}
-      <circle cx="50" cy="55" r="42" fill={`url(#aura_${gradId})`} />
+      <circle cx="100" cy="115" r="80" fill={`url(#aura_${gradId})`} />
 
-      {/* Back Layer Floating Glass Wings */}
-      <path
-        d="M 22 68 C 34 62 44 64 50 69 C 56 64 66 62 78 68 L 81 41 C 69 35 59 38 50 43 C 41 38 31 35 19 41 Z"
-        fill={`url(#glass_${gradId})`}
-        stroke={currentPalette.primary}
-        strokeWidth="1.2"
-        strokeOpacity="0.6"
-      />
+      {/* LAYER 1: Deep Back Glass Pages (Left & Right) */}
+      <g opacity="0.65">
+        <path
+          d="M 40 138 C 65 126 85 130 100 142 C 100 142 85 86 46 80 Z"
+          fill={`url(#glassLeft_${gradId})`}
+          stroke={`url(#rimLeft_${gradId})`}
+          strokeWidth="1.2"
+        />
+        <path
+          d="M 160 138 C 135 126 115 130 100 142 C 100 142 115 86 154 80 Z"
+          fill={`url(#glassRight_${gradId})`}
+          stroke={`url(#rimRight_${gradId})`}
+          strokeWidth="1.2"
+        />
+      </g>
 
-      {/* Mid Layer Floating Glass Leaves */}
-      <path
-        d="M 18 60 C 32 53 43 56 50 61 C 57 56 68 53 82 60 L 85 32 C 71 25 60 29 50 34 C 40 29 29 25 15 32 Z"
-        fill={`url(#glass_${gradId})`}
-        stroke={`url(#rim_${gradId})`}
-        strokeWidth="1.6"
-        strokeOpacity="0.85"
-      />
+      {/* LAYER 2: Mid-tier Floating Pages */}
+      <g opacity="0.85">
+        <path
+          d="M 32 122 C 60 110 82 114 100 128 C 100 128 88 64 38 60 Z"
+          fill={`url(#glassLeft_${gradId})`}
+          stroke={`url(#rimLeft_${gradId})`}
+          strokeWidth="1.6"
+        />
+        <path
+          d="M 168 122 C 140 110 118 114 100 128 C 100 128 112 64 162 60 Z"
+          fill={`url(#glassRight_${gradId})`}
+          stroke={`url(#rimRight_${gradId})`}
+          strokeWidth="1.6"
+        />
+      </g>
 
-      {/* Front Hero Open Book Wings (Prominent Laser Rim Glow) */}
-      <path
-        d="M 15 52 C 30 44 42 47 50 53 C 58 47 70 44 85 52 L 87 23 C 72 15 60 19 50 25 C 40 19 28 15 13 23 Z"
-        fill={`url(#glass_${gradId})`}
-        stroke={`url(#rim_${gradId})`}
-        strokeWidth="2.2"
-        strokeLinejoin="round"
-      />
+      {/* LAYER 3: Front Hero Glass Leaves with Laser Rim Bloom */}
+      <g filter={`url(#bloom_${gradId})`}>
+        {/* Left Open Hero Page */}
+        <path
+          d="M 25 105 C 55 90 80 95 100 112 C 100 112 85 45 32 42 Z"
+          fill={`url(#glassLeft_${gradId})`}
+          stroke={`url(#rimLeft_${gradId})`}
+          strokeWidth="2.4"
+          strokeLinejoin="round"
+        />
 
-      {/* Etched Glass Spine Axis */}
-      <line
-        x1="50"
-        y1="25"
-        x2="50"
-        y2="53"
-        stroke="#ffffff"
-        strokeWidth="2"
-        strokeLinecap="round"
-        opacity="0.95"
-      />
+        {/* Right Open Hero Page */}
+        <path
+          d="M 175 105 C 145 90 120 95 100 112 C 100 112 115 45 168 42 Z"
+          fill={`url(#glassRight_${gradId})`}
+          stroke={`url(#rimRight_${gradId})`}
+          strokeWidth="2.4"
+          strokeLinejoin="round"
+        />
 
-      {/* Center Laser Spark Core */}
-      <circle cx="50" cy="18" r="2.5" fill="#ffffff" />
-      <circle cx="50" cy="18" r="5" fill={currentPalette.glow} opacity="0.4" />
+        {/* Etched Glass Micro-Lines (Document Representation) */}
+        <g stroke={currentPalette.rim} strokeWidth="1" strokeOpacity="0.45" strokeLinecap="round">
+          <line x1="52" y1="64" x2="82" y2="72" />
+          <line x1="48" y1="74" x2="85" y2="83" />
+          <line x1="44" y1="84" x2="88" y2="94" />
+
+          <line x1="148" y1="64" x2="118" y2="72" />
+          <line x1="152" y1="74" x2="115" y2="83" />
+          <line x1="156" y1="84" x2="112" y2="94" />
+        </g>
+
+        {/* Central Luminous Spine Axis */}
+        <line
+          x1="100"
+          y1="40"
+          x2="100"
+          y2="114"
+          stroke="#ffffff"
+          strokeWidth="2.8"
+          strokeLinecap="round"
+        />
+
+        {/* Center Floating Laser Sparkle */}
+        <circle cx="100" cy="30" r="3" fill="#ffffff" />
+        <circle cx="100" cy="30" r="7" fill={currentPalette.glow} opacity="0.45" />
+      </g>
     </svg>
   );
 };

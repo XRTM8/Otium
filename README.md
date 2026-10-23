@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="./app-icon.png" width="136" height="136" alt="Otium Logo" style="border-radius: 30px; box-shadow: 0 10px 35px rgba(255, 255, 255, 0.25);" />
+  <img src="./app-icon.png" width="136" height="136" alt="Otium Logo" style="border-radius: 30px; box-shadow: 0 10px 35px rgba(0, 255, 136, 0.35);" />
 
   # Otium (أوتيوم)
   ### The Quiet Reader • قارئ المستندات الهادئ
@@ -12,13 +12,13 @@
 
   <p align="center">
     <a href="https://github.com/XRTM8/Otium/releases/latest">
-      <img src="https://img.shields.io/badge/Release-v1.0-white?style=for-the-badge&logo=github&logoColor=black" alt="Latest Release" />
+      <img src="https://img.shields.io/badge/Release-v1.0-10B981?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release" />
     </a>
     <a href="https://github.com/XRTM8/Otium/releases/latest">
-      <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Android-slate?style=for-the-badge&logo=windows&logoColor=white" alt="Platform" />
+      <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Android-047857?style=for-the-badge&logo=windows&logoColor=white" alt="Platform" />
     </a>
     <img src="https://img.shields.io/badge/Rust-Tauri_v2-black?style=for-the-badge&logo=rust&logoColor=white" alt="Rust Tauri" />
-    <img src="https://img.shields.io/badge/Display-120Hz--240Hz_Native-white?style=for-the-badge" alt="High Refresh Rate" />
+    <img src="https://img.shields.io/badge/Display-120Hz--240Hz_Native-emerald?style=for-the-badge" alt="High Refresh Rate" />
     <img src="https://img.shields.io/badge/Privacy-100%25_Offline-000000?style=for-the-badge&logo=shield" alt="Local First" />
     <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" />
   </p>

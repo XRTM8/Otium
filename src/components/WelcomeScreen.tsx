@@ -151,17 +151,17 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
       case 'amoled':
         return {
           containerBg: 'bg-black',
-          glow1: 'bg-white/8',
-          glow2: 'bg-slate-400/5',
-          logoGlow: 'bg-white/25',
-          logoBorder: 'border-white/40',
-          nameGradient: 'from-white via-slate-100 to-slate-400 drop-shadow-[0_0_25px_rgba(255,255,255,0.35)]',
-          dropzoneBorder: 'hover:border-white/50 hover:shadow-[0_16px_40px_rgba(255,255,255,0.15)]',
-          dropzoneIcon: 'bg-gradient-to-tr from-white/20 via-slate-200/10 to-neutral-900 border-white/30 text-white',
-          sampleBtn: 'hover:border-white/40 text-slate-200',
-          fileIconBox: 'bg-white/10 border-white/20 text-white',
-          fileHoverText: 'group-hover:text-white',
-          accentColor: '#ffffff'
+          glow1: 'bg-emerald-500/15',
+          glow2: 'bg-teal-600/10',
+          logoGlow: 'bg-emerald-500/30',
+          logoBorder: 'border-emerald-400/40',
+          nameGradient: 'from-white via-emerald-100 to-emerald-400 drop-shadow-[0_0_25px_rgba(16,185,129,0.35)]',
+          dropzoneBorder: 'hover:border-emerald-400/50 hover:shadow-[0_16px_40px_rgba(16,185,129,0.2)]',
+          dropzoneIcon: 'bg-gradient-to-tr from-emerald-500/25 via-emerald-400/15 to-neutral-900 border-emerald-400/35 text-emerald-300',
+          sampleBtn: 'hover:border-emerald-400/40 text-emerald-400',
+          fileIconBox: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+          fileHoverText: 'group-hover:text-emerald-200',
+          accentColor: '#10b981'
         };
       case 'parchment':
         return {
@@ -375,12 +375,16 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
       <div className="relative max-w-xl w-full flex flex-col items-center text-center space-y-6 z-10 pt-8 sm:pt-4">
         
         {/* Brand Header with Theme-morphing Logo and Gradient Name */}
-        <div className="flex flex-col items-center space-y-2.5">
-          <div className="relative group">
-            <div className={`absolute -inset-1.5 rounded-2xl ${style.logoGlow} blur-md opacity-75 group-hover:opacity-100 transition duration-500`} />
-            <div className={`relative p-2 rounded-2xl bg-neutral-900/90 border ${style.logoBorder} shadow-2xl backdrop-blur-2xl transition-all duration-500 overflow-hidden`}>
-              <OtiumLogo size={52} variant="3d" theme={currentTheme} />
-            </div>
+        <div className="flex flex-col items-center space-y-3">
+          <div className="relative group cursor-default">
+            <OtiumLogo
+              size={84}
+              variant="3d"
+              theme={currentTheme}
+              withAura
+              withGlow
+              className="hover:scale-105 transition-transform duration-300"
+            />
           </div>
 
           <h1 className={`text-3xl sm:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r ${style.nameGradient} font-sans transition-all duration-500`}>
@@ -467,7 +471,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 >
                   <div className="flex items-center gap-3 min-w-0 pr-1">
                     <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${style.fileIconBox}`}>
-                      <OtiumLogo theme="amoled" size={22} />
+                      <OtiumLogo theme={currentTheme} size={22} variant="transparent" />
                     </div>
                     <div className="flex flex-col min-w-0 gap-1 text-right">
                       <span className={`truncate font-medium text-xs sm:text-sm text-neutral-200 ${style.fileHoverText} transition-colors`}>
