@@ -71,14 +71,14 @@ export const OtiumLogo: React.FC<OtiumLogoProps> = ({
       case 'amoled':
         return {
           id: 'otiumAmoled',
-          mainStart: '#F0FDF4',
-          mainMid: '#10B981',
-          mainEnd: '#047857',
-          accentStart: '#A7F3D0',
-          accentEnd: '#059669',
-          backStart: '#064E3B',
-          backEnd: '#022C22',
-          spark: '#10B981',
+          mainStart: '#FFFFFF',
+          mainMid: '#F1F5F9',
+          mainEnd: '#94A3B8',
+          accentStart: '#FFFFFF',
+          accentEnd: '#CBD5E1',
+          backStart: '#475569',
+          backEnd: '#1E293B',
+          spark: '#FFFFFF',
           spine: '#FFFFFF'
         };
       case 'parchment':

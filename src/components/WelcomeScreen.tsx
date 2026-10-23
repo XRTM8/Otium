@@ -151,17 +151,17 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
       case 'amoled':
         return {
           containerBg: 'bg-black',
-          glow1: 'bg-emerald-500/10',
-          glow2: 'bg-teal-600/8',
-          logoGlow: 'bg-emerald-500/20',
-          logoBorder: 'border-emerald-400/40',
-          nameGradient: 'from-white via-emerald-100 to-emerald-400 drop-shadow-[0_0_25px_rgba(16,185,129,0.35)]',
-          dropzoneBorder: 'hover:border-emerald-400/50 hover:shadow-[0_16px_40px_rgba(16,185,129,0.2)]',
-          dropzoneIcon: 'bg-gradient-to-tr from-emerald-500/25 via-emerald-400/15 to-neutral-900 border-emerald-400/35 text-emerald-300',
-          sampleBtn: 'hover:border-emerald-400/40 text-emerald-400',
-          fileIconBox: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
-          fileHoverText: 'group-hover:text-emerald-200',
-          accentColor: '#10b981'
+          glow1: 'bg-white/8',
+          glow2: 'bg-slate-400/5',
+          logoGlow: 'bg-white/25',
+          logoBorder: 'border-white/40',
+          nameGradient: 'from-white via-slate-100 to-slate-400 drop-shadow-[0_0_25px_rgba(255,255,255,0.35)]',
+          dropzoneBorder: 'hover:border-white/50 hover:shadow-[0_16px_40px_rgba(255,255,255,0.15)]',
+          dropzoneIcon: 'bg-gradient-to-tr from-white/20 via-slate-200/10 to-neutral-900 border-white/30 text-white',
+          sampleBtn: 'hover:border-white/40 text-slate-200',
+          fileIconBox: 'bg-white/10 border-white/20 text-white',
+          fileHoverText: 'group-hover:text-white',
+          accentColor: '#ffffff'
         };
       case 'parchment':
         return {

@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="./app-icon.png" width="136" height="136" alt="Otium Logo" style="border-radius: 30px; box-shadow: 0 10px 30px rgba(16, 185, 129, 0.35);" />
+  <img src="./app-icon.png" width="136" height="136" alt="Otium Logo" style="border-radius: 30px; box-shadow: 0 10px 35px rgba(255, 255, 255, 0.25);" />
 
   # Otium (أوتيوم)
   ### The Quiet Reader • قارئ المستندات الهادئ
@@ -12,13 +12,13 @@
 
   <p align="center">
     <a href="https://github.com/XRTM8/Otium/releases/latest">
-      <img src="https://img.shields.io/badge/Release-v1.0-10B981?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release" />
+      <img src="https://img.shields.io/badge/Release-v1.0-white?style=for-the-badge&logo=github&logoColor=black" alt="Latest Release" />
     </a>
     <a href="https://github.com/XRTM8/Otium/releases/latest">
-      <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Android-047857?style=for-the-badge&logo=windows&logoColor=white" alt="Platform" />
+      <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Android-slate?style=for-the-badge&logo=windows&logoColor=white" alt="Platform" />
     </a>
     <img src="https://img.shields.io/badge/Rust-Tauri_v2-black?style=for-the-badge&logo=rust&logoColor=white" alt="Rust Tauri" />
-    <img src="https://img.shields.io/badge/Display-120Hz--240Hz_Native-emerald?style=for-the-badge" alt="High Refresh Rate" />
+    <img src="https://img.shields.io/badge/Display-120Hz--240Hz_Native-white?style=for-the-badge" alt="High Refresh Rate" />
     <img src="https://img.shields.io/badge/Privacy-100%25_Offline-000000?style=for-the-badge&logo=shield" alt="Local First" />
     <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" />
   </p>
@@ -108,7 +108,7 @@ Tailor your reading atmosphere to reduce cognitive fatigue:
    - تكبير متجهي ذكي (Pinch-to-zoom) يُكبّر صفحة الكتاب فقط مع الحفاظ على صغر وأناقة القوائم والأزرار.
    - تحديد ونسخ وتظليل النصوص بالضغط المطول.
    - فتح أي ملف PDF تلقائياً بمجرد النقر عليه من مدير الملفات أو واتساب.
-4. **شعار وأيقونة AMOLED الزمردية الفاخرة:** هوية بصرية مريحة للعين بخلفية سوداء مطلقة تحافظ على بطارية هواتف OLED وتمنح التطبيق حضوراً بصرياً فريداً.
+4. **شعار وأيقونة AMOLED الكريستالية البيضاء الفاخرة:** هوية بصرية بلورية مريحة للعين بخلفية سوداء مطلقة تحافظ على بطارية هواتف OLED وتمنح التطبيق حضوراً بصرياً فريداً.
 5. **خصوصية مطلقة (100% Local-First):** لا يحتاج إلى إنترنت، لا يحتوي على أي تتبّع، ويحفظ آخر صفحة وصلت إليها في كل كتاب تلقائياً.
 
 ---
