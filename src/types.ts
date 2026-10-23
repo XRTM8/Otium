@@ -1,4 +1,4 @@
-export type ThemeMode = 'paper' | 'midnight' | 'eink' | 'amber' | 'pure';
+export type ThemeMode = 'paper' | 'midnight' | 'eink' | 'amber' | 'pure' | 'amoled' | 'parchment';
 
 export type ViewMode = 'continuous' | 'single' | 'dual';
 

@@ -125,8 +125,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   const themes: { id: ThemeMode; label: string; dot: string }[] = [
     { id: 'paper', label: t.themes.paper, dot: '#d4c5a9' },
     { id: 'midnight', label: t.themes.midnight, dot: '#38bdf8' },
-    { id: 'eink', label: t.themes.eink, dot: '#a3a3a3' },
+    { id: 'amoled', label: t.themes.amoled, dot: '#10b981' },
+    { id: 'parchment', label: t.themes.parchment, dot: '#d97706' },
     { id: 'amber', label: t.themes.amber, dot: '#f59e0b' },
+    { id: 'eink', label: t.themes.eink, dot: '#a3a3a3' },
     { id: 'pure', label: t.themes.pure, dot: '#818cf8' }
   ];
 
@@ -428,7 +430,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           {/* Themes Swatches */}
           <div className="pt-2 border-t border-white/10 space-y-1.5">
             <div className="text-[10px] text-neutral-400 font-mono">{t.readingThemesTitle}</div>
-            <div className="grid grid-cols-5 gap-1.5">
+            <div className="grid grid-cols-4 gap-1.5">
               {themes.map((th) => {
                 const isSelected = theme === th.id;
                 return (

@@ -48,6 +48,28 @@ export const OtiumLogo: React.FC<OtiumLogoProps> = ({
           spark: '#F59E0B',
           spine: '#FFFFFF'
         };
+      case 'amoled':
+        return {
+          id: 'otiumAmoled',
+          mainStart: '#F0FDF4',
+          mainMid: '#10B981',
+          mainEnd: '#047857',
+          accentStart: '#A7F3D0',
+          accentEnd: '#059669',
+          spark: '#10B981',
+          spine: '#FFFFFF'
+        };
+      case 'parchment':
+        return {
+          id: 'otiumParchment',
+          mainStart: '#FEF9C3',
+          mainMid: '#CA8A04',
+          mainEnd: '#78350F',
+          accentStart: '#FDE047',
+          accentEnd: '#92400E',
+          spark: '#D97706',
+          spine: '#FEF08A'
+        };
       case 'pure':
         return {
           id: 'otiumPure',

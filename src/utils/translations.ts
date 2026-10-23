@@ -9,6 +9,8 @@ export interface Translations {
     eink: string;
     amber: string;
     pure: string;
+    amoled: string;
+    parchment: string;
   };
   dropzoneTitle: string;
   dropzoneSubtitle: string;
@@ -55,7 +57,9 @@ export const translations: Record<Language, Translations> = {
       midnight: 'Midnight (ليلي عميق)',
       eink: 'E-Ink (حبر إلكتروني)',
       amber: 'Amber (كهرماني هادئ)',
-      pure: 'Pure (أبيض استوديو)'
+      pure: 'Pure (أبيض استوديو)',
+      amoled: 'AMOLED (أسود مطلق)',
+      parchment: 'Parchment (ورق تاريخي)'
     },
     dropzoneTitle: 'اسحب وأفلت ملف PDF هنا',
     dropzoneSubtitle: 'أو انقر للاستعراض من جهازك',
@@ -100,7 +104,9 @@ export const translations: Record<Language, Translations> = {
       midnight: 'Midnight (OLED Dark)',
       eink: 'E-Ink (Monochrome)',
       amber: 'Amber (Low Blue Light)',
-      pure: 'Pure (Studio Titanium)'
+      pure: 'Pure (Studio Titanium)',
+      amoled: 'AMOLED (Pitch Black)',
+      parchment: 'Parchment (Historic Codex)'
     },
     dropzoneTitle: 'Drag & drop a PDF file here',
     dropzoneSubtitle: 'or click to browse from your device',

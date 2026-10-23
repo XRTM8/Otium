@@ -63,8 +63,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   const themesList: { id: ThemeMode; label: string; dot: string }[] = [
     { id: 'paper', label: t.themes.paper, dot: '#d4c5a9' },
     { id: 'midnight', label: t.themes.midnight, dot: '#38bdf8' },
-    { id: 'eink', label: t.themes.eink, dot: '#a3a3a3' },
+    { id: 'amoled', label: t.themes.amoled, dot: '#10b981' },
+    { id: 'parchment', label: t.themes.parchment, dot: '#d97706' },
     { id: 'amber', label: t.themes.amber, dot: '#f59e0b' },
+    { id: 'eink', label: t.themes.eink, dot: '#a3a3a3' },
     { id: 'pure', label: t.themes.pure, dot: '#818cf8' }
   ];
 
@@ -144,8 +146,39 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   // Comprehensive Theme Styling Engine that modifies EVERYTHING (Logo, Name, Glows, Borders, Cards)
   const getThemeStyling = () => {
     switch (currentTheme) {
+      case 'amoled':
+        return {
+          containerBg: 'bg-black',
+          glow1: 'bg-emerald-500/10',
+          glow2: 'bg-teal-600/8',
+          logoGlow: 'bg-emerald-500/20',
+          logoBorder: 'border-emerald-400/40',
+          nameGradient: 'from-white via-emerald-100 to-emerald-400 drop-shadow-[0_0_25px_rgba(16,185,129,0.35)]',
+          dropzoneBorder: 'hover:border-emerald-400/50 hover:shadow-[0_16px_40px_rgba(16,185,129,0.2)]',
+          dropzoneIcon: 'bg-gradient-to-tr from-emerald-500/25 via-emerald-400/15 to-neutral-900 border-emerald-400/35 text-emerald-300',
+          sampleBtn: 'hover:border-emerald-400/40 text-emerald-400',
+          fileIconBox: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+          fileHoverText: 'group-hover:text-emerald-200',
+          accentColor: '#10b981'
+        };
+      case 'parchment':
+        return {
+          containerBg: 'bg-gradient-to-b from-[#16100a] via-[#0f0b07] to-black',
+          glow1: 'bg-amber-600/16',
+          glow2: 'bg-yellow-700/12',
+          logoGlow: 'bg-amber-600/25',
+          logoBorder: 'border-amber-500/40',
+          nameGradient: 'from-amber-100 via-yellow-200 to-amber-600 drop-shadow-[0_0_25px_rgba(217,119,6,0.35)]',
+          dropzoneBorder: 'hover:border-amber-500/50 hover:shadow-[0_16px_40px_rgba(217,119,6,0.22)]',
+          dropzoneIcon: 'bg-gradient-to-tr from-amber-600/25 via-yellow-500/15 to-neutral-800 border-amber-500/35 text-amber-300',
+          sampleBtn: 'hover:border-amber-500/40 text-amber-400',
+          fileIconBox: 'bg-amber-600/10 border-amber-600/20 text-amber-400',
+          fileHoverText: 'group-hover:text-amber-200',
+          accentColor: '#d97706'
+        };
       case 'midnight':
         return {
+          containerBg: 'bg-gradient-to-b from-[#060a14] via-[#04060d] to-black',
           glow1: 'bg-sky-500/18',
           glow2: 'bg-indigo-600/22',
           logoGlow: 'bg-sky-500/25',
@@ -160,6 +193,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         };
       case 'amber':
         return {
+          containerBg: 'bg-gradient-to-b from-[#140d06] via-[#0d0803] to-black',
           glow1: 'bg-amber-600/22',
           glow2: 'bg-orange-600/18',
           logoGlow: 'bg-orange-500/25',
@@ -174,6 +208,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         };
       case 'eink':
         return {
+          containerBg: 'bg-gradient-to-b from-neutral-950 via-neutral-900 to-black',
           glow1: 'bg-neutral-500/12',
           glow2: 'bg-neutral-700/12',
           logoGlow: 'bg-neutral-300/15',
@@ -188,6 +223,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         };
       case 'pure':
         return {
+          containerBg: 'bg-gradient-to-b from-[#090b14] via-[#06070e] to-black',
           glow1: 'bg-indigo-500/18',
           glow2: 'bg-sky-500/14',
           logoGlow: 'bg-indigo-500/22',
@@ -203,6 +239,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
       case 'paper':
       default:
         return {
+          containerBg: 'bg-gradient-to-b from-neutral-950 via-[#100e0a] to-black',
           glow1: 'bg-amber-500/14',
           glow2: 'bg-yellow-600/10',
           logoGlow: 'bg-amber-500/20',
@@ -223,7 +260,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   return (
     <div
       dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
-      className="relative min-h-screen w-full flex flex-col items-center justify-center p-6 bg-gradient-to-b from-neutral-950 via-[#0e0d0b] to-black text-neutral-100 select-none overflow-hidden transition-colors duration-700"
+      className={`relative min-h-screen w-full flex flex-col items-center justify-center p-6 ${style.containerBg} text-neutral-100 select-none overflow-hidden transition-colors duration-700`}
     >
       
       {/* Top Floating Action Bar (Clean Dropdown-only Theme Picker + Language Switcher) */}

@@ -128,47 +128,67 @@
 /* Themes styling classes */
 .theme-paper {
   --bg-color: #f7f3e8;
-  --panel-bg: rgba(247, 243, 232, 0.85);
+  --panel-bg: rgba(247, 243, 232, 0.9);
   --text-primary: #2d261e;
   --text-secondary: #74685a;
-  --border-color: rgba(116, 104, 90, 0.15);
-  --pdf-filter: sepia(0.35) contrast(0.96) brightness(0.98);
+  --border-color: rgba(116, 104, 90, 0.18);
+  --pdf-filter: sepia(0.28) contrast(0.98) brightness(0.97);
 }
 
 .theme-midnight {
-  --bg-color: #0b0f17;
-  --panel-bg: rgba(15, 23, 42, 0.85);
-  --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
-  --border-color: rgba(148, 163, 184, 0.12);
-  --pdf-filter: invert(0.92) hue-rotate(180deg) contrast(0.95) brightness(0.9);
+  --bg-color: #06090f;
+  --panel-bg: rgba(10, 15, 26, 0.9);
+  --text-primary: #e0f2fe;
+  --text-secondary: #7dd3fc;
+  --border-color: rgba(56, 189, 248, 0.15);
+  --pdf-filter: invert(0.93) hue-rotate(185deg) contrast(0.98) brightness(0.92);
 }
 
 .theme-eink {
   --bg-color: #e5e5e5;
-  --panel-bg: rgba(229, 229, 229, 0.9);
-  --text-primary: #171717;
-  --text-secondary: #525252;
-  --border-color: rgba(0, 0, 0, 0.15);
-  --pdf-filter: grayscale(1) contrast(1.1) brightness(0.96);
+  --panel-bg: rgba(229, 229, 229, 0.92);
+  --text-primary: #121212;
+  --text-secondary: #404040;
+  --border-color: rgba(0, 0, 0, 0.2);
+  --pdf-filter: grayscale(1) contrast(1.15) brightness(0.95);
 }
 
 .theme-amber {
-  --bg-color: #1a1612;
-  --panel-bg: rgba(30, 24, 18, 0.85);
-  --text-primary: #f5eedc;
-  --text-secondary: #b8a68c;
-  --border-color: rgba(184, 166, 140, 0.15);
-  --pdf-filter: sepia(0.65) hue-rotate(-20deg) invert(0.9) brightness(0.9);
+  --bg-color: #150f0a;
+  --panel-bg: rgba(28, 18, 12, 0.9);
+  --text-primary: #fef3c7;
+  --text-secondary: #f59e0b;
+  --border-color: rgba(245, 158, 11, 0.18);
+  --pdf-filter: sepia(0.7) hue-rotate(-22deg) invert(0.92) brightness(0.88);
 }
 
 .theme-pure {
   --bg-color: #f8fafc;
-  --panel-bg: rgba(255, 255, 255, 0.88);
+  --panel-bg: rgba(255, 255, 255, 0.92);
   --text-primary: #0f172a;
-  --text-secondary: #64748b;
-  --border-color: rgba(226, 232, 240, 0.8);
+  --text-secondary: #475569;
+  --border-color: rgba(148, 163, 184, 0.25);
   --pdf-filter: none;
+}
+
+/* New: AMOLED True Pitch Black (#000000) for OLED mobile screens */
+.theme-amoled {
+  --bg-color: #000000;
+  --panel-bg: rgba(0, 0, 0, 0.95);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --border-color: rgba(255, 255, 255, 0.15);
+  --pdf-filter: invert(1) hue-rotate(180deg) contrast(1.08) brightness(0.94);
+}
+
+/* New: Historical Manuscript / Antique Parchment */
+.theme-parchment {
+  --bg-color: #ede2cd;
+  --panel-bg: rgba(237, 226, 205, 0.92);
+  --text-primary: #2a1c0d;
+  --text-secondary: #63472b;
+  --border-color: rgba(99, 71, 43, 0.22);
+  --pdf-filter: sepia(0.6) saturate(1.25) contrast(0.95) brightness(0.94);
 }
 
 /* Ambient glow breathing animations */

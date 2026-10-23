@@ -417,11 +417,15 @@ export const App: React.FC = () => {
       case 'paper':
         return '#f4ede1';
       case 'midnight':
-        return '#080c14';
+        return '#06090f';
       case 'eink':
         return '#dfdfdf';
       case 'amber':
         return '#14100c';
+      case 'amoled':
+        return '#000000';
+      case 'parchment':
+        return '#ede2cd';
       case 'pure':
       default:
         return '#f1f5f9';
