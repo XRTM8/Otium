@@ -49,7 +49,7 @@ export interface Translations {
   resetDefaults: string;
 }
 
-export const translations: Record<Language, Translations> = {
+const translations: Record<Language, Translations> = {
   ar: {
     themeLabel: 'بيئة القراءة',
     themes: {

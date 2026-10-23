@@ -1,17 +1,5 @@
 // High-Performance Device, Screen & Refresh Rate (Hz) Engine
 
-export interface DeviceProfile {
-  deviceType: 'mobile' | 'tablet' | 'desktop';
-  dpr: number;
-  screenWidth: number;
-  screenHeight: number;
-  physicalWidth: number;
-  physicalHeight: number;
-  refreshRateHz: number;
-  isHighRefresh: boolean; // >= 90Hz (ProMotion, 120Hz, 144Hz, etc.)
-  isTouch: boolean;
-}
-
 // Live refresh rate detector using requestAnimationFrame timestamp deltas
 let cachedRefreshRate: number = 60;
 let hasMeasuredRefreshRate = false;
@@ -61,46 +49,6 @@ export function measureRefreshRate(callback?: (hz: number) => void): void {
   }
 
   requestAnimationFrame(sample);
-}
-
-export function getDeviceProfile(): DeviceProfile {
-  if (typeof window === 'undefined') {
-    return {
-      deviceType: 'desktop',
-      dpr: 1,
-      screenWidth: 1920,
-      screenHeight: 1080,
-      physicalWidth: 1920,
-      physicalHeight: 1080,
-      refreshRateHz: 60,
-      isHighRefresh: false,
-      isTouch: false
-    };
-  }
-
-  const dpr = window.devicePixelRatio || 1;
-  const screenW = window.innerWidth;
-  const screenH = window.innerHeight;
-  const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-
-  let deviceType: 'mobile' | 'tablet' | 'desktop' = 'desktop';
-  if (screenW < 640) {
-    deviceType = 'mobile';
-  } else if (screenW < 1024) {
-    deviceType = 'tablet';
-  }
-
-  return {
-    deviceType,
-    dpr,
-    screenWidth: screenW,
-    screenHeight: screenH,
-    physicalWidth: Math.round(screenW * dpr),
-    physicalHeight: Math.round(screenH * dpr),
-    refreshRateHz: cachedRefreshRate,
-    isHighRefresh: cachedRefreshRate >= 90,
-    isTouch
-  };
 }
 
 // Compute the optimal razor-sharp scale for a PDF page given container size and view mode

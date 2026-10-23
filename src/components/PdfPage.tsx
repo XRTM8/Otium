@@ -39,12 +39,6 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   const lastRenderedScaleRef = useRef<number>(0);
   const lastRenderedPageRef = useRef<number | null>(null);
 
-  // Reset rendered state when page number changes so fresh canvas is drawn
-  useEffect(() => {
-    setHasRenderedOnce(false);
-    lastRenderedScaleRef.current = 0;
-  }, [pageNumber]);
-
   // Computed page dimensions
   const standardWidth = Math.round(600 * scale);
   const standardHeight = Math.round(standardWidth / (baseAspectRatio || 0.707));

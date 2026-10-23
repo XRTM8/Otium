@@ -54,11 +54,7 @@ const PageSlot: React.FC<PageSlotProps> = ({
   onPageVisible
 }) => {
   const slotRef = useRef<HTMLDivElement>(null);
-  const [shouldRender, setShouldRender] = useState(isNear);
-
-  useEffect(() => {
-    setShouldRender(isNear);
-  }, [isNear]);
+  const shouldRender = isNear;
 
   useEffect(() => {
     const el = slotRef.current;
@@ -122,7 +118,7 @@ const PageSlot: React.FC<PageSlotProps> = ({
   );
 };
 
-export const App: React.FC = () => {
+const App: React.FC = () => {
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
   const [docTitle, setDocTitle] = useState<string>('');
   const [numPages, setNumPages] = useState<number>(0);
@@ -285,6 +281,8 @@ export const App: React.FC = () => {
   }, [isSettingsOpen, isSearchOpen, isSidebarOpen, doc]);
 
   // Incoming PDF Handler (Android Intent or Windows Open-With)
+  const loadPdfDataRef = useRef<(data: ArrayBuffer, title: string) => Promise<void>>(() => Promise.resolve());
+
   useEffect(() => {
     const loadFromBase64 = (base64Data: string, fileName: string) => {
       try {
@@ -294,7 +292,7 @@ export const App: React.FC = () => {
         for (let i = 0; i < len; i++) {
           bytes[i] = binaryString.charCodeAt(i);
         }
-        loadPdfData(bytes.buffer, fileName);
+        loadPdfDataRef.current(bytes.buffer, fileName);
       } catch (err) {
         console.error('Failed to parse incoming PDF:', err);
       }
@@ -317,7 +315,7 @@ export const App: React.FC = () => {
             invoke('read_pdf_bytes', { path: initial.path }).then((bytes: any) => {
               if (bytes && bytes.length) {
                 const arr = new Uint8Array(bytes);
-                loadPdfData(arr.buffer, initial.name || 'document.pdf');
+                loadPdfDataRef.current(arr.buffer, initial.name || 'document.pdf');
               }
             }).catch(() => {});
           }
@@ -598,6 +596,10 @@ export const App: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadPdfDataRef.current = loadPdfData;
+  });
 
   const handleOpenFile = async (file: File) => {
     const arrayBuffer = await file.arrayBuffer();
