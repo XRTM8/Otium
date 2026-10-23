@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { X, BookOpen, Layers } from 'lucide-react';
-import type { TocItem } from '../types';
+import {
+  X,
+  BookOpen,
+  Layers,
+  Bookmark,
+  Highlighter,
+  Trash2,
+  ExternalLink,
+  Plus
+} from 'lucide-react';
+import type { TocItem, BookmarkItem, TextAnnotation } from '../types';
 import type { Language } from '../utils/translations';
 import { getTranslations } from '../utils/translations';
 
@@ -11,7 +20,12 @@ interface SidebarProps {
   totalPages: number;
   currentPage: number;
   lang?: Language;
+  bookmarks?: BookmarkItem[];
+  annotations?: TextAnnotation[];
   onSelectPage: (page: number) => void;
+  onToggleBookmark?: (pageNumber: number) => void;
+  onDeleteAnnotation?: (id: string) => void;
+  onOpenExport?: () => void;
   onClose: () => void;
 }
 
@@ -21,10 +35,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   totalPages,
   currentPage,
   lang = 'ar',
+  bookmarks = [],
+  annotations = [],
   onSelectPage,
+  onToggleBookmark,
+  onDeleteAnnotation,
+  onOpenExport,
   onClose
 }) => {
-  const [tab, setTab] = useState<'pages' | 'toc'>('pages');
+  const [tab, setTab] = useState<'pages' | 'toc' | 'bookmarks' | 'notes'>('pages');
   const [toc, setToc] = useState<TocItem[]>([]);
   const t = getTranslations(lang);
 
@@ -65,54 +84,88 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   if (!isOpen) return null;
 
+  const isCurrentPageBookmarked = bookmarks.some((b) => b.pageNumber === currentPage);
+
   return (
-    <div className="fixed inset-y-0 left-0 z-50 flex">
+    <div
+      dir={lang === 'ar' ? 'rtl' : 'ltr'}
+      className="fixed inset-y-0 right-0 sm:right-auto sm:left-0 z-50 flex"
+    >
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
         onClick={onClose}
       />
 
       {/* Drawer */}
-      <div className="relative w-80 max-w-[85vw] h-full bg-neutral-900/95 text-neutral-200 border-r border-white/10 shadow-2xl backdrop-blur-2xl flex flex-col z-10 animate-in slide-in-from-left duration-300">
-        {/* Header */}
-        <div className="p-4 border-b border-white/10 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+      <div className="relative w-84 max-w-[90vw] h-full bg-neutral-900/98 text-neutral-200 border-x border-white/10 shadow-2xl backdrop-blur-2xl flex flex-col z-10 animate-in slide-in-from-right sm:slide-in-from-left duration-300">
+        
+        {/* Header Tabs */}
+        <div className="p-3 border-b border-white/10 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-1 overflow-x-auto pr-1">
             <button
               onClick={() => setTab('pages')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                tab === 'pages' ? 'bg-white/15 text-white' : 'text-neutral-400 hover:text-white'
+              className={`p-1.5 px-2 rounded-xl text-xs font-medium transition-colors flex items-center gap-1 shrink-0 ${
+                tab === 'pages' ? 'bg-amber-400/20 text-amber-300 font-semibold' : 'text-neutral-400 hover:text-white'
               }`}
+              title={t.pagesTab}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>{t.pagesTab} ({totalPages})</span>
+              <span>{t.pagesTab}</span>
             </button>
+
             <button
               onClick={() => setTab('toc')}
               disabled={toc.length === 0}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-30 ${
-                tab === 'toc' ? 'bg-white/15 text-white' : 'text-neutral-400 hover:text-white'
+              className={`p-1.5 px-2 rounded-xl text-xs font-medium transition-colors flex items-center gap-1 shrink-0 disabled:opacity-30 ${
+                tab === 'toc' ? 'bg-amber-400/20 text-amber-300 font-semibold' : 'text-neutral-400 hover:text-white'
               }`}
+              title={t.outlineTab}
             >
               <BookOpen className="w-3.5 h-3.5" />
-              <span>{t.outlineTab} {toc.length > 0 && `(${toc.length})`}</span>
+              <span>{t.outlineTab}</span>
+            </button>
+
+            <button
+              onClick={() => setTab('bookmarks')}
+              className={`p-1.5 px-2 rounded-xl text-xs font-medium transition-colors flex items-center gap-1 shrink-0 ${
+                tab === 'bookmarks' ? 'bg-amber-400/20 text-amber-300 font-semibold' : 'text-neutral-400 hover:text-white'
+              }`}
+              title={t.bookmarksTab}
+            >
+              <Bookmark className="w-3.5 h-3.5" />
+              <span>{t.bookmarksTab} ({bookmarks.length})</span>
+            </button>
+
+            <button
+              onClick={() => setTab('notes')}
+              className={`p-1.5 px-2 rounded-xl text-xs font-medium transition-colors flex items-center gap-1 shrink-0 ${
+                tab === 'notes' ? 'bg-amber-400/20 text-amber-300 font-semibold' : 'text-neutral-400 hover:text-white'
+              }`}
+              title={t.highlightsTab}
+            >
+              <Highlighter className="w-3.5 h-3.5" />
+              <span>{annotations.length}</span>
             </button>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {tab === 'pages' ? (
-            <div className="grid grid-cols-2 gap-3">
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          
+          {/* TAB 1: Pages Grid */}
+          {tab === 'pages' && (
+            <div className="grid grid-cols-2 gap-2.5">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
                 const isCurrent = pageNum === currentPage;
+                const isBookmarked = bookmarks.some((b) => b.pageNumber === pageNum);
                 return (
                   <button
                     key={pageNum}
@@ -120,13 +173,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       onSelectPage(pageNum);
                       onClose();
                     }}
-                    className={`group flex flex-col items-center justify-center p-3 rounded-xl border text-xs font-mono transition-all ${
+                    className={`group relative flex flex-col items-center justify-center p-2.5 rounded-2xl border text-xs font-mono transition-all cursor-pointer ${
                       isCurrent
-                        ? 'border-amber-500 bg-amber-500/15 text-amber-300 shadow-md ring-1 ring-amber-500/50'
+                        ? 'border-amber-400 bg-amber-400/15 text-amber-300 shadow-md ring-1 ring-amber-400/40'
                         : 'border-white/5 bg-white/5 hover:border-white/20 hover:bg-white/10 text-neutral-300'
                     }`}
                   >
-                    <div className="w-12 h-16 rounded border border-white/10 bg-neutral-800 flex items-center justify-center mb-1 group-hover:scale-105 transition-transform shadow">
+                    {isBookmarked && (
+                      <Bookmark className="absolute top-1.5 right-1.5 w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                    )}
+                    <div className="w-12 h-16 rounded-lg border border-white/10 bg-neutral-800 flex items-center justify-center mb-1 group-hover:scale-105 transition-transform shadow-xs">
                       <span className="text-[11px] opacity-60">{pageNum}</span>
                     </div>
                     <span className="text-[11px]">صفحة {pageNum}</span>
@@ -134,10 +190,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 );
               })}
             </div>
-          ) : (
+          )}
+
+          {/* TAB 2: Table of Contents */}
+          {tab === 'toc' && (
             <div className="space-y-1">
               {toc.length === 0 ? (
-                <div className="py-8 text-center text-xs text-neutral-500">لا يحتوي هذا المستند على فهرس عناوين</div>
+                <div className="py-12 text-center text-xs text-neutral-500 font-sans">
+                  لا يحتوي هذا المستند على فهرس عناوين مدمج
+                </div>
               ) : (
                 toc.map((item, idx) => (
                   <button
@@ -146,14 +207,143 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       onSelectPage(item.pageNumber);
                       onClose();
                     }}
-                    className="w-full text-right px-3 py-2 rounded-lg text-xs hover:bg-white/10 transition-colors flex items-center justify-between group"
+                    className="w-full text-right px-3 py-2.5 rounded-xl text-xs hover:bg-white/10 transition-colors flex items-center justify-between group cursor-pointer"
                   >
-                    <span className="truncate flex-1 group-hover:text-amber-300 transition-colors">{item.title}</span>
-                    <span className="font-mono text-[10px] opacity-40 ml-2 group-hover:opacity-80">
+                    <span className="truncate flex-1 group-hover:text-amber-300 transition-colors font-sans">
+                      {item.title}
+                    </span>
+                    <span className="font-mono text-[10px] opacity-40 group-hover:opacity-80 shrink-0">
                       ص {item.pageNumber}
                     </span>
                   </button>
                 ))
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: Bookmarks */}
+          {tab === 'bookmarks' && (
+            <div className="space-y-3">
+              {/* Quick Add Bookmark for Current Page */}
+              <button
+                onClick={() => onToggleBookmark?.(currentPage)}
+                className="w-full py-2.5 px-3 rounded-2xl bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 text-amber-300 font-sans text-xs flex items-center justify-center gap-2 transition-all cursor-pointer font-medium"
+              >
+                {isCurrentPageBookmarked ? (
+                  <>
+                    <Bookmark className="w-4 h-4 fill-amber-400 text-amber-400" />
+                    <span>{t.removeBookmark} (صفحة {currentPage})</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4" />
+                    <span>{t.addBookmark} (صفحة {currentPage})</span>
+                  </>
+                )}
+              </button>
+
+              {bookmarks.length === 0 ? (
+                <div className="py-10 text-center text-xs text-neutral-500 font-sans">
+                  {t.noBookmarks}
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {bookmarks.map((bm) => (
+                    <div
+                      key={bm.id}
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-all text-xs"
+                    >
+                      <button
+                        onClick={() => {
+                          onSelectPage(bm.pageNumber);
+                          onClose();
+                        }}
+                        className="flex items-center gap-2 text-right flex-1 truncate cursor-pointer hover:text-amber-300 transition-colors"
+                      >
+                        <Bookmark className="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0" />
+                        <span className="font-sans font-medium">
+                          صفحة {bm.pageNumber}
+                        </span>
+                        <span className="text-[10px] text-neutral-500 font-mono">
+                          {new Date(bm.createdAt).toLocaleDateString()}
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => onToggleBookmark?.(bm.pageNumber)}
+                        title="حذف الإشارة"
+                        className="p-1 rounded-lg text-neutral-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 4: Notes & Highlights */}
+          {tab === 'notes' && (
+            <div className="space-y-3">
+              {annotations.length > 0 && onOpenExport && (
+                <button
+                  onClick={() => {
+                    onClose();
+                    onOpenExport();
+                  }}
+                  className="w-full py-2 px-3 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 text-white font-sans text-xs flex items-center justify-center gap-2 transition-all cursor-pointer font-medium"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
+                  <span>{t.exportQuotes} ({annotations.length})</span>
+                </button>
+              )}
+
+              {annotations.length === 0 ? (
+                <div className="py-12 text-center text-xs text-neutral-500 font-sans">
+                  {t.noQuotes}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {annotations.map((anno) => (
+                    <div
+                      key={anno.id}
+                      className="p-2.5 rounded-xl bg-white/5 border border-white/5 hover:border-white/15 transition-all text-right space-y-1 group"
+                    >
+                      <div className="flex items-center justify-between text-[10px] text-neutral-400 font-mono">
+                        <button
+                          onClick={() => {
+                            onSelectPage(anno.pageNumber);
+                            onClose();
+                          }}
+                          className="flex items-center gap-1.5 hover:text-amber-300 transition-colors cursor-pointer"
+                        >
+                          <span
+                            className="w-2 h-2 rounded-full border border-black/30"
+                            style={{ backgroundColor: anno.color }}
+                          />
+                          <span>ص {anno.pageNumber}</span>
+                        </button>
+                        <button
+                          onClick={() => onDeleteAnnotation?.(anno.id)}
+                          title="حذف"
+                          className="opacity-0 group-hover:opacity-100 hover:text-rose-400 transition-opacity cursor-pointer p-0.5"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <p
+                        onClick={() => {
+                          onSelectPage(anno.pageNumber);
+                          onClose();
+                        }}
+                        className="text-[11px] text-neutral-200 leading-relaxed font-sans line-clamp-3 cursor-pointer hover:text-amber-200"
+                      >
+                        "{anno.text}"
+                      </p>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           )}

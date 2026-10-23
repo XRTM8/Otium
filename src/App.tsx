@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { pdfjsLib } from './utils/pdfWorker';
-import type { ThemeMode, ViewMode, PaperStyle, TextAnnotation, FontFamilyId } from './types';
+import type { ThemeMode, ViewMode, PaperStyle, TextAnnotation, FontFamilyId, BookmarkItem } from './types';
 import type { Language } from './utils/translations';
 import { getTranslations } from './utils/translations';
 import { WelcomeScreen } from './components/WelcomeScreen';
@@ -11,10 +11,13 @@ import { FocusRuler } from './components/FocusRuler';
 import { Sidebar } from './components/Sidebar';
 import { ShortcutsModal } from './components/ShortcutsModal';
 import { SettingsModal } from './components/SettingsModal';
+import { PasswordModal } from './components/PasswordModal';
+import { ExportHighlightsModal } from './components/ExportHighlightsModal';
 import { Toast, type ToastMessage } from './components/Toast';
 import { SearchBar } from './components/SearchBar';
 import { TextSelectionMenu } from './components/TextSelectionMenu';
 import { getStoredAnnotations, saveStoredAnnotations } from './utils/annotations';
+import { getStoredBookmarks, saveStoredBookmarks } from './utils/bookmarks';
 import { getSavedFont, saveFont, applyFontFamily } from './utils/fonts';
 import {
   saveDocumentToStorage,
@@ -31,6 +34,7 @@ interface PageSlotProps {
   paperStyle: PaperStyle;
   annotations: TextAnnotation[];
   onDeleteAnnotation: (id: string) => void;
+  onNavigateToPage?: (page: number) => void;
   baseAspectRatio: number;
   searchQuery?: string;
   isCurrentSearchPage?: boolean;
@@ -46,6 +50,7 @@ const PageSlot: React.FC<PageSlotProps> = ({
   paperStyle,
   annotations,
   onDeleteAnnotation,
+  onNavigateToPage,
   baseAspectRatio,
   searchQuery,
   isCurrentSearchPage,
@@ -104,6 +109,7 @@ const PageSlot: React.FC<PageSlotProps> = ({
           paperStyle={paperStyle}
           annotations={annotations}
           onDeleteAnnotation={onDeleteAnnotation}
+          onNavigateToPage={onNavigateToPage}
           baseAspectRatio={baseAspectRatio}
           searchQuery={searchQuery}
           isCurrentSearchPage={isCurrentSearchPage}
@@ -174,6 +180,54 @@ export const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeSearchPage, setActiveSearchPage] = useState<number | null>(null);
   const [annotations, setAnnotations] = useState<TextAnnotation[]>([]);
+  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
+  const [isExportHighlightsOpen, setIsExportHighlightsOpen] = useState<boolean>(false);
+  const [dimmerOpacity, setDimmerOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('otium_dimmer');
+    return saved ? parseFloat(saved) : 0;
+  });
+  const [passwordModal, setPasswordModal] = useState<{
+    isOpen: boolean;
+    isIncorrect: boolean;
+    callback: ((pwd: string) => void) | null;
+    title: string;
+  }>({
+    isOpen: false,
+    isIncorrect: false,
+    callback: null,
+    title: ''
+  });
+
+  const handleDimmerChange = (val: number) => {
+    setDimmerOpacity(val);
+    localStorage.setItem('otium_dimmer', val.toString());
+  };
+
+  const handlePasswordSubmit = (password: string) => {
+    if (passwordModal.callback) {
+      setIsLoading(true);
+      passwordModal.callback(password);
+    }
+  };
+
+  const handlePasswordCancel = () => {
+    setPasswordModal({ isOpen: false, isIncorrect: false, callback: null, title: '' });
+    setIsLoading(false);
+  };
+
+  const handleToggleBookmark = (pageNum: number) => {
+    setBookmarks((prev) => {
+      const exists = prev.some((b) => b.pageNumber === pageNum);
+      const updated = exists
+        ? prev.filter((b) => b.pageNumber !== pageNum)
+        : [...prev, { id: `bm_${Date.now()}`, pageNumber: pageNum, createdAt: Date.now() }];
+      if (docTitle) {
+        saveStoredBookmarks(docTitle, updated);
+      }
+      showToast(exists ? 'تمت إزالة الإشارة المرجعية' : `تمت إضافة إشارة مرجعية لصفحة ${pageNum}`, 'info');
+      return updated;
+    });
+  };
 
   const handleAddAnnotation = (anno: TextAnnotation) => {
     setAnnotations((prev) => {
@@ -284,11 +338,24 @@ export const App: React.FC = () => {
         wasmUrl: `${baseUrl}/wasm/`,
         enableXfa: true,
       });
+
+      loadingTask.onPassword = (callback: (pwd: string) => void, reason: number) => {
+        setIsLoading(false);
+        setPasswordModal({
+          isOpen: true,
+          isIncorrect: reason === 2, // 1: NEED_PASSWORD, 2: INCORRECT_PASSWORD
+          callback,
+          title,
+        });
+      };
+
       const loadedDoc = await loadingTask.promise;
+      setPasswordModal({ isOpen: false, isIncorrect: false, callback: null, title: '' });
       setDoc(loadedDoc);
       setDocTitle(title);
       setNumPages(loadedDoc.numPages);
       setAnnotations(getStoredAnnotations(title));
+      setBookmarks(getStoredBookmarks(title));
 
       try {
         const p1 = await loadedDoc.getPage(1);
@@ -399,7 +466,9 @@ export const App: React.FC = () => {
       switch (e.key.toLowerCase()) {
         case 'j':
         case 'arrowdown':
-          if (viewMode === 'single') {
+          if (viewMode === 'dual') {
+            scrollToPage(Math.min(numPages, currentPage + 2));
+          } else if (viewMode === 'single') {
             scrollToPage(Math.min(numPages, currentPage + 1));
           } else {
             scrollContainerRef.current?.scrollBy({ top: 180, behavior: 'smooth' });
@@ -407,7 +476,9 @@ export const App: React.FC = () => {
           break;
         case 'k':
         case 'arrowup':
-          if (viewMode === 'single') {
+          if (viewMode === 'dual') {
+            scrollToPage(Math.max(1, currentPage - 2));
+          } else if (viewMode === 'single') {
             scrollToPage(Math.max(1, currentPage - 1));
           } else {
             scrollContainerRef.current?.scrollBy({ top: -180, behavior: 'smooth' });
@@ -549,11 +620,15 @@ export const App: React.FC = () => {
             currentLang={lang}
             isFocusRulerActive={isFocusRulerActive}
             isFullscreen={isFullscreen}
+            isBookmarked={bookmarks.some((b) => b.pageNumber === currentPage)}
+            dimmerOpacity={dimmerOpacity}
             onPageChange={scrollToPage}
             onZoomChange={setZoom}
             onThemeChange={handleThemeChange}
             onPaperStyleChange={handlePaperStyleChange}
             onViewModeChange={setViewMode}
+            onToggleBookmark={() => handleToggleBookmark(currentPage)}
+            onDimmerChange={handleDimmerChange}
             onToggleFocusRuler={() => setIsFocusRulerActive((prev) => !prev)}
             onToggleFullscreen={handleToggleFullscreen}
             onToggleSidebar={() => setIsSidebarOpen(true)}
@@ -564,6 +639,8 @@ export const App: React.FC = () => {
               setDoc(null);
               setDocTitle('');
               setAnnotations([]);
+              setBookmarks([]);
+              setIsExportHighlightsOpen(false);
             }}
           />
 
@@ -600,7 +677,12 @@ export const App: React.FC = () => {
             totalPages={numPages}
             currentPage={currentPage}
             lang={lang}
+            bookmarks={bookmarks}
+            annotations={annotations}
             onSelectPage={scrollToPage}
+            onToggleBookmark={handleToggleBookmark}
+            onDeleteAnnotation={handleDeleteAnnotation}
+            onOpenExport={() => setIsExportHighlightsOpen(true)}
             onClose={() => setIsSidebarOpen(false)}
           />
 
@@ -629,6 +711,7 @@ export const App: React.FC = () => {
                     paperStyle={paperStyle}
                     annotations={annotations}
                     onDeleteAnnotation={handleDeleteAnnotation}
+                    onNavigateToPage={scrollToPage}
                     baseAspectRatio={baseAspectRatio}
                     searchQuery={searchQuery}
                     isCurrentSearchPage={activeSearchPage === pageNum}
@@ -640,6 +723,60 @@ export const App: React.FC = () => {
                     }}
                   />
                 ))}
+              </div>
+            ) : viewMode === 'dual' ? (
+              // Dual Page Spread Mode (Book Open)
+              <div className="min-h-full flex items-center justify-center py-4">
+                {(() => {
+                  const spreadStart = currentPage % 2 === 0 ? currentPage - 1 : currentPage;
+                  const leftNum = spreadStart;
+                  const rightNum = spreadStart + 1 <= numPages ? spreadStart + 1 : null;
+
+                  return (
+                    <div className="flex flex-row items-center justify-center relative shadow-2xl rounded-sm">
+                      {/* Left Page */}
+                      <div className="relative">
+                        <PdfPage
+                          doc={doc}
+                          pageNumber={leftNum}
+                          scale={Math.min(zoom, 0.95)}
+                          theme={theme}
+                          paperStyle={paperStyle}
+                          annotations={annotations}
+                          onDeleteAnnotation={handleDeleteAnnotation}
+                          onNavigateToPage={scrollToPage}
+                          baseAspectRatio={baseAspectRatio}
+                          searchQuery={searchQuery}
+                          isCurrentSearchPage={activeSearchPage === leftNum}
+                        />
+                      </div>
+
+                      {/* Central Spine Crease */}
+                      {rightNum && (
+                        <div className="w-[3px] self-stretch bg-gradient-to-r from-black/30 via-black/15 to-transparent pointer-events-none z-20" />
+                      )}
+
+                      {/* Right Page */}
+                      {rightNum && (
+                        <div className="relative">
+                          <PdfPage
+                            doc={doc}
+                            pageNumber={rightNum}
+                            scale={Math.min(zoom, 0.95)}
+                            theme={theme}
+                            paperStyle={paperStyle}
+                            annotations={annotations}
+                            onDeleteAnnotation={handleDeleteAnnotation}
+                            onNavigateToPage={scrollToPage}
+                            baseAspectRatio={baseAspectRatio}
+                            searchQuery={searchQuery}
+                            isCurrentSearchPage={activeSearchPage === rightNum}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             ) : (
               // Single Page Presentation Mode with Kinetic Slide Animation
@@ -666,6 +803,7 @@ export const App: React.FC = () => {
                   paperStyle={paperStyle}
                   annotations={annotations}
                   onDeleteAnnotation={handleDeleteAnnotation}
+                  onNavigateToPage={scrollToPage}
                   baseAspectRatio={baseAspectRatio}
                   searchQuery={searchQuery}
                   isCurrentSearchPage={activeSearchPage === currentPage}
@@ -697,6 +835,33 @@ export const App: React.FC = () => {
           showToast(t.resetSuccess, 'info');
         }}
       />
+
+      {/* Password Modal */}
+      <PasswordModal
+        isOpen={passwordModal.isOpen}
+        isIncorrect={passwordModal.isIncorrect}
+        docTitle={passwordModal.title}
+        lang={lang}
+        onSubmit={handlePasswordSubmit}
+        onCancel={handlePasswordCancel}
+      />
+
+      {/* Export Highlights / Quotes Modal */}
+      <ExportHighlightsModal
+        isOpen={isExportHighlightsOpen}
+        onClose={() => setIsExportHighlightsOpen(false)}
+        annotations={annotations}
+        docTitle={docTitle}
+        lang={lang}
+      />
+
+      {/* In-App Night Dimmer Overlay */}
+      {dimmerOpacity > 0 && (
+        <div
+          style={{ opacity: dimmerOpacity }}
+          className="fixed inset-0 bg-black pointer-events-none z-35 transition-opacity duration-200"
+        />
+      )}
 
       {/* Global Loading Spinner */}
       {isLoading && (

@@ -12,10 +12,18 @@ interface PdfPageProps {
   paperStyle?: PaperStyle;
   annotations?: TextAnnotation[];
   onDeleteAnnotation?: (id: string) => void;
+  onNavigateToPage?: (pageNumber: number) => void;
   baseAspectRatio: number;
   searchQuery?: string;
   isCurrentSearchPage?: boolean;
   onPageVisible?: (pageNumber: number) => void;
+}
+
+interface PageLink {
+  id: string;
+  rect: { left: number; top: number; width: number; height: number };
+  targetPage?: number;
+  url?: string;
 }
 
 export const PdfPage: React.FC<PdfPageProps> = ({
@@ -26,6 +34,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   paperStyle = 'book',
   annotations = [],
   onDeleteAnnotation,
+  onNavigateToPage,
   baseAspectRatio,
   searchQuery,
   isCurrentSearchPage,
@@ -37,6 +46,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   const [isVisible, setIsVisible] = useState(false);
   const [hasRenderedOnce, setHasRenderedOnce] = useState(false);
   const [activeAnnotationId, setActiveAnnotationId] = useState<string | null>(null);
+  const [links, setLinks] = useState<PageLink[]>([]);
   const currentRenderTaskRef = useRef<any>(null);
   const lastRenderedScaleRef = useRef<number>(0);
 
@@ -49,16 +59,64 @@ export const PdfPage: React.FC<PdfPageProps> = ({
     height: standardHeight
   });
 
-  // Fetch precise dimensions once
+  // Fetch precise dimensions & parse interactive links
   useEffect(() => {
     let active = true;
-    doc.getPage(pageNumber).then((page: PDFPageProxy) => {
+    doc.getPage(pageNumber).then(async (page: PDFPageProxy) => {
       if (!active) return;
       const unscaledViewport = page.getViewport({ scale: 1 });
       setDimensions({
         width: Math.round(unscaledViewport.width * scale),
         height: Math.round(unscaledViewport.height * scale)
       });
+
+      // Parse PDF Annotations (Links & Table of Contents references)
+      try {
+        const annos = await page.getAnnotations({ intent: 'display' });
+        if (!active || !annos) return;
+        const viewport = page.getViewport({ scale });
+        const parsedLinks: PageLink[] = [];
+
+        for (let i = 0; i < annos.length; i++) {
+          const a = annos[i];
+          if (a.subtype === 'Link' && a.rect) {
+            const vRect: [number, number, number, number] =
+              typeof (viewport as any).convertToViewportRectangle === 'function'
+                ? (viewport as any).convertToViewportRectangle(a.rect)
+                : [
+                    a.rect[0] * scale,
+                    viewport.height - a.rect[3] * scale,
+                    a.rect[2] * scale,
+                    viewport.height - a.rect[1] * scale
+                  ];
+            const left = Math.min(vRect[0], vRect[2]);
+            const top = Math.min(vRect[1], vRect[3]);
+            const width = Math.abs(vRect[2] - vRect[0]);
+            const height = Math.abs(vRect[3] - vRect[1]);
+
+            let targetPage: number | undefined;
+            if (a.dest) {
+              try {
+                const dest = typeof a.dest === 'string' ? await doc.getDestination(a.dest) : a.dest;
+                if (dest && dest[0]) {
+                  const pageIndex = await doc.getPageIndex(dest[0]);
+                  targetPage = pageIndex + 1;
+                }
+              } catch {}
+            }
+
+            parsedLinks.push({
+              id: `link_${i}`,
+              rect: { left, top, width, height },
+              targetPage,
+              url: a.url
+            });
+          }
+        }
+        if (active) {
+          setLinks(parsedLinks);
+        }
+      } catch {}
     }).catch(() => {});
 
     return () => {
@@ -408,6 +466,40 @@ export const PdfPage: React.FC<PdfPageProps> = ({
                   </div>
                 )}
               </div>
+            ))}
+          </div>
+        )}
+
+        {/* Interactive PDF Link Overlays */}
+        {links.length > 0 && (
+          <div className="absolute inset-0 pointer-events-none z-16 overflow-hidden">
+            {links.map((link) => (
+              <a
+                key={link.id}
+                href={link.url || (link.targetPage ? `#page-${link.targetPage}` : undefined)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (link.targetPage && onNavigateToPage) {
+                    onNavigateToPage(link.targetPage);
+                  } else if (link.url) {
+                    window.open(link.url, '_blank', 'noopener,noreferrer');
+                  }
+                }}
+                style={{
+                  left: `${link.rect.left}px`,
+                  top: `${link.rect.top}px`,
+                  width: `${link.rect.width}px`,
+                  height: `${link.rect.height}px`
+                }}
+                className="absolute pointer-events-auto rounded-xs hover:bg-amber-400/20 active:bg-amber-400/35 transition-colors cursor-pointer border border-transparent hover:border-amber-400/40"
+                title={
+                  link.url
+                    ? `رابط خارجي: ${link.url}`
+                    : link.targetPage
+                    ? `الانتقال إلى صفحة ${link.targetPage}`
+                    : undefined
+                }
+              />
             ))}
           </div>
         )}

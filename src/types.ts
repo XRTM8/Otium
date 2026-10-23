@@ -52,3 +52,11 @@ export interface TextAnnotation {
   createdAt: number;
 }
 
+export interface BookmarkItem {
+  id: string;
+  pageNumber: number;
+  title?: string;
+  createdAt: number;
+}
+
+

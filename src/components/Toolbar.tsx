@@ -16,7 +16,10 @@ import {
   Search,
   MoreHorizontal,
   Layers,
-  Settings2
+  Settings2,
+  Bookmark,
+  BookOpen,
+  Moon
 } from 'lucide-react';
 import type { ThemeMode, ViewMode, PaperStyle } from '../types';
 import type { Language } from '../utils/translations';
@@ -34,11 +37,15 @@ interface ToolbarProps {
   currentLang: Language;
   isFocusRulerActive: boolean;
   isFullscreen: boolean;
+  isBookmarked?: boolean;
+  dimmerOpacity?: number;
   onPageChange: (page: number) => void;
   onZoomChange: (zoom: number) => void;
   onThemeChange: (theme: ThemeMode) => void;
   onPaperStyleChange: (style: PaperStyle) => void;
   onViewModeChange: (mode: ViewMode) => void;
+  onToggleBookmark?: () => void;
+  onDimmerChange?: (val: number) => void;
   onToggleFocusRuler: () => void;
   onToggleFullscreen: () => void;
   onToggleSidebar: () => void;
@@ -59,11 +66,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   currentLang,
   isFocusRulerActive,
   isFullscreen,
+  isBookmarked = false,
+  dimmerOpacity = 0,
   onPageChange,
   onZoomChange,
   onThemeChange,
   onPaperStyleChange,
   onViewModeChange,
+  onToggleBookmark,
+  onDimmerChange,
   onToggleFocusRuler,
   onToggleFullscreen,
   onToggleSidebar,
@@ -75,10 +86,19 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   const [isVisible, setIsVisible] = useState(true);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showPaperMenu, setShowPaperMenu] = useState(false);
+  const [showDimmerMenu, setShowDimmerMenu] = useState(false);
   const [showMoreMobile, setShowMoreMobile] = useState(false);
   const [inputPage, setInputPage] = useState(currentPage.toString());
 
   const t = getTranslations(currentLang);
+
+  const cycleViewMode = () => {
+    if (viewMode === 'continuous') onViewModeChange('single');
+    else if (viewMode === 'single') onViewModeChange('dual');
+    else onViewModeChange('continuous');
+  };
+
+  const estimatedMinsLeft = Math.max(1, Math.round((totalPages - currentPage) * 1.5));
 
   useEffect(() => {
     setInputPage(currentPage.toString());
@@ -204,7 +224,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {/* Page Nav */}
         <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
           <button
-            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+            onClick={() => onPageChange(viewMode === 'dual' ? Math.max(1, currentPage - 2) : Math.max(1, currentPage - 1))}
             disabled={currentPage <= 1}
             title={t.prevPage}
             className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 disabled:opacity-20 transition-colors"
@@ -221,10 +241,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               className="w-8 sm:w-9 text-center bg-white/10 rounded py-0.5 px-0.5 text-white focus:outline-none focus:ring-1 focus:ring-amber-400 text-xs"
             />
             <span className="opacity-40 select-none text-[11px]">/ {totalPages}</span>
+            <span className="hidden xl:inline text-[10px] text-amber-400/80 font-sans pl-1">
+              • {t.timeLeftEst(estimatedMinsLeft)}
+            </span>
           </form>
 
           <button
-            onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+            onClick={() => onPageChange(viewMode === 'dual' ? Math.min(totalPages, currentPage + 2) : Math.min(totalPages, currentPage + 1))}
             disabled={currentPage >= totalPages}
             title={t.nextPage}
             className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 disabled:opacity-20 transition-colors"
@@ -236,6 +259,19 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {/* DESKTOP ONLY CONTROLS (Hidden on mobile < md) */}
         <div className="hidden md:flex items-center gap-1 sm:gap-1.5 shrink-0">
           <div className="w-[1px] h-4 bg-white/10 mx-0.5" />
+
+          {/* Bookmark Button */}
+          <button
+            onClick={onToggleBookmark}
+            title={isBookmarked ? t.removeBookmark : t.addBookmark}
+            className={`p-1.5 rounded-full transition-all flex items-center ${
+              isBookmarked
+                ? 'bg-amber-400/20 text-amber-400 shadow-xs'
+                : 'hover:bg-white/10 text-neutral-300'
+            }`}
+          >
+            <Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-amber-400' : ''}`} />
+          </button>
 
           {/* Zoom */}
           <div className="flex items-center gap-0.5">
@@ -273,14 +309,60 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <Glasses className="w-3.5 h-3.5" />
           </button>
 
-          {/* View Mode Toggle */}
+          {/* View Mode Toggle (Cycles Continuous -> Single -> Dual) */}
           <button
-            onClick={() => onViewModeChange(viewMode === 'continuous' ? 'single' : 'continuous')}
-            title={viewMode === 'continuous' ? t.singleMode : t.continuousMode}
+            onClick={cycleViewMode}
+            title={
+              viewMode === 'continuous'
+                ? t.singleMode
+                : viewMode === 'single'
+                ? t.dualMode
+                : t.continuousMode
+            }
             className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 transition-colors"
           >
-            {viewMode === 'continuous' ? <Scroll className="w-3.5 h-3.5" /> : <Columns className="w-3.5 h-3.5" />}
+            {viewMode === 'continuous' ? (
+              <Scroll className="w-3.5 h-3.5" />
+            ) : viewMode === 'single' ? (
+              <Columns className="w-3.5 h-3.5" />
+            ) : (
+              <BookOpen className="w-3.5 h-3.5" />
+            )}
           </button>
+
+          {/* Night Dimmer Slider */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setShowDimmerMenu(!showDimmerMenu);
+                setShowThemeMenu(false);
+                setShowPaperMenu(false);
+              }}
+              title={t.dimmerLabel}
+              className={`p-1.5 rounded-full transition-colors flex items-center ${
+                dimmerOpacity > 0 ? 'bg-amber-400/20 text-amber-300' : 'hover:bg-white/10 text-neutral-300'
+              }`}
+            >
+              <Moon className="w-3.5 h-3.5" />
+            </button>
+            {showDimmerMenu && (
+              <div className="absolute right-0 top-full mt-2 w-48 rounded-2xl bg-neutral-900/98 border border-white/10 p-3 shadow-2xl backdrop-blur-xl z-50 text-neutral-200 animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between text-[11px] mb-2 font-sans font-medium text-neutral-300">
+                  <span>{t.dimmerLabel}</span>
+                  <span className="font-mono text-amber-400">{Math.round(dimmerOpacity * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={0.7}
+                  step={0.05}
+                  value={dimmerOpacity}
+                  onChange={(e) => onDimmerChange?.(parseFloat(e.target.value))}
+                  className="w-full accent-amber-400 cursor-pointer"
+                />
+              </div>
+            )}
+          </div>
 
           {/* Themes Dropdown */}
           <div className="relative">
@@ -444,23 +526,29 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           {/* Quick Action Toggles */}
           <div className="grid grid-cols-4 gap-1.5">
             <button
-              onClick={onToggleFocusRuler}
+              onClick={onToggleBookmark}
               className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-[10px] transition-all ${
-                isFocusRulerActive
+                isBookmarked
                   ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
                   : 'bg-white/5 text-neutral-300 border-white/5 hover:bg-white/10'
               }`}
             >
-              <Glasses className="w-4 h-4" />
-              <span>{t.focusRulerOn.split(' ')[0]}</span>
+              <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-amber-400 text-amber-400' : ''}`} />
+              <span>إشارة</span>
             </button>
 
             <button
-              onClick={() => onViewModeChange(viewMode === 'continuous' ? 'single' : 'continuous')}
+              onClick={cycleViewMode}
               className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-neutral-300 text-[10px] transition-all"
             >
-              {viewMode === 'continuous' ? <Scroll className="w-4 h-4" /> : <Columns className="w-4 h-4" />}
-              <span>{viewMode === 'continuous' ? 'مستمر' : 'مفردة'}</span>
+              {viewMode === 'continuous' ? (
+                <Scroll className="w-4 h-4" />
+              ) : viewMode === 'single' ? (
+                <Columns className="w-4 h-4" />
+              ) : (
+                <BookOpen className="w-4 h-4" />
+              )}
+              <span>{viewMode === 'continuous' ? 'مستمر' : viewMode === 'single' ? 'مفردة' : 'مزدوج'}</span>
             </button>
 
             <button
@@ -481,6 +569,28 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               <Settings2 className="w-4 h-4" />
               <span>{t.settingsTitle.split(' ')[0]}</span>
             </button>
+          </div>
+
+          {/* Mobile Dimmer Slider */}
+          <div className="flex items-center justify-between px-1.5 py-1 rounded-xl bg-white/5 border border-white/5">
+            <span className="text-[11px] text-neutral-300 font-medium flex items-center gap-1.5">
+              <Moon className="w-3.5 h-3.5 text-amber-400" />
+              <span>{t.dimmerLabel}</span>
+            </span>
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min={0}
+                max={0.7}
+                step={0.05}
+                value={dimmerOpacity}
+                onChange={(e) => onDimmerChange?.(parseFloat(e.target.value))}
+                className="w-24 accent-amber-400 cursor-pointer"
+              />
+              <span className="text-[10px] font-mono text-amber-400 w-7 text-left">
+                {Math.round(dimmerOpacity * 100)}%
+              </span>
+            </div>
           </div>
 
           {/* Themes Swatches */}

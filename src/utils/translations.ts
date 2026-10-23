@@ -54,6 +54,22 @@ export interface Translations {
   shortcutsTooltip: string;
   pagesTab: string;
   outlineTab: string;
+  bookmarksTab: string;
+  highlightsTab: string;
+  addBookmark: string;
+  removeBookmark: string;
+  noBookmarks: string;
+  exportQuotes: string;
+  copyAllQuotes: string;
+  downloadMarkdown: string;
+  noQuotes: string;
+  passwordRequired: string;
+  enterPasswordPrompt: string;
+  passwordIncorrect: string;
+  unlockButton: string;
+  dualMode: string;
+  dimmerLabel: string;
+  timeLeftEst: (mins: number) => string;
   moreTools: string;
   readingThemesTitle: string;
   settingsTitle: string;
@@ -120,6 +136,22 @@ export const translations: Record<Language, Translations> = {
     shortcutsTooltip: 'اختصارات لوحة المفاتيح (?)',
     pagesTab: 'الصفحات',
     outlineTab: 'الفهرس',
+    bookmarksTab: 'الإشارات المرجعية',
+    highlightsTab: 'الملاحظات والاقتباسات',
+    addBookmark: 'إضافة إشارة مرجعية (B)',
+    removeBookmark: 'إزالة الإشارة المرجعية',
+    noBookmarks: 'لا توجد إشارات مرجعية محفوظة بعد',
+    exportQuotes: 'تصدير الاقتباسات',
+    copyAllQuotes: 'نسخ كافة الاقتباسات',
+    downloadMarkdown: 'تنزيل ملف Markdown (.md)',
+    noQuotes: 'لم تقم بتظليل أي نصوص في هذا الكتاب بعد',
+    passwordRequired: 'هذا الملف محمي بكلمة مرور',
+    enterPasswordPrompt: 'يرجى إدخال كلمة المرور لفتح وتصفح الوثيقة',
+    passwordIncorrect: 'كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى',
+    unlockButton: 'فتح الوثيقة',
+    dualMode: 'التبديل لعرض الكتاب المزدوج (صفحتين)',
+    dimmerLabel: 'خافض السطوع الليلي',
+    timeLeftEst: (mins: number) => mins <= 1 ? 'متبقي دقيقة تقريباً' : `متبقي ~${mins} دقيقة`,
     moreTools: 'المزيد من الأدوات',
     readingThemesTitle: 'بيئات القراءة (Themes)',
     settingsTitle: 'إعدادات القارئ',
@@ -184,6 +216,22 @@ export const translations: Record<Language, Translations> = {
     shortcutsTooltip: 'Keyboard Shortcuts (?)',
     pagesTab: 'Pages',
     outlineTab: 'Outline',
+    bookmarksTab: 'Bookmarks',
+    highlightsTab: 'Notes & Quotes',
+    addBookmark: 'Add Bookmark (B)',
+    removeBookmark: 'Remove Bookmark',
+    noBookmarks: 'No bookmarks saved yet',
+    exportQuotes: 'Export Quotes',
+    copyAllQuotes: 'Copy All Quotes',
+    downloadMarkdown: 'Download Markdown (.md)',
+    noQuotes: 'No highlighted quotes in this document yet',
+    passwordRequired: 'Protected PDF Document',
+    enterPasswordPrompt: 'Please enter the password to unlock this document',
+    passwordIncorrect: 'Incorrect password, please try again',
+    unlockButton: 'Unlock Document',
+    dualMode: 'Switch to Two-Page Book Spread',
+    dimmerLabel: 'Night Dimmer',
+    timeLeftEst: (mins: number) => mins <= 1 ? '~1 min left' : `~${mins} mins left`,
     moreTools: 'More Tools',
     readingThemesTitle: 'Reading Themes',
     settingsTitle: 'Reader Settings',
