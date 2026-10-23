@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 import { TextLayer } from 'pdfjs-dist';
 import { Trash2, X } from 'lucide-react';
-import type { ThemeMode, TextAnnotation } from '../types';
+import type { ThemeMode, TextAnnotation, DrawingStroke, SmartboardTool } from '../types';
+import { DrawingOverlay } from './DrawingOverlay';
 
 interface PdfPageProps {
   doc: PDFDocumentProxy;
@@ -15,6 +16,16 @@ interface PdfPageProps {
   searchQuery?: string;
   isCurrentSearchPage?: boolean;
   onPageVisible?: (pageNumber: number) => void;
+  // Smartboard inking props
+  drawingStrokes?: DrawingStroke[];
+  onAddStroke?: (stroke: DrawingStroke) => void;
+  onDeleteStroke?: (strokeId: string) => void;
+  isBoardMode?: boolean;
+  activeTool?: SmartboardTool;
+  penColor?: string;
+  penSize?: number;
+  highlighterColor?: string;
+  highlighterSize?: number;
 }
 
 export const PdfPage: React.FC<PdfPageProps> = ({
@@ -27,7 +38,16 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   baseAspectRatio,
   searchQuery,
   isCurrentSearchPage,
-  onPageVisible
+  onPageVisible,
+  drawingStrokes = [],
+  onAddStroke,
+  onDeleteStroke,
+  isBoardMode = false,
+  activeTool = 'pen',
+  penColor = '#ef4444',
+  penSize = 3,
+  highlighterColor = '#fde047',
+  highlighterSize = 20,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -307,6 +327,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
     const pageAnnotations = annotations.filter((a) => a.pageNumber === pageNumber);
 
     const handlePageClick = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (isBoardMode) return;
       const sel = window.getSelection();
       if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) {
         setActiveAnno(null);
@@ -433,6 +454,22 @@ export const PdfPage: React.FC<PdfPageProps> = ({
             ))}
           </div>
         )}
+
+        {/* Smartboard Digital Inking Layer */}
+        <DrawingOverlay
+          pageNumber={pageNumber}
+          width={dimensions.width}
+          height={dimensions.height}
+          strokes={drawingStrokes}
+          onAddStroke={onAddStroke || (() => {})}
+          onDeleteStroke={onDeleteStroke || (() => {})}
+          isBoardMode={!!isBoardMode}
+          activeTool={activeTool}
+          penColor={penColor}
+          penSize={penSize}
+          highlighterColor={highlighterColor}
+          highlighterSize={highlighterSize}
+        />
 
         {/* Quick Click-to-Delete Mini Popup for clicked annotations */}
         {activeAnno && onDeleteAnnotation && (

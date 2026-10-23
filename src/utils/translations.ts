@@ -47,6 +47,17 @@ export interface Translations {
   fontsTitle: string;
   defaultReadingMode: string;
   resetDefaults: string;
+  smartboard: string;
+  smartboardTooltip: string;
+  penTool: string;
+  highlighterTool: string;
+  eraserTool: string;
+  laserTool: string;
+  whiteboardModal: string;
+  clearPage: string;
+  undo: string;
+  redo: string;
+  exitSmartboard: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -96,7 +107,18 @@ export const translations: Record<Language, Translations> = {
     typographyTitle: 'الخط والطباعة',
     fontsTitle: 'مكتبة الخطوط المدعومة',
     defaultReadingMode: 'نمط القراءة الافتراضي',
-    resetDefaults: 'استعادة الإعدادات الافتراضية'
+    resetDefaults: 'استعادة الإعدادات الافتراضية',
+    smartboard: 'السبورة الذكية',
+    smartboardTooltip: 'تفعيل وضع السبورة والكتابة التفاعلية للشاشات المدرسية',
+    penTool: 'قلم الشرح',
+    highlighterTool: 'قلم التظليل',
+    eraserTool: 'ممحاة ذكية',
+    laserTool: 'مؤشر ليزر',
+    whiteboardModal: 'سبورة بيضاء مرافقة',
+    clearPage: 'مسح صفحة الشرح',
+    undo: 'تراجع',
+    redo: 'إعادة',
+    exitSmartboard: 'الخروج من السبورة'
   },
   en: {
     themeLabel: 'Reading Theme',
@@ -144,7 +166,18 @@ export const translations: Record<Language, Translations> = {
     typographyTitle: 'Typography & Fonts',
     fontsTitle: 'Supported Fonts Library',
     defaultReadingMode: 'Default Reading Mode',
-    resetDefaults: 'Reset to Defaults'
+    resetDefaults: 'Reset to Defaults',
+    smartboard: 'Smart Board',
+    smartboardTooltip: 'Toggle Smart Board & Inking Mode for Classroom Displays',
+    penTool: 'Pen',
+    highlighterTool: 'Highlighter',
+    eraserTool: 'Smart Eraser',
+    laserTool: 'Laser Pointer',
+    whiteboardModal: 'Scratchpad Whiteboard',
+    clearPage: 'Clear Page Drawing',
+    undo: 'Undo',
+    redo: 'Redo',
+    exitSmartboard: 'Exit Smart Board'
   }
 };
 

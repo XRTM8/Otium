@@ -33,3 +33,24 @@ export interface BookmarkItem {
   title?: string;
   createdAt: number;
 }
+
+export interface DrawingPoint {
+  x: number; // 0 to 1 normalized to page width
+  y: number; // 0 to 1 normalized to page height
+  pressure?: number;
+}
+
+export type SmartboardTool = 'pen' | 'highlighter' | 'eraser' | 'laser';
+
+export interface DrawingStroke {
+  id: string;
+  pageNumber: number;
+  tool: 'pen' | 'highlighter';
+  color: string;
+  size: number;
+  points: DrawingPoint[];
+  createdAt: number;
+}
+
+export type PageDrawingsMap = Record<number, DrawingStroke[]>;
+
