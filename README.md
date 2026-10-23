@@ -54,12 +54,6 @@ Get the latest standalone release directly:
 ### 📖 Dual-Page Book Spread (عرض الكتاب الحقيقي)
 Experience authentic reading with a **two-page side-by-side spread** (`N` & `N+1`) featuring a subtle center spine divider and instant zero-lag page flips. Easily switch between Continuous Scroll, Dual Book, or Single Page modes.
 
-### 🖊️ Smart Board & Digital Inking (السبورة الذكية والشروحات)
-Draw, highlight, explain, and annotate directly over any PDF with zero lag:
-* **Digital Pens & Highlighters:** Customizable colors, line weights, undo/redo history, and persistence.
-* **Laser Pointer:** High-visibility glowing laser trail for classroom presentations and lectures.
-* **Companion Scratchpad:** Floating side drafting canvas for fast scratch notes, calculations, and whiteboard brainstorming.
-
 ### 💎 Ultra-HD Dynamic Glass Visual Identity (الهوية البصرية المتكاملة)
 A signature **3D Frosted Glass Book** with razor-sharp glowing neon rims and ambient radiance that dynamically transforms its colors across reading themes:
 * 🟢 **AMOLED Emerald:** Pitch black (`#000000`) with emerald neon rim for battery preservation.
