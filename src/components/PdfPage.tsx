@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 import { TextLayer } from 'pdfjs-dist';
+import { Trash2, X } from 'lucide-react';
 import type { ThemeMode, TextAnnotation } from '../types';
 
 interface PdfPageProps {
@@ -9,6 +10,7 @@ interface PdfPageProps {
   scale: number;
   theme: ThemeMode;
   annotations?: TextAnnotation[];
+  onDeleteAnnotation?: (id: string) => void;
   baseAspectRatio: number;
   searchQuery?: string;
   isCurrentSearchPage?: boolean;
@@ -21,6 +23,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   scale,
   theme,
   annotations = [],
+  onDeleteAnnotation,
   baseAspectRatio,
   searchQuery,
   isCurrentSearchPage,
@@ -31,6 +34,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   const textLayerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [hasRenderedOnce, setHasRenderedOnce] = useState(false);
+  const [activeAnno, setActiveAnno] = useState<{ id: string; type: string; x: number; y: number } | null>(null);
   const currentRenderTaskRef = useRef<any>(null);
   const lastRenderedScaleRef = useRef<number>(0);
 
@@ -279,9 +283,45 @@ export const PdfPage: React.FC<PdfPageProps> = ({
 
     const pageAnnotations = annotations.filter((a) => a.pageNumber === pageNumber);
 
+    const handlePageClick = (e: React.MouseEvent<HTMLDivElement>) => {
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) {
+        setActiveAnno(null);
+        return;
+      }
+
+      const container = containerRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const xPct = (e.clientX - rect.left) / rect.width;
+      const yPct = (e.clientY - rect.top) / rect.height;
+
+      const clickedAnno = pageAnnotations.find((a) =>
+        a.rects.some(
+          (r) =>
+            xPct >= r.xPct - 0.015 &&
+            xPct <= r.xPct + r.widthPct + 0.015 &&
+            yPct >= r.yPct - 0.015 &&
+            yPct <= r.yPct + r.heightPct + 0.03
+        )
+      );
+
+      if (clickedAnno) {
+        setActiveAnno({
+          id: clickedAnno.id,
+          type: clickedAnno.type,
+          x: Math.max(70, Math.min(rect.width - 70, xPct * rect.width)),
+          y: Math.max(30, yPct * rect.height - 10)
+        });
+      } else {
+        setActiveAnno(null);
+      }
+    };
+
     return (
       <div
         ref={containerRef}
+        onClick={handlePageClick}
         dir="ltr"
         data-page-number={pageNumber}
         className="relative flex items-center justify-center overflow-hidden will-change-transform select-text transition-all duration-300"
@@ -351,15 +391,15 @@ export const PdfPage: React.FC<PdfPageProps> = ({
                     );
                   }
 
-                  // Underline
+                  // Underline: properly spaced below the text baseline (+ 2.5px) without sticking to letters
                   return (
                     <div
                       key={rIdx}
                       style={{
                         left: `${r.xPct * 100}%`,
-                        top: `calc(${r.yPct * 100}% + ${r.heightPct * 100}% - 2.5px)`,
+                        top: `calc(${r.yPct * 100}% + ${r.heightPct * 100}% + 2.5px)`,
                         width: `${r.widthPct * 100}%`,
-                        height: '2.5px',
+                        height: '2px',
                         backgroundColor: anno.color
                       }}
                       className="absolute rounded-full pointer-events-none shadow-xs"
@@ -368,6 +408,44 @@ export const PdfPage: React.FC<PdfPageProps> = ({
                 })}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Quick Click-to-Delete Mini Popup for clicked annotations */}
+        {activeAnno && onDeleteAnnotation && (
+          <div
+            style={{
+              left: `${activeAnno.x}px`,
+              top: `${activeAnno.y}px`,
+              transform: 'translate(-50%, -100%)'
+            }}
+            className="absolute z-40 flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl bg-neutral-900/98 text-white border border-white/20 shadow-2xl backdrop-blur-2xl text-xs select-none animate-in fade-in zoom-in-95 pointer-events-auto"
+          >
+            <span className="text-[11px] text-neutral-400 font-sans">
+              {activeAnno.type === 'highlight' ? 'تظليل' : 'تسطير'}
+            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteAnnotation(activeAnno.id);
+                setActiveAnno(null);
+              }}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 text-rose-300 transition-colors text-xs cursor-pointer font-medium"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>إلغاء</span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveAnno(null);
+              }}
+              className="p-1 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-3 h-3" />
+            </button>
           </div>
         )}
 

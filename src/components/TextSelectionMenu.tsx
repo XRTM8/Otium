@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Copy, Underline as UnderlineIcon, Check, X } from 'lucide-react';
+import { Copy, Underline as UnderlineIcon, Check, X, Trash2 } from 'lucide-react';
 import type { TextAnnotation, AnnotationRect } from '../types';
 import { HIGHLIGHT_COLORS, UNDERLINE_COLORS } from '../utils/annotations';
 
 interface TextSelectionMenuProps {
   onAddAnnotation: (annotation: TextAnnotation) => void;
+  onDeleteAnnotation?: (id: string) => void;
+  annotations?: TextAnnotation[];
   onCopySuccess?: () => void;
 }
 
@@ -17,6 +19,8 @@ interface SelectionState {
 
 export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
   onAddAnnotation,
+  onDeleteAnnotation,
+  annotations = [],
   onCopySuccess
 }) => {
   const [selectionState, setSelectionState] = useState<SelectionState | null>(null);
@@ -26,6 +30,10 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
   const clearSelection = useCallback(() => {
     setSelectionState(null);
     setCopied(false);
+    // Clear native browser text selection range completely
+    try {
+      window.getSelection()?.removeAllRanges();
+    } catch {}
   }, []);
 
   const handleSelection = useCallback(() => {
@@ -102,14 +110,20 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
 
     const handlePointerDown = (e: PointerEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        // Clicked outside menu
         clearSelection();
       }
     };
 
-    // Close menu when scrolling container or window so menu doesn't float away
+    // Close menu and clear selection when user scrolls
     const handleScroll = () => {
       if (selectionState) {
+        clearSelection();
+      }
+    };
+
+    // Escape key listener to deselect text
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
         clearSelection();
       }
     };
@@ -117,17 +131,34 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
     document.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('touchend', handleTouchEnd);
     document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
     window.addEventListener('scroll', handleScroll, true);
 
     return () => {
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('touchend', handleTouchEnd);
       document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('scroll', handleScroll, true);
     };
   }, [handleSelection, clearSelection, selectionState]);
 
   if (!selectionState) return null;
+
+  // Check if selected text overlaps an existing highlight or underline on this page
+  const overlappingAnnotation = annotations.find(
+    (a) =>
+      a.pageNumber === selectionState.pageNumber &&
+      (a.text.includes(selectionState.text) ||
+        selectionState.text.includes(a.text) ||
+        a.rects.some((ar) =>
+          selectionState.rects.some(
+            (sr) =>
+              Math.abs(ar.yPct - sr.yPct) < 0.02 &&
+              Math.max(ar.xPct, sr.xPct) < Math.min(ar.xPct + ar.widthPct, sr.xPct + sr.widthPct)
+          )
+        ))
+  );
 
   const handleCopy = async () => {
     try {
@@ -136,7 +167,6 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
       if (onCopySuccess) onCopySuccess();
       setTimeout(() => {
         clearSelection();
-        window.getSelection()?.removeAllRanges();
       }, 500);
     } catch (err) {
       console.error('Failed to copy text:', err);
@@ -155,7 +185,6 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
     };
     onAddAnnotation(anno);
     clearSelection();
-    window.getSelection()?.removeAllRanges();
   };
 
   const handleCreateUnderline = (hex: string) => {
@@ -170,7 +199,6 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
     };
     onAddAnnotation(anno);
     clearSelection();
-    window.getSelection()?.removeAllRanges();
   };
 
   return (
@@ -181,7 +209,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
         top: `${selectionState.coords.y}px`,
         transform: selectionState.coords.isTop ? 'translate(-50%, -100%)' : 'translate(-50%, 0%)'
       }}
-      className="fixed z-50 flex items-center gap-1.5 px-2 py-1.5 rounded-2xl bg-neutral-900/98 text-white border border-white/20 shadow-2xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-100 select-none pointer-events-auto"
+      className="fixed z-50 flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl bg-neutral-900/98 text-white border border-white/20 shadow-2xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-100 select-none pointer-events-auto"
     >
       {/* 1. Copy Button */}
       <button
@@ -234,15 +262,40 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
         <UnderlineIcon className="w-3.5 h-3.5" />
       </button>
 
-      {/* 4. Dismiss button */}
+      {/* 4. Remove / Delete Existing Annotation (if text is already highlighted/underlined) */}
+      {overlappingAnnotation && onDeleteAnnotation && (
+        <>
+          <div className="w-[1px] h-3.5 bg-white/20" />
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              onDeleteAnnotation(overlappingAnnotation.id);
+              clearSelection();
+            }}
+            title="إلغاء وإزالة هذا التظليل أو التسطير"
+            className="flex items-center gap-1 px-2 py-1 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 text-rose-300 border border-rose-500/30 transition-all text-xs font-medium cursor-pointer"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span className="text-[11px] font-sans">
+              {overlappingAnnotation.type === 'highlight' ? 'إلغاء التظليل' : 'إلغاء التسطير'}
+            </span>
+          </button>
+        </>
+      )}
+
+      <div className="w-[1px] h-3.5 bg-white/20" />
+
+      {/* 5. Deselect / Cancel button */}
       <button
         type="button"
         onMouseDown={(e) => e.preventDefault()}
         onClick={clearSelection}
-        title="إغلاق"
-        className="p-1 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+        title="إلغاء التحديد (Esc)"
+        className="flex items-center gap-1 px-1.5 py-1 rounded-xl hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer text-xs"
       >
         <X className="w-3 h-3" />
+        <span className="text-[10px]">إلغاء</span>
       </button>
     </div>
   );
