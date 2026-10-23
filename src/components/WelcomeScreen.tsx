@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import type { ThemeMode } from '../types';
 import type { Language } from '../utils/translations';
-import { translations } from '../utils/translations';
+import { getTranslations } from '../utils/translations';
 import type { RecentDocItem } from '../utils/storage';
 import {
   getRecentDocumentsList,
@@ -49,7 +49,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   const [recents, setRecents] = useState<RecentDocItem[]>([]);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
 
-  const t = translations[currentLang];
+  const t = getTranslations(currentLang);
 
   const loadRecents = async () => {
     const docs = await getRecentDocumentsList();

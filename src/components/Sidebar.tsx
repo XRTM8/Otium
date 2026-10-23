@@ -3,7 +3,7 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { X, BookOpen, Layers } from 'lucide-react';
 import type { TocItem } from '../types';
 import type { Language } from '../utils/translations';
-import { translations } from '../utils/translations';
+import { getTranslations } from '../utils/translations';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -26,7 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [tab, setTab] = useState<'pages' | 'toc'>('pages');
   const [toc, setToc] = useState<TocItem[]>([]);
-  const t = translations[lang];
+  const t = getTranslations(lang);
 
   useEffect(() => {
     if (!doc) return;

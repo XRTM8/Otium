@@ -3,7 +3,7 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { pdfjsLib } from './utils/pdfWorker';
 import type { ThemeMode, ViewMode } from './types';
 import type { Language } from './utils/translations';
-import { translations } from './utils/translations';
+import { getTranslations } from './utils/translations';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { Toolbar } from './components/Toolbar';
 import { PdfPage } from './components/PdfPage';
@@ -129,9 +129,10 @@ export const App: React.FC = () => {
   const [isShortcutsOpen, setIsShortcutsOpen] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [lang, setLang] = useState<Language>(() => {
-    return (localStorage.getItem('otium_lang') as Language) || 'ar';
+    const saved = localStorage.getItem('otium_lang') || localStorage.getItem('tirs_lang');
+    return saved === 'en' ? 'en' : 'ar';
   });
-  const t = translations[lang];
+  const t = getTranslations(lang);
 
   const handleLanguageToggle = () => {
     const next = lang === 'ar' ? 'en' : 'ar';

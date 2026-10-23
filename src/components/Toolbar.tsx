@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import type { ThemeMode, ViewMode } from '../types';
 import type { Language } from '../utils/translations';
-import { translations } from '../utils/translations';
+import { getTranslations } from '../utils/translations';
 import { OtiumLogo } from './OtiumLogo';
 
 interface ToolbarProps {
@@ -69,7 +69,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   const [showMoreMobile, setShowMoreMobile] = useState(false);
   const [inputPage, setInputPage] = useState(currentPage.toString());
 
-  const t = translations[currentLang];
+  const t = getTranslations(currentLang);
 
   useEffect(() => {
     setInputPage(currentPage.toString());

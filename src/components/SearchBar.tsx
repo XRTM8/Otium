@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { Search, ChevronDown, ChevronUp, X, Loader2 } from 'lucide-react';
 import type { Language } from '../utils/translations';
-import { translations } from '../utils/translations';
+import { getTranslations } from '../utils/translations';
 
 interface SearchResult {
   pageNumber: number;
@@ -30,7 +30,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const t = translations[lang];
+  const t = getTranslations(lang);
 
   useEffect(() => {
     if (isOpen) {

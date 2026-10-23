@@ -144,3 +144,9 @@ export const translations: Record<Language, Translations> = {
     readingThemesTitle: 'Reading Themes'
   }
 };
+
+export const getTranslations = (lang?: string | null): Translations => {
+  if (lang === 'en') return translations.en;
+  return translations.ar;
+};
+
