@@ -232,6 +232,96 @@ export const App: React.FC = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
+  const pinchStartDistRef = useRef<number | null>(null);
+  const pinchStartZoomRef = useRef<number>(1);
+
+  // Native Android and Keyboard Back Step Handler
+  useEffect(() => {
+    const handleBackStep = (): boolean => {
+      if (isSettingsOpen) {
+        setIsSettingsOpen(false);
+        return true;
+      }
+      if (isSearchOpen) {
+        setIsSearchOpen(false);
+        setSearchQuery('');
+        setActiveSearchPage(null);
+        return true;
+      }
+      if (isSidebarOpen) {
+        setIsSidebarOpen(false);
+        return true;
+      }
+      if (doc) {
+        setDoc(null);
+        setDocTitle('');
+        setAnnotations([]);
+        setBookmarks([]);
+        return true;
+      }
+      return false;
+    };
+
+    (window as any).__OTIUM_HANDLE_BACK__ = handleBackStep;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleBackStep();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      delete (window as any).__OTIUM_HANDLE_BACK__;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isSettingsOpen, isSearchOpen, isSidebarOpen, doc]);
+
+  // Incoming PDF Handler (Android Intent or Windows Open-With)
+  useEffect(() => {
+    const loadFromBase64 = (base64Data: string, fileName: string) => {
+      try {
+        const binaryString = atob(base64Data);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        loadPdfData(bytes.buffer, fileName);
+      } catch (err) {
+        console.error('Failed to parse incoming PDF:', err);
+      }
+    };
+
+    (window as any).__OTIUM_LOAD_PDF_BASE64__ = loadFromBase64;
+
+    if ((window as any).__OTIUM_INITIAL_PDF__) {
+      const { base64, name } = (window as any).__OTIUM_INITIAL_PDF__;
+      if (base64 && name) {
+        loadFromBase64(base64, name);
+      }
+    }
+
+    // Desktop Tauri: Check if launched with a PDF file argument
+    if (typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window)) {
+      import('@tauri-apps/api/core').then(({ invoke }) => {
+        invoke('get_initial_pdf').then((initial: any) => {
+          if (initial && initial.path) {
+            invoke('read_pdf_bytes', { path: initial.path }).then((bytes: any) => {
+              if (bytes && bytes.length) {
+                const arr = new Uint8Array(bytes);
+                loadPdfData(arr.buffer, initial.name || 'document.pdf');
+              }
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+      }).catch(() => {});
+    }
+
+    return () => {
+      delete (window as any).__OTIUM_LOAD_PDF_BASE64__;
+    };
+  }, []);
 
   const scrollToPage = useCallback((pageNumber: number) => {
     setCurrentPage(pageNumber);
@@ -274,6 +364,13 @@ export const App: React.FC = () => {
 
   const lastWheelTimeRef = useRef<number>(0);
   const handleWheel = (e: React.WheelEvent) => {
+    if (e.ctrlKey) {
+      e.preventDefault();
+      const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1;
+      setZoom((prev) => Math.min(3.5, Math.max(0.5, Number((prev + zoomDelta).toFixed(2)))));
+      return;
+    }
+
     if (viewMode === 'single' || viewMode === 'dual') {
       const now = Date.now();
       if (now - lastWheelTimeRef.current < 260) return;
@@ -289,6 +386,17 @@ export const App: React.FC = () => {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      pinchStartDistRef.current = dist;
+      pinchStartZoomRef.current = zoom;
+      setIsDraggingTouch(false);
+      return;
+    }
+
     if (e.touches.length === 1 && (viewMode === 'single' || viewMode === 'dual')) {
       touchStartX.current = e.touches[0].clientX;
       touchStartY.current = e.touches[0].clientY;
@@ -297,6 +405,17 @@ export const App: React.FC = () => {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && pinchStartDistRef.current !== null && pinchStartDistRef.current > 0) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const factor = dist / pinchStartDistRef.current;
+      const targetZoom = Math.min(3.5, Math.max(0.5, Number((pinchStartZoomRef.current * factor).toFixed(2))));
+      setZoom(targetZoom);
+      return;
+    }
+
     if (touchStartX.current !== null && isDraggingTouch && (viewMode === 'single' || viewMode === 'dual')) {
       const dx = e.touches[0].clientX - touchStartX.current;
       const dy = e.touches[0].clientY - (touchStartY.current || 0);
@@ -307,6 +426,7 @@ export const App: React.FC = () => {
   };
 
   const handleTouchEnd = () => {
+    pinchStartDistRef.current = null;
     setIsDraggingTouch(false);
     if (touchStartX.current === null) return;
     const deltaX = touchDeltaX;
@@ -686,7 +806,10 @@ export const App: React.FC = () => {
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            className="flex-1 w-full h-full overflow-y-auto overflow-x-auto pt-14 sm:pt-16 pb-20 sm:pb-24 px-2 sm:px-4 relative"
+            style={{
+              paddingTop: 'max(4.5rem, calc(env(safe-area-inset-top, 0px) + 4.2rem))'
+            }}
+            className="flex-1 w-full h-full overflow-y-auto overflow-x-auto pb-20 sm:pb-24 px-2 sm:px-4 relative"
           >
             {/* Quick-Flip Side Navigation Buttons (Single & Dual Mode) */}
             {(viewMode === 'single' || viewMode === 'dual') && (

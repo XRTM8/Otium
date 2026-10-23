@@ -265,8 +265,13 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
       className={`relative min-h-screen w-full flex flex-col items-center justify-center p-6 ${style.containerBg} text-neutral-100 select-none overflow-hidden transition-colors duration-700`}
     >
       
-      {/* Top Floating Action Bar (Clean Dropdown-only Theme Picker + Language Switcher) */}
-      <div className="absolute top-4 sm:top-5 inset-x-0 z-30 flex items-center justify-between px-4 sm:px-8 pointer-events-none">
+      {/* Top Floating Action Bar with Safe Area Inset for mobile notches & status bars */}
+      <div
+        style={{
+          top: 'max(1rem, calc(env(safe-area-inset-top, 0px) + 0.6rem))'
+        }}
+        className="absolute inset-x-0 z-30 flex items-center justify-between px-4 sm:px-8 pointer-events-none"
+      >
         
         {/* Language Switch & Settings Buttons */}
         <div className="pointer-events-auto flex items-center gap-2">
@@ -462,7 +467,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 >
                   <div className="flex items-center gap-3 min-w-0 pr-1">
                     <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${style.fileIconBox}`}>
-                      <OtiumLogo theme={currentTheme} size={22} />
+                      <OtiumLogo theme="amoled" size={22} />
                     </div>
                     <div className="flex flex-col min-w-0 gap-1 text-right">
                       <span className={`truncate font-medium text-xs sm:text-sm text-neutral-200 ${style.fileHoverText} transition-colors`}>

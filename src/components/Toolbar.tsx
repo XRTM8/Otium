@@ -14,7 +14,9 @@ import {
   Settings2,
   Bookmark,
   Layers,
-  BookOpen
+  BookOpen,
+  ArrowRight,
+  ArrowLeft
 } from 'lucide-react';
 import type { ThemeMode, ViewMode } from '../types';
 import type { Language } from '../utils/translations';
@@ -136,19 +138,35 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   return (
     <div
       dir="rtl"
-      className={`fixed top-4 inset-x-0 z-40 flex flex-col items-center pointer-events-none transition-all duration-300 ${
+      style={{
+        top: 'max(0.75rem, calc(env(safe-area-inset-top, 0px) + 0.6rem))'
+      }}
+      className={`fixed inset-x-0 z-40 flex flex-col items-center pointer-events-none transition-all duration-300 ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
       }`}
     >
-      <div className="pointer-events-auto flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 rounded-full bg-neutral-900/90 text-white border border-white/10 shadow-2xl backdrop-blur-xl transition-all">
-        {/* Logo & Close Button */}
+      <div className="pointer-events-auto flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 rounded-full bg-neutral-900/95 text-white border border-white/10 shadow-2xl backdrop-blur-xl transition-all">
+        {/* Prominent Back Button (العودة للمكتبة) */}
         <button
+          type="button"
           onClick={onCloseDocument}
-          title={t.closeDoc}
-          className="p-1 rounded-full hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer shrink-0"
+          title={currentLang === 'ar' ? 'العودة للمكتبة' : 'Back to Library'}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 text-emerald-300 hover:text-emerald-200 transition-all cursor-pointer shrink-0 border border-emerald-500/30"
         >
-          <OtiumLogo theme={theme} size={20} />
+          {currentLang === 'ar' ? (
+            <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />
+          ) : (
+            <ArrowLeft className="w-3.5 h-3.5 text-emerald-400" />
+          )}
+          <span className="text-[11px] font-medium hidden sm:inline">
+            {currentLang === 'ar' ? 'المكتبة' : 'Library'}
+          </span>
         </button>
+
+        {/* Emerald Otium Logo */}
+        <div className="p-0.5 flex items-center justify-center shrink-0">
+          <OtiumLogo theme="amoled" size={20} />
+        </div>
 
         {/* Sidebar Trigger */}
         <button

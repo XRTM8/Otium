@@ -14,8 +14,14 @@
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
     font-family: var(--app-font-family, 'Tajawal', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
+  }
+
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
   }
 
   /* Custom Smooth Scrollbar for the reader */
@@ -44,7 +50,7 @@
   }
 }
 
-/* Official High-Precision PDF.js textLayer styling */
+/* Official High-Precision PDF.js textLayer styling with Mobile & Desktop Text Selection */
 .textLayer {
   color-scheme: only light;
   position: absolute;
@@ -60,9 +66,12 @@
   forced-color-adjust: none;
   transform-origin: 0 0;
   caret-color: CanvasText;
-  z-index: 2;
-  user-select: text;
-  -webkit-user-select: text;
+  z-index: 10;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -webkit-touch-callout: default !important;
+  pointer-events: auto !important;
+  touch-action: pan-x pan-y !important;
   --min-font-size: 1;
   --text-scale-factor: calc(var(--total-scale-factor, 1) * var(--min-font-size));
   --min-font-size-inv: calc(1 / var(--min-font-size));
@@ -74,8 +83,10 @@
   white-space: pre;
   cursor: text;
   transform-origin: 0% 0%;
-  user-select: text;
-  -webkit-user-select: text;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -webkit-touch-callout: default !important;
+  pointer-events: auto !important;
 }
 
 .textLayer > :not(.markedContent),

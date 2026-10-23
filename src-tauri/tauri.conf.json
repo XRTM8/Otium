@@ -40,6 +40,14 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "fileAssociations": [
+      {
+        "ext": ["pdf"],
+        "name": "PDF Document",
+        "description": "Portable Document Format",
+        "role": "Viewer"
+      }
+    ],
     "android": {
       "debugApplicationIdSuffix": ".debug"
     }

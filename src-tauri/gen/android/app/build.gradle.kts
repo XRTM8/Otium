@@ -41,9 +41,8 @@ android {
         }
         getByName("release") {
             signingConfig = signingConfigs.getByName("debug")
-            optimization {
-               enable = true
-            }
+            isMinifyEnabled = false
+            
             proguardFiles(
                 *fileTree(".") {
                   include("**/*.pro")
@@ -83,3 +82,4 @@ dependencies {
 }
 
 apply(from = file("tauri.build.gradle.kts"))
+
