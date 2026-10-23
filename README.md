@@ -28,7 +28,7 @@
     <a href="#-features--الميزات-الرئيسية">✨ Features</a> •
     <a href="#-shortcuts--اختصارات-لوحة-المفاتيح">⌨️ Shortcuts</a> •
     <a href="#-building-from-source--البناء-من-المصدر">🛠️ Building</a> •
-    <a href="#-دليل-الاستخدام-بالعربية">🇸🇦 دليل بالعربية</a>
+    <a href="#-دليل-الاستخدام-بالعربية"> دليل بالعربية</a>
   </p>
 
 </div>
