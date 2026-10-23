@@ -13,7 +13,8 @@ import {
   Trash2,
   Upload,
   X,
-  Layers
+  Layers,
+  Settings2
 } from 'lucide-react';
 import type { ThemeMode, PaperStyle } from '../types';
 import type { Language } from '../utils/translations';
@@ -33,6 +34,7 @@ interface WelcomeScreenProps {
   onThemeChange: (theme: ThemeMode) => void;
   onPaperStyleChange: (style: PaperStyle) => void;
   onToggleLanguage: () => void;
+  onOpenSettings?: () => void;
   onOpenFile: (file: File) => void;
   onOpenSample: () => void;
   onOpenRecent: (doc: RecentDocItem) => void;
@@ -45,6 +47,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onThemeChange,
   onPaperStyleChange,
   onToggleLanguage,
+  onOpenSettings,
   onOpenFile,
   onOpenSample,
   onOpenRecent
@@ -283,8 +286,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
       {/* Top Floating Action Bar (Clean Dropdown-only Theme Picker + Language Switcher) */}
       <div className="absolute top-4 sm:top-5 inset-x-0 z-30 flex items-center justify-between px-4 sm:px-8 pointer-events-none">
         
-        {/* Language Switch Button */}
-        <div className="pointer-events-auto">
+        {/* Language Switch & Settings Buttons */}
+        <div className="pointer-events-auto flex items-center gap-2">
           <button
             onClick={onToggleLanguage}
             title={currentLang === 'ar' ? 'Switch to English' : 'التحويل إلى العربية'}
@@ -295,6 +298,19 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               {currentLang === 'ar' ? 'EN' : 'عربي'}
             </span>
           </button>
+
+          {onOpenSettings && (
+            <button
+              onClick={onOpenSettings}
+              title={t.settingsTitle}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-900/85 hover:bg-neutral-900 border border-white/10 hover:border-amber-400/30 shadow-xl backdrop-blur-2xl text-xs text-neutral-200 transition-all duration-200 active:scale-95"
+            >
+              <Settings2 className="w-3.5 h-3.5 text-neutral-400" />
+              <span className="text-[11px] font-medium hidden sm:inline">
+                {t.settingsTitle}
+              </span>
+            </button>
+          )}
         </div>
 
         {/* Top Controls: Paper Style Selector + Theme Picker Dropdown */}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { pdfjsLib } from './utils/pdfWorker';
-import type { ThemeMode, ViewMode, PaperStyle, TextAnnotation } from './types';
+import type { ThemeMode, ViewMode, PaperStyle, TextAnnotation, FontFamilyId } from './types';
 import type { Language } from './utils/translations';
 import { getTranslations } from './utils/translations';
 import { WelcomeScreen } from './components/WelcomeScreen';
@@ -10,10 +10,12 @@ import { PdfPage } from './components/PdfPage';
 import { FocusRuler } from './components/FocusRuler';
 import { Sidebar } from './components/Sidebar';
 import { ShortcutsModal } from './components/ShortcutsModal';
+import { SettingsModal } from './components/SettingsModal';
 import { Toast, type ToastMessage } from './components/Toast';
 import { SearchBar } from './components/SearchBar';
 import { TextSelectionMenu } from './components/TextSelectionMenu';
 import { getStoredAnnotations, saveStoredAnnotations } from './utils/annotations';
+import { getSavedFont, saveFont, applyFontFamily } from './utils/fonts';
 import {
   saveDocumentToStorage,
   getDocumentFromStorage,
@@ -149,6 +151,12 @@ export const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState<boolean>(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [fontFamily, setFontFamily] = useState<FontFamilyId>(getSavedFont);
+
+  useEffect(() => {
+    applyFontFamily(fontFamily);
+  }, [fontFamily]);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [lang, setLang] = useState<Language>(() => {
     const saved = localStorage.getItem('otium_lang') || localStorage.getItem('tirs_lang');
@@ -501,6 +509,7 @@ export const App: React.FC = () => {
           onThemeChange={handleThemeChange}
           onPaperStyleChange={handlePaperStyleChange}
           onToggleLanguage={handleLanguageToggle}
+          onOpenSettings={() => setIsSettingsOpen(true)}
           onOpenFile={handleOpenFile}
           onOpenSample={handleOpenSample}
           onOpenRecent={async (recent) => {
@@ -550,6 +559,7 @@ export const App: React.FC = () => {
             onToggleSidebar={() => setIsSidebarOpen(true)}
             onToggleSearch={() => setIsSearchOpen((prev) => !prev)}
             onToggleShortcuts={() => setIsShortcutsOpen(true)}
+            onToggleSettings={() => setIsSettingsOpen(true)}
             onCloseDocument={() => {
               setDoc(null);
               setDocTitle('');
@@ -665,6 +675,28 @@ export const App: React.FC = () => {
           </div>
         </>
       )}
+
+      {/* Settings Modal (Accessible both in WelcomeScreen & Reader) */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        currentFont={fontFamily}
+        onFontChange={(newFont) => {
+          setFontFamily(newFont);
+          saveFont(newFont);
+        }}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        lang={lang}
+        onResetDefaults={() => {
+          setFontFamily('tajawal');
+          saveFont('tajawal');
+          setViewMode('continuous');
+          setTheme('paper');
+          setPaperStyle('book');
+          showToast(t.resetSuccess, 'info');
+        }}
+      />
 
       {/* Global Loading Spinner */}
       {isLoading && (

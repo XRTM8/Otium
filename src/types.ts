@@ -2,7 +2,16 @@ export type ThemeMode = 'paper' | 'midnight' | 'eink' | 'amber' | 'pure' | 'amol
 
 export type PaperStyle = 'smooth' | 'book' | 'parchment' | 'linen' | 'kraft' | 'moleskine';
 
+export type FontFamilyId = 'tajawal' | 'cairo' | 'amiri' | 'almarai' | 'ibm' | 'lora' | 'jakarta' | 'system';
+
 export type ViewMode = 'continuous' | 'single' | 'dual';
+
+export interface ReaderSettings {
+  fontFamily: FontFamilyId;
+  uiScale: 'compact' | 'standard' | 'relaxed';
+  defaultViewMode: ViewMode;
+  showToastFeedback: boolean;
+}
 
 export interface DocumentMetadata {
   title: string;

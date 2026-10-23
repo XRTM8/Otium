@@ -56,6 +56,13 @@ export interface Translations {
   outlineTab: string;
   moreTools: string;
   readingThemesTitle: string;
+  settingsTitle: string;
+  typographyTitle: string;
+  fontsTitle: string;
+  interfaceDensity: string;
+  defaultReadingMode: string;
+  resetDefaults: string;
+  resetSuccess: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -114,7 +121,14 @@ export const translations: Record<Language, Translations> = {
     pagesTab: 'الصفحات',
     outlineTab: 'الفهرس',
     moreTools: 'المزيد من الأدوات',
-    readingThemesTitle: 'بيئات القراءة (Themes)'
+    readingThemesTitle: 'بيئات القراءة (Themes)',
+    settingsTitle: 'إعدادات القارئ',
+    typographyTitle: 'الخط والطباعة',
+    fontsTitle: 'مكتبة الخطوط المدعومة',
+    interfaceDensity: 'حجم وكثافة الواجهة',
+    defaultReadingMode: 'نمط القراءة الافتراضي',
+    resetDefaults: 'استعادة الإعدادات الافتراضية',
+    resetSuccess: 'تمت استعادة الإعدادات الافتراضية بنجاح'
   },
   en: {
     themeLabel: 'Reading Theme',
@@ -171,7 +185,14 @@ export const translations: Record<Language, Translations> = {
     pagesTab: 'Pages',
     outlineTab: 'Outline',
     moreTools: 'More Tools',
-    readingThemesTitle: 'Reading Themes'
+    readingThemesTitle: 'Reading Themes',
+    settingsTitle: 'Reader Settings',
+    typographyTitle: 'Typography & Fonts',
+    fontsTitle: 'Supported Fonts Library',
+    interfaceDensity: 'Interface Density',
+    defaultReadingMode: 'Default Reading Mode',
+    resetDefaults: 'Reset to Defaults',
+    resetSuccess: 'Default settings successfully restored'
   }
 };
 

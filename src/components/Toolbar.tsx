@@ -15,7 +15,8 @@ import {
   HelpCircle,
   Search,
   MoreHorizontal,
-  Layers
+  Layers,
+  Settings2
 } from 'lucide-react';
 import type { ThemeMode, ViewMode, PaperStyle } from '../types';
 import type { Language } from '../utils/translations';
@@ -43,6 +44,7 @@ interface ToolbarProps {
   onToggleSidebar: () => void;
   onToggleSearch: () => void;
   onToggleShortcuts: () => void;
+  onToggleSettings: () => void;
   onCloseDocument: () => void;
 }
 
@@ -67,6 +69,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onToggleSidebar,
   onToggleSearch,
   onToggleShortcuts,
+  onToggleSettings,
   onCloseDocument
 }) => {
   const [isVisible, setIsVisible] = useState(true);
@@ -383,6 +386,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           >
             <HelpCircle className="w-3.5 h-3.5" />
           </button>
+
+          {/* Settings Trigger */}
+          <button
+            onClick={onToggleSettings}
+            title={t.settingsTitle}
+            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+          >
+            <Settings2 className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {/* MOBILE MORE MENU BUTTON (Shown only on screens < md) */}
@@ -430,10 +442,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </div>
 
           {/* Quick Action Toggles */}
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-1.5">
             <button
               onClick={onToggleFocusRuler}
-              className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-[11px] transition-all ${
+              className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-[10px] transition-all ${
                 isFocusRulerActive
                   ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
                   : 'bg-white/5 text-neutral-300 border-white/5 hover:bg-white/10'
@@ -445,18 +457,29 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
             <button
               onClick={() => onViewModeChange(viewMode === 'continuous' ? 'single' : 'continuous')}
-              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-neutral-300 text-[11px] transition-all"
+              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-neutral-300 text-[10px] transition-all"
             >
               {viewMode === 'continuous' ? <Scroll className="w-4 h-4" /> : <Columns className="w-4 h-4" />}
-              <span>{viewMode === 'continuous' ? 'تمرير مستمر' : 'صفحة مفردة'}</span>
+              <span>{viewMode === 'continuous' ? 'مستمر' : 'مفردة'}</span>
             </button>
 
             <button
               onClick={onToggleFullscreen}
-              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-neutral-300 text-[11px] transition-all"
+              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-neutral-300 text-[10px] transition-all"
             >
               {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
               <span>{t.fullscreen.split(' ')[0]}</span>
+            </button>
+
+            <button
+              onClick={() => {
+                onToggleSettings();
+                setShowMoreMobile(false);
+              }}
+              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-amber-300 text-[10px] transition-all"
+            >
+              <Settings2 className="w-4 h-4" />
+              <span>{t.settingsTitle.split(' ')[0]}</span>
             </button>
           </div>
 

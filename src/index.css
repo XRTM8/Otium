@@ -15,7 +15,7 @@
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
-    font-family: 'Tajawal', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    font-family: var(--app-font-family, 'Tajawal', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
   }
 
   /* Custom Smooth Scrollbar for the reader */
