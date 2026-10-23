@@ -1,6 +1,8 @@
 <div align="center">
 
-  <img src="./app-icon.png" width="136" height="136" alt="Otium Logo" style="border-radius: 30px; box-shadow: 0 10px 35px rgba(0, 255, 136, 0.35);" />
+  <a href="https://github.com/XRTM8/Otium">
+    <img src="./assets/banner.png" width="100%" alt="Otium - The Quiet Reader" style="border-radius: 18px; box-shadow: 0 16px 50px rgba(0, 0, 0, 0.7); margin-bottom: 24px;" />
+  </a>
 
   # Otium (أوتيوم)
   ### The Quiet Reader • قارئ المستندات الهادئ
