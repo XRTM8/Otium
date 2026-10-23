@@ -1,40 +1,46 @@
-# Tirs | طِـرْس
-> **A distraction-free, high-fidelity document reading environment.**
+# Otium — The Quiet Reader
+> **A distraction-free, high-fidelity document reading environment for deep focus and contemplative study.**
 
-Tirs (طِرس — Arabic for *the pristine folio*) is a modern, local-first PDF reading application crafted for deep focus, typographic clarity, and cognitive calm.
-
----
-
-## Highlights
-
-* **Precision Typography & Native Selection:** High-DPI subpixel canvas rendering coupled with a transparent native TextLayer for accurate text selection, highlighting, and copying (`Ctrl + C`).
-* **Calibrated Ambient Environments:** 5 distinct reading palettes (Paper, Midnight OLED, E-Ink Monochrome, Warm Amber, Studio Pure).
-* **Focus Guidance Ruler:** Minimalist line-level focus mask (`R`) tracking cursor velocity at 144Hz.
-* **In-Document Search:** Rapid sequential phrase matching (`Ctrl + F`) with instant page jumping.
-* **Lightweight Concurrency Pipeline:** Windowed virtualization and adaptive render queue ensuring low memory footprint even on massive volumes.
-* **Ambient Sound Synth:** Zero-external-file synthetic brown noise/rain generator powered entirely by Web Audio API.
-* **Local-First & Private:** Zero telemetry, no cloud dependencies, completely offline.
+*Otium* (Latin for *fruitful leisure, quiet reading, and contemplation*) is a modern, local-first PDF reading application crafted for deep focus, typographic clarity, and cognitive calm.
 
 ---
 
-## Keyboard Shortcuts
+## ✨ Key Capabilities
+
+* **High-DPI Retina Rendering & Native Selection:** Crisp subpixel rendering paired with an aligned native TextLayer for laser-accurate selection, highlighting, and copying (`Ctrl + C`).
+* **Visual In-Document Search:** Live phrase highlighting (`Ctrl + F`) with glowing markers and active pulse navigation across all pages.
+* **1-Click Offline Document Persistence:** Powered by IndexedDB — reopen your recent books instantly at your exact reading position with zero re-picking.
+* **Calibrated Reading Environments:** 5 curated palettes tailored to reduce eye strain:
+  * 📜 **Paper:** Warm, natural cream paper aesthetic.
+  * 🌌 **Midnight:** Deep OLED dark mode with muted cool accents.
+  * 🖨️ **E-Ink:** High-contrast paperwhite monochrome.
+  * 🍯 **Amber:** Ultra-low blue light for nighttime reading.
+  * ⚪ **Pure:** Studio crisp white for drafting.
+* **Focus Guidance Ruler:** 144Hz RAF cursor tracking line-level focus mask (`R`) for intense deep work.
+* **Ambient Sound Synth:** 0 KB synthetic brown noise and rain generator powered entirely by Web Audio API (`A`).
+* **Windowed Concurrency Pipeline:** Virtualized page loading ensuring smooth 60fps scrolling and a featherlight memory footprint.
+* **100% Local-First & Private:** No telemetry, no external tracking, no cloud dependencies. Works completely offline.
+
+---
+
+## ⌨️ Keyboard Shortcuts
 
 | Shortcut | Action |
 | :---: | :--- |
-| `J` / `↓` | Advance line / Next page |
-| `K` / `↑` | Reverse line / Previous page |
-| `Ctrl + F` | Toggle in-document search |
+| `J` / `↓` | Next page / Scroll down |
+| `K` / `↑` | Previous page / Scroll up |
+| `Ctrl + F` | In-document search with live highlight |
 | `+` / `-` | Zoom in / Zoom out |
 | `0` | Reset zoom to 100% |
-| `T` | Cycle color environments |
-| `R` | Toggle Focus Ruler mask |
-| `F` | Toggle immersive fullscreen |
-| `S` | Toggle table of contents and page drawer |
-| `Esc` | Dismiss active overlays |
+| `T` | Cycle reading environments |
+| `R` | Toggle Focus Ruler |
+| `F` | Fullscreen presentation mode |
+| `S` | Toggle thumbnail sidebar & index |
+| `Esc` | Dismiss modals / Exit search |
 
 ---
 
-## Development
+## 🚀 Getting Started
 
 ```bash
 # Install dependencies
@@ -49,6 +55,6 @@ npm run build
 
 ---
 
-## License
+## 📄 License
 
 MIT © [XRTM8](https://github.com/XRTM8)

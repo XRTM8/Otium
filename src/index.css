@@ -168,3 +168,42 @@
   --border-color: rgba(226, 232, 240, 0.8);
   --pdf-filter: none;
 }
+
+/* Ambient glow breathing animations */
+@keyframes ambientGlow1 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.20;
+  }
+  50% {
+    transform: translate(30px, -20px) scale(1.18);
+    opacity: 0.35;
+  }
+}
+
+@keyframes ambientGlow2 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.18;
+  }
+  50% {
+    transform: translate(-25px, 20px) scale(1.22);
+    opacity: 0.30;
+  }
+}
+
+.animate-glow-amber {
+  animation: ambientGlow1 10s ease-in-out infinite;
+}
+
+.animate-glow-indigo {
+  animation: ambientGlow2 14s ease-in-out infinite;
+}
+
+.glass-panel {
+  background: rgba(24, 24, 27, 0.65);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+

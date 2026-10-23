@@ -114,7 +114,11 @@ export const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [zoom, setZoom] = useState<number>(1.15);
   const [theme, setTheme] = useState<ThemeMode>(() => {
-    return (localStorage.getItem('tirs_theme') as ThemeMode) || 'paper';
+    return (
+      (localStorage.getItem('otium_theme') as ThemeMode) ||
+      (localStorage.getItem('tirs_theme') as ThemeMode) ||
+      'paper'
+    );
   });
   const [baseAspectRatio, setBaseAspectRatio] = useState<number>(0.707);
   const [viewMode, setViewMode] = useState<ViewMode>('continuous');
@@ -137,7 +141,7 @@ export const App: React.FC = () => {
 
   const handleThemeChange = (newTheme: ThemeMode) => {
     setTheme(newTheme);
-    localStorage.setItem('tirs_theme', newTheme);
+    localStorage.setItem('otium_theme', newTheme);
   };
 
   // Load document from Uint8Array / ArrayBuffer
@@ -169,7 +173,7 @@ export const App: React.FC = () => {
       }
 
       // Check last saved page
-      const stored = localStorage.getItem(`tirs_page_${title}`);
+      const stored = localStorage.getItem(`otium_page_${title}`) || localStorage.getItem(`tirs_page_${title}`);
       const savedPage = stored ? parseInt(stored, 10) : 1;
       const initialPage = savedPage > 0 && savedPage <= loadedDoc.numPages ? savedPage : 1;
       setCurrentPage(initialPage);
@@ -212,7 +216,7 @@ export const App: React.FC = () => {
   const scrollToPage = useCallback((pageNumber: number) => {
     setCurrentPage(pageNumber);
     if (docTitle) {
-      localStorage.setItem(`tirs_page_${docTitle}`, pageNumber.toString());
+      localStorage.setItem(`otium_page_${docTitle}`, pageNumber.toString());
       updateDocumentPage(docTitle, pageNumber);
     }
 
@@ -461,7 +465,7 @@ export const App: React.FC = () => {
                     onPageVisible={(visiblePage) => {
                       setCurrentPage(visiblePage);
                       if (docTitle) {
-                        localStorage.setItem(`tirs_page_${docTitle}`, visiblePage.toString());
+                        localStorage.setItem(`otium_page_${docTitle}`, visiblePage.toString());
                       }
                     }}
                   />
@@ -490,8 +494,8 @@ export const App: React.FC = () => {
       {isLoading && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center text-white">
           <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-3" />
-          <span className="text-xs font-mono tracking-widest uppercase text-neutral-300">
-            TIRS • LOADING DOCUMENT
+          <span className="text-xs font-mono tracking-widest uppercase text-amber-200">
+            OTIUM • LOADING DOCUMENT
           </span>
         </div>
       )}

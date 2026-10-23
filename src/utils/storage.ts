@@ -1,5 +1,6 @@
 // Industrial-Grade Local Document Storage via IndexedDB (Instant 1-Click Reopen)
-const DB_NAME = 'tirs_reader_db';
+const DB_NAME = 'otium_reader_db';
+const LEGACY_DB_NAME = 'tirs_reader_db';
 const STORE_NAME = 'documents';
 const DB_VERSION = 1;
 
@@ -10,6 +11,39 @@ export interface RecentDocItem {
   lastPage: number;
   totalPages: number;
   sizeBytes: number;
+}
+
+let migrationAttempted = false;
+
+async function migrateLegacyDB(targetDb: IDBDatabase) {
+  if (migrationAttempted || typeof window === 'undefined' || !window.indexedDB) return;
+  migrationAttempted = true;
+  try {
+    const legacyReq = window.indexedDB.open(LEGACY_DB_NAME);
+    legacyReq.onsuccess = () => {
+      const legacyDb = legacyReq.result;
+      if (legacyDb.objectStoreNames.contains(STORE_NAME)) {
+        const tx = legacyDb.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const getAllReq = store.getAll();
+        getAllReq.onsuccess = () => {
+          const docs = getAllReq.result || [];
+          if (docs.length > 0) {
+            const targetTx = targetDb.transaction(STORE_NAME, 'readwrite');
+            const targetStore = targetTx.objectStore(STORE_NAME);
+            for (const doc of docs) {
+              targetStore.put(doc);
+            }
+          }
+          legacyDb.close();
+        };
+      } else {
+        legacyDb.close();
+      }
+    };
+  } catch {
+    // Migration is non-critical
+  }
 }
 
 function openDB(): Promise<IDBDatabase> {
@@ -25,7 +59,11 @@ function openDB(): Promise<IDBDatabase> {
         db.createObjectStore(STORE_NAME, { keyPath: 'id' });
       }
     };
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => {
+      const db = req.result;
+      migrateLegacyDB(db);
+      resolve(db);
+    };
     req.onerror = () => reject(req.error);
   });
 }

@@ -50,8 +50,8 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ isOpen, onClose 
           ))}
         </div>
 
-        <div className="mt-4 pt-3 border-t border-white/10 text-[10px] text-neutral-500 font-mono text-center">
-          TIRS • PRECISION READING
+        <div className="mt-4 pt-3 border-t border-white/10 text-[10px] text-neutral-500 font-mono text-center tracking-widest">
+          OTIUM • THE QUIET READER
         </div>
       </div>
     </div>

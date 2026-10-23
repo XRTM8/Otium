@@ -18,7 +18,7 @@ import {
   Search
 } from 'lucide-react';
 import type { ThemeMode, ViewMode } from '../types';
-import { TirsLogo } from './TirsLogo';
+import { OtiumLogo } from './OtiumLogo';
 
 interface ToolbarProps {
   title: string;
@@ -121,13 +121,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         isVisible ? 'translate-y-0 opacity-100' : '-translate-y-16 opacity-0'
       }`}
     >
-      <div className="pointer-events-auto flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 rounded-full shadow-2xl backdrop-blur-2xl border transition-colors duration-300 text-xs sm:text-sm bg-neutral-900/90 text-neutral-100 border-white/10">
+      <div className="pointer-events-auto flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 rounded-full shadow-2xl backdrop-blur-2xl border transition-all duration-300 text-xs sm:text-sm bg-neutral-900/85 text-neutral-100 border-white/10 hover:border-amber-400/25 shadow-black/50">
         
         {/* Brand Monogram */}
         <div className="flex items-center gap-1.5 pl-1 pr-2">
-          <TirsLogo size={18} />
-          <span className="font-bold text-xs tracking-wider text-neutral-200 hidden md:inline">
-            TIRS
+          <OtiumLogo size={18} />
+          <span className="font-bold text-xs tracking-wider text-amber-200/90 hidden md:inline">
+            OTIUM
           </span>
         </div>
 

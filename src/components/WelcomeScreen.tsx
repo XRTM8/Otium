@@ -1,12 +1,23 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { ArrowUpRight, Clock, FileText, Upload, Trash2, X } from 'lucide-react';
+import {
+  ArrowUpRight,
+  BookOpen,
+  Clock,
+  Sparkles,
+  Trash2,
+  Upload,
+  X,
+  Compass,
+  Headphones,
+  ShieldCheck
+} from 'lucide-react';
 import type { RecentDocItem } from '../utils/storage';
 import {
   getRecentDocumentsList,
   removeDocumentFromStorage,
   clearAllStoredDocuments
 } from '../utils/storage';
-import { TirsLogo } from './TirsLogo';
+import { OtiumLogo } from './OtiumLogo';
 
 interface WelcomeScreenProps {
   onOpenFile: (file: File) => void;
@@ -67,53 +78,63 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center p-6 bg-neutral-950 text-neutral-100 select-none">
-      <div className="relative max-w-lg w-full flex flex-col items-center text-center space-y-7">
+    <div className="relative min-h-screen w-full flex flex-col items-center justify-center p-6 bg-gradient-to-b from-neutral-950 via-[#100f0d] to-black text-neutral-100 select-none overflow-hidden">
+      
+      {/* Dynamic Ambient Glow Lighting */}
+      <div className="absolute top-1/6 left-1/2 -translate-x-1/2 w-[34rem] h-[22rem] bg-amber-500/15 rounded-full blur-[110px] pointer-events-none animate-glow-amber" />
+      <div className="absolute bottom-1/5 right-1/4 w-[28rem] h-[20rem] bg-indigo-500/12 rounded-full blur-[100px] pointer-events-none animate-glow-indigo" />
+      <div className="absolute top-1/3 left-1/4 w-72 h-72 bg-amber-600/10 rounded-full blur-[90px] pointer-events-none" />
+
+      <div className="relative max-w-xl w-full flex flex-col items-center text-center space-y-7 z-10">
         
         {/* Brand Header */}
         <div className="flex flex-col items-center space-y-3">
-          <div className="p-3 rounded-2xl bg-neutral-900 border border-white/10 shadow-lg">
-            <TirsLogo size={36} />
+          {/* Vibe Badge */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono font-medium tracking-wider bg-amber-500/10 text-amber-300 border border-amber-500/25 shadow-[0_0_20px_rgba(245,158,11,0.15)] backdrop-blur-xl">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>OTIUM • THE QUIET READER</span>
           </div>
 
-          <div className="space-y-1">
-            <div className="flex items-center justify-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight text-neutral-100 font-sans">
-                T I R S
-              </h1>
-              <span className="text-neutral-500 font-light text-xl">|</span>
-              <span className="text-lg font-medium text-amber-300 font-sans tracking-wide">
-                طِـرْس
-              </span>
+          {/* Logo with Soft Golden Rim */}
+          <div className="relative group">
+            <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-amber-500/30 to-amber-300/20 blur-md opacity-75 group-hover:opacity-100 transition duration-500" />
+            <div className="relative p-3.5 rounded-2xl bg-neutral-900/90 border border-amber-400/30 shadow-2xl backdrop-blur-2xl">
+              <OtiumLogo size={42} />
             </div>
-            <p className="text-xs text-neutral-400 font-light tracking-wide">
-              بيئة قراءة هادئة ومجردة للمستندات والكتب
+          </div>
+
+          <div className="space-y-1.5">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-neutral-100 to-amber-200 font-sans">
+              Otium
+            </h1>
+            <p className="text-xs sm:text-sm text-neutral-400 max-w-md mx-auto leading-relaxed">
+              بيئة قراءة هادئة ومجردة للمستندات والكتب، مصممة للتركيز والتأمل المعرفي
             </p>
           </div>
         </div>
 
-        {/* Dropzone Card */}
+        {/* Dropzone Card with Warm Glassmorphism & Hover Lift */}
         <div
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`w-full p-8 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col items-center justify-center gap-3 ${
+          className={`w-full p-8 rounded-3xl border-2 border-dashed transition-all duration-300 cursor-pointer flex flex-col items-center justify-center gap-3 backdrop-blur-2xl ${
             isDragging
-              ? 'border-amber-400/80 bg-neutral-900 shadow-xl'
-              : 'border-white/10 bg-neutral-900/60 hover:border-white/20 hover:bg-neutral-900/90 shadow-lg'
+              ? 'border-amber-400 bg-amber-500/15 scale-[1.02] shadow-[0_0_40px_rgba(245,158,11,0.25)]'
+              : 'border-white/10 bg-neutral-900/60 hover:border-amber-400/40 hover:bg-neutral-900/85 hover:shadow-[0_16px_40px_rgba(245,158,11,0.12)] hover:-translate-y-0.5 shadow-2xl'
           }`}
         >
-          <div className="w-11 h-11 rounded-xl bg-neutral-800/80 border border-white/5 flex items-center justify-center text-neutral-300">
-            <Upload className="w-5 h-5 text-neutral-300" />
+          <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-amber-500/25 via-amber-400/15 to-neutral-800 border border-amber-400/30 flex items-center justify-center text-amber-300 shadow-lg shadow-amber-500/15">
+            <Upload className="w-6 h-6 text-amber-300" />
           </div>
 
           <div className="space-y-1">
-            <div className="text-xs font-medium text-neutral-200">
-              اسحب وأفلت ملف PDF هنا لفتحه
+            <div className="text-sm font-semibold text-neutral-100">
+              اسحب وأفلت أي ملف PDF هنا
             </div>
-            <div className="text-[11px] text-neutral-500">
-              أو انقر للاستعراض من جهازك
+            <div className="text-xs text-neutral-400">
+              أو انقر لتصفح واختيار الملف من جهازك
             </div>
           </div>
 
@@ -126,24 +147,24 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           />
         </div>
 
-        {/* Action Controls */}
+        {/* Primary Action Button */}
         <div className="flex items-center justify-center gap-3 w-full">
           <button
             onClick={onOpenSample}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-white/10 transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-neutral-900/90 hover:bg-neutral-800 text-neutral-200 border border-white/10 hover:border-amber-400/40 transition-all hover:scale-[1.02] active:scale-95 shadow-lg group"
           >
-            <FileText className="w-3.5 h-3.5 text-amber-400" />
-            <span>فتح الوثيقة النموذجية</span>
-            <ArrowUpRight className="w-3 h-3 opacity-40 ml-0.5" />
+            <BookOpen className="w-4 h-4 text-amber-400 group-hover:text-amber-300 transition-colors" />
+            <span>فتح الوثيقة النموذجية للمعاينة</span>
+            <ArrowUpRight className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
           </button>
         </div>
 
-        {/* Real Stored Recent Files */}
+        {/* Stored Recent Files (IndexedDB Real Instant Reopening) */}
         {recents.length > 0 && (
-          <div className="w-full text-right pt-3 border-t border-white/10 space-y-2">
-            <div className="flex items-center justify-between text-[11px] text-neutral-500 font-mono px-1">
+          <div className="w-full text-right pt-4 border-t border-white/10 space-y-2.5">
+            <div className="flex items-center justify-between text-[11px] text-neutral-400 font-mono px-1">
               <span className="flex items-center gap-1.5">
-                <Clock className="w-3 h-3" />
+                <Clock className="w-3.5 h-3.5 text-amber-400" />
                 <span>المستندات المحفوظة محلياً (فتح فوري)</span>
               </span>
               <button
@@ -151,34 +172,35 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                   await clearAllStoredDocuments();
                   setRecents([]);
                 }}
-                className="hover:text-rose-400 transition-colors flex items-center gap-1"
+                className="hover:text-rose-400 transition-colors flex items-center gap-1 text-neutral-500 hover:text-neutral-300"
                 title="مسح كل الملفات المحفوظة"
               >
                 <Trash2 className="w-3 h-3" />
-                <span>مسح الكل</span>
+                <span>مسح السجل</span>
               </button>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {recents.map((r) => (
                 <div
                   key={r.id}
                   onClick={() => onOpenRecent(r)}
-                  className="flex items-center justify-between p-2.5 rounded-xl bg-neutral-900/50 hover:bg-neutral-900 cursor-pointer border border-white/5 transition-all text-xs group"
+                  className="flex items-center justify-between p-3 rounded-2xl bg-neutral-900/60 hover:bg-neutral-900/95 cursor-pointer border border-white/5 hover:border-amber-400/30 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg text-xs group"
                 >
-                  <div className="flex items-center gap-2 max-w-[280px]">
-                    <span className="truncate font-medium text-neutral-300 group-hover:text-white transition-colors">
+                  <div className="flex items-center gap-2.5 max-w-[300px]">
+                    <div className="w-2 h-2 rounded-full bg-amber-400/80 group-hover:bg-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.5)] shrink-0" />
+                    <span className="truncate font-medium text-neutral-200 group-hover:text-white transition-colors">
                       {r.name}
                     </span>
                     {r.sizeBytes > 0 && (
-                      <span className="text-[10px] text-neutral-600 font-mono shrink-0">
+                      <span className="text-[10px] text-neutral-500 font-mono shrink-0">
                         {formatSize(r.sizeBytes)}
                       </span>
                     )}
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="font-mono text-[11px] text-neutral-500 group-hover:text-amber-400 transition-colors">
+                    <span className="font-mono text-[11px] text-neutral-400 group-hover:text-amber-300 transition-colors">
                       صفحة {r.lastPage} / {r.totalPages}
                     </span>
                     <button
@@ -188,9 +210,9 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                         loadRecents();
                       }}
                       title="إزالة هذا الملف من الذاكرة"
-                      className="p-1 rounded opacity-0 group-hover:opacity-60 hover:opacity-100 hover:bg-white/10 text-neutral-400 hover:text-rose-400 transition-all"
+                      className="p-1 rounded-md opacity-0 group-hover:opacity-70 hover:opacity-100 hover:bg-rose-500/20 text-neutral-400 hover:text-rose-400 transition-all"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
@@ -199,9 +221,30 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           </div>
         )}
 
+        {/* Feature Highlights Minimalist Trio */}
+        <div className="grid grid-cols-3 gap-3 w-full pt-3 text-center">
+          <div className="p-3.5 rounded-2xl bg-neutral-900/40 hover:bg-neutral-900/70 border border-white/5 hover:border-amber-500/25 transition-all duration-300 flex flex-col items-center gap-1.5 backdrop-blur-md">
+            <Compass className="w-4 h-4 text-amber-400" />
+            <span className="text-xs font-medium text-neutral-200">5 بيئات قراءة</span>
+            <span className="text-[10px] text-neutral-500">Paper, Midnight, E-Ink</span>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-neutral-900/40 hover:bg-neutral-900/70 border border-white/5 hover:border-sky-500/25 transition-all duration-300 flex flex-col items-center gap-1.5 backdrop-blur-md">
+            <Headphones className="w-4 h-4 text-sky-400" />
+            <span className="text-xs font-medium text-neutral-200">مسطرة وصوت مطر</span>
+            <span className="text-[10px] text-neutral-500">تركيز ذهني هادئ</span>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-neutral-900/40 hover:bg-neutral-900/70 border border-white/5 hover:border-emerald-500/25 transition-all duration-300 flex flex-col items-center gap-1.5 backdrop-blur-md">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span className="text-xs font-medium text-neutral-200">100% محلي وخاص</span>
+            <span className="text-[10px] text-neutral-500">بدون خوادم أو تتبع</span>
+          </div>
+        </div>
+
         {/* Footer Minimalist Notice */}
-        <div className="text-[10px] text-neutral-600 font-mono select-none">
-          LOCAL-FIRST • ZERO TELEMETRY • HIGH FIDELITY RENDERING
+        <div className="text-[10px] text-neutral-500 font-mono tracking-widest select-none pt-2">
+          OTIUM • LOCAL-FIRST • ZERO TELEMETRY • HIGH FIDELITY
         </div>
       </div>
     </div>
