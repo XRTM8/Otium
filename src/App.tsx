@@ -148,6 +148,10 @@ export const App: React.FC = () => {
   const loadPdfData = async (data: ArrayBuffer, title: string) => {
     setIsLoading(true);
     try {
+      // Create a detached-safe copy before passing buffer to PDF.js worker,
+      // because PDF.js transfers and detaches the input ArrayBuffer.
+      const storageBuffer = data && data.byteLength > 0 ? data.slice(0) : null;
+
       const baseUrl = window.location.origin;
       const loadingTask = pdfjsLib.getDocument({
         data,
@@ -179,7 +183,11 @@ export const App: React.FC = () => {
       setCurrentPage(initialPage);
 
       // Save to IndexedDB for 1-click reopen anytime
-      saveDocumentToStorage(title, data, loadedDoc.numPages, initialPage);
+      if (storageBuffer && storageBuffer.byteLength > 0) {
+        await saveDocumentToStorage(title, storageBuffer, loadedDoc.numPages, initialPage);
+      } else {
+        await updateDocumentPage(title, initialPage);
+      }
 
       if (initialPage > 1) {
         setTimeout(() => {

@@ -75,6 +75,12 @@ export async function saveDocumentToStorage(
   page: number = 1
 ): Promise<void> {
   try {
+    // If buffer is null or detached (byteLength === 0), do not attempt cloning
+    if (!data || data.byteLength === 0) {
+      await updateDocumentPage(name, page);
+      return;
+    }
+
     const db = await openDB();
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
