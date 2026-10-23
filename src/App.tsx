@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useTransition } from '
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { pdfjsLib } from './utils/pdfWorker';
-import type { ThemeMode, ViewMode, TextAnnotation, FontFamilyId, BookmarkItem } from './types';
+import type { ThemeMode, ViewMode, TextAnnotation, FontFamilyId, BookmarkItem, SmartboardTool, DrawingStroke, PageDrawingsMap } from './types';
 import type { Language } from './utils/translations';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { Toolbar } from './components/Toolbar';
@@ -12,8 +12,11 @@ import { SettingsModal } from './components/SettingsModal';
 import { PasswordModal } from './components/PasswordModal';
 import { SearchBar } from './components/SearchBar';
 import { TextSelectionMenu } from './components/TextSelectionMenu';
+import { SmartboardToolbar } from './components/SmartboardToolbar';
+import { ScratchpadModal } from './components/ScratchpadModal';
 import { getStoredAnnotations, saveStoredAnnotations } from './utils/annotations';
 import { getStoredBookmarks, saveStoredBookmarks } from './utils/bookmarks';
+import { getStoredDrawings, saveStoredDrawings } from './utils/drawingStorage';
 import { getSavedFont, saveFont, applyFontFamily } from './utils/fonts';
 import { measureRefreshRate, computeOptimalPageScale } from './utils/device';
 import {
@@ -36,6 +39,16 @@ interface PageSlotProps {
   searchQuery?: string;
   isCurrentSearchPage?: boolean;
   onPageVisible: (num: number) => void;
+  // Smartboard inking props
+  drawingStrokes?: DrawingStroke[];
+  onAddStroke?: (stroke: DrawingStroke) => void;
+  onDeleteStroke?: (strokeId: string) => void;
+  isBoardMode?: boolean;
+  activeTool?: SmartboardTool;
+  penColor?: string;
+  penSize?: number;
+  highlighterColor?: string;
+  highlighterSize?: number;
 }
 
 const PageSlot: React.FC<PageSlotProps> = ({
@@ -51,7 +64,16 @@ const PageSlot: React.FC<PageSlotProps> = ({
   basePageHeight = 842,
   searchQuery,
   isCurrentSearchPage,
-  onPageVisible
+  onPageVisible,
+  drawingStrokes = [],
+  onAddStroke,
+  onDeleteStroke,
+  isBoardMode = false,
+  activeTool = 'pen',
+  penColor = '#ef4444',
+  penSize = 3,
+  highlighterColor = '#fde047',
+  highlighterSize = 20,
 }) => {
   const slotRef = useRef<HTMLDivElement>(null);
   const [shouldRender, setShouldRender] = useState(isNear);
@@ -109,6 +131,15 @@ const PageSlot: React.FC<PageSlotProps> = ({
           searchQuery={searchQuery}
           isCurrentSearchPage={isCurrentSearchPage}
           onPageVisible={onPageVisible}
+          drawingStrokes={drawingStrokes}
+          onAddStroke={onAddStroke}
+          onDeleteStroke={onDeleteStroke}
+          isBoardMode={isBoardMode}
+          activeTool={activeTool}
+          penColor={penColor}
+          penSize={penSize}
+          highlighterColor={highlighterColor}
+          highlighterSize={highlighterSize}
         />
       ) : (
         <div
@@ -232,6 +263,95 @@ export const App: React.FC = () => {
     });
   };
 
+  // Smartboard / Digital Inking State
+  const [isBoardMode, setIsBoardMode] = useState<boolean>(false);
+  const [boardTool, setBoardTool] = useState<SmartboardTool>('pen');
+  const [penColor, setPenColor] = useState<string>('#ef4444');
+  const [penSize, setPenSize] = useState<number>(3);
+  const [highlighterColor, setHighlighterColor] = useState<string>('#fde047');
+  const [highlighterSize, setHighlighterSize] = useState<number>(20);
+  const [pageDrawings, setPageDrawings] = useState<PageDrawingsMap>({});
+  const [undoHistory, setUndoHistory] = useState<PageDrawingsMap[]>([]);
+  const [redoHistory, setRedoHistory] = useState<PageDrawingsMap[]>([]);
+  const [isScratchpadOpen, setIsScratchpadOpen] = useState<boolean>(false);
+
+  const handleAddStroke = useCallback((stroke: DrawingStroke) => {
+    setPageDrawings((prev) => {
+      const pageNum = stroke.pageNumber;
+      const currentList = prev[pageNum] || [];
+      const updated = {
+        ...prev,
+        [pageNum]: [...currentList, stroke],
+      };
+      setUndoHistory((u) => [...u, prev]);
+      setRedoHistory([]);
+      if (docTitle) {
+        saveStoredDrawings(docTitle, updated);
+      }
+      return updated;
+    });
+  }, [docTitle]);
+
+  const handleDeleteStroke = useCallback((strokeId: string) => {
+    setPageDrawings((prev) => {
+      let changed = false;
+      const updated: PageDrawingsMap = {};
+      for (const [pStr, list] of Object.entries(prev)) {
+        const pNum = Number(pStr);
+        const filtered = list.filter((s) => s.id !== strokeId);
+        if (filtered.length !== list.length) {
+          changed = true;
+        }
+        updated[pNum] = filtered;
+      }
+      if (!changed) return prev;
+      setUndoHistory((u) => [...u, prev]);
+      setRedoHistory([]);
+      if (docTitle) {
+        saveStoredDrawings(docTitle, updated);
+      }
+      return updated;
+    });
+  }, [docTitle]);
+
+  const handleClearCurrentPageDrawings = useCallback(() => {
+    setPageDrawings((prev) => {
+      if (!prev[currentPage] || prev[currentPage].length === 0) return prev;
+      const updated = {
+        ...prev,
+        [currentPage]: [],
+      };
+      setUndoHistory((u) => [...u, prev]);
+      setRedoHistory([]);
+      if (docTitle) {
+        saveStoredDrawings(docTitle, updated);
+      }
+      return updated;
+    });
+  }, [currentPage, docTitle]);
+
+  const handleUndoDrawing = useCallback(() => {
+    if (undoHistory.length === 0) return;
+    const previousState = undoHistory[undoHistory.length - 1];
+    setRedoHistory((r) => [...r, pageDrawings]);
+    setUndoHistory((u) => u.slice(0, -1));
+    setPageDrawings(previousState);
+    if (docTitle) {
+      saveStoredDrawings(docTitle, previousState);
+    }
+  }, [undoHistory, pageDrawings, docTitle]);
+
+  const handleRedoDrawing = useCallback(() => {
+    if (redoHistory.length === 0) return;
+    const nextState = redoHistory[redoHistory.length - 1];
+    setUndoHistory((u) => [...u, pageDrawings]);
+    setRedoHistory((r) => r.slice(0, -1));
+    setPageDrawings(nextState);
+    if (docTitle) {
+      saveStoredDrawings(docTitle, nextState);
+    }
+  }, [redoHistory, pageDrawings, docTitle]);
+
   const [touchDeltaX, setTouchDeltaX] = useState<number>(0);
   const [isDraggingTouch, setIsDraggingTouch] = useState<boolean>(false);
 
@@ -245,6 +365,14 @@ export const App: React.FC = () => {
   // Native Android and Keyboard Back Step Handler
   useEffect(() => {
     const handleBackStep = (): boolean => {
+      if (isScratchpadOpen) {
+        setIsScratchpadOpen(false);
+        return true;
+      }
+      if (isBoardMode) {
+        setIsBoardMode(false);
+        return true;
+      }
       if (isSettingsOpen) {
         setIsSettingsOpen(false);
         return true;
@@ -264,6 +392,9 @@ export const App: React.FC = () => {
         setDocTitle('');
         setAnnotations([]);
         setBookmarks([]);
+        setPageDrawings({});
+        setIsBoardMode(false);
+        setIsScratchpadOpen(false);
         return true;
       }
       return false;
@@ -282,7 +413,7 @@ export const App: React.FC = () => {
       delete (window as any).__OTIUM_HANDLE_BACK__;
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isSettingsOpen, isSearchOpen, isSidebarOpen, doc]);
+  }, [isSettingsOpen, isSearchOpen, isSidebarOpen, isBoardMode, isScratchpadOpen, doc]);
 
   // Incoming PDF Handler (Android Intent or Windows Open-With)
   useEffect(() => {
@@ -399,6 +530,7 @@ export const App: React.FC = () => {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (isBoardMode) return;
     if (e.touches.length === 2) {
       // Pinch gesture starting — capture both fingers
       const dist = Math.hypot(
@@ -426,6 +558,7 @@ export const App: React.FC = () => {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (isBoardMode) return;
     // Active pinch zoom
     if (e.touches.length === 2 && pinchStartDistRef.current !== null && pinchStartDistRef.current > 0) {
       const dist = Math.hypot(
@@ -555,6 +688,7 @@ export const App: React.FC = () => {
       setNumPages(loadedDoc.numPages);
       setAnnotations(getStoredAnnotations(title));
       setBookmarks(getStoredBookmarks(title));
+      setPageDrawings(getStoredDrawings(title));
 
       try {
         const p1 = await loadedDoc.getPage(1);
@@ -636,6 +770,18 @@ export const App: React.FC = () => {
         return;
       }
 
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        if (isBoardMode) {
+          e.preventDefault();
+          if (e.shiftKey) {
+            handleRedoDrawing();
+          } else {
+            handleUndoDrawing();
+          }
+          return;
+        }
+      }
+
       switch (e.key.toLowerCase()) {
         case 'j':
         case 'arrowdown':
@@ -681,6 +827,23 @@ export const App: React.FC = () => {
         case 's':
           setIsSidebarOpen((prev) => !prev);
           break;
+        case 'w':
+          if (!e.ctrlKey && !e.metaKey) {
+            setIsBoardMode((prev) => !prev);
+          }
+          break;
+        case 'p':
+          if (isBoardMode) setBoardTool('pen');
+          break;
+        case 'h':
+          if (isBoardMode) setBoardTool('highlighter');
+          break;
+        case 'e':
+          if (isBoardMode) setBoardTool('eraser');
+          break;
+        case 'l':
+          if (isBoardMode) setBoardTool('laser');
+          break;
         case 'escape':
           setIsSidebarOpen(false);
           setIsSearchOpen(false);
@@ -690,7 +853,7 @@ export const App: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [numPages, currentPage, viewMode, theme, scrollToPage, goToNextPage, goToPrevPage]);
+  }, [numPages, currentPage, viewMode, theme, isBoardMode, handleUndoDrawing, handleRedoDrawing, scrollToPage, goToNextPage, goToPrevPage]);
 
   const handleOpenFileRef = useRef(handleOpenFile);
   useEffect(() => {
@@ -786,6 +949,8 @@ export const App: React.FC = () => {
             currentLang={lang}
             isFullscreen={isFullscreen}
             isBookmarked={bookmarks.some((b) => b.pageNumber === currentPage)}
+            isBoardMode={isBoardMode}
+            onToggleBoardMode={() => setIsBoardMode((prev) => !prev)}
             onPageChange={navigateToPage}
             onZoomChange={setZoom}
             onThemeChange={handleThemeChange}
@@ -800,7 +965,41 @@ export const App: React.FC = () => {
               setDocTitle('');
               setAnnotations([]);
               setBookmarks([]);
+              setPageDrawings({});
+              setIsBoardMode(false);
+              setIsScratchpadOpen(false);
             }}
+          />
+
+          {/* Dedicated Smartboard Teacher Floating Dock (When Board Mode Active) */}
+          {isBoardMode && (
+            <SmartboardToolbar
+              activeTool={boardTool}
+              onSelectTool={setBoardTool}
+              penColor={penColor}
+              onPenColorChange={setPenColor}
+              penSize={penSize}
+              onPenSizeChange={setPenSize}
+              highlighterColor={highlighterColor}
+              onHighlighterColorChange={setHighlighterColor}
+              highlighterSize={highlighterSize}
+              onHighlighterSizeChange={setHighlighterSize}
+              canUndo={undoHistory.length > 0}
+              canRedo={redoHistory.length > 0}
+              onUndo={handleUndoDrawing}
+              onRedo={handleRedoDrawing}
+              onClearPage={handleClearCurrentPageDrawings}
+              onToggleScratchpad={() => setIsScratchpadOpen((prev) => !prev)}
+              onClose={() => setIsBoardMode(false)}
+              lang={lang}
+              currentPage={currentPage}
+            />
+          )}
+
+          {/* Fullscreen Companion Whiteboard / Blackboard Scratchpad */}
+          <ScratchpadModal
+            isOpen={isScratchpadOpen}
+            onClose={() => setIsScratchpadOpen(false)}
           />
 
           {/* Floating Contextual Text Selection Toolbar */}
@@ -851,7 +1050,7 @@ export const App: React.FC = () => {
             onTouchEnd={handleTouchEnd}
             style={{
               paddingTop: 'max(4.5rem, calc(env(safe-area-inset-top, 0px) + 4.2rem))',
-              touchAction: 'pan-x pan-y pinch-zoom'
+              touchAction: isBoardMode ? 'none' : 'pan-x pan-y pinch-zoom'
             }}
             className="flex-1 w-full h-full overflow-y-auto overflow-x-auto pb-20 sm:pb-24 px-2 sm:px-4 relative"
           >
@@ -905,6 +1104,15 @@ export const App: React.FC = () => {
                         localStorage.setItem(`otium_page_${docTitle}`, visiblePage.toString());
                       }
                     }}
+                    drawingStrokes={pageDrawings[pageNum] || []}
+                    onAddStroke={handleAddStroke}
+                    onDeleteStroke={handleDeleteStroke}
+                    isBoardMode={isBoardMode}
+                    activeTool={boardTool}
+                    penColor={penColor}
+                    penSize={penSize}
+                    highlighterColor={highlighterColor}
+                    highlighterSize={highlighterSize}
                   />
                 ))}
               </div>
@@ -934,6 +1142,15 @@ export const App: React.FC = () => {
                       baseAspectRatio={baseAspectRatio}
                       searchQuery={searchQuery}
                       isCurrentSearchPage={activeSearchPage === currentPage}
+                      drawingStrokes={pageDrawings[currentPage] || []}
+                      onAddStroke={handleAddStroke}
+                      onDeleteStroke={handleDeleteStroke}
+                      isBoardMode={isBoardMode}
+                      activeTool={boardTool}
+                      penColor={penColor}
+                      penSize={penSize}
+                      highlighterColor={highlighterColor}
+                      highlighterSize={highlighterSize}
                     />
                   </div>
 
@@ -951,6 +1168,15 @@ export const App: React.FC = () => {
                         baseAspectRatio={baseAspectRatio}
                         searchQuery={searchQuery}
                         isCurrentSearchPage={activeSearchPage === currentPage + 1}
+                        drawingStrokes={pageDrawings[currentPage + 1] || []}
+                        onAddStroke={handleAddStroke}
+                        onDeleteStroke={handleDeleteStroke}
+                        isBoardMode={isBoardMode}
+                        activeTool={boardTool}
+                        penColor={penColor}
+                        penSize={penSize}
+                        highlighterColor={highlighterColor}
+                        highlighterSize={highlighterSize}
                       />
                     </div>
                   ) : (
@@ -985,6 +1211,15 @@ export const App: React.FC = () => {
                   baseAspectRatio={baseAspectRatio}
                   searchQuery={searchQuery}
                   isCurrentSearchPage={activeSearchPage === currentPage}
+                  drawingStrokes={pageDrawings[currentPage] || []}
+                  onAddStroke={handleAddStroke}
+                  onDeleteStroke={handleDeleteStroke}
+                  isBoardMode={isBoardMode}
+                  activeTool={boardTool}
+                  penColor={penColor}
+                  penSize={penSize}
+                  highlighterColor={highlighterColor}
+                  highlighterSize={highlighterSize}
                 />
               </div>
             )}

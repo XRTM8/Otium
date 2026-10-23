@@ -5,10 +5,9 @@ import {
   Eraser,
   RotateCcw,
   Undo2,
+  Redo2,
   Grid,
-  Columns,
-  Square,
-  Sparkles
+  Columns
 } from 'lucide-react';
 import type { DrawingPoint, DrawingStroke } from '../types';
 
@@ -230,6 +229,14 @@ export const ScratchpadModal: React.FC<ScratchpadModalProps> = ({ isOpen, onClos
     setStrokes(prev);
   };
 
+  const handleRedo = () => {
+    if (redoStack.length === 0) return;
+    const next = redoStack[redoStack.length - 1];
+    setUndoStack((u) => [...u, strokes]);
+    setRedoStack((r) => r.slice(0, -1));
+    setStrokes(next);
+  };
+
   const handleClear = () => {
     if (strokes.length === 0) return;
     setUndoStack((u) => [...u, strokes]);
@@ -370,6 +377,24 @@ export const ScratchpadModal: React.FC<ScratchpadModalProps> = ({ isOpen, onClos
             ))}
           </div>
 
+          {/* Stroke Size */}
+          <div className="flex items-center gap-1 px-1 border-r border-white/10">
+            {[2, 5, 9].map((sz) => (
+              <button
+                key={sz}
+                onClick={() => setPenSize(sz)}
+                className={`w-5 h-5 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                  penSize === sz ? 'bg-white/20 text-emerald-300 ring-1 ring-emerald-400' : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <span
+                  className="rounded-full bg-current"
+                  style={{ width: `${Math.max(2, sz)}px`, height: `${Math.max(2, sz)}px` }}
+                />
+              </button>
+            ))}
+          </div>
+
           {/* Eraser */}
           <button
             onClick={() => setActiveTool('eraser')}
@@ -387,15 +412,27 @@ export const ScratchpadModal: React.FC<ScratchpadModalProps> = ({ isOpen, onClos
           <button
             onClick={handleUndo}
             disabled={undoStack.length === 0}
+            title="تراجع"
             className="p-2 rounded-full hover:bg-white/10 text-neutral-300 disabled:opacity-25 transition-colors cursor-pointer"
           >
             <Undo2 className="w-4 h-4" />
+          </button>
+
+          {/* Redo */}
+          <button
+            onClick={handleRedo}
+            disabled={redoStack.length === 0}
+            title="إعادة"
+            className="p-2 rounded-full hover:bg-white/10 text-neutral-300 disabled:opacity-25 transition-colors cursor-pointer"
+          >
+            <Redo2 className="w-4 h-4" />
           </button>
 
           {/* Clear All */}
           <button
             onClick={handleClear}
             disabled={strokes.length === 0}
+            title="مسح الكل"
             className="p-2 rounded-full hover:bg-rose-500/20 hover:text-rose-300 text-neutral-300 disabled:opacity-25 transition-colors cursor-pointer"
           >
             <RotateCcw className="w-4 h-4" />
