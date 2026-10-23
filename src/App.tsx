@@ -365,6 +365,8 @@ export const App: React.FC = () => {
 
       {!doc ? (
         <WelcomeScreen
+          currentTheme={theme}
+          onThemeChange={handleThemeChange}
           onOpenFile={handleOpenFile}
           onOpenSample={handleOpenSample}
           onOpenRecent={async (recent) => {
