@@ -168,9 +168,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </span>
         </button>
 
-        {/* Emerald Otium Logo */}
-        <div className="p-0.5 flex items-center justify-center shrink-0">
-          <OtiumLogo theme="amoled" size={20} />
+        {/* Dynamic Brand Symbol reflecting active theme */}
+        <div className="p-0.5 flex items-center justify-center shrink-0" title="Otium Brandmark">
+          <OtiumLogo theme={theme} size={22} variant="transparent" withGlow />
         </div>
 
         {/* Sidebar Trigger */}

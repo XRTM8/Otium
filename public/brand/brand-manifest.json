@@ -1,0 +1,113 @@
+{
+  "brandName": "Otium",
+  "brandNameArabic": "أوتيوم",
+  "taglineEn": "The Quiet Reader",
+  "taglineAr": "قارئ المستندات الهادئ",
+  "symbolDescription": "3D Frosted Glass Book with Dynamic Laser-Glow Rim and Ambient Aura",
+  "themes": [
+    {
+      "id": "amoled",
+      "nameAr": "الزمردي النيوني (AMOLED Signature)",
+      "nameEn": "AMOLED Emerald",
+      "primaryColor": "#10b981",
+      "glowColor": "#00ff88",
+      "bgAura": "rgba(16, 185, 129, 0.28)",
+      "iconPng": "/icons/themes/otium-amoled.png",
+      "iconWebp": "/icons/themes/otium-amoled.webp",
+      "iconSvg": "/icons/themes/otium-amoled.svg",
+      "transparentSymbolPng": "/icons/transparent/otium-symbol-amoled.png",
+      "transparentSymbolSvg": "/icons/transparent/otium-symbol-amoled.svg"
+    },
+    {
+      "id": "midnight",
+      "nameAr": "الأزرق السماوي (Midnight Azure)",
+      "nameEn": "Midnight Azure",
+      "primaryColor": "#38bdf8",
+      "glowColor": "#00e1ff",
+      "bgAura": "rgba(56, 189, 248, 0.28)",
+      "iconPng": "/icons/themes/otium-midnight.png",
+      "iconWebp": "/icons/themes/otium-midnight.webp",
+      "iconSvg": "/icons/themes/otium-midnight.svg",
+      "transparentSymbolPng": "/icons/transparent/otium-symbol-midnight.png",
+      "transparentSymbolSvg": "/icons/transparent/otium-symbol-midnight.svg"
+    },
+    {
+      "id": "amber",
+      "nameAr": "العنبر الدافئ (Warm Amber)",
+      "nameEn": "Warm Amber",
+      "primaryColor": "#f59e0b",
+      "glowColor": "#fbbf24",
+      "bgAura": "rgba(245, 158, 11, 0.28)",
+      "iconPng": "/icons/themes/otium-amber.png",
+      "iconWebp": "/icons/themes/otium-amber.webp",
+      "iconSvg": "/icons/themes/otium-amber.svg",
+      "transparentSymbolPng": "/icons/transparent/otium-symbol-amber.png",
+      "transparentSymbolSvg": "/icons/transparent/otium-symbol-amber.svg"
+    },
+    {
+      "id": "pure",
+      "nameAr": "الأرجواني الملكي (Amethyst Violet)",
+      "nameEn": "Pure Amethyst",
+      "primaryColor": "#818cf8",
+      "glowColor": "#c084fc",
+      "bgAura": "rgba(129, 140, 248, 0.28)",
+      "iconPng": "/icons/themes/otium-pure.png",
+      "iconWebp": "/icons/themes/otium-pure.webp",
+      "iconSvg": "/icons/themes/otium-pure.svg",
+      "transparentSymbolPng": "/icons/transparent/otium-symbol-pure.png",
+      "transparentSymbolSvg": "/icons/transparent/otium-symbol-pure.svg"
+    },
+    {
+      "id": "crimson",
+      "nameAr": "الياقوتي القرمزي (Ruby Crimson)",
+      "nameEn": "Ruby Crimson",
+      "primaryColor": "#f43f5e",
+      "glowColor": "#fb7185",
+      "bgAura": "rgba(244, 63, 94, 0.28)",
+      "iconPng": "/icons/themes/otium-crimson.png",
+      "iconWebp": "/icons/themes/otium-crimson.webp",
+      "iconSvg": "/icons/themes/otium-crimson.svg",
+      "transparentSymbolPng": "/icons/transparent/otium-symbol-crimson.png",
+      "transparentSymbolSvg": "/icons/transparent/otium-symbol-crimson.svg"
+    },
+    {
+      "id": "parchment",
+      "nameAr": "الورق العتيق (Antique Parchment)",
+      "nameEn": "Antique Parchment",
+      "primaryColor": "#d97706",
+      "glowColor": "#f59e0b",
+      "bgAura": "rgba(217, 119, 6, 0.24)",
+      "iconPng": "/icons/themes/otium-parchment.png",
+      "iconWebp": "/icons/themes/otium-parchment.webp",
+      "iconSvg": "/icons/themes/otium-parchment.svg",
+      "transparentSymbolPng": "/icons/transparent/otium-symbol-parchment.png",
+      "transparentSymbolSvg": "/icons/transparent/otium-symbol-parchment.svg"
+    },
+    {
+      "id": "crystal",
+      "nameAr": "الألماسي النقي (Crystal Diamond)",
+      "nameEn": "Crystal Diamond",
+      "primaryColor": "#ffffff",
+      "glowColor": "#e2e8f0",
+      "bgAura": "rgba(255, 255, 255, 0.26)",
+      "iconPng": "/icons/themes/otium-crystal.png",
+      "iconWebp": "/icons/themes/otium-crystal.webp",
+      "iconSvg": "/icons/themes/otium-crystal.svg",
+      "transparentSymbolPng": "/icons/transparent/otium-symbol-crystal.png",
+      "transparentSymbolSvg": "/icons/transparent/otium-symbol-crystal.svg"
+    },
+    {
+      "id": "eink",
+      "nameAr": "الحبر الإلكتروني (E-Ink Paperwhite)",
+      "nameEn": "E-Ink Paperwhite",
+      "primaryColor": "#a1a1aa",
+      "glowColor": "#e4e4e7",
+      "bgAura": "rgba(161, 161, 170, 0.2)",
+      "iconPng": "/icons/themes/otium-eink.png",
+      "iconWebp": "/icons/themes/otium-eink.webp",
+      "iconSvg": "/icons/themes/otium-eink.svg",
+      "transparentSymbolPng": "/icons/transparent/otium-symbol-eink.png",
+      "transparentSymbolSvg": "/icons/transparent/otium-symbol-eink.svg"
+    }
+  ]
+}
