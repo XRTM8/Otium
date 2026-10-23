@@ -13,10 +13,9 @@ import {
   Trash2,
   Upload,
   X,
-  Layers,
   Settings2
 } from 'lucide-react';
-import type { ThemeMode, PaperStyle } from '../types';
+import type { ThemeMode } from '../types';
 import type { Language } from '../utils/translations';
 import { getTranslations } from '../utils/translations';
 import type { RecentDocItem } from '../utils/storage';
@@ -29,10 +28,8 @@ import { OtiumLogo } from './OtiumLogo';
 
 interface WelcomeScreenProps {
   currentTheme: ThemeMode;
-  currentPaperStyle: PaperStyle;
   currentLang: Language;
   onThemeChange: (theme: ThemeMode) => void;
-  onPaperStyleChange: (style: PaperStyle) => void;
   onToggleLanguage: () => void;
   onOpenSettings?: () => void;
   onOpenFile: (file: File) => void;
@@ -42,10 +39,8 @@ interface WelcomeScreenProps {
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   currentTheme,
-  currentPaperStyle,
   currentLang,
   onThemeChange,
-  onPaperStyleChange,
   onToggleLanguage,
   onOpenSettings,
   onOpenFile,
@@ -56,7 +51,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [recents, setRecents] = useState<RecentDocItem[]>([]);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
-  const [showPaperMenu, setShowPaperMenu] = useState(false);
 
   const t = getTranslations(currentLang);
 
@@ -80,17 +74,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   ];
 
   const activeThemeMeta = themesList.find((th) => th.id === currentTheme) || themesList[0];
-
-  const paperStylesList: { id: PaperStyle; label: string; iconBg: string }[] = [
-    { id: 'smooth', label: t.paperStyles.smooth, iconBg: '#ffffff' },
-    { id: 'book', label: t.paperStyles.book, iconBg: '#fdfbf7' },
-    { id: 'parchment', label: t.paperStyles.parchment, iconBg: '#f7f1e1' },
-    { id: 'linen', label: t.paperStyles.linen, iconBg: '#f9f8f5' },
-    { id: 'kraft', label: t.paperStyles.kraft, iconBg: '#f4ede1' },
-    { id: 'moleskine', label: t.paperStyles.moleskine, iconBg: '#faf6ee' }
-  ];
-
-  const activePaperMeta = paperStylesList.find((p) => p.id === currentPaperStyle) || paperStylesList[0];
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -313,82 +296,14 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           )}
         </div>
 
-        {/* Top Controls: Paper Style Selector + Theme Picker Dropdown */}
+        {/* Top Controls: Theme Picker Dropdown */}
         <div className="pointer-events-auto flex items-center gap-2">
-          {/* Paper Style Selector Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowPaperMenu(!showPaperMenu);
-                setShowThemeMenu(false);
-              }}
-              title={t.paperStyleLabel}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-900/85 hover:bg-neutral-900 border border-white/10 hover:border-amber-400/30 shadow-xl backdrop-blur-2xl text-xs transition-all duration-200 active:scale-95"
-            >
-              <span
-                className="w-2.5 h-2.5 rounded-xs border border-black/30 transition-colors"
-                style={{ backgroundColor: activePaperMeta.iconBg }}
-              />
-              <span className="font-medium text-[11px] text-neutral-200 hidden sm:inline">
-                {activePaperMeta.label.split(' ')[0]}
-              </span>
-              <Layers className="w-3.5 h-3.5 text-neutral-400" />
-              <ChevronDown className={`w-3 h-3 text-neutral-400 transition-transform duration-200 ${showPaperMenu ? 'rotate-180' : ''}`} />
-            </button>
-
-            {/* Paper Dropdown Panel */}
-            {showPaperMenu && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowPaperMenu(false)}
-                />
-                <div
-                  className={`absolute ${currentLang === 'ar' ? 'left-0 sm:right-auto' : 'right-0 sm:left-auto'} top-full mt-2 w-56 rounded-2xl bg-neutral-900/98 border border-white/10 p-1.5 shadow-2xl backdrop-blur-2xl z-50 text-neutral-200 animate-in fade-in zoom-in-95 duration-150`}
-                >
-                  <div className="text-[10px] uppercase font-mono px-2.5 py-1 text-neutral-500 font-semibold tracking-wider">
-                    {t.paperStylesTitle}
-                  </div>
-                  {paperStylesList.map((p) => {
-                    const isSelected = currentPaperStyle === p.id;
-                    return (
-                      <button
-                        key={p.id}
-                        onClick={() => {
-                          onPaperStyleChange(p.id);
-                          setShowPaperMenu(false);
-                        }}
-                        className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs transition-colors ${
-                          isSelected
-                            ? 'bg-white/15 text-white font-medium border border-white/10'
-                            : 'hover:bg-white/5 text-neutral-300 border border-transparent'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 truncate">
-                          <span
-                            className="w-3.5 h-3.5 rounded-xs border border-black/30 shadow-xs shrink-0"
-                            style={{ backgroundColor: p.iconBg }}
-                          />
-                          <span className="truncate">{p.label}</span>
-                        </div>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </div>
-
           {/* Theme Picker Dropdown Trigger (Only opens when clicked) */}
           <div className="relative">
             <button
-              onClick={() => {
-                setShowThemeMenu(!showThemeMenu);
-                setShowPaperMenu(false);
-              }}
+              onClick={() => setShowThemeMenu(!showThemeMenu)}
               title={t.themeLabel}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-900/85 hover:bg-neutral-900 border border-white/10 hover:border-amber-400/30 shadow-xl backdrop-blur-2xl text-xs transition-all duration-200 active:scale-95"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-900/85 hover:bg-neutral-900 border border-white/10 hover:border-amber-400/30 shadow-xl backdrop-blur-2xl text-xs transition-all duration-200 active:scale-95 cursor-pointer"
             >
               <span
                 className="w-2.5 h-2.5 rounded-full ring-2 ring-white/15 transition-colors"

@@ -1,17 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 import { TextLayer } from 'pdfjs-dist';
-import type { ThemeMode, PaperStyle, TextAnnotation } from '../types';
+import type { ThemeMode, TextAnnotation } from '../types';
 
 interface PdfPageProps {
   doc: PDFDocumentProxy;
   pageNumber: number;
   scale: number;
   theme: ThemeMode;
-  paperStyle?: PaperStyle;
   annotations?: TextAnnotation[];
-  onDeleteAnnotation?: (id: string) => void;
-  onNavigateToPage?: (pageNumber: number) => void;
   baseAspectRatio: number;
   searchQuery?: string;
   isCurrentSearchPage?: boolean;
@@ -23,7 +20,6 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   pageNumber,
   scale,
   theme,
-  paperStyle = 'book',
   annotations = [],
   baseAspectRatio,
   searchQuery,
@@ -261,23 +257,25 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   };
 
     const isDark = theme === 'amoled' || theme === 'midnight' || theme === 'amber';
-    const paperBg = isDark
-      ? theme === 'amoled'
-        ? '#000000'
-        : theme === 'midnight'
-        ? '#06090f'
-        : '#140f0c'
-      : paperStyle === 'smooth'
-      ? '#ffffff'
-      : paperStyle === 'parchment'
-      ? '#fbf6ea'
-      : paperStyle === 'kraft'
-      ? '#f4ede1'
-      : paperStyle === 'moleskine'
-      ? '#faf6ee'
-      : paperStyle === 'linen'
-      ? '#f9f8f5'
-      : '#fdfcf8';
+    const paperBg = (() => {
+      switch (theme) {
+        case 'amoled':
+          return '#000000';
+        case 'midnight':
+          return '#06090f';
+        case 'amber':
+          return '#140f0c';
+        case 'parchment':
+          return '#fbf6ea';
+        case 'eink':
+          return '#e5e7eb';
+        case 'pure':
+          return '#ffffff';
+        case 'paper':
+        default:
+          return '#fdfcf8';
+      }
+    })();
 
     const pageAnnotations = annotations.filter((a) => a.pageNumber === pageNumber);
 
@@ -286,7 +284,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
         ref={containerRef}
         dir="ltr"
         data-page-number={pageNumber}
-        className={`relative flex items-center justify-center overflow-hidden will-change-transform select-text transition-all duration-300 paper-container-${paperStyle || 'book'}`}
+        className="relative flex items-center justify-center overflow-hidden will-change-transform select-text transition-all duration-300"
         style={{
           width: `${dimensions.width}px`,
           height: `${dimensions.height}px`,
@@ -309,10 +307,10 @@ export const PdfPage: React.FC<PdfPageProps> = ({
           />
         )}
 
-        {/* Subtle Paper Texture Overlay (Untouched PDF Canvas underneath) */}
-        {paperStyle !== 'smooth' && (
+        {/* Subtle Paper Texture Overlay for tactile themes */}
+        {(theme === 'paper' || theme === 'parchment') && (
           <div
-            className={`paper-overlay paper-overlay-${paperStyle}`}
+            className={`paper-overlay ${theme === 'parchment' ? 'paper-overlay-parchment' : 'paper-overlay-book'}`}
             aria-hidden="true"
           />
         )}

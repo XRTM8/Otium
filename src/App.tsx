@@ -2,19 +2,14 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { pdfjsLib } from './utils/pdfWorker';
-import type { ThemeMode, ViewMode, PaperStyle, TextAnnotation, FontFamilyId, BookmarkItem } from './types';
+import type { ThemeMode, ViewMode, TextAnnotation, FontFamilyId, BookmarkItem } from './types';
 import type { Language } from './utils/translations';
-import { getTranslations } from './utils/translations';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { Toolbar } from './components/Toolbar';
 import { PdfPage } from './components/PdfPage';
-import { FocusRuler } from './components/FocusRuler';
 import { Sidebar } from './components/Sidebar';
-import { ShortcutsModal } from './components/ShortcutsModal';
 import { SettingsModal } from './components/SettingsModal';
 import { PasswordModal } from './components/PasswordModal';
-import { ExportHighlightsModal } from './components/ExportHighlightsModal';
-import { Toast, type ToastMessage } from './components/Toast';
 import { SearchBar } from './components/SearchBar';
 import { TextSelectionMenu } from './components/TextSelectionMenu';
 import { getStoredAnnotations, saveStoredAnnotations } from './utils/annotations';
@@ -32,10 +27,7 @@ interface PageSlotProps {
   doc: PDFDocumentProxy;
   scale: number;
   theme: ThemeMode;
-  paperStyle: PaperStyle;
   annotations: TextAnnotation[];
-  onDeleteAnnotation: (id: string) => void;
-  onNavigateToPage?: (page: number) => void;
   baseAspectRatio: number;
   searchQuery?: string;
   isCurrentSearchPage?: boolean;
@@ -48,10 +40,7 @@ const PageSlot: React.FC<PageSlotProps> = ({
   doc,
   scale,
   theme,
-  paperStyle,
   annotations,
-  onDeleteAnnotation,
-  onNavigateToPage,
   baseAspectRatio,
   searchQuery,
   isCurrentSearchPage,
@@ -107,10 +96,7 @@ const PageSlot: React.FC<PageSlotProps> = ({
           pageNumber={pageNum}
           scale={scale}
           theme={theme}
-          paperStyle={paperStyle}
           annotations={annotations}
-          onDeleteAnnotation={onDeleteAnnotation}
-          onNavigateToPage={onNavigateToPage}
           baseAspectRatio={baseAspectRatio}
           searchQuery={searchQuery}
           isCurrentSearchPage={isCurrentSearchPage}
@@ -141,48 +127,35 @@ export const App: React.FC = () => {
       'paper'
     );
   });
-  const [paperStyle, setPaperStyle] = useState<PaperStyle>(() => {
-    return (
-      (localStorage.getItem('otium_paper_style') as PaperStyle) ||
-      'book'
-    );
-  });
 
-  const handlePaperStyleChange = (newStyle: PaperStyle) => {
-    setPaperStyle(newStyle);
-    localStorage.setItem('otium_paper_style', newStyle);
-  };
   const [baseAspectRatio, setBaseAspectRatio] = useState<number>(0.707);
   const [viewMode, setViewMode] = useState<ViewMode>('continuous');
-  const [isFocusRulerActive, setIsFocusRulerActive] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
-  const [isShortcutsOpen, setIsShortcutsOpen] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [fontFamily, setFontFamily] = useState<FontFamilyId>(getSavedFont);
 
   useEffect(() => {
     applyFontFamily(fontFamily);
   }, [fontFamily]);
+
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [lang, setLang] = useState<Language>(() => {
     const saved = localStorage.getItem('otium_lang') || localStorage.getItem('tirs_lang');
     return saved === 'en' ? 'en' : 'ar';
   });
-  const t = getTranslations(lang);
 
   const handleLanguageToggle = () => {
     const next = lang === 'ar' ? 'en' : 'ar';
     setLang(next);
     localStorage.setItem('otium_lang', next);
   };
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [toast, setToast] = useState<ToastMessage | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeSearchPage, setActiveSearchPage] = useState<number | null>(null);
   const [annotations, setAnnotations] = useState<TextAnnotation[]>([]);
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
-  const [isExportHighlightsOpen, setIsExportHighlightsOpen] = useState<boolean>(false);
   const [passwordModal, setPasswordModal] = useState<{
     isOpen: boolean;
     isIncorrect: boolean;
@@ -216,7 +189,6 @@ export const App: React.FC = () => {
       if (docTitle) {
         saveStoredBookmarks(docTitle, updated);
       }
-      showToast(exists ? 'تمت إزالة الإشارة المرجعية' : `تمت إضافة إشارة مرجعية لصفحة ${pageNum}`, 'info');
       return updated;
     });
   };
@@ -229,7 +201,6 @@ export const App: React.FC = () => {
       }
       return updated;
     });
-    showToast(anno.type === 'highlight' ? 'تم تظليل النص بالهايلايتر' : 'تم تسطير النص المحدد', 'success');
   };
 
   const handleDeleteAnnotation = (id: string) => {
@@ -240,10 +211,9 @@ export const App: React.FC = () => {
       }
       return updated;
     });
-    showToast('تم حذف التمييز', 'info');
   };
 
-  // Kinetic Page Turn Animation state
+  // Page Turn Animation state
   const [pageSlideDir, setPageSlideDir] = useState<'next' | 'prev' | null>(null);
   const [touchDeltaX, setTouchDeltaX] = useState<number>(0);
   const [isDraggingTouch, setIsDraggingTouch] = useState<boolean>(false);
@@ -252,9 +222,41 @@ export const App: React.FC = () => {
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
 
+  const scrollToPage = useCallback((pageNumber: number) => {
+    if (pageNumber !== currentPage && viewMode === 'single') {
+      setPageSlideDir(pageNumber > currentPage ? 'next' : 'prev');
+    }
+    setCurrentPage(pageNumber);
+    if (docTitle) {
+      localStorage.setItem(`otium_page_${docTitle}`, pageNumber.toString());
+      updateDocumentPage(docTitle, pageNumber);
+    }
+
+    if (viewMode === 'continuous') {
+      const targetEl = document.getElementById(`pdf-page-${pageNumber}`);
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, [currentPage, docTitle, viewMode]);
+
+  const goToNextPage = useCallback(() => {
+    if (currentPage < numPages) {
+      setPageSlideDir('next');
+      scrollToPage(currentPage + 1);
+    }
+  }, [currentPage, numPages, scrollToPage]);
+
+  const goToPrevPage = useCallback(() => {
+    if (currentPage > 1) {
+      setPageSlideDir('prev');
+      scrollToPage(currentPage - 1);
+    }
+  }, [currentPage, scrollToPage]);
+
   const lastWheelTimeRef = useRef<number>(0);
   const handleWheel = (e: React.WheelEvent) => {
-    if (viewMode === 'single' || viewMode === 'dual') {
+    if (viewMode === 'single') {
       const now = Date.now();
       if (now - lastWheelTimeRef.current < 350) return;
       if (Math.abs(e.deltaY) > 25) {
@@ -269,7 +271,7 @@ export const App: React.FC = () => {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1 && (viewMode === 'single' || viewMode === 'dual')) {
+    if (e.touches.length === 1 && viewMode === 'single') {
       touchStartX.current = e.touches[0].clientX;
       touchStartY.current = e.touches[0].clientY;
       setIsDraggingTouch(true);
@@ -277,7 +279,7 @@ export const App: React.FC = () => {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStartX.current !== null && isDraggingTouch && (viewMode === 'single' || viewMode === 'dual')) {
+    if (touchStartX.current !== null && isDraggingTouch && viewMode === 'single') {
       const dx = e.touches[0].clientX - touchStartX.current;
       const dy = e.touches[0].clientY - (touchStartY.current || 0);
       if (Math.abs(dx) > Math.abs(dy)) {
@@ -291,7 +293,7 @@ export const App: React.FC = () => {
     if (touchStartX.current === null) return;
     const deltaX = touchDeltaX;
 
-    if ((viewMode === 'single' || viewMode === 'dual') && Math.abs(deltaX) > 40) {
+    if (viewMode === 'single' && Math.abs(deltaX) > 40) {
       if (deltaX < 0) {
         goToNextPage();
       } else if (deltaX > 0) {
@@ -318,10 +320,6 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [doc]);
 
-  const showToast = (text: string, type: 'info' | 'success' | 'error' = 'info') => {
-    setToast({ id: Date.now().toString(), text, type });
-  };
-
   const handleThemeChange = (newTheme: ThemeMode) => {
     setTheme(newTheme);
     localStorage.setItem('otium_theme', newTheme);
@@ -331,8 +329,6 @@ export const App: React.FC = () => {
   const loadPdfData = async (data: ArrayBuffer, title: string) => {
     setIsLoading(true);
     try {
-      // Create a detached-safe copy before passing buffer to PDF.js worker,
-      // because PDF.js transfers and detaches the input ArrayBuffer.
       const storageBuffer = data && data.byteLength > 0 ? data.slice(0) : null;
 
       const baseUrl = window.location.origin;
@@ -349,7 +345,7 @@ export const App: React.FC = () => {
         setIsLoading(false);
         setPasswordModal({
           isOpen: true,
-          isIncorrect: reason === 2, // 1: NEED_PASSWORD, 2: INCORRECT_PASSWORD
+          isIncorrect: reason === 2,
           callback,
           title,
         });
@@ -368,7 +364,6 @@ export const App: React.FC = () => {
         const vp = p1.getViewport({ scale: 1 });
         if (vp.width && vp.height) {
           setBaseAspectRatio(vp.width / vp.height);
-          // Auto-calculate optimal responsive scale for mobile, tablet, and desktop
           const screenWidth = window.innerWidth;
           if (screenWidth < 640) {
             const mobileTarget = screenWidth - 16;
@@ -392,7 +387,6 @@ export const App: React.FC = () => {
       const initialPage = savedPage > 0 && savedPage <= loadedDoc.numPages ? savedPage : 1;
       setCurrentPage(initialPage);
 
-      // Save to IndexedDB for 1-click reopen anytime
       if (storageBuffer && storageBuffer.byteLength > 0) {
         await saveDocumentToStorage(title, storageBuffer, loadedDoc.numPages, initialPage);
       } else {
@@ -404,10 +398,8 @@ export const App: React.FC = () => {
           scrollToPage(initialPage);
         }, 400);
       }
-      showToast(t.openDocumentSuccess(loadedDoc.numPages), 'success');
     } catch (err) {
       console.error('Error loading PDF:', err);
-      showToast(t.openDocumentError, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -426,56 +418,9 @@ export const App: React.FC = () => {
       loadPdfData(arrayBuffer, 'The Art of Vibe Reading.pdf');
     } catch (err) {
       console.error('Error loading sample:', err);
-      showToast('تعذر تحميل الوثيقة النموذجية.', 'error');
       setIsLoading(false);
     }
   };
-
-  const scrollToPage = useCallback((pageNumber: number) => {
-    if (pageNumber !== currentPage && viewMode === 'single') {
-      setPageSlideDir(pageNumber > currentPage ? 'next' : 'prev');
-    }
-    setCurrentPage(pageNumber);
-    if (docTitle) {
-      localStorage.setItem(`otium_page_${docTitle}`, pageNumber.toString());
-      updateDocumentPage(docTitle, pageNumber);
-    }
-
-    if (viewMode === 'continuous') {
-      const targetEl = document.getElementById(`pdf-page-${pageNumber}`);
-      if (targetEl) {
-        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }
-  }, [currentPage, docTitle, numPages, viewMode]);
-
-  const goToNextPage = useCallback(() => {
-    if (viewMode === 'dual') {
-      const currentSpread = Math.floor((currentPage - 1) / 2);
-      const nextSpreadPage = (currentSpread + 1) * 2 + 1;
-      if (nextSpreadPage <= numPages) {
-        scrollToPage(nextSpreadPage);
-      }
-    } else {
-      if (currentPage < numPages) {
-        setPageSlideDir('next');
-        scrollToPage(currentPage + 1);
-      }
-    }
-  }, [currentPage, numPages, scrollToPage, viewMode]);
-
-  const goToPrevPage = useCallback(() => {
-    if (viewMode === 'dual') {
-      const currentSpread = Math.floor((currentPage - 1) / 2);
-      const prevSpreadPage = Math.max(1, (currentSpread - 1) * 2 + 1);
-      scrollToPage(prevSpreadPage);
-    } else {
-      if (currentPage > 1) {
-        setPageSlideDir('prev');
-        scrollToPage(currentPage - 1);
-      }
-    }
-  }, [currentPage, scrollToPage, viewMode]);
 
   const handleToggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -503,7 +448,7 @@ export const App: React.FC = () => {
         case 'arrowright':
         case 'pagedown':
         case ' ':
-          if (viewMode === 'dual' || viewMode === 'single') {
+          if (viewMode === 'single') {
             goToNextPage();
           } else {
             scrollContainerRef.current?.scrollBy({ top: 220, behavior: 'smooth' });
@@ -513,7 +458,7 @@ export const App: React.FC = () => {
         case 'arrowup':
         case 'arrowleft':
         case 'pageup':
-          if (viewMode === 'dual' || viewMode === 'single') {
+          if (viewMode === 'single') {
             goToPrevPage();
           } else {
             scrollContainerRef.current?.scrollBy({ top: -220, behavior: 'smooth' });
@@ -531,26 +476,19 @@ export const App: React.FC = () => {
           setZoom(1.15);
           break;
         case 't': {
-          const themes: ThemeMode[] = ['paper', 'midnight', 'eink', 'amber', 'pure'];
+          const themes: ThemeMode[] = ['paper', 'midnight', 'amoled', 'parchment', 'amber', 'eink', 'pure'];
           const nextIdx = (themes.indexOf(theme) + 1) % themes.length;
           handleThemeChange(themes[nextIdx]);
           break;
         }
-        case 'r':
-          setIsFocusRulerActive((prev) => !prev);
-          break;
         case 'f':
           handleToggleFullscreen();
           break;
         case 's':
           setIsSidebarOpen((prev) => !prev);
           break;
-        case '?':
-          setIsShortcutsOpen((prev) => !prev);
-          break;
         case 'escape':
           setIsSidebarOpen(false);
-          setIsShortcutsOpen(false);
           setIsSearchOpen(false);
           break;
       }
@@ -558,7 +496,7 @@ export const App: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [numPages, currentPage, viewMode, theme, scrollToPage]);
+  }, [numPages, currentPage, viewMode, theme, scrollToPage, goToNextPage, goToPrevPage]);
 
   useEffect(() => {
     const handleDragOver = (e: DragEvent) => e.preventDefault();
@@ -605,15 +543,11 @@ export const App: React.FC = () => {
       className={`relative w-screen h-screen overflow-hidden flex flex-col font-sans transition-colors duration-300 theme-${theme}`}
       style={{ backgroundColor: getContainerBg() }}
     >
-      <Toast toast={toast} onClose={() => setToast(null)} />
-
       {!doc ? (
         <WelcomeScreen
           currentTheme={theme}
-          currentPaperStyle={paperStyle}
           currentLang={lang}
           onThemeChange={handleThemeChange}
-          onPaperStyleChange={handlePaperStyleChange}
           onToggleLanguage={handleLanguageToggle}
           onOpenSettings={() => setIsSettingsOpen(true)}
           onOpenFile={handleOpenFile}
@@ -629,7 +563,6 @@ export const App: React.FC = () => {
               loadPdfData(data, recent.name);
             } else {
               setIsLoading(false);
-              showToast(t.openDocumentError, 'error');
             }
           }}
         />
@@ -650,38 +583,29 @@ export const App: React.FC = () => {
             totalPages={numPages}
             zoom={zoom}
             theme={theme}
-            paperStyle={paperStyle}
             viewMode={viewMode}
             currentLang={lang}
-            isFocusRulerActive={isFocusRulerActive}
             isFullscreen={isFullscreen}
             isBookmarked={bookmarks.some((b) => b.pageNumber === currentPage)}
             onPageChange={scrollToPage}
             onZoomChange={setZoom}
             onThemeChange={handleThemeChange}
-            onPaperStyleChange={handlePaperStyleChange}
             onViewModeChange={setViewMode}
             onToggleBookmark={() => handleToggleBookmark(currentPage)}
-            onToggleFocusRuler={() => setIsFocusRulerActive((prev) => !prev)}
             onToggleFullscreen={handleToggleFullscreen}
             onToggleSidebar={() => setIsSidebarOpen(true)}
             onToggleSearch={() => setIsSearchOpen((prev) => !prev)}
-            onToggleShortcuts={() => setIsShortcutsOpen(true)}
             onToggleSettings={() => setIsSettingsOpen(true)}
             onCloseDocument={() => {
               setDoc(null);
               setDocTitle('');
               setAnnotations([]);
               setBookmarks([]);
-              setIsExportHighlightsOpen(false);
             }}
           />
 
           {/* Floating Contextual Text Selection Toolbar */}
-          <TextSelectionMenu
-            onAddAnnotation={handleAddAnnotation}
-            onCopySuccess={() => showToast('تم نسخ النص المحدد إلى الحافظة', 'success')}
-          />
+          <TextSelectionMenu onAddAnnotation={handleAddAnnotation} />
 
           {/* Search Bar (Ctrl + F) */}
           <SearchBar
@@ -700,9 +624,6 @@ export const App: React.FC = () => {
             }}
           />
 
-          {/* Reading Focus Ruler */}
-          <FocusRuler active={isFocusRulerActive} />
-
           {/* Sidebar Drawer */}
           <Sidebar
             isOpen={isSidebarOpen}
@@ -715,12 +636,8 @@ export const App: React.FC = () => {
             onSelectPage={scrollToPage}
             onToggleBookmark={handleToggleBookmark}
             onDeleteAnnotation={handleDeleteAnnotation}
-            onOpenExport={() => setIsExportHighlightsOpen(true)}
             onClose={() => setIsSidebarOpen(false)}
           />
-
-          {/* Shortcuts Modal */}
-          <ShortcutsModal isOpen={isShortcutsOpen} onClose={() => setIsShortcutsOpen(false)} lang={lang} />
 
           {/* Main Reading Canvas Area */}
           <div
@@ -731,8 +648,8 @@ export const App: React.FC = () => {
             onTouchEnd={handleTouchEnd}
             className="flex-1 w-full h-full overflow-y-auto overflow-x-auto pt-14 sm:pt-16 pb-20 sm:pb-24 px-2 sm:px-4 relative"
           >
-            {/* Quick-Flip Side Navigation Buttons (Single & Dual Modes) */}
-            {(viewMode === 'single' || viewMode === 'dual') && (
+            {/* Quick-Flip Side Navigation Buttons (Single Mode) */}
+            {viewMode === 'single' && (
               <>
                 <button
                   type="button"
@@ -746,7 +663,7 @@ export const App: React.FC = () => {
                 <button
                   type="button"
                   onClick={goToNextPage}
-                  disabled={viewMode === 'dual' ? Math.floor((currentPage - 1) / 2) * 2 + 2 >= numPages : currentPage >= numPages}
+                  disabled={currentPage >= numPages}
                   title="الصفحة التالية"
                   className="fixed right-2 sm:right-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full bg-neutral-900/60 hover:bg-neutral-900/90 text-white backdrop-blur-md opacity-25 hover:opacity-100 disabled:opacity-0 transition-all cursor-pointer shadow-xl border border-white/10"
                 >
@@ -766,9 +683,7 @@ export const App: React.FC = () => {
                     doc={doc}
                     scale={zoom}
                     theme={theme}
-                    paperStyle={paperStyle}
                     annotations={annotations}
-                    onDeleteAnnotation={handleDeleteAnnotation}
                     baseAspectRatio={baseAspectRatio}
                     searchQuery={searchQuery}
                     isCurrentSearchPage={activeSearchPage === pageNum}
@@ -780,56 +695,6 @@ export const App: React.FC = () => {
                     }}
                   />
                 ))}
-              </div>
-            ) : viewMode === 'dual' ? (
-              // Dual Page Spread Mode (Book Open)
-              <div className="min-h-full flex items-center justify-center py-4 select-text">
-                {(() => {
-                  const currentSpread = Math.floor((currentPage - 1) / 2);
-                  const leftNum = currentSpread * 2 + 1;
-                  const rightNum = leftNum + 1 <= numPages ? leftNum + 1 : null;
-
-                  return (
-                    <div className="flex flex-row items-center justify-center relative shadow-2xl rounded-sm">
-                      {/* Left Page */}
-                      <div className="relative">
-                        <PdfPage
-                          doc={doc}
-                          pageNumber={leftNum}
-                          scale={Math.min(zoom, 0.95)}
-                          theme={theme}
-                          paperStyle={paperStyle}
-                          annotations={annotations}
-                          baseAspectRatio={baseAspectRatio}
-                          searchQuery={searchQuery}
-                          isCurrentSearchPage={activeSearchPage === leftNum}
-                        />
-                      </div>
-
-                      {/* Central Spine Crease */}
-                      {rightNum && (
-                        <div className="w-[3px] self-stretch bg-gradient-to-r from-black/30 via-black/15 to-transparent pointer-events-none z-20" />
-                      )}
-
-                      {/* Right Page */}
-                      {rightNum && (
-                        <div className="relative">
-                          <PdfPage
-                            doc={doc}
-                            pageNumber={rightNum}
-                            scale={Math.min(zoom, 0.95)}
-                            theme={theme}
-                            paperStyle={paperStyle}
-                            annotations={annotations}
-                            baseAspectRatio={baseAspectRatio}
-                            searchQuery={searchQuery}
-                            isCurrentSearchPage={activeSearchPage === rightNum}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
               </div>
             ) : (
               // Single Page Presentation Mode with Kinetic Slide Animation
@@ -853,7 +718,6 @@ export const App: React.FC = () => {
                   pageNumber={currentPage}
                   scale={zoom}
                   theme={theme}
-                  paperStyle={paperStyle}
                   annotations={annotations}
                   baseAspectRatio={baseAspectRatio}
                   searchQuery={searchQuery}
@@ -865,7 +729,7 @@ export const App: React.FC = () => {
         </>
       )}
 
-      {/* Settings Modal (Accessible both in WelcomeScreen & Reader) */}
+      {/* Settings Modal */}
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
@@ -882,8 +746,6 @@ export const App: React.FC = () => {
           saveFont('tajawal');
           setViewMode('continuous');
           setTheme('paper');
-          setPaperStyle('book');
-          showToast(t.resetSuccess, 'info');
         }}
       />
 
@@ -895,15 +757,6 @@ export const App: React.FC = () => {
         lang={lang}
         onSubmit={handlePasswordSubmit}
         onCancel={handlePasswordCancel}
-      />
-
-      {/* Export Highlights / Quotes Modal */}
-      <ExportHighlightsModal
-        isOpen={isExportHighlightsOpen}
-        onClose={() => setIsExportHighlightsOpen(false)}
-        annotations={annotations}
-        docTitle={docTitle}
-        lang={lang}
       />
 
       {/* Global Loading Spinner */}

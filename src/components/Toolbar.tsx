@@ -7,20 +7,15 @@ import {
   Maximize2,
   Minimize2,
   Palette,
-  Menu,
-  X,
-  Glasses,
   Columns,
   Scroll,
-  HelpCircle,
   Search,
   MoreHorizontal,
-  Layers,
   Settings2,
   Bookmark,
-  BookOpen
+  Layers
 } from 'lucide-react';
-import type { ThemeMode, ViewMode, PaperStyle } from '../types';
+import type { ThemeMode, ViewMode } from '../types';
 import type { Language } from '../utils/translations';
 import { getTranslations } from '../utils/translations';
 import { OtiumLogo } from './OtiumLogo';
@@ -31,23 +26,18 @@ interface ToolbarProps {
   totalPages: number;
   zoom: number;
   theme: ThemeMode;
-  paperStyle: PaperStyle;
   viewMode: ViewMode;
   currentLang: Language;
-  isFocusRulerActive: boolean;
   isFullscreen: boolean;
   isBookmarked?: boolean;
   onPageChange: (page: number) => void;
   onZoomChange: (zoom: number) => void;
   onThemeChange: (theme: ThemeMode) => void;
-  onPaperStyleChange: (style: PaperStyle) => void;
   onViewModeChange: (mode: ViewMode) => void;
   onToggleBookmark?: () => void;
-  onToggleFocusRuler: () => void;
   onToggleFullscreen: () => void;
   onToggleSidebar: () => void;
   onToggleSearch: () => void;
-  onToggleShortcuts: () => void;
   onToggleSettings: () => void;
   onCloseDocument: () => void;
 }
@@ -58,76 +48,44 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   totalPages,
   zoom,
   theme,
-  paperStyle,
   viewMode,
   currentLang,
-  isFocusRulerActive,
   isFullscreen,
   isBookmarked = false,
   onPageChange,
   onZoomChange,
   onThemeChange,
-  onPaperStyleChange,
   onViewModeChange,
   onToggleBookmark,
-  onToggleFocusRuler,
   onToggleFullscreen,
   onToggleSidebar,
   onToggleSearch,
-  onToggleShortcuts,
   onToggleSettings,
   onCloseDocument
 }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
-  const [showPaperMenu, setShowPaperMenu] = useState(false);
   const [showMoreMobile, setShowMoreMobile] = useState(false);
   const [inputPage, setInputPage] = useState(currentPage.toString());
 
   const t = getTranslations(currentLang);
 
-  const cycleViewMode = () => {
-    if (viewMode === 'continuous') onViewModeChange('single');
-    else if (viewMode === 'single') onViewModeChange('dual');
-    else onViewModeChange('continuous');
-  };
-
-  const currentSpread = Math.floor((currentPage - 1) / 2);
-  const spreadStart = currentSpread * 2 + 1;
-  const spreadEnd = Math.min(totalPages, spreadStart + 1);
-
-  const handlePrevPage = () => {
-    if (viewMode === 'dual') {
-      const prevSpreadPage = Math.max(1, (currentSpread - 1) * 2 + 1);
-      onPageChange(prevSpreadPage);
-    } else {
-      onPageChange(Math.max(1, currentPage - 1));
-    }
-  };
-
-  const handleNextPage = () => {
-    if (viewMode === 'dual') {
-      const nextSpreadPage = (currentSpread + 1) * 2 + 1;
-      if (nextSpreadPage <= totalPages) {
-        onPageChange(nextSpreadPage);
-      }
-    } else {
-      onPageChange(Math.min(totalPages, currentPage + 1));
-    }
+  const toggleViewMode = () => {
+    onViewModeChange(viewMode === 'continuous' ? 'single' : 'continuous');
   };
 
   useEffect(() => {
     setInputPage(currentPage.toString());
   }, [currentPage]);
 
-  // Auto-hide toolbar after inactivity (supports touch and mouse)
+  // Auto-hide toolbar after inactivity
   useEffect(() => {
     let timeout: any;
     const handleActivity = () => {
       setIsVisible(true);
       clearTimeout(timeout);
       timeout = setTimeout(() => {
-        if (!showThemeMenu && !showPaperMenu && !showMoreMobile) {
+        if (!showThemeMenu && !showMoreMobile) {
           setIsVisible(false);
         }
       }, 5000);
@@ -164,60 +122,37 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     { id: 'amoled', label: t.themes.amoled, dot: '#10b981' },
     { id: 'parchment', label: t.themes.parchment, dot: '#d97706' },
     { id: 'amber', label: t.themes.amber, dot: '#f59e0b' },
-    { id: 'eink', label: t.themes.eink, dot: '#a3a3a3' },
-    { id: 'pure', label: t.themes.pure, dot: '#818cf8' }
-  ];
-
-  const paperStylesList: { id: PaperStyle; label: string; iconBg: string }[] = [
-    { id: 'smooth', label: t.paperStyles.smooth, iconBg: '#ffffff' },
-    { id: 'book', label: t.paperStyles.book, iconBg: '#fdfbf7' },
-    { id: 'parchment', label: t.paperStyles.parchment, iconBg: '#f7f1e1' },
-    { id: 'linen', label: t.paperStyles.linen, iconBg: '#f9f8f5' },
-    { id: 'kraft', label: t.paperStyles.kraft, iconBg: '#f4ede1' },
-    { id: 'moleskine', label: t.paperStyles.moleskine, iconBg: '#faf6ee' }
+    { id: 'eink', label: t.themes.eink, dot: '#9ca3af' },
+    { id: 'pure', label: t.themes.pure, dot: '#f8fafc' },
   ];
 
   return (
     <div
-      className={`fixed top-3 sm:top-4 inset-x-0 z-30 flex flex-col items-center px-3 sm:px-4 transition-all duration-300 pointer-events-none ${
-        isVisible ? 'translate-y-0 opacity-100' : '-translate-y-20 opacity-0'
+      dir="rtl"
+      className={`fixed top-4 inset-x-0 z-40 flex flex-col items-center pointer-events-none transition-all duration-300 ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
       }`}
     >
-      {/* Primary Floating Capsule */}
-      <div className="pointer-events-auto flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full shadow-2xl backdrop-blur-2xl border transition-all duration-300 text-xs sm:text-sm bg-neutral-900/90 text-neutral-100 border-white/10 hover:border-white/20 shadow-black/60 max-w-full">
-        
-        {/* Brand Monogram with Theme Sync */}
-        <div className="flex items-center gap-1.5 pl-1 pr-1.5 shrink-0">
-          <OtiumLogo size={18} theme={theme} />
-          <span className="font-bold text-xs tracking-wider text-neutral-200 hidden lg:inline">
-            OTIUM
-          </span>
-        </div>
-
-        {/* Divider */}
-        <div className="w-[1px] h-4 bg-white/10 mx-0.5 shrink-0" />
-
-        {/* Close & Sidebar */}
+      <div className="pointer-events-auto flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 rounded-full bg-neutral-900/90 text-white border border-white/10 shadow-2xl backdrop-blur-xl transition-all">
+        {/* Logo & Close Button */}
         <button
           onClick={onCloseDocument}
           title={t.closeDoc}
-          className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors shrink-0"
+          className="p-1 rounded-full hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer shrink-0"
         >
-          <X className="w-4 h-4" />
+          <OtiumLogo theme={theme} size={20} />
         </button>
 
+        {/* Sidebar Trigger */}
         <button
           onClick={onToggleSidebar}
-          title={t.tableOfContents}
-          className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 text-neutral-300 transition-colors shrink-0"
+          title={t.pagesTab}
+          className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 text-neutral-300 transition-colors shrink-0 cursor-pointer"
         >
-          <Menu className="w-4 h-4" />
+          <Layers className="w-4 h-4" />
         </button>
 
-        {/* Divider */}
-        <div className="w-[1px] h-4 bg-white/10 mx-0.5 shrink-0 hidden sm:block" />
-
-        {/* Document Title (Hidden on tiny screens to preserve space) */}
+        {/* Document Title */}
         <div
           title={title}
           className="max-w-[75px] sm:max-w-[140px] md:max-w-[200px] truncate font-medium text-neutral-300 select-none text-xs px-1 hidden sm:block shrink-0"
@@ -232,7 +167,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         <button
           onClick={onToggleSearch}
           title={t.searchTooltip}
-          className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 text-neutral-300 transition-colors shrink-0"
+          className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 text-neutral-300 transition-colors shrink-0 cursor-pointer"
         >
           <Search className="w-4 h-4" />
         </button>
@@ -240,7 +175,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {/* Page Nav */}
         <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
           <button
-            onClick={handlePrevPage}
+            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
             disabled={currentPage <= 1}
             title={t.prevPage}
             className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 disabled:opacity-20 transition-colors cursor-pointer"
@@ -251,17 +186,17 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <form onSubmit={handlePageSubmit} className="flex items-center gap-1 font-mono text-xs">
             <input
               type="text"
-              value={viewMode === 'dual' ? `${spreadStart}-${spreadEnd}` : inputPage}
+              value={inputPage}
               onChange={(e) => setInputPage(e.target.value)}
               onBlur={handlePageSubmit}
-              className="w-10 sm:w-11 text-center bg-white/10 rounded py-0.5 px-0.5 text-white focus:outline-none focus:ring-1 focus:ring-amber-400 text-xs"
+              className="w-8 sm:w-9 text-center bg-white/10 rounded py-0.5 px-0.5 text-white focus:outline-none focus:ring-1 focus:ring-amber-400 text-xs"
             />
             <span className="opacity-40 select-none text-[11px]">/ {totalPages}</span>
           </form>
 
           <button
-            onClick={handleNextPage}
-            disabled={viewMode === 'dual' ? spreadEnd >= totalPages : currentPage >= totalPages}
+            onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage >= totalPages}
             title={t.nextPage}
             className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 disabled:opacity-20 transition-colors cursor-pointer"
           >
@@ -269,7 +204,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </button>
         </div>
 
-        {/* DESKTOP ONLY CONTROLS (Hidden on mobile < md) */}
+        {/* DESKTOP ONLY CONTROLS */}
         <div className="hidden md:flex items-center gap-1 sm:gap-1.5 shrink-0">
           <div className="w-[1px] h-4 bg-white/10 mx-0.5" />
 
@@ -309,49 +244,25 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
           <div className="w-[1px] h-4 bg-white/10 mx-0.5" />
 
-          {/* Focus Mode Ruler */}
+          {/* View Mode Toggle (Continuous <-> Single) */}
           <button
-            onClick={onToggleFocusRuler}
-            title={isFocusRulerActive ? t.focusRulerOff : t.focusRulerOn}
-            className={`p-1.5 rounded-full transition-all cursor-pointer ${
-              isFocusRulerActive
-                ? 'bg-amber-400 text-black shadow-md'
-                : 'hover:bg-white/10 text-neutral-300'
-            }`}
-          >
-            <Glasses className="w-3.5 h-3.5" />
-          </button>
-
-          {/* View Mode Toggle (Cycles Continuous -> Single -> Dual) */}
-          <button
-            onClick={cycleViewMode}
-            title={
-              viewMode === 'continuous'
-                ? t.singleMode
-                : viewMode === 'single'
-                ? t.dualMode
-                : t.continuousMode
-            }
+            onClick={toggleViewMode}
+            title={viewMode === 'continuous' ? t.singleMode : t.continuousMode}
             className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 transition-colors cursor-pointer"
           >
             {viewMode === 'continuous' ? (
               <Scroll className="w-3.5 h-3.5" />
-            ) : viewMode === 'single' ? (
-              <Columns className="w-3.5 h-3.5" />
             ) : (
-              <BookOpen className="w-3.5 h-3.5" />
+              <Columns className="w-3.5 h-3.5" />
             )}
           </button>
 
           {/* Themes Dropdown */}
           <div className="relative">
             <button
-              onClick={() => {
-                setShowThemeMenu(!showThemeMenu);
-                setShowPaperMenu(false);
-              }}
+              onClick={() => setShowThemeMenu(!showThemeMenu)}
               title={t.themeLabel}
-              className={`p-1.5 rounded-full transition-colors flex items-center ${
+              className={`p-1.5 rounded-full transition-colors flex items-center cursor-pointer ${
                 showThemeMenu ? 'bg-white/20 text-white' : 'hover:bg-white/10 text-neutral-300'
               }`}
             >
@@ -370,7 +281,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                       onThemeChange(th.id);
                       setShowThemeMenu(false);
                     }}
-                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition-colors ${
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition-colors cursor-pointer ${
                       theme === th.id ? 'bg-white/15 text-white font-medium' : 'hover:bg-white/5 text-neutral-300'
                     }`}
                   >
@@ -385,80 +296,26 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             )}
           </div>
 
-          {/* Paper Style Selector Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowPaperMenu(!showPaperMenu);
-                setShowThemeMenu(false);
-              }}
-              title={t.paperStyleLabel}
-              className={`p-1.5 rounded-full transition-colors flex items-center ${
-                showPaperMenu ? 'bg-white/20 text-white' : 'hover:bg-white/10 text-neutral-300'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-            </button>
-
-            {showPaperMenu && (
-              <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl bg-neutral-900/98 border border-white/10 p-1.5 shadow-2xl backdrop-blur-xl z-50 text-neutral-200 animate-in fade-in zoom-in-95 duration-150">
-                <div className="text-[10px] uppercase font-mono px-2.5 py-1 text-neutral-500 font-semibold tracking-wider">
-                  {t.paperStylesTitle}
-                </div>
-                {paperStylesList.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => {
-                      onPaperStyleChange(p.id);
-                      setShowPaperMenu(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs transition-colors ${
-                      paperStyle === p.id ? 'bg-white/15 text-white font-medium' : 'hover:bg-white/5 text-neutral-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 truncate">
-                      <span
-                        className="w-3.5 h-3.5 rounded-xs border border-black/25 shrink-0"
-                        style={{ backgroundColor: p.iconBg }}
-                      />
-                      <span className="truncate">{p.label}</span>
-                    </div>
-                    {paperStyle === p.id && <span className="text-amber-400 text-xs ml-1 shrink-0">✓</span>}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
           {/* Fullscreen */}
           <button
             onClick={onToggleFullscreen}
             title={t.fullscreen}
-            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 transition-colors"
+            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 transition-colors cursor-pointer"
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-          </button>
-
-          {/* Shortcuts / Help */}
-          <button
-            onClick={onToggleShortcuts}
-            title={t.shortcutsTooltip}
-            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
-          >
-            <HelpCircle className="w-3.5 h-3.5" />
           </button>
 
           {/* Settings Trigger */}
           <button
             onClick={onToggleSettings}
             title={t.settingsTitle}
-            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
           >
             <Settings2 className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* MOBILE MORE MENU BUTTON (Shown only on screens < md) */}
+        {/* MOBILE MORE MENU BUTTON (< md) */}
         <div className="md:hidden flex items-center gap-0.5 shrink-0">
           <div className="w-[1px] h-4 bg-white/10 mx-0.5" />
           <button
@@ -467,7 +324,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               setShowThemeMenu(false);
             }}
             title={t.moreTools}
-            className={`p-1.5 sm:p-2 rounded-full transition-colors ${
+            className={`p-1.5 sm:p-2 rounded-full transition-colors cursor-pointer ${
               showMoreMobile ? 'bg-white/20 text-white' : 'hover:bg-white/10 text-neutral-300'
             }`}
           >
@@ -486,16 +343,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onZoomChange(Math.max(0.4, Number((zoom - 0.15).toFixed(2))))}
-                className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-neutral-300"
+                className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-neutral-300 cursor-pointer"
               >
                 <ZoomOut className="w-4 h-4" />
               </button>
-              <span className="font-mono text-xs text-neutral-200 w-10 text-center">
+              <span className="font-mono text-xs w-9 text-center text-neutral-200">
                 {Math.round(zoom * 100)}%
               </span>
               <button
                 onClick={() => onZoomChange(Math.min(2.5, Number((zoom + 0.15).toFixed(2))))}
-                className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-neutral-300"
+                className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-neutral-300 cursor-pointer"
               >
                 <ZoomIn className="w-4 h-4" />
               </button>
@@ -506,7 +363,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <div className="grid grid-cols-4 gap-1.5">
             <button
               onClick={onToggleBookmark}
-              className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-[10px] transition-all ${
+              className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-[10px] transition-all cursor-pointer ${
                 isBookmarked
                   ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
                   : 'bg-white/5 text-neutral-300 border-white/5 hover:bg-white/10'
@@ -517,22 +374,20 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </button>
 
             <button
-              onClick={cycleViewMode}
-              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-neutral-300 text-[10px] transition-all"
+              onClick={toggleViewMode}
+              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-neutral-300 text-[10px] transition-all cursor-pointer"
             >
               {viewMode === 'continuous' ? (
                 <Scroll className="w-4 h-4" />
-              ) : viewMode === 'single' ? (
-                <Columns className="w-4 h-4" />
               ) : (
-                <BookOpen className="w-4 h-4" />
+                <Columns className="w-4 h-4" />
               )}
-              <span>{viewMode === 'continuous' ? 'مستمر' : viewMode === 'single' ? 'مفردة' : 'مزدوج'}</span>
+              <span>{viewMode === 'continuous' ? 'مستمر' : 'مفردة'}</span>
             </button>
 
             <button
               onClick={onToggleFullscreen}
-              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-neutral-300 text-[10px] transition-all"
+              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-neutral-300 text-[10px] transition-all cursor-pointer"
             >
               {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
               <span>{t.fullscreen.split(' ')[0]}</span>
@@ -543,7 +398,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 onToggleSettings();
                 setShowMoreMobile(false);
               }}
-              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-amber-300 text-[10px] transition-all"
+              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-amber-300 text-[10px] transition-all cursor-pointer"
             >
               <Settings2 className="w-4 h-4" />
               <span>{t.settingsTitle.split(' ')[0]}</span>
@@ -563,54 +418,17 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                       onThemeChange(th.id);
                       setShowMoreMobile(false);
                     }}
-                    className={`flex flex-col items-center gap-1 p-1.5 rounded-xl border transition-all ${
+                    className={`flex items-center gap-1.5 p-1.5 rounded-xl border text-[10px] transition-all cursor-pointer ${
                       isSelected
-                        ? 'border-white bg-white/20 text-white'
-                        : 'border-white/5 bg-white/5 text-neutral-400 hover:text-white'
+                        ? 'border-amber-400 bg-amber-400/20 text-white font-medium'
+                        : 'border-white/5 bg-white/5 hover:bg-white/10 text-neutral-300'
                     }`}
                   >
                     <span
-                      className="w-3.5 h-3.5 rounded-full border border-black/30"
+                      className="w-2.5 h-2.5 rounded-full shrink-0 border border-black/20"
                       style={{ backgroundColor: th.dot }}
                     />
-                    <span className="text-[9px] truncate max-w-full font-sans">
-                      {th.id}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Paper Styles Swatches (Mobile) */}
-          <div className="pt-2 border-t border-white/10 space-y-1.5">
-            <div className="text-[10px] text-neutral-400 font-mono flex items-center justify-between">
-              <span>{t.paperStylesTitle}</span>
-              <span className="text-amber-400 font-sans text-[10px]">
-                {paperStylesList.find((p) => p.id === paperStyle)?.label.split(' ')[0]}
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-1.5">
-              {paperStylesList.map((p) => {
-                const isSelected = paperStyle === p.id;
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => {
-                      onPaperStyleChange(p.id);
-                      setShowMoreMobile(false);
-                    }}
-                    className={`flex items-center gap-1.5 p-2 rounded-xl border text-[10px] transition-all truncate ${
-                      isSelected
-                        ? 'border-amber-400/50 bg-amber-400/20 text-amber-200'
-                        : 'border-white/5 bg-white/5 text-neutral-400 hover:text-white'
-                    }`}
-                  >
-                    <span
-                      className="w-2.5 h-2.5 rounded-xs shrink-0 border border-black/20"
-                      style={{ backgroundColor: p.iconBg }}
-                    />
-                    <span className="truncate">{p.label.split(' ')[0]}</span>
+                    <span className="truncate">{th.label}</span>
                   </button>
                 );
               })}

@@ -6,7 +6,9 @@ import {
   Layers,
   Bookmark,
   Trash2,
-  ExternalLink,
+  Copy,
+  Check,
+  Download,
   Plus
 } from 'lucide-react';
 import type { TocItem, BookmarkItem, TextAnnotation } from '../types';
@@ -24,7 +26,6 @@ interface SidebarProps {
   onSelectPage: (page: number) => void;
   onToggleBookmark?: (pageNumber: number) => void;
   onDeleteAnnotation?: (id: string) => void;
-  onOpenExport?: () => void;
   onClose: () => void;
 }
 
@@ -39,11 +40,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectPage,
   onToggleBookmark,
   onDeleteAnnotation,
-  onOpenExport,
   onClose
 }) => {
   const [tab, setTab] = useState<'pages' | 'toc' | 'notes'>('pages');
   const [toc, setToc] = useState<TocItem[]>([]);
+  const [copiedAll, setCopiedAll] = useState(false);
   const t = getTranslations(lang);
 
   useEffect(() => {
@@ -278,20 +279,53 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="space-y-2 pt-2 border-t border-white/10">
                   <div className="flex items-center justify-between px-1">
                     <span className="text-[11px] font-medium text-neutral-400 font-sans">
-                      الاقتباسات والتظليل ({annotations.length})
+                      الاقتباسات ({annotations.length})
                     </span>
-                    {onOpenExport && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={async () => {
+                          const content = annotations
+                            .map((a, i) => `${i + 1}. [صفحة ${a.pageNumber}] "${a.text}"`)
+                            .join('\n\n');
+                          await navigator.clipboard.writeText(content);
+                          setCopiedAll(true);
+                          setTimeout(() => setCopiedAll(false), 2000);
+                        }}
+                        className="text-[10px] text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer font-sans"
+                        title="نسخ جميع الاقتباسات إلى الحافظة"
+                      >
+                        {copiedAll ? (
+                          <>
+                            <Check className="w-3 h-3 text-emerald-400" />
+                            <span className="text-emerald-300">تم النسخ</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3 h-3" />
+                            <span>نسخ الكل</span>
+                          </>
+                        )}
+                      </button>
+
                       <button
                         onClick={() => {
-                          onClose();
-                          onOpenExport();
+                          const content = `# مقتطفات وملاحظات القراءة\n\n` +
+                            annotations.map((a) => `> "${a.text}"\n— **صفحة ${a.pageNumber}** (${a.type === 'highlight' ? 'تظليل' : 'تسطير'})\n`).join('\n');
+                          const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+                          const url = URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.download = 'ملاحظات_القراءة.md';
+                          link.click();
+                          URL.revokeObjectURL(url);
                         }}
-                        className="text-[10px] text-amber-400 hover:underline flex items-center gap-1 cursor-pointer font-sans"
+                        className="text-[10px] text-neutral-400 hover:text-white flex items-center gap-1 cursor-pointer font-sans"
+                        title="تنزيل كملف Markdown (.md)"
                       >
-                        <ExternalLink className="w-3 h-3" />
-                        <span>تصدير الكل</span>
+                        <Download className="w-3 h-3" />
+                        <span>تحميل .md</span>
                       </button>
-                    )}
+                    </div>
                   </div>
 
                   <div className="space-y-1.5">

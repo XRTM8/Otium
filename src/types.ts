@@ -4,7 +4,7 @@ export type PaperStyle = 'smooth' | 'book' | 'parchment' | 'linen' | 'kraft' | '
 
 export type FontFamilyId = 'tajawal' | 'cairo' | 'amiri' | 'almarai' | 'ibm' | 'lora' | 'jakarta' | 'system';
 
-export type ViewMode = 'continuous' | 'single' | 'dual';
+export type ViewMode = 'continuous' | 'single';
 
 export interface ReaderSettings {
   fontFamily: FontFamilyId;
