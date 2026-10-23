@@ -21,6 +21,10 @@ class AmbientSoundManager {
       const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.audioCtx = new AudioContextClass();
 
+      if (this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume().catch(() => {});
+      }
+
       // Create brown noise buffer (warm rain/soft surf sound)
       const bufferSize = this.audioCtx.sampleRate * 2;
       const noiseBuffer = this.audioCtx.createBuffer(1, bufferSize, this.audioCtx.sampleRate);

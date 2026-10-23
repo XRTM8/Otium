@@ -168,7 +168,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
     <div className="relative min-h-screen w-full flex flex-col items-center justify-center p-6 bg-gradient-to-b from-neutral-950 via-[#0e0d0b] to-black text-neutral-100 select-none overflow-hidden">
       
       {/* Top Floating Theme Switcher */}
-      <div className="absolute top-5 inset-x-0 z-30 flex justify-center sm:justify-end px-6 pointer-events-none">
+      <div className="absolute top-4 sm:top-5 inset-x-0 z-30 flex justify-center sm:justify-end px-3 sm:px-6 pointer-events-none">
         <div className="pointer-events-auto relative">
           <div className="flex items-center gap-1.5 p-1 rounded-full bg-neutral-900/85 hover:bg-neutral-900 border border-white/10 hover:border-amber-400/30 shadow-2xl backdrop-blur-2xl transition-all">
             
@@ -363,16 +363,16 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                       <span className="truncate font-medium text-xs sm:text-sm text-neutral-200 group-hover:text-amber-200 transition-colors">
                         {r.name}
                       </span>
-                      <div className="flex items-center gap-2.5 text-[11px] text-neutral-400 font-mono">
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-neutral-400 font-mono">
                         <span className="text-amber-400/90 font-sans">
                           صفحة {r.lastPage} / {r.totalPages}
                         </span>
-                        <span className="text-neutral-600">•</span>
+                        <span className="text-neutral-600 hidden sm:inline">•</span>
                         <span className="flex items-center gap-1 font-sans text-neutral-400">
                           <Calendar className="w-3 h-3 text-neutral-500 shrink-0" />
                           <span>{formatDate(r.lastOpened)}</span>
                         </span>
-                        <span className="text-neutral-600">•</span>
+                        <span className="text-neutral-600 hidden sm:inline">•</span>
                         <span className="flex items-center gap-1 font-mono text-neutral-400">
                           <HardDrive className="w-3 h-3 text-neutral-500 shrink-0" />
                           <span>{formatSize(r.sizeBytes)}</span>
@@ -389,7 +389,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                         loadRecents();
                       }}
                       title="حذف من السجل"
-                      className="p-1.5 rounded-lg opacity-0 group-hover:opacity-70 hover:opacity-100 hover:bg-rose-500/20 text-neutral-400 hover:text-rose-400 transition-all"
+                      className="p-1.5 rounded-lg opacity-70 sm:opacity-0 group-hover:opacity-100 hover:bg-rose-500/20 text-neutral-400 hover:text-rose-400 transition-all"
                     >
                       <X className="w-4 h-4" />
                     </button>

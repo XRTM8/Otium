@@ -134,6 +134,53 @@ export const App: React.FC = () => {
   const [activeSearchPage, setActiveSearchPage] = useState<number | null>(null);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      touchStartX.current = e.touches[0].clientX;
+      touchStartY.current = e.touches[0].clientY;
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+
+    // Detect horizontal swipe in single page mode
+    if (viewMode === 'single' && Math.abs(deltaX) > 45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
+      if (deltaX < 0) {
+        // Swiped left -> next page
+        if (currentPage < numPages) {
+          scrollToPage(currentPage + 1);
+        }
+      } else {
+        // Swiped right -> previous page
+        if (currentPage > 1) {
+          scrollToPage(currentPage - 1);
+        }
+      }
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 640 && doc) {
+        doc.getPage(1).then((p) => {
+          const vp = p.getViewport({ scale: 1 });
+          const mobileTarget = window.innerWidth - 16;
+          const mobileScale = Math.min(1.1, Math.max(0.4, Number((mobileTarget / vp.width).toFixed(2))));
+          setZoom(mobileScale);
+        }).catch(() => {});
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [doc]);
 
   const showToast = (text: string, type: 'info' | 'success' | 'error' = 'info') => {
     setToast({ id: Date.now().toString(), text, type });
@@ -171,6 +218,19 @@ export const App: React.FC = () => {
         const vp = p1.getViewport({ scale: 1 });
         if (vp.width && vp.height) {
           setBaseAspectRatio(vp.width / vp.height);
+          // Auto-calculate optimal responsive scale for mobile, tablet, and desktop
+          const screenWidth = window.innerWidth;
+          if (screenWidth < 640) {
+            const mobileTarget = screenWidth - 16;
+            const mobileScale = Math.min(1.1, Math.max(0.4, Number((mobileTarget / vp.width).toFixed(2))));
+            setZoom(mobileScale);
+          } else if (screenWidth < 1024) {
+            const tabletTarget = Math.min(screenWidth - 36, 750);
+            const tabletScale = Math.min(1.2, Math.max(0.6, Number((tabletTarget / vp.width).toFixed(2))));
+            setZoom(tabletScale);
+          } else {
+            setZoom(1.15);
+          }
         }
       } catch {
         // default 0.707
@@ -456,7 +516,9 @@ export const App: React.FC = () => {
           {/* Main Reading Canvas Area */}
           <div
             ref={scrollContainerRef}
-            className="flex-1 w-full h-full overflow-y-auto overflow-x-hidden pt-16 pb-24 px-4"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            className="flex-1 w-full h-full overflow-y-auto overflow-x-auto pt-14 sm:pt-16 pb-20 sm:pb-24 px-2 sm:px-4"
           >
             {viewMode === 'continuous' ? (
               // Continuous Vertical Scroll with Windowed Virtualization

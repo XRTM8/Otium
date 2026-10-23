@@ -101,8 +101,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed top-16 right-6 z-40 animate-in fade-in slide-in-from-top-2 duration-150">
-      <div className="flex items-center gap-1.5 p-1.5 pl-3 rounded-2xl bg-neutral-900/95 border border-white/10 shadow-2xl backdrop-blur-2xl text-neutral-200 text-xs">
+    <div className="fixed top-16 inset-x-4 sm:inset-x-auto sm:right-6 z-40 flex justify-center animate-in fade-in slide-in-from-top-2 duration-150">
+      <div className="flex items-center gap-1.5 p-1.5 pl-3 w-full max-w-sm sm:w-auto rounded-2xl bg-neutral-900/95 border border-white/10 shadow-2xl backdrop-blur-2xl text-neutral-200 text-xs">
         <Search className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
         <input
           ref={inputRef}
@@ -118,7 +118,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             }
           }}
           placeholder="بحث في الوثيقة..."
-          className="w-40 bg-transparent text-white placeholder:text-neutral-500 focus:outline-none text-xs"
+          className="flex-1 sm:w-44 bg-transparent text-white placeholder:text-neutral-500 focus:outline-none text-xs"
         />
 
         {isSearching && <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400 shrink-0" />}

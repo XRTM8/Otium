@@ -24,9 +24,20 @@ export const FocusRuler: React.FC<FocusRulerProps> = ({
       });
     };
 
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches && e.touches[0]) {
+        cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          setMouseY(e.touches[0].clientY);
+        });
+      }
+    };
+
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('touchmove', handleTouchMove);
       cancelAnimationFrame(rafId);
     };
   }, [active]);
