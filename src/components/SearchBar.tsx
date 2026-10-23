@@ -10,6 +10,7 @@ interface SearchBarProps {
   isOpen: boolean;
   doc: PDFDocumentProxy | null;
   onNavigateToPage: (pageNumber: number) => void;
+  onQueryChange: (query: string, activePage: number | null) => void;
   onClose: () => void;
 }
 
@@ -17,6 +18,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   isOpen,
   doc,
   onNavigateToPage,
+  onQueryChange,
   onClose
 }) => {
   const [query, setQuery] = useState('');
@@ -32,6 +34,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       setQuery('');
       setResults([]);
       setCurrentIndex(0);
+      onQueryChange('', null);
     }
   }, [isOpen]);
 
@@ -40,6 +43,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     if (!doc || !searchTerm.trim() || searchTerm.length < 2) {
       setResults([]);
       setCurrentIndex(0);
+      onQueryChange('', null);
       return;
     }
 
@@ -65,6 +69,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       if (matches.length > 0) {
         setCurrentIndex(0);
         onNavigateToPage(matches[0].pageNumber);
+        onQueryChange(searchTerm.trim(), matches[0].pageNumber);
+      } else {
+        onQueryChange(searchTerm.trim(), null);
       }
     } catch (err) {
       console.warn('Search error:', err);
@@ -77,14 +84,18 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     if (results.length === 0) return;
     const next = (currentIndex + 1) % results.length;
     setCurrentIndex(next);
-    onNavigateToPage(results[next].pageNumber);
+    const targetPage = results[next].pageNumber;
+    onNavigateToPage(targetPage);
+    onQueryChange(query.trim(), targetPage);
   };
 
   const prevMatch = () => {
     if (results.length === 0) return;
     const prev = (currentIndex - 1 + results.length) % results.length;
     setCurrentIndex(prev);
-    onNavigateToPage(results[prev].pageNumber);
+    const targetPage = results[prev].pageNumber;
+    onNavigateToPage(targetPage);
+    onQueryChange(query.trim(), targetPage);
   };
 
   if (!isOpen) return null;
@@ -106,7 +117,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               onClose();
             }
           }}
-          placeholder="بحث في المستند..."
+          placeholder="بحث في الوثيقة..."
           className="w-40 bg-transparent text-white placeholder:text-neutral-500 focus:outline-none text-xs"
         />
 
@@ -122,12 +133,14 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           <div className="flex items-center gap-0.5">
             <button
               onClick={prevMatch}
+              title="النتيجة السابقة (Shift + Enter)"
               className="p-1 rounded hover:bg-white/10 text-neutral-300 transition-colors"
             >
               <ChevronUp className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={nextMatch}
+              title="النتيجة التالية (Enter)"
               className="p-1 rounded hover:bg-white/10 text-neutral-300 transition-colors"
             >
               <ChevronDown className="w-3.5 h-3.5" />

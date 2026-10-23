@@ -9,6 +9,8 @@ interface PdfPageProps {
   scale: number;
   theme: ThemeMode;
   baseAspectRatio: number;
+  searchQuery?: string;
+  isCurrentSearchPage?: boolean;
   onPageVisible?: (pageNumber: number) => void;
 }
 
@@ -18,6 +20,8 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   scale,
   theme,
   baseAspectRatio,
+  searchQuery,
+  isCurrentSearchPage,
   onPageVisible
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -195,6 +199,38 @@ export const PdfPage: React.FC<PdfPageProps> = ({
       }
     };
   }, [doc, pageNumber, scale, isVisible, hasRenderedOnce]);
+
+  // Apply Search Highlight Markers inside TextLayer
+  useEffect(() => {
+    const container = textLayerRef.current;
+    if (!container || !hasRenderedOnce) return;
+
+    // Clean previous highlights
+    const existingMarks = container.querySelectorAll('.search-highlight');
+    existingMarks.forEach((m) => {
+      const parent = m.parentNode;
+      if (parent) {
+        parent.replaceChild(document.createTextNode(m.textContent || ''), m);
+        parent.normalize();
+      }
+    });
+
+    if (!searchQuery || !searchQuery.trim() || searchQuery.length < 2) return;
+
+    const safeTerm = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${safeTerm})`, 'gi');
+
+    const spans = container.querySelectorAll('span');
+    spans.forEach((span) => {
+      const text = span.textContent || '';
+      if (regex.test(text)) {
+        span.innerHTML = text.replace(
+          regex,
+          `<mark class="search-highlight ${isCurrentSearchPage ? 'active-search-highlight' : ''}">$1</mark>`
+        );
+      }
+    });
+  }, [searchQuery, isCurrentSearchPage, hasRenderedOnce]);
 
   const getThemeFilterStyle = (): React.CSSProperties => {
     switch (theme) {

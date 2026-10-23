@@ -100,6 +100,20 @@
   color: transparent !important;
 }
 
+/* In-Document Search Highlights */
+.search-highlight {
+  background-color: rgba(251, 191, 36, 0.45) !important;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1.5px rgba(245, 158, 11, 0.7);
+  color: transparent !important;
+  display: inline !important;
+}
+
+.active-search-highlight {
+  background-color: rgba(249, 115, 22, 0.75) !important;
+  box-shadow: 0 0 0 2px #f97316, 0 0 12px rgba(249, 115, 22, 0.6) !important;
+}
+
 .textLayer .endOfContent {
   display: block;
   position: absolute;

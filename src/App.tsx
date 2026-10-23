@@ -19,6 +19,8 @@ interface PageSlotProps {
   scale: number;
   theme: ThemeMode;
   baseAspectRatio: number;
+  searchQuery?: string;
+  isCurrentSearchPage?: boolean;
   onPageVisible: (num: number) => void;
 }
 
@@ -29,6 +31,8 @@ const PageSlot: React.FC<PageSlotProps> = ({
   scale,
   theme,
   baseAspectRatio,
+  searchQuery,
+  isCurrentSearchPage,
   onPageVisible
 }) => {
   const slotRef = useRef<HTMLDivElement>(null);
@@ -82,6 +86,8 @@ const PageSlot: React.FC<PageSlotProps> = ({
           scale={scale}
           theme={theme}
           baseAspectRatio={baseAspectRatio}
+          searchQuery={searchQuery}
+          isCurrentSearchPage={isCurrentSearchPage}
           onPageVisible={onPageVisible}
         />
       ) : (
@@ -115,6 +121,8 @@ export const App: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [toast, setToast] = useState<ToastMessage | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [activeSearchPage, setActiveSearchPage] = useState<number | null>(null);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -409,7 +417,15 @@ export const App: React.FC = () => {
             isOpen={isSearchOpen}
             doc={doc}
             onNavigateToPage={scrollToPage}
-            onClose={() => setIsSearchOpen(false)}
+            onQueryChange={(q, page) => {
+              setSearchQuery(q);
+              setActiveSearchPage(page);
+            }}
+            onClose={() => {
+              setIsSearchOpen(false);
+              setSearchQuery('');
+              setActiveSearchPage(null);
+            }}
           />
 
           {/* Reading Focus Ruler */}
@@ -445,6 +461,8 @@ export const App: React.FC = () => {
                     scale={zoom}
                     theme={theme}
                     baseAspectRatio={baseAspectRatio}
+                    searchQuery={searchQuery}
+                    isCurrentSearchPage={activeSearchPage === pageNum}
                     onPageVisible={(visiblePage) => {
                       setCurrentPage(visiblePage);
                       if (docTitle) {
@@ -464,6 +482,8 @@ export const App: React.FC = () => {
                   scale={zoom}
                   theme={theme}
                   baseAspectRatio={baseAspectRatio}
+                  searchQuery={searchQuery}
+                  isCurrentSearchPage={activeSearchPage === currentPage}
                 />
               </div>
             )}
