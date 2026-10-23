@@ -234,16 +234,22 @@ export const PdfPage: React.FC<PdfPageProps> = ({
 
   const getThemeFilterStyle = (): React.CSSProperties => {
     switch (theme) {
-      case 'paper':
-        return { filter: 'sepia(0.3) contrast(0.98) brightness(0.98)' };
+      case 'amoled':
+        // Pure black OLED background with high-contrast sharp white text
+        return { filter: 'invert(1) hue-rotate(180deg) contrast(1.06) brightness(0.96)' };
       case 'midnight':
-        return { filter: 'invert(0.92) hue-rotate(180deg) contrast(1.02)' };
-      case 'eink':
-        return { filter: 'grayscale(1) contrast(1.05)' };
+        // Deep obsidian background with soft luminous white text
+        return { filter: 'invert(0.92) hue-rotate(185deg) contrast(1.02) brightness(0.94)' };
       case 'amber':
-        return { filter: 'invert(0.9) sepia(0.4) hue-rotate(-20deg) contrast(1.02)' };
+        // Warm dark embers background with candlelit golden text
+        return { filter: 'invert(0.92) sepia(0.65) hue-rotate(-25deg) contrast(1.05)' };
+      case 'eink':
+        return { filter: 'grayscale(1) contrast(1.1)' };
+      case 'paper':
+      case 'parchment':
       case 'pure':
       default:
+        // Pristine original document: zero modification or distortion to the PDF
         return { filter: 'none' };
     }
   };
@@ -256,7 +262,14 @@ export const PdfPage: React.FC<PdfPageProps> = ({
       style={{
         width: `${dimensions.width}px`,
         height: `${dimensions.height}px`,
-        backgroundColor: theme === 'midnight' || theme === 'amber' ? '#121212' : '#ffffff'
+        backgroundColor:
+          theme === 'amoled'
+            ? '#000000'
+            : theme === 'midnight'
+            ? '#06090f'
+            : theme === 'amber'
+            ? '#140f0c'
+            : '#ffffff'
       }}
     >
       {/* Canvas Layer */}

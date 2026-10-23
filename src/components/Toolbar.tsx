@@ -7,8 +7,6 @@ import {
   Maximize2,
   Minimize2,
   Palette,
-  Volume2,
-  VolumeX,
   Menu,
   X,
   Glasses,
@@ -16,8 +14,7 @@ import {
   Scroll,
   HelpCircle,
   Search,
-  MoreHorizontal,
-  Globe
+  MoreHorizontal
 } from 'lucide-react';
 import type { ThemeMode, ViewMode } from '../types';
 import type { Language } from '../utils/translations';
@@ -33,15 +30,12 @@ interface ToolbarProps {
   viewMode: ViewMode;
   currentLang: Language;
   isFocusRulerActive: boolean;
-  isAmbientActive: boolean;
   isFullscreen: boolean;
   onPageChange: (page: number) => void;
   onZoomChange: (zoom: number) => void;
   onThemeChange: (theme: ThemeMode) => void;
   onViewModeChange: (mode: ViewMode) => void;
-  onToggleLanguage: () => void;
   onToggleFocusRuler: () => void;
-  onToggleAmbient: () => void;
   onToggleFullscreen: () => void;
   onToggleSidebar: () => void;
   onToggleSearch: () => void;
@@ -58,15 +52,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   viewMode,
   currentLang,
   isFocusRulerActive,
-  isAmbientActive,
   isFullscreen,
   onPageChange,
   onZoomChange,
   onThemeChange,
   onViewModeChange,
-  onToggleLanguage,
   onToggleFocusRuler,
-  onToggleAmbient,
   onToggleFullscreen,
   onToggleSidebar,
   onToggleSearch,
@@ -264,19 +255,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <Glasses className="w-3.5 h-3.5" />
           </button>
 
-          {/* Ambient Sound */}
-          <button
-            onClick={onToggleAmbient}
-            title={t.ambientSound}
-            className={`p-1.5 rounded-full transition-all ${
-              isAmbientActive
-                ? 'bg-neutral-100 text-neutral-900 shadow-md'
-                : 'hover:bg-white/10 text-neutral-300'
-            }`}
-          >
-            {isAmbientActive ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-          </button>
-
           {/* View Mode Toggle */}
           <button
             onClick={() => onViewModeChange(viewMode === 'continuous' ? 'single' : 'continuous')}
@@ -297,7 +275,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </button>
 
             {showThemeMenu && (
-              <div className="absolute right-0 top-full mt-2 w-48 rounded-2xl bg-neutral-900/98 border border-white/10 p-1.5 shadow-2xl backdrop-blur-xl z-50 text-neutral-200 animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute right-0 top-full mt-2 w-52 rounded-2xl bg-neutral-900/98 border border-white/10 p-1.5 shadow-2xl backdrop-blur-xl z-50 text-neutral-200 animate-in fade-in zoom-in-95 duration-150">
                 <div className="text-[10px] uppercase font-mono px-2.5 py-1 text-neutral-500 font-semibold tracking-wider">
                   {t.readingThemesTitle}
                 </div>
@@ -322,16 +300,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               </div>
             )}
           </div>
-
-          {/* Language Switch Button */}
-          <button
-            onClick={onToggleLanguage}
-            title={currentLang === 'ar' ? 'Switch to English' : 'التحويل إلى العربية'}
-            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 hover:text-white transition-colors flex items-center gap-1 font-mono text-[11px]"
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span>{currentLang === 'ar' ? 'EN' : 'عربي'}</span>
-          </button>
 
           {/* Fullscreen */}
           <button
@@ -399,15 +367,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           {/* Quick Action Toggles */}
           <div className="grid grid-cols-3 gap-2">
             <button
-              onClick={onToggleAmbient}
+              onClick={onToggleFocusRuler}
               className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-[11px] transition-all ${
-                isAmbientActive
-                  ? 'bg-white/20 text-white border-white/40'
+                isFocusRulerActive
+                  ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
                   : 'bg-white/5 text-neutral-300 border-white/5 hover:bg-white/10'
               }`}
             >
-              <Volume2 className="w-4 h-4" />
-              <span className="truncate max-w-full">{t.ambientSound}</span>
+              <Glasses className="w-4 h-4" />
+              <span>{t.focusRulerOn.split(' ')[0]}</span>
             </button>
 
             <button
@@ -419,11 +387,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </button>
 
             <button
-              onClick={onToggleLanguage}
+              onClick={onToggleFullscreen}
               className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-neutral-300 text-[11px] transition-all"
             >
-              <Globe className="w-4 h-4" />
-              <span>{currentLang === 'ar' ? 'English' : 'العربية'}</span>
+              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              <span>{t.fullscreen.split(' ')[0]}</span>
             </button>
           </div>
 

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { pdfjsLib } from './utils/pdfWorker';
-import { ambientAudio } from './utils/ambientAudio';
 import type { ThemeMode, ViewMode } from './types';
 import type { Language } from './utils/translations';
 import { translations } from './utils/translations';
@@ -125,7 +124,6 @@ export const App: React.FC = () => {
   const [baseAspectRatio, setBaseAspectRatio] = useState<number>(0.707);
   const [viewMode, setViewMode] = useState<ViewMode>('continuous');
   const [isFocusRulerActive, setIsFocusRulerActive] = useState<boolean>(false);
-  const [isAmbientActive, setIsAmbientActive] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState<boolean>(false);
@@ -145,36 +143,48 @@ export const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeSearchPage, setActiveSearchPage] = useState<number | null>(null);
 
+  // Kinetic Page Turn Animation state
+  const [pageSlideDir, setPageSlideDir] = useState<'next' | 'prev' | null>(null);
+  const [touchDeltaX, setTouchDeltaX] = useState<number>(0);
+  const [isDraggingTouch, setIsDraggingTouch] = useState<boolean>(false);
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
+    if (e.touches.length === 1 && viewMode === 'single') {
       touchStartX.current = e.touches[0].clientX;
       touchStartY.current = e.touches[0].clientY;
+      setIsDraggingTouch(true);
     }
   };
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null || touchStartY.current === null) return;
-    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
-    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
-
-    // Detect horizontal swipe in single page mode
-    if (viewMode === 'single' && Math.abs(deltaX) > 45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
-      if (deltaX < 0) {
-        // Swiped left -> next page
-        if (currentPage < numPages) {
-          scrollToPage(currentPage + 1);
-        }
-      } else {
-        // Swiped right -> previous page
-        if (currentPage > 1) {
-          scrollToPage(currentPage - 1);
-        }
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartX.current !== null && isDraggingTouch && viewMode === 'single') {
+      const dx = e.touches[0].clientX - touchStartX.current;
+      const dy = e.touches[0].clientY - (touchStartY.current || 0);
+      if (Math.abs(dx) > Math.abs(dy)) {
+        setTouchDeltaX(dx);
       }
     }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDraggingTouch(false);
+    if (touchStartX.current === null) return;
+    const deltaX = touchDeltaX;
+
+    if (viewMode === 'single' && Math.abs(deltaX) > 40) {
+      if (deltaX < 0 && currentPage < numPages) {
+        setPageSlideDir('next');
+        scrollToPage(currentPage + 1);
+      } else if (deltaX > 0 && currentPage > 1) {
+        setPageSlideDir('prev');
+        scrollToPage(currentPage - 1);
+      }
+    }
+    setTouchDeltaX(0);
     touchStartX.current = null;
     touchStartY.current = null;
   };
@@ -294,6 +304,9 @@ export const App: React.FC = () => {
   };
 
   const scrollToPage = useCallback((pageNumber: number) => {
+    if (pageNumber !== currentPage && viewMode === 'single') {
+      setPageSlideDir(pageNumber > currentPage ? 'next' : 'prev');
+    }
     setCurrentPage(pageNumber);
     if (docTitle) {
       localStorage.setItem(`otium_page_${docTitle}`, pageNumber.toString());
@@ -306,13 +319,7 @@ export const App: React.FC = () => {
         targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
-  }, [docTitle, numPages, viewMode]);
-
-  const handleToggleAmbient = () => {
-    const active = ambientAudio.toggle();
-    setIsAmbientActive(active);
-    showToast(active ? t.ambientOnToast : t.ambientOffToast, 'info');
-  };
+  }, [currentPage, docTitle, numPages, viewMode]);
 
   const handleToggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -482,15 +489,12 @@ export const App: React.FC = () => {
             viewMode={viewMode}
             currentLang={lang}
             isFocusRulerActive={isFocusRulerActive}
-            isAmbientActive={isAmbientActive}
             isFullscreen={isFullscreen}
             onPageChange={scrollToPage}
             onZoomChange={setZoom}
             onThemeChange={handleThemeChange}
             onViewModeChange={setViewMode}
-            onToggleLanguage={handleLanguageToggle}
             onToggleFocusRuler={() => setIsFocusRulerActive((prev) => !prev)}
-            onToggleAmbient={handleToggleAmbient}
             onToggleFullscreen={handleToggleFullscreen}
             onToggleSidebar={() => setIsSidebarOpen(true)}
             onToggleSearch={() => setIsSearchOpen((prev) => !prev)}
@@ -539,6 +543,7 @@ export const App: React.FC = () => {
           <div
             ref={scrollContainerRef}
             onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             className="flex-1 w-full h-full overflow-y-auto overflow-x-auto pt-14 sm:pt-16 pb-20 sm:pb-24 px-2 sm:px-4"
           >
@@ -566,10 +571,23 @@ export const App: React.FC = () => {
                 ))}
               </div>
             ) : (
-              // Single Page Presentation Mode
-              <div className="min-h-full flex items-center justify-center">
+              // Single Page Presentation Mode with Kinetic Slide Animation
+              <div
+                key={currentPage}
+                onAnimationEnd={() => setPageSlideDir(null)}
+                style={{
+                  transform: isDraggingTouch && touchDeltaX !== 0 ? `translateX(${touchDeltaX}px)` : undefined,
+                  transition: isDraggingTouch ? 'none' : undefined,
+                }}
+                className={`min-h-full flex items-center justify-center will-change-transform ${
+                  pageSlideDir === 'next'
+                    ? 'animate-page-slide-next'
+                    : pageSlideDir === 'prev'
+                    ? 'animate-page-slide-prev'
+                    : ''
+                }`}
+              >
                 <PdfPage
-                  key={currentPage}
                   doc={doc}
                   pageNumber={currentPage}
                   scale={zoom}
