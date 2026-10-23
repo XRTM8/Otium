@@ -14,9 +14,10 @@ import {
   Scroll,
   HelpCircle,
   Search,
-  MoreHorizontal
+  MoreHorizontal,
+  Layers
 } from 'lucide-react';
-import type { ThemeMode, ViewMode } from '../types';
+import type { ThemeMode, ViewMode, PaperStyle } from '../types';
 import type { Language } from '../utils/translations';
 import { getTranslations } from '../utils/translations';
 import { OtiumLogo } from './OtiumLogo';
@@ -27,6 +28,7 @@ interface ToolbarProps {
   totalPages: number;
   zoom: number;
   theme: ThemeMode;
+  paperStyle: PaperStyle;
   viewMode: ViewMode;
   currentLang: Language;
   isFocusRulerActive: boolean;
@@ -34,6 +36,7 @@ interface ToolbarProps {
   onPageChange: (page: number) => void;
   onZoomChange: (zoom: number) => void;
   onThemeChange: (theme: ThemeMode) => void;
+  onPaperStyleChange: (style: PaperStyle) => void;
   onViewModeChange: (mode: ViewMode) => void;
   onToggleFocusRuler: () => void;
   onToggleFullscreen: () => void;
@@ -49,6 +52,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   totalPages,
   zoom,
   theme,
+  paperStyle,
   viewMode,
   currentLang,
   isFocusRulerActive,
@@ -56,6 +60,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onPageChange,
   onZoomChange,
   onThemeChange,
+  onPaperStyleChange,
   onViewModeChange,
   onToggleFocusRuler,
   onToggleFullscreen,
@@ -66,6 +71,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
+  const [showPaperMenu, setShowPaperMenu] = useState(false);
   const [showMoreMobile, setShowMoreMobile] = useState(false);
   const [inputPage, setInputPage] = useState(currentPage.toString());
 
@@ -82,7 +88,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       setIsVisible(true);
       clearTimeout(timeout);
       timeout = setTimeout(() => {
-        if (!showThemeMenu && !showMoreMobile) {
+        if (!showThemeMenu && !showPaperMenu && !showMoreMobile) {
           setIsVisible(false);
         }
       }, 5000);
@@ -121,6 +127,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     { id: 'amber', label: t.themes.amber, dot: '#f59e0b' },
     { id: 'eink', label: t.themes.eink, dot: '#a3a3a3' },
     { id: 'pure', label: t.themes.pure, dot: '#818cf8' }
+  ];
+
+  const paperStylesList: { id: PaperStyle; label: string; iconBg: string }[] = [
+    { id: 'smooth', label: t.paperStyles.smooth, iconBg: '#ffffff' },
+    { id: 'book', label: t.paperStyles.book, iconBg: '#fdfbf7' },
+    { id: 'parchment', label: t.paperStyles.parchment, iconBg: '#f7f1e1' },
+    { id: 'linen', label: t.paperStyles.linen, iconBg: '#f9f8f5' },
+    { id: 'kraft', label: t.paperStyles.kraft, iconBg: '#f4ede1' },
+    { id: 'moleskine', label: t.paperStyles.moleskine, iconBg: '#faf6ee' }
   ];
 
   return (
@@ -267,9 +282,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           {/* Themes Dropdown */}
           <div className="relative">
             <button
-              onClick={() => setShowThemeMenu(!showThemeMenu)}
+              onClick={() => {
+                setShowThemeMenu(!showThemeMenu);
+                setShowPaperMenu(false);
+              }}
               title={t.themeLabel}
-              className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 transition-colors flex items-center"
+              className={`p-1.5 rounded-full transition-colors flex items-center ${
+                showThemeMenu ? 'bg-white/20 text-white' : 'hover:bg-white/10 text-neutral-300'
+              }`}
             >
               <Palette className="w-3.5 h-3.5" />
             </button>
@@ -295,6 +315,51 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                       style={{ backgroundColor: th.dot }}
                     />
                     <span>{th.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Paper Style Selector Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setShowPaperMenu(!showPaperMenu);
+                setShowThemeMenu(false);
+              }}
+              title={t.paperStyleLabel}
+              className={`p-1.5 rounded-full transition-colors flex items-center ${
+                showPaperMenu ? 'bg-white/20 text-white' : 'hover:bg-white/10 text-neutral-300'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+            </button>
+
+            {showPaperMenu && (
+              <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl bg-neutral-900/98 border border-white/10 p-1.5 shadow-2xl backdrop-blur-xl z-50 text-neutral-200 animate-in fade-in zoom-in-95 duration-150">
+                <div className="text-[10px] uppercase font-mono px-2.5 py-1 text-neutral-500 font-semibold tracking-wider">
+                  {t.paperStylesTitle}
+                </div>
+                {paperStylesList.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      onPaperStyleChange(p.id);
+                      setShowPaperMenu(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs transition-colors ${
+                      paperStyle === p.id ? 'bg-white/15 text-white font-medium' : 'hover:bg-white/5 text-neutral-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 truncate">
+                      <span
+                        className="w-3.5 h-3.5 rounded-xs border border-black/25 shrink-0"
+                        style={{ backgroundColor: p.iconBg }}
+                      />
+                      <span className="truncate">{p.label}</span>
+                    </div>
+                    {paperStyle === p.id && <span className="text-amber-400 text-xs ml-1 shrink-0">✓</span>}
                   </button>
                 ))}
               </div>
@@ -421,6 +486,41 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     <span className="text-[9px] truncate max-w-full font-sans">
                       {th.id}
                     </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Paper Styles Swatches (Mobile) */}
+          <div className="pt-2 border-t border-white/10 space-y-1.5">
+            <div className="text-[10px] text-neutral-400 font-mono flex items-center justify-between">
+              <span>{t.paperStylesTitle}</span>
+              <span className="text-amber-400 font-sans text-[10px]">
+                {paperStylesList.find((p) => p.id === paperStyle)?.label.split(' ')[0]}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              {paperStylesList.map((p) => {
+                const isSelected = paperStyle === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      onPaperStyleChange(p.id);
+                      setShowMoreMobile(false);
+                    }}
+                    className={`flex items-center gap-1.5 p-2 rounded-xl border text-[10px] transition-all truncate ${
+                      isSelected
+                        ? 'border-amber-400/50 bg-amber-400/20 text-amber-200'
+                        : 'border-white/5 bg-white/5 text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    <span
+                      className="w-2.5 h-2.5 rounded-xs shrink-0 border border-black/20"
+                      style={{ backgroundColor: p.iconBg }}
+                    />
+                    <span className="truncate">{p.label.split(' ')[0]}</span>
                   </button>
                 );
               })}

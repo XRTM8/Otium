@@ -12,6 +12,16 @@ export interface Translations {
     amoled: string;
     parchment: string;
   };
+  paperStyleLabel: string;
+  paperStylesTitle: string;
+  paperStyles: {
+    smooth: string;
+    book: string;
+    parchment: string;
+    linen: string;
+    kraft: string;
+    moleskine: string;
+  };
   dropzoneTitle: string;
   dropzoneSubtitle: string;
   openSample: string;
@@ -61,6 +71,16 @@ export const translations: Record<Language, Translations> = {
       amoled: 'AMOLED (أسود مطلق)',
       parchment: 'Parchment (ورق تاريخي)'
     },
+    paperStyleLabel: 'مظهر وخامة الورق',
+    paperStylesTitle: 'أنماط الورق (Paper Styles)',
+    paperStyles: {
+      smooth: 'ورق ناعم عصري (Modern Smooth)',
+      book: 'ورق كتاب كلاسيكي (Classic Book)',
+      parchment: 'ورق بردي تاريخي (Parchment Codex)',
+      linen: 'ورق كتان فاخر (Fine Linen)',
+      kraft: 'ورق كرافت طبيعي (Kraft Fiber)',
+      moleskine: 'دفتر مقوس الحواف (Moleskine)'
+    },
     dropzoneTitle: 'اسحب وأفلت ملف PDF هنا',
     dropzoneSubtitle: 'أو انقر للاستعراض من جهازك',
     openSample: 'فتح الوثيقة النموذجية للمعاينة',
@@ -107,6 +127,16 @@ export const translations: Record<Language, Translations> = {
       pure: 'Pure (Studio Titanium)',
       amoled: 'AMOLED (Pitch Black)',
       parchment: 'Parchment (Historic Codex)'
+    },
+    paperStyleLabel: 'Paper Style & Texture',
+    paperStylesTitle: 'Paper Styles',
+    paperStyles: {
+      smooth: 'Modern Smooth (Crisp)',
+      book: 'Classic Book (Spine & Grain)',
+      parchment: 'Historic Parchment (Codex)',
+      linen: 'Fine Linen (Woven)',
+      kraft: 'Kraft Fiber (Natural)',
+      moleskine: 'Curved Notebook (Moleskine)'
     },
     dropzoneTitle: 'Drag & drop a PDF file here',
     dropzoneSubtitle: 'or click to browse from your device',

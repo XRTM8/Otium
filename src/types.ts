@@ -1,5 +1,7 @@
 export type ThemeMode = 'paper' | 'midnight' | 'eink' | 'amber' | 'pure' | 'amoled' | 'parchment';
 
+export type PaperStyle = 'smooth' | 'book' | 'parchment' | 'linen' | 'kraft' | 'moleskine';
+
 export type ViewMode = 'continuous' | 'single' | 'dual';
 
 export interface DocumentMetadata {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { pdfjsLib } from './utils/pdfWorker';
-import type { ThemeMode, ViewMode } from './types';
+import type { ThemeMode, ViewMode, PaperStyle } from './types';
 import type { Language } from './utils/translations';
 import { getTranslations } from './utils/translations';
 import { WelcomeScreen } from './components/WelcomeScreen';
@@ -24,6 +24,7 @@ interface PageSlotProps {
   doc: PDFDocumentProxy;
   scale: number;
   theme: ThemeMode;
+  paperStyle: PaperStyle;
   baseAspectRatio: number;
   searchQuery?: string;
   isCurrentSearchPage?: boolean;
@@ -36,6 +37,7 @@ const PageSlot: React.FC<PageSlotProps> = ({
   doc,
   scale,
   theme,
+  paperStyle,
   baseAspectRatio,
   searchQuery,
   isCurrentSearchPage,
@@ -91,6 +93,7 @@ const PageSlot: React.FC<PageSlotProps> = ({
           pageNumber={pageNum}
           scale={scale}
           theme={theme}
+          paperStyle={paperStyle}
           baseAspectRatio={baseAspectRatio}
           searchQuery={searchQuery}
           isCurrentSearchPage={isCurrentSearchPage}
@@ -121,6 +124,17 @@ export const App: React.FC = () => {
       'paper'
     );
   });
+  const [paperStyle, setPaperStyle] = useState<PaperStyle>(() => {
+    return (
+      (localStorage.getItem('otium_paper_style') as PaperStyle) ||
+      'book'
+    );
+  });
+
+  const handlePaperStyleChange = (newStyle: PaperStyle) => {
+    setPaperStyle(newStyle);
+    localStorage.setItem('otium_paper_style', newStyle);
+  };
   const [baseAspectRatio, setBaseAspectRatio] = useState<number>(0.707);
   const [viewMode, setViewMode] = useState<ViewMode>('continuous');
   const [isFocusRulerActive, setIsFocusRulerActive] = useState<boolean>(false);
@@ -450,8 +464,10 @@ export const App: React.FC = () => {
       {!doc ? (
         <WelcomeScreen
           currentTheme={theme}
+          currentPaperStyle={paperStyle}
           currentLang={lang}
           onThemeChange={handleThemeChange}
+          onPaperStyleChange={handlePaperStyleChange}
           onToggleLanguage={handleLanguageToggle}
           onOpenFile={handleOpenFile}
           onOpenSample={handleOpenSample}
@@ -487,6 +503,7 @@ export const App: React.FC = () => {
             totalPages={numPages}
             zoom={zoom}
             theme={theme}
+            paperStyle={paperStyle}
             viewMode={viewMode}
             currentLang={lang}
             isFocusRulerActive={isFocusRulerActive}
@@ -494,6 +511,7 @@ export const App: React.FC = () => {
             onPageChange={scrollToPage}
             onZoomChange={setZoom}
             onThemeChange={handleThemeChange}
+            onPaperStyleChange={handlePaperStyleChange}
             onViewModeChange={setViewMode}
             onToggleFocusRuler={() => setIsFocusRulerActive((prev) => !prev)}
             onToggleFullscreen={handleToggleFullscreen}
@@ -559,6 +577,7 @@ export const App: React.FC = () => {
                     doc={doc}
                     scale={zoom}
                     theme={theme}
+                    paperStyle={paperStyle}
                     baseAspectRatio={baseAspectRatio}
                     searchQuery={searchQuery}
                     isCurrentSearchPage={activeSearchPage === pageNum}
@@ -593,6 +612,7 @@ export const App: React.FC = () => {
                   pageNumber={currentPage}
                   scale={zoom}
                   theme={theme}
+                  paperStyle={paperStyle}
                   baseAspectRatio={baseAspectRatio}
                   searchQuery={searchQuery}
                   isCurrentSearchPage={activeSearchPage === currentPage}

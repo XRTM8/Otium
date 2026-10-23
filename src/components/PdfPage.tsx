@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 import { TextLayer } from 'pdfjs-dist';
-import type { ThemeMode } from '../types';
+import type { ThemeMode, PaperStyle } from '../types';
 
 interface PdfPageProps {
   doc: PDFDocumentProxy;
   pageNumber: number;
   scale: number;
   theme: ThemeMode;
+  paperStyle?: PaperStyle;
   baseAspectRatio: number;
   searchQuery?: string;
   isCurrentSearchPage?: boolean;
@@ -19,6 +20,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   pageNumber,
   scale,
   theme,
+  paperStyle = 'book',
   baseAspectRatio,
   searchQuery,
   isCurrentSearchPage,
@@ -254,63 +256,83 @@ export const PdfPage: React.FC<PdfPageProps> = ({
     }
   };
 
-  return (
-    <div
-      ref={containerRef}
-      dir="ltr"
-      className="relative flex items-center justify-center shadow-xl rounded-sm overflow-hidden will-change-transform select-text"
-      style={{
-        width: `${dimensions.width}px`,
-        height: `${dimensions.height}px`,
-        backgroundColor:
-          theme === 'amoled'
-            ? '#000000'
-            : theme === 'midnight'
-            ? '#06090f'
-            : theme === 'amber'
-            ? '#140f0c'
-            : '#ffffff'
-      }}
-    >
-      {/* Canvas Layer */}
-      {(isVisible || hasRenderedOnce) && (
-        <canvas
-          ref={canvasRef}
-          dir="ltr"
-          className="block transition-opacity duration-200"
-          style={{
-            ...getThemeFilterStyle(),
-            direction: 'ltr',
-            letterSpacing: 'normal',
-            wordSpacing: 'normal',
-            opacity: hasRenderedOnce ? 1 : 0
-          }}
-        />
-      )}
+    const isDark = theme === 'amoled' || theme === 'midnight' || theme === 'amber';
+    const paperBg = isDark
+      ? theme === 'amoled'
+        ? '#000000'
+        : theme === 'midnight'
+        ? '#06090f'
+        : '#140f0c'
+      : paperStyle === 'smooth'
+      ? '#ffffff'
+      : paperStyle === 'parchment'
+      ? '#fbf6ea'
+      : paperStyle === 'kraft'
+      ? '#f4ede1'
+      : paperStyle === 'moleskine'
+      ? '#faf6ee'
+      : paperStyle === 'linen'
+      ? '#f9f8f5'
+      : '#fdfcf8';
 
-      {/* Real Selectable Text Layer */}
+    return (
       <div
-        ref={textLayerRef}
+        ref={containerRef}
         dir="ltr"
-        className="textLayer absolute inset-0 select-text pointer-events-auto"
+        className={`relative flex items-center justify-center overflow-hidden will-change-transform select-text transition-all duration-300 paper-container-${paperStyle || 'book'}`}
         style={{
           width: `${dimensions.width}px`,
-          height: `${dimensions.height}px`
+          height: `${dimensions.height}px`,
+          backgroundColor: paperBg
         }}
-      />
+      >
+        {/* Canvas Layer */}
+        {(isVisible || hasRenderedOnce) && (
+          <canvas
+            ref={canvasRef}
+            dir="ltr"
+            className="block transition-opacity duration-200"
+            style={{
+              ...getThemeFilterStyle(),
+              direction: 'ltr',
+              letterSpacing: 'normal',
+              wordSpacing: 'normal',
+              opacity: hasRenderedOnce ? 1 : 0
+            }}
+          />
+        )}
 
-      {/* Loading Placeholder */}
-      {!hasRenderedOnce && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-xs opacity-25 select-none font-mono">
-          <div className="w-6 h-6 rounded-full border-2 border-current border-t-transparent animate-spin mb-2" />
-          <span>صفحة {pageNumber}</span>
+        {/* Subtle Paper Texture Overlay (Untouched PDF Canvas underneath) */}
+        {paperStyle !== 'smooth' && (
+          <div
+            className={`paper-overlay paper-overlay-${paperStyle}`}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* Real Selectable Text Layer */}
+        <div
+          ref={textLayerRef}
+          dir="ltr"
+          className="textLayer absolute inset-0 select-text pointer-events-auto z-10"
+          style={{
+            width: `${dimensions.width}px`,
+            height: `${dimensions.height}px`
+          }}
+        />
+
+        {/* Loading Placeholder */}
+        {!hasRenderedOnce && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-xs opacity-25 select-none font-mono z-15">
+            <div className="w-6 h-6 rounded-full border-2 border-current border-t-transparent animate-spin mb-2" />
+            <span>صفحة {pageNumber}</span>
+          </div>
+        )}
+
+        {/* Page Badge */}
+        <div className="absolute bottom-2 right-3 px-1.5 py-0.5 rounded text-[10px] font-mono opacity-25 pointer-events-none bg-black/10 dark:bg-white/10 z-20">
+          {pageNumber}
         </div>
-      )}
-
-      {/* Page Badge */}
-      <div className="absolute bottom-2 right-3 px-1.5 py-0.5 rounded text-[10px] font-mono opacity-25 pointer-events-none bg-black/10 dark:bg-white/10 z-10">
-        {pageNumber}
       </div>
-    </div>
-  );
+    );
 };
