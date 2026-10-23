@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { pdfjsLib } from './utils/pdfWorker';
 import type { ThemeMode, ViewMode, PaperStyle, TextAnnotation, FontFamilyId, BookmarkItem } from './types';
 import type { Language } from './utils/translations';
@@ -182,10 +183,6 @@ export const App: React.FC = () => {
   const [annotations, setAnnotations] = useState<TextAnnotation[]>([]);
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [isExportHighlightsOpen, setIsExportHighlightsOpen] = useState<boolean>(false);
-  const [dimmerOpacity, setDimmerOpacity] = useState<number>(() => {
-    const saved = localStorage.getItem('otium_dimmer');
-    return saved ? parseFloat(saved) : 0;
-  });
   const [passwordModal, setPasswordModal] = useState<{
     isOpen: boolean;
     isIncorrect: boolean;
@@ -197,11 +194,6 @@ export const App: React.FC = () => {
     callback: null,
     title: ''
   });
-
-  const handleDimmerChange = (val: number) => {
-    setDimmerOpacity(val);
-    localStorage.setItem('otium_dimmer', val.toString());
-  };
 
   const handlePasswordSubmit = (password: string) => {
     if (passwordModal.callback) {
@@ -260,8 +252,24 @@ export const App: React.FC = () => {
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
 
+  const lastWheelTimeRef = useRef<number>(0);
+  const handleWheel = (e: React.WheelEvent) => {
+    if (viewMode === 'single' || viewMode === 'dual') {
+      const now = Date.now();
+      if (now - lastWheelTimeRef.current < 350) return;
+      if (Math.abs(e.deltaY) > 25) {
+        if (e.deltaY > 0) {
+          goToNextPage();
+        } else {
+          goToPrevPage();
+        }
+        lastWheelTimeRef.current = now;
+      }
+    }
+  };
+
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1 && viewMode === 'single') {
+    if (e.touches.length === 1 && (viewMode === 'single' || viewMode === 'dual')) {
       touchStartX.current = e.touches[0].clientX;
       touchStartY.current = e.touches[0].clientY;
       setIsDraggingTouch(true);
@@ -269,7 +277,7 @@ export const App: React.FC = () => {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStartX.current !== null && isDraggingTouch && viewMode === 'single') {
+    if (touchStartX.current !== null && isDraggingTouch && (viewMode === 'single' || viewMode === 'dual')) {
       const dx = e.touches[0].clientX - touchStartX.current;
       const dy = e.touches[0].clientY - (touchStartY.current || 0);
       if (Math.abs(dx) > Math.abs(dy)) {
@@ -283,13 +291,11 @@ export const App: React.FC = () => {
     if (touchStartX.current === null) return;
     const deltaX = touchDeltaX;
 
-    if (viewMode === 'single' && Math.abs(deltaX) > 40) {
-      if (deltaX < 0 && currentPage < numPages) {
-        setPageSlideDir('next');
-        scrollToPage(currentPage + 1);
-      } else if (deltaX > 0 && currentPage > 1) {
-        setPageSlideDir('prev');
-        scrollToPage(currentPage - 1);
+    if ((viewMode === 'single' || viewMode === 'dual') && Math.abs(deltaX) > 40) {
+      if (deltaX < 0) {
+        goToNextPage();
+      } else if (deltaX > 0) {
+        goToPrevPage();
       }
     }
     setTouchDeltaX(0);
@@ -443,6 +449,34 @@ export const App: React.FC = () => {
     }
   }, [currentPage, docTitle, numPages, viewMode]);
 
+  const goToNextPage = useCallback(() => {
+    if (viewMode === 'dual') {
+      const currentSpread = Math.floor((currentPage - 1) / 2);
+      const nextSpreadPage = (currentSpread + 1) * 2 + 1;
+      if (nextSpreadPage <= numPages) {
+        scrollToPage(nextSpreadPage);
+      }
+    } else {
+      if (currentPage < numPages) {
+        setPageSlideDir('next');
+        scrollToPage(currentPage + 1);
+      }
+    }
+  }, [currentPage, numPages, scrollToPage, viewMode]);
+
+  const goToPrevPage = useCallback(() => {
+    if (viewMode === 'dual') {
+      const currentSpread = Math.floor((currentPage - 1) / 2);
+      const prevSpreadPage = Math.max(1, (currentSpread - 1) * 2 + 1);
+      scrollToPage(prevSpreadPage);
+    } else {
+      if (currentPage > 1) {
+        setPageSlideDir('prev');
+        scrollToPage(currentPage - 1);
+      }
+    }
+  }, [currentPage, scrollToPage, viewMode]);
+
   const handleToggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {});
@@ -466,22 +500,23 @@ export const App: React.FC = () => {
       switch (e.key.toLowerCase()) {
         case 'j':
         case 'arrowdown':
-          if (viewMode === 'dual') {
-            scrollToPage(Math.min(numPages, currentPage + 2));
-          } else if (viewMode === 'single') {
-            scrollToPage(Math.min(numPages, currentPage + 1));
+        case 'arrowright':
+        case 'pagedown':
+        case ' ':
+          if (viewMode === 'dual' || viewMode === 'single') {
+            goToNextPage();
           } else {
-            scrollContainerRef.current?.scrollBy({ top: 180, behavior: 'smooth' });
+            scrollContainerRef.current?.scrollBy({ top: 220, behavior: 'smooth' });
           }
           break;
         case 'k':
         case 'arrowup':
-          if (viewMode === 'dual') {
-            scrollToPage(Math.max(1, currentPage - 2));
-          } else if (viewMode === 'single') {
-            scrollToPage(Math.max(1, currentPage - 1));
+        case 'arrowleft':
+        case 'pageup':
+          if (viewMode === 'dual' || viewMode === 'single') {
+            goToPrevPage();
           } else {
-            scrollContainerRef.current?.scrollBy({ top: -180, behavior: 'smooth' });
+            scrollContainerRef.current?.scrollBy({ top: -220, behavior: 'smooth' });
           }
           break;
         case '+':
@@ -621,14 +656,12 @@ export const App: React.FC = () => {
             isFocusRulerActive={isFocusRulerActive}
             isFullscreen={isFullscreen}
             isBookmarked={bookmarks.some((b) => b.pageNumber === currentPage)}
-            dimmerOpacity={dimmerOpacity}
             onPageChange={scrollToPage}
             onZoomChange={setZoom}
             onThemeChange={handleThemeChange}
             onPaperStyleChange={handlePaperStyleChange}
             onViewModeChange={setViewMode}
             onToggleBookmark={() => handleToggleBookmark(currentPage)}
-            onDimmerChange={handleDimmerChange}
             onToggleFocusRuler={() => setIsFocusRulerActive((prev) => !prev)}
             onToggleFullscreen={handleToggleFullscreen}
             onToggleSidebar={() => setIsSidebarOpen(true)}
@@ -692,11 +725,36 @@ export const App: React.FC = () => {
           {/* Main Reading Canvas Area */}
           <div
             ref={scrollContainerRef}
+            onWheel={handleWheel}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            className="flex-1 w-full h-full overflow-y-auto overflow-x-auto pt-14 sm:pt-16 pb-20 sm:pb-24 px-2 sm:px-4"
+            className="flex-1 w-full h-full overflow-y-auto overflow-x-auto pt-14 sm:pt-16 pb-20 sm:pb-24 px-2 sm:px-4 relative"
           >
+            {/* Quick-Flip Side Navigation Buttons (Single & Dual Modes) */}
+            {(viewMode === 'single' || viewMode === 'dual') && (
+              <>
+                <button
+                  type="button"
+                  onClick={goToPrevPage}
+                  disabled={currentPage <= 1}
+                  title="الصفحة السابقة"
+                  className="fixed left-2 sm:left-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full bg-neutral-900/60 hover:bg-neutral-900/90 text-white backdrop-blur-md opacity-25 hover:opacity-100 disabled:opacity-0 transition-all cursor-pointer shadow-xl border border-white/10"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={goToNextPage}
+                  disabled={viewMode === 'dual' ? Math.floor((currentPage - 1) / 2) * 2 + 2 >= numPages : currentPage >= numPages}
+                  title="الصفحة التالية"
+                  className="fixed right-2 sm:right-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full bg-neutral-900/60 hover:bg-neutral-900/90 text-white backdrop-blur-md opacity-25 hover:opacity-100 disabled:opacity-0 transition-all cursor-pointer shadow-xl border border-white/10"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </>
+            )}
+
             {viewMode === 'continuous' ? (
               // Continuous Vertical Scroll with Windowed Virtualization
               <div className="flex flex-col items-center">
@@ -711,7 +769,6 @@ export const App: React.FC = () => {
                     paperStyle={paperStyle}
                     annotations={annotations}
                     onDeleteAnnotation={handleDeleteAnnotation}
-                    onNavigateToPage={scrollToPage}
                     baseAspectRatio={baseAspectRatio}
                     searchQuery={searchQuery}
                     isCurrentSearchPage={activeSearchPage === pageNum}
@@ -726,11 +783,11 @@ export const App: React.FC = () => {
               </div>
             ) : viewMode === 'dual' ? (
               // Dual Page Spread Mode (Book Open)
-              <div className="min-h-full flex items-center justify-center py-4">
+              <div className="min-h-full flex items-center justify-center py-4 select-text">
                 {(() => {
-                  const spreadStart = currentPage % 2 === 0 ? currentPage - 1 : currentPage;
-                  const leftNum = spreadStart;
-                  const rightNum = spreadStart + 1 <= numPages ? spreadStart + 1 : null;
+                  const currentSpread = Math.floor((currentPage - 1) / 2);
+                  const leftNum = currentSpread * 2 + 1;
+                  const rightNum = leftNum + 1 <= numPages ? leftNum + 1 : null;
 
                   return (
                     <div className="flex flex-row items-center justify-center relative shadow-2xl rounded-sm">
@@ -743,8 +800,6 @@ export const App: React.FC = () => {
                           theme={theme}
                           paperStyle={paperStyle}
                           annotations={annotations}
-                          onDeleteAnnotation={handleDeleteAnnotation}
-                          onNavigateToPage={scrollToPage}
                           baseAspectRatio={baseAspectRatio}
                           searchQuery={searchQuery}
                           isCurrentSearchPage={activeSearchPage === leftNum}
@@ -766,8 +821,6 @@ export const App: React.FC = () => {
                             theme={theme}
                             paperStyle={paperStyle}
                             annotations={annotations}
-                            onDeleteAnnotation={handleDeleteAnnotation}
-                            onNavigateToPage={scrollToPage}
                             baseAspectRatio={baseAspectRatio}
                             searchQuery={searchQuery}
                             isCurrentSearchPage={activeSearchPage === rightNum}
@@ -802,8 +855,6 @@ export const App: React.FC = () => {
                   theme={theme}
                   paperStyle={paperStyle}
                   annotations={annotations}
-                  onDeleteAnnotation={handleDeleteAnnotation}
-                  onNavigateToPage={scrollToPage}
                   baseAspectRatio={baseAspectRatio}
                   searchQuery={searchQuery}
                   isCurrentSearchPage={activeSearchPage === currentPage}
@@ -854,14 +905,6 @@ export const App: React.FC = () => {
         docTitle={docTitle}
         lang={lang}
       />
-
-      {/* In-App Night Dimmer Overlay */}
-      {dimmerOpacity > 0 && (
-        <div
-          style={{ opacity: dimmerOpacity }}
-          className="fixed inset-0 bg-black pointer-events-none z-35 transition-opacity duration-200"
-        />
-      )}
 
       {/* Global Loading Spinner */}
       {isLoading && (

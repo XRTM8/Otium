@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 import { TextLayer } from 'pdfjs-dist';
-import { Trash2 } from 'lucide-react';
 import type { ThemeMode, PaperStyle, TextAnnotation } from '../types';
 
 interface PdfPageProps {
@@ -19,13 +18,6 @@ interface PdfPageProps {
   onPageVisible?: (pageNumber: number) => void;
 }
 
-interface PageLink {
-  id: string;
-  rect: { left: number; top: number; width: number; height: number };
-  targetPage?: number;
-  url?: string;
-}
-
 export const PdfPage: React.FC<PdfPageProps> = ({
   doc,
   pageNumber,
@@ -33,8 +25,6 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   theme,
   paperStyle = 'book',
   annotations = [],
-  onDeleteAnnotation,
-  onNavigateToPage,
   baseAspectRatio,
   searchQuery,
   isCurrentSearchPage,
@@ -45,8 +35,6 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   const textLayerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [hasRenderedOnce, setHasRenderedOnce] = useState(false);
-  const [activeAnnotationId, setActiveAnnotationId] = useState<string | null>(null);
-  const [links, setLinks] = useState<PageLink[]>([]);
   const currentRenderTaskRef = useRef<any>(null);
   const lastRenderedScaleRef = useRef<number>(0);
 
@@ -59,64 +47,16 @@ export const PdfPage: React.FC<PdfPageProps> = ({
     height: standardHeight
   });
 
-  // Fetch precise dimensions & parse interactive links
+  // Fetch precise dimensions
   useEffect(() => {
     let active = true;
-    doc.getPage(pageNumber).then(async (page: PDFPageProxy) => {
+    doc.getPage(pageNumber).then((page: PDFPageProxy) => {
       if (!active) return;
       const unscaledViewport = page.getViewport({ scale: 1 });
       setDimensions({
         width: Math.round(unscaledViewport.width * scale),
         height: Math.round(unscaledViewport.height * scale)
       });
-
-      // Parse PDF Annotations (Links & Table of Contents references)
-      try {
-        const annos = await page.getAnnotations({ intent: 'display' });
-        if (!active || !annos) return;
-        const viewport = page.getViewport({ scale });
-        const parsedLinks: PageLink[] = [];
-
-        for (let i = 0; i < annos.length; i++) {
-          const a = annos[i];
-          if (a.subtype === 'Link' && a.rect) {
-            const vRect: [number, number, number, number] =
-              typeof (viewport as any).convertToViewportRectangle === 'function'
-                ? (viewport as any).convertToViewportRectangle(a.rect)
-                : [
-                    a.rect[0] * scale,
-                    viewport.height - a.rect[3] * scale,
-                    a.rect[2] * scale,
-                    viewport.height - a.rect[1] * scale
-                  ];
-            const left = Math.min(vRect[0], vRect[2]);
-            const top = Math.min(vRect[1], vRect[3]);
-            const width = Math.abs(vRect[2] - vRect[0]);
-            const height = Math.abs(vRect[3] - vRect[1]);
-
-            let targetPage: number | undefined;
-            if (a.dest) {
-              try {
-                const dest = typeof a.dest === 'string' ? await doc.getDestination(a.dest) : a.dest;
-                if (dest && dest[0]) {
-                  const pageIndex = await doc.getPageIndex(dest[0]);
-                  targetPage = pageIndex + 1;
-                }
-              } catch {}
-            }
-
-            parsedLinks.push({
-              id: `link_${i}`,
-              rect: { left, top, width, height },
-              targetPage,
-              url: a.url
-            });
-          }
-        }
-        if (active) {
-          setLinks(parsedLinks);
-        }
-      } catch {}
     }).catch(() => {});
 
     return () => {
@@ -399,10 +339,6 @@ export const PdfPage: React.FC<PdfPageProps> = ({
                     return (
                       <div
                         key={rIdx}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveAnnotationId(activeAnnotationId === anno.id ? null : anno.id);
-                        }}
                         style={{
                           left: `${r.xPct * 100}%`,
                           top: `${r.yPct * 100}%`,
@@ -412,8 +348,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
                           mixBlendMode: isDark ? 'screen' : 'multiply',
                           opacity: isDark ? 0.45 : 0.6
                         }}
-                        className="absolute rounded-xs pointer-events-auto cursor-pointer transition-opacity hover:opacity-85"
-                        title="انقر لإدارة التظليل"
+                        className="absolute rounded-xs pointer-events-none transition-opacity"
                       />
                     );
                   }
@@ -422,10 +357,6 @@ export const PdfPage: React.FC<PdfPageProps> = ({
                   return (
                     <div
                       key={rIdx}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveAnnotationId(activeAnnotationId === anno.id ? null : anno.id);
-                      }}
                       style={{
                         left: `${r.xPct * 100}%`,
                         top: `calc(${r.yPct * 100}% + ${r.heightPct * 100}% - 2.5px)`,
@@ -433,73 +364,11 @@ export const PdfPage: React.FC<PdfPageProps> = ({
                         height: '2.5px',
                         backgroundColor: anno.color
                       }}
-                      className="absolute rounded-full pointer-events-auto cursor-pointer shadow-xs transition-transform hover:scale-y-125"
-                      title="انقر لإدارة الخط"
+                      className="absolute rounded-full pointer-events-none shadow-xs"
                     />
                   );
                 })}
-
-                {/* Mini Quick-Delete Popup on Active Annotation */}
-                {activeAnnotationId === anno.id && anno.rects[0] && (
-                  <div
-                    style={{
-                      left: `${anno.rects[0].xPct * 100}%`,
-                      top: `calc(${anno.rects[0].yPct * 100}% - 34px)`
-                    }}
-                    className="absolute z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-neutral-900 border border-white/20 text-white shadow-2xl text-[11px] font-sans animate-in fade-in zoom-in-95 pointer-events-auto"
-                  >
-                    <span className="text-neutral-400 text-[10px]">
-                      {anno.type === 'highlight' ? 'هايلايت' : 'تسطير'}
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (onDeleteAnnotation) onDeleteAnnotation(anno.id);
-                        setActiveAnnotationId(null);
-                      }}
-                      title="حذف"
-                      className="flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 transition-colors text-[10px] cursor-pointer"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                      <span>حذف</span>
-                    </button>
-                  </div>
-                )}
               </div>
-            ))}
-          </div>
-        )}
-
-        {/* Interactive PDF Link Overlays */}
-        {links.length > 0 && (
-          <div className="absolute inset-0 pointer-events-none z-16 overflow-hidden">
-            {links.map((link) => (
-              <a
-                key={link.id}
-                href={link.url || (link.targetPage ? `#page-${link.targetPage}` : undefined)}
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (link.targetPage && onNavigateToPage) {
-                    onNavigateToPage(link.targetPage);
-                  } else if (link.url) {
-                    window.open(link.url, '_blank', 'noopener,noreferrer');
-                  }
-                }}
-                style={{
-                  left: `${link.rect.left}px`,
-                  top: `${link.rect.top}px`,
-                  width: `${link.rect.width}px`,
-                  height: `${link.rect.height}px`
-                }}
-                className="absolute pointer-events-auto rounded-xs hover:bg-amber-400/20 active:bg-amber-400/35 transition-colors cursor-pointer border border-transparent hover:border-amber-400/40"
-                title={
-                  link.url
-                    ? `رابط خارجي: ${link.url}`
-                    : link.targetPage
-                    ? `الانتقال إلى صفحة ${link.targetPage}`
-                    : undefined
-                }
-              />
             ))}
           </div>
         )}
