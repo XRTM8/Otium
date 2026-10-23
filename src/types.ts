@@ -25,3 +25,21 @@ export interface RecentDoc {
   lastPage: number;
   totalPages: number;
 }
+
+export interface AnnotationRect {
+  xPct: number;
+  yPct: number;
+  widthPct: number;
+  heightPct: number;
+}
+
+export interface TextAnnotation {
+  id: string;
+  pageNumber: number;
+  type: 'highlight' | 'underline';
+  color: string;
+  rects: AnnotationRect[];
+  text: string;
+  createdAt: number;
+}
+

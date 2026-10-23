@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 import { TextLayer } from 'pdfjs-dist';
-import type { ThemeMode, PaperStyle } from '../types';
+import { Trash2 } from 'lucide-react';
+import type { ThemeMode, PaperStyle, TextAnnotation } from '../types';
 
 interface PdfPageProps {
   doc: PDFDocumentProxy;
@@ -9,6 +10,8 @@ interface PdfPageProps {
   scale: number;
   theme: ThemeMode;
   paperStyle?: PaperStyle;
+  annotations?: TextAnnotation[];
+  onDeleteAnnotation?: (id: string) => void;
   baseAspectRatio: number;
   searchQuery?: string;
   isCurrentSearchPage?: boolean;
@@ -21,6 +24,8 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   scale,
   theme,
   paperStyle = 'book',
+  annotations = [],
+  onDeleteAnnotation,
   baseAspectRatio,
   searchQuery,
   isCurrentSearchPage,
@@ -31,6 +36,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   const textLayerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [hasRenderedOnce, setHasRenderedOnce] = useState(false);
+  const [activeAnnotationId, setActiveAnnotationId] = useState<string | null>(null);
   const currentRenderTaskRef = useRef<any>(null);
   const lastRenderedScaleRef = useRef<number>(0);
 
@@ -275,10 +281,13 @@ export const PdfPage: React.FC<PdfPageProps> = ({
       ? '#f9f8f5'
       : '#fdfcf8';
 
+    const pageAnnotations = annotations.filter((a) => a.pageNumber === pageNumber);
+
     return (
       <div
         ref={containerRef}
         dir="ltr"
+        data-page-number={pageNumber}
         className={`relative flex items-center justify-center overflow-hidden will-change-transform select-text transition-all duration-300 paper-container-${paperStyle || 'book'}`}
         style={{
           width: `${dimensions.width}px`,
@@ -314,12 +323,94 @@ export const PdfPage: React.FC<PdfPageProps> = ({
         <div
           ref={textLayerRef}
           dir="ltr"
+          data-page-number={pageNumber}
           className="textLayer absolute inset-0 select-text pointer-events-auto z-10"
           style={{
             width: `${dimensions.width}px`,
             height: `${dimensions.height}px`
           }}
         />
+
+        {/* Annotations Layer (Highlights & Underlines) */}
+        {pageAnnotations.length > 0 && (
+          <div className="absolute inset-0 pointer-events-none z-15 overflow-hidden">
+            {pageAnnotations.map((anno) => (
+              <div key={anno.id} className="relative w-full h-full">
+                {anno.rects.map((r, rIdx) => {
+                  if (anno.type === 'highlight') {
+                    return (
+                      <div
+                        key={rIdx}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveAnnotationId(activeAnnotationId === anno.id ? null : anno.id);
+                        }}
+                        style={{
+                          left: `${r.xPct * 100}%`,
+                          top: `${r.yPct * 100}%`,
+                          width: `${r.widthPct * 100}%`,
+                          height: `${r.heightPct * 100}%`,
+                          backgroundColor: anno.color,
+                          mixBlendMode: isDark ? 'screen' : 'multiply',
+                          opacity: isDark ? 0.45 : 0.6
+                        }}
+                        className="absolute rounded-xs pointer-events-auto cursor-pointer transition-opacity hover:opacity-85"
+                        title="انقر لإدارة التظليل"
+                      />
+                    );
+                  }
+
+                  // Underline
+                  return (
+                    <div
+                      key={rIdx}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveAnnotationId(activeAnnotationId === anno.id ? null : anno.id);
+                      }}
+                      style={{
+                        left: `${r.xPct * 100}%`,
+                        top: `calc(${r.yPct * 100}% + ${r.heightPct * 100}% - 2.5px)`,
+                        width: `${r.widthPct * 100}%`,
+                        height: '2.5px',
+                        backgroundColor: anno.color
+                      }}
+                      className="absolute rounded-full pointer-events-auto cursor-pointer shadow-xs transition-transform hover:scale-y-125"
+                      title="انقر لإدارة الخط"
+                    />
+                  );
+                })}
+
+                {/* Mini Quick-Delete Popup on Active Annotation */}
+                {activeAnnotationId === anno.id && anno.rects[0] && (
+                  <div
+                    style={{
+                      left: `${anno.rects[0].xPct * 100}%`,
+                      top: `calc(${anno.rects[0].yPct * 100}% - 34px)`
+                    }}
+                    className="absolute z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-neutral-900 border border-white/20 text-white shadow-2xl text-[11px] font-sans animate-in fade-in zoom-in-95 pointer-events-auto"
+                  >
+                    <span className="text-neutral-400 text-[10px]">
+                      {anno.type === 'highlight' ? 'هايلايت' : 'تسطير'}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onDeleteAnnotation) onDeleteAnnotation(anno.id);
+                        setActiveAnnotationId(null);
+                      }}
+                      title="حذف"
+                      className="flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 transition-colors text-[10px] cursor-pointer"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>حذف</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Loading Placeholder */}
         {!hasRenderedOnce && (

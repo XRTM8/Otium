@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { pdfjsLib } from './utils/pdfWorker';
-import type { ThemeMode, ViewMode, PaperStyle } from './types';
+import type { ThemeMode, ViewMode, PaperStyle, TextAnnotation } from './types';
 import type { Language } from './utils/translations';
 import { getTranslations } from './utils/translations';
 import { WelcomeScreen } from './components/WelcomeScreen';
@@ -12,6 +12,8 @@ import { Sidebar } from './components/Sidebar';
 import { ShortcutsModal } from './components/ShortcutsModal';
 import { Toast, type ToastMessage } from './components/Toast';
 import { SearchBar } from './components/SearchBar';
+import { TextSelectionMenu } from './components/TextSelectionMenu';
+import { getStoredAnnotations, saveStoredAnnotations } from './utils/annotations';
 import {
   saveDocumentToStorage,
   getDocumentFromStorage,
@@ -25,6 +27,8 @@ interface PageSlotProps {
   scale: number;
   theme: ThemeMode;
   paperStyle: PaperStyle;
+  annotations: TextAnnotation[];
+  onDeleteAnnotation: (id: string) => void;
   baseAspectRatio: number;
   searchQuery?: string;
   isCurrentSearchPage?: boolean;
@@ -38,6 +42,8 @@ const PageSlot: React.FC<PageSlotProps> = ({
   scale,
   theme,
   paperStyle,
+  annotations,
+  onDeleteAnnotation,
   baseAspectRatio,
   searchQuery,
   isCurrentSearchPage,
@@ -94,6 +100,8 @@ const PageSlot: React.FC<PageSlotProps> = ({
           scale={scale}
           theme={theme}
           paperStyle={paperStyle}
+          annotations={annotations}
+          onDeleteAnnotation={onDeleteAnnotation}
           baseAspectRatio={baseAspectRatio}
           searchQuery={searchQuery}
           isCurrentSearchPage={isCurrentSearchPage}
@@ -157,6 +165,29 @@ export const App: React.FC = () => {
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeSearchPage, setActiveSearchPage] = useState<number | null>(null);
+  const [annotations, setAnnotations] = useState<TextAnnotation[]>([]);
+
+  const handleAddAnnotation = (anno: TextAnnotation) => {
+    setAnnotations((prev) => {
+      const updated = [...prev, anno];
+      if (docTitle) {
+        saveStoredAnnotations(docTitle, updated);
+      }
+      return updated;
+    });
+    showToast(anno.type === 'highlight' ? 'تم تظليل النص بالهايلايتر' : 'تم تسطير النص المحدد', 'success');
+  };
+
+  const handleDeleteAnnotation = (id: string) => {
+    setAnnotations((prev) => {
+      const updated = prev.filter((a) => a.id !== id);
+      if (docTitle) {
+        saveStoredAnnotations(docTitle, updated);
+      }
+      return updated;
+    });
+    showToast('تم حذف التمييز', 'info');
+  };
 
   // Kinetic Page Turn Animation state
   const [pageSlideDir, setPageSlideDir] = useState<'next' | 'prev' | null>(null);
@@ -249,6 +280,7 @@ export const App: React.FC = () => {
       setDoc(loadedDoc);
       setDocTitle(title);
       setNumPages(loadedDoc.numPages);
+      setAnnotations(getStoredAnnotations(title));
 
       try {
         const p1 = await loadedDoc.getPage(1);
@@ -521,7 +553,14 @@ export const App: React.FC = () => {
             onCloseDocument={() => {
               setDoc(null);
               setDocTitle('');
+              setAnnotations([]);
             }}
+          />
+
+          {/* Floating Contextual Text Selection Toolbar */}
+          <TextSelectionMenu
+            onAddAnnotation={handleAddAnnotation}
+            onCopySuccess={() => showToast('تم نسخ النص المحدد إلى الحافظة', 'success')}
           />
 
           {/* Search Bar (Ctrl + F) */}
@@ -578,6 +617,8 @@ export const App: React.FC = () => {
                     scale={zoom}
                     theme={theme}
                     paperStyle={paperStyle}
+                    annotations={annotations}
+                    onDeleteAnnotation={handleDeleteAnnotation}
                     baseAspectRatio={baseAspectRatio}
                     searchQuery={searchQuery}
                     isCurrentSearchPage={activeSearchPage === pageNum}
@@ -613,6 +654,8 @@ export const App: React.FC = () => {
                   scale={zoom}
                   theme={theme}
                   paperStyle={paperStyle}
+                  annotations={annotations}
+                  onDeleteAnnotation={handleDeleteAnnotation}
                   baseAspectRatio={baseAspectRatio}
                   searchQuery={searchQuery}
                   isCurrentSearchPage={activeSearchPage === currentPage}
