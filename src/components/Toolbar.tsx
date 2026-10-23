@@ -16,7 +16,8 @@ import {
   Layers,
   BookOpen,
   ArrowRight,
-  ArrowLeft
+  ArrowLeft,
+  PenTool
 } from 'lucide-react';
 import type { ThemeMode, ViewMode } from '../types';
 import type { Language } from '../utils/translations';
@@ -33,6 +34,8 @@ interface ToolbarProps {
   currentLang: Language;
   isFullscreen: boolean;
   isBookmarked?: boolean;
+  isBoardMode?: boolean;
+  onToggleBoardMode?: () => void;
   onPageChange: (page: number) => void;
   onZoomChange: (zoom: number) => void;
   onThemeChange: (theme: ThemeMode) => void;
@@ -55,6 +58,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   currentLang,
   isFullscreen,
   isBookmarked = false,
+  isBoardMode = false,
+  onToggleBoardMode,
   onPageChange,
   onZoomChange,
   onThemeChange,
@@ -196,6 +201,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         >
           <Search className="w-4 h-4" />
         </button>
+
+        {/* Smart Board Button (السبورة الذكية) */}
+        {onToggleBoardMode && (
+          <button
+            onClick={onToggleBoardMode}
+            title={t.smartboardTooltip}
+            className={`p-1.5 sm:p-2 rounded-full transition-all shrink-0 cursor-pointer ${
+              isBoardMode
+                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/35 ring-1 ring-emerald-300'
+                : 'hover:bg-white/10 text-neutral-300'
+            }`}
+          >
+            <PenTool className="w-4 h-4" />
+          </button>
+        )}
 
         {/* Page Nav */}
         <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
@@ -395,7 +415,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </div>
 
           {/* Quick Action Toggles */}
-          <div className="grid grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-5 gap-1">
             <button
               onClick={onToggleBookmark}
               className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-[10px] transition-all cursor-pointer ${
@@ -406,6 +426,22 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             >
               <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-amber-400 text-amber-400' : ''}`} />
               <span>إشارة</span>
+            </button>
+
+            {/* Smartboard Toggle for Mobile/Tablet */}
+            <button
+              onClick={() => {
+                onToggleBoardMode?.();
+                setShowMoreMobile(false);
+              }}
+              className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-[10px] transition-all cursor-pointer ${
+                isBoardMode
+                  ? 'bg-emerald-500/25 text-emerald-300 border-emerald-400/40'
+                  : 'bg-white/5 text-neutral-300 border-white/5 hover:bg-white/10'
+              }`}
+            >
+              <PenTool className="w-4 h-4" />
+              <span>سبورة</span>
             </button>
 
             <button
