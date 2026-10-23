@@ -115,13 +115,18 @@ export const PdfPage: React.FC<PdfPageProps> = ({
         const viewport = page.getViewport({ scale: scale * dpr });
         const cssViewport = page.getViewport({ scale });
 
-        const displayWidth = Math.floor(viewport.width / dpr);
-        const displayHeight = Math.floor(viewport.height / dpr);
+        const displayWidth = Math.floor(cssViewport.width);
+        const displayHeight = Math.floor(cssViewport.height);
 
         canvas.width = Math.floor(viewport.width);
         canvas.height = Math.floor(viewport.height);
         canvas.style.width = `${displayWidth}px`;
         canvas.style.height = `${displayHeight}px`;
+
+        setDimensions({
+          width: displayWidth,
+          height: displayHeight
+        });
 
         // Paint background pure white
         ctx.fillStyle = '#ffffff';
@@ -147,14 +152,19 @@ export const PdfPage: React.FC<PdfPageProps> = ({
         currentRenderTaskRef.current = renderTask;
         await renderTask.promise;
 
-        // Render Selectable Text Layer
+        // Render Selectable Text Layer with precise scale factors
         if (isCurrentEffect && textLayerRef.current) {
           try {
-            textLayerRef.current.innerHTML = '';
+            const container = textLayerRef.current;
+            container.innerHTML = '';
+            container.style.setProperty('--total-scale-factor', `${scale}`);
+            container.style.setProperty('--scale-round-x', '1px');
+            container.style.setProperty('--scale-round-y', '1px');
+
             const textContent = await page.getTextContent();
             const textLayer = new TextLayer({
               textContentSource: textContent,
-              container: textLayerRef.current,
+              container: container,
               viewport: cssViewport
             });
             await textLayer.render();

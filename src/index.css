@@ -42,8 +42,9 @@
   }
 }
 
-/* Precise textLayer styling for native text selection */
+/* Official High-Precision PDF.js textLayer styling */
 .textLayer {
+  color-scheme: only light;
   position: absolute;
   text-align: initial;
   inset: 0;
@@ -52,10 +53,17 @@
   line-height: 1;
   letter-spacing: normal;
   word-spacing: normal;
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+  forced-color-adjust: none;
   transform-origin: 0 0;
+  caret-color: CanvasText;
   z-index: 2;
   user-select: text;
   -webkit-user-select: text;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor, 1) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
 }
 
 .textLayer :is(span, br) {
@@ -68,9 +76,37 @@
   -webkit-user-select: text;
 }
 
+.textLayer > :not(.markedContent),
+.textLayer .markedContent span:not(.markedContent) {
+  z-index: 1;
+  --font-height: 0;
+  font-size: calc(var(--text-scale-factor) * var(--font-height)) !important;
+  --scale-x: 1;
+  --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv)) !important;
+}
+
+.textLayer .markedContent {
+  display: contents;
+}
+
 .textLayer ::selection {
-  background: rgba(245, 158, 11, 0.35) !important;
+  background: rgba(245, 158, 11, 0.38) !important;
   color: transparent !important;
+}
+
+.textLayer ::-moz-selection {
+  background: rgba(245, 158, 11, 0.38) !important;
+  color: transparent !important;
+}
+
+.textLayer .endOfContent {
+  display: block;
+  position: absolute;
+  inset: 100% 0 0;
+  z-index: 0;
+  cursor: default;
+  user-select: none;
 }
 
 /* Themes styling classes */
