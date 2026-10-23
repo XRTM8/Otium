@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
+import { TextLayer } from 'pdfjs-dist';
 import type { ThemeMode } from '../types';
 
 interface PdfPageProps {
@@ -21,6 +22,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const textLayerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [hasRenderedOnce, setHasRenderedOnce] = useState(false);
   const currentRenderTaskRef = useRef<any>(null);
@@ -64,7 +66,6 @@ export const PdfPage: React.FC<PdfPageProps> = ({
           setIsVisible(true);
           onPageVisible?.(pageNumber);
         } else {
-          // Keep visible once entered unless far away
           setIsVisible(false);
         }
       },
@@ -78,7 +79,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
     return () => observer.disconnect();
   }, [pageNumber, onPageVisible]);
 
-  // Robust Canvas Rendering Pipeline
+  // Robust Canvas & Text Layer Rendering Pipeline
   useEffect(() => {
     if (!isVisible) return;
 
@@ -91,7 +92,6 @@ export const PdfPage: React.FC<PdfPageProps> = ({
 
     const renderPage = async () => {
       try {
-        // Cancel any in-flight render task on this page
         if (currentRenderTaskRef.current) {
           try {
             await currentRenderTaskRef.current.cancel();
@@ -113,6 +113,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
 
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const viewport = page.getViewport({ scale: scale * dpr });
+        const cssViewport = page.getViewport({ scale });
 
         const displayWidth = Math.floor(viewport.width / dpr);
         const displayHeight = Math.floor(viewport.height / dpr);
@@ -122,12 +123,10 @@ export const PdfPage: React.FC<PdfPageProps> = ({
         canvas.style.width = `${displayWidth}px`;
         canvas.style.height = `${displayHeight}px`;
 
-        // Critical: Always fill the background with solid white before PDF rendering
-        // This prevents transparent PDFs from appearing black or inverting to white-on-white!
+        // Paint background pure white
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Enforce LTR coordinates and normal letter-spacing
         if ('direction' in ctx) {
           ctx.direction = 'ltr';
         }
@@ -147,6 +146,22 @@ export const PdfPage: React.FC<PdfPageProps> = ({
 
         currentRenderTaskRef.current = renderTask;
         await renderTask.promise;
+
+        // Render Selectable Text Layer
+        if (isCurrentEffect && textLayerRef.current) {
+          try {
+            textLayerRef.current.innerHTML = '';
+            const textContent = await page.getTextContent();
+            const textLayer = new TextLayer({
+              textContentSource: textContent,
+              container: textLayerRef.current,
+              viewport: cssViewport
+            });
+            await textLayer.render();
+          } catch (textErr) {
+            console.warn('TextLayer notice:', textErr);
+          }
+        }
 
         if (isCurrentEffect) {
           setHasRenderedOnce(true);
@@ -191,14 +206,14 @@ export const PdfPage: React.FC<PdfPageProps> = ({
     <div
       ref={containerRef}
       dir="ltr"
-      className="relative flex items-center justify-center shadow-xl rounded-sm overflow-hidden will-change-transform"
+      className="relative flex items-center justify-center shadow-xl rounded-sm overflow-hidden will-change-transform select-text"
       style={{
         width: `${dimensions.width}px`,
         height: `${dimensions.height}px`,
         backgroundColor: theme === 'midnight' || theme === 'amber' ? '#121212' : '#ffffff'
       }}
     >
-      {/* Canvas is always mounted if isVisible OR if it has rendered once, ensuring text NEVER disappears */}
+      {/* Canvas Layer */}
       {(isVisible || hasRenderedOnce) && (
         <canvas
           ref={canvasRef}
@@ -214,16 +229,27 @@ export const PdfPage: React.FC<PdfPageProps> = ({
         />
       )}
 
-      {/* Loading Placeholder only shown before the first render */}
+      {/* Real Selectable Text Layer */}
+      <div
+        ref={textLayerRef}
+        dir="ltr"
+        className="textLayer absolute inset-0 select-text pointer-events-auto"
+        style={{
+          width: `${dimensions.width}px`,
+          height: `${dimensions.height}px`
+        }}
+      />
+
+      {/* Loading Placeholder */}
       {!hasRenderedOnce && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-xs opacity-30 select-none font-mono">
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-xs opacity-25 select-none font-mono">
           <div className="w-6 h-6 rounded-full border-2 border-current border-t-transparent animate-spin mb-2" />
           <span>صفحة {pageNumber}</span>
         </div>
       )}
 
       {/* Page Badge */}
-      <div className="absolute bottom-2 right-3 px-1.5 py-0.5 rounded text-[10px] font-mono opacity-25 pointer-events-none bg-black/10 dark:bg-white/10">
+      <div className="absolute bottom-2 right-3 px-1.5 py-0.5 rounded text-[10px] font-mono opacity-25 pointer-events-none bg-black/10 dark:bg-white/10 z-10">
         {pageNumber}
       </div>
     </div>

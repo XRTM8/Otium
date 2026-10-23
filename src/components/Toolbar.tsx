@@ -14,9 +14,11 @@ import {
   Glasses,
   Columns,
   Scroll,
-  HelpCircle
+  HelpCircle,
+  Search
 } from 'lucide-react';
 import type { ThemeMode, ViewMode } from '../types';
+import { TirsLogo } from './TirsLogo';
 
 interface ToolbarProps {
   title: string;
@@ -36,6 +38,7 @@ interface ToolbarProps {
   onToggleAmbient: () => void;
   onToggleFullscreen: () => void;
   onToggleSidebar: () => void;
+  onToggleSearch: () => void;
   onToggleShortcuts: () => void;
   onCloseDocument: () => void;
 }
@@ -58,6 +61,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onToggleAmbient,
   onToggleFullscreen,
   onToggleSidebar,
+  onToggleSearch,
   onToggleShortcuts,
   onCloseDocument
 }) => {
@@ -76,11 +80,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       setIsVisible(true);
       clearTimeout(timeout);
       timeout = setTimeout(() => {
-        // Only hide if menus are not open
         if (!showThemeMenu) {
           setIsVisible(false);
         }
-      }, 4000);
+      }, 4500);
     };
 
     window.addEventListener('mousemove', handleActivity);
@@ -109,54 +112,75 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     { id: 'midnight', label: 'Midnight (ليلي عميق)', bg: '#0b0f17', dot: '#38bdf8' },
     { id: 'eink', label: 'E-Ink (حبر إلكتروني)', bg: '#e5e5e5', dot: '#525252' },
     { id: 'amber', label: 'Amber (كهرماني هادئ)', bg: '#1a1612', dot: '#f59e0b' },
-    { id: 'pure', label: 'Pure (أبيض ناصع)', bg: '#ffffff', dot: '#94a3b8' }
+    { id: 'pure', label: 'Pure (أبيض استوديو)', bg: '#ffffff', dot: '#94a3b8' }
   ];
 
   return (
     <div
-      className={`fixed top-4 inset-x-0 z-30 flex justify-center px-4 transition-all duration-500 pointer-events-none ${
+      className={`fixed top-4 inset-x-0 z-30 flex justify-center px-4 transition-all duration-300 pointer-events-none ${
         isVisible ? 'translate-y-0 opacity-100' : '-translate-y-16 opacity-0'
       }`}
     >
-      <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full shadow-2xl backdrop-blur-2xl border transition-colors duration-300 text-xs sm:text-sm bg-neutral-900/80 text-neutral-100 border-white/10 dark:bg-black/80">
-        {/* Left: Close & Sidebar */}
+      <div className="pointer-events-auto flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 rounded-full shadow-2xl backdrop-blur-2xl border transition-colors duration-300 text-xs sm:text-sm bg-neutral-900/90 text-neutral-100 border-white/10">
+        
+        {/* Brand Monogram */}
+        <div className="flex items-center gap-1.5 pl-1 pr-2">
+          <TirsLogo size={18} />
+          <span className="font-bold text-xs tracking-wider text-neutral-200 hidden md:inline">
+            TIRS
+          </span>
+        </div>
+
+        {/* Divider */}
+        <div className="w-[1px] h-4 bg-white/10 mx-0.5" />
+
+        {/* Close & Sidebar */}
         <button
           onClick={onCloseDocument}
-          title="إغلاق الملف"
-          className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 transition-colors"
+          title="إغلاق الوثيقة (Esc)"
+          className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
         >
-          <X className="w-4 h-4" />
+          <X className="w-3.5 h-3.5" />
         </button>
 
         <button
           onClick={onToggleSidebar}
-          title="الفهرس والصفحات"
+          title="الفهرس ومصغرات الصفحات (S)"
           className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 transition-colors"
         >
           <Menu className="w-4 h-4" />
         </button>
 
         {/* Divider */}
-        <div className="w-[1px] h-4 bg-white/15 mx-0.5" />
+        <div className="w-[1px] h-4 bg-white/10 mx-0.5" />
 
         {/* Document Title */}
         <div
           title={title}
-          className="max-w-[120px] sm:max-w-[180px] md:max-w-[240px] truncate font-medium text-neutral-200 select-none text-[13px] px-1"
+          className="max-w-[110px] sm:max-w-[160px] md:max-w-[220px] truncate font-medium text-neutral-300 select-none text-xs px-1"
         >
           {title}
         </div>
 
         {/* Divider */}
-        <div className="w-[1px] h-4 bg-white/15 mx-0.5" />
+        <div className="w-[1px] h-4 bg-white/10 mx-0.5" />
+
+        {/* Search */}
+        <button
+          onClick={onToggleSearch}
+          title="بحث في الوثيقة (Ctrl + F)"
+          className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 transition-colors"
+        >
+          <Search className="w-3.5 h-3.5" />
+        </button>
 
         {/* Page Nav */}
         <div className="flex items-center gap-1">
           <button
             onClick={() => onPageChange(Math.max(1, currentPage - 1))}
             disabled={currentPage <= 1}
-            title="الصفحة السابقة"
-            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 disabled:opacity-30 transition-colors"
+            title="الصفحة السابقة (K / ↑)"
+            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 disabled:opacity-20 transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -167,47 +191,47 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               value={inputPage}
               onChange={(e) => setInputPage(e.target.value)}
               onBlur={handlePageSubmit}
-              className="w-10 text-center bg-white/10 rounded py-0.5 px-1 text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+              className="w-9 text-center bg-white/10 rounded py-0.5 px-1 text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
             />
-            <span className="opacity-50">/ {totalPages}</span>
+            <span className="opacity-40 select-none">/ {totalPages}</span>
           </form>
 
           <button
             onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage >= totalPages}
-            title="الصفحة التالية"
-            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 disabled:opacity-30 transition-colors"
+            title="الصفحة التالية (J / ↓)"
+            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 disabled:opacity-20 transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
         {/* Divider */}
-        <div className="w-[1px] h-4 bg-white/15 mx-0.5" />
+        <div className="w-[1px] h-4 bg-white/10 mx-0.5" />
 
         {/* Zoom */}
         <div className="flex items-center gap-0.5">
           <button
             onClick={() => onZoomChange(Math.max(0.5, zoom - 0.15))}
-            title="تصغير"
+            title="تصغير (-)"
             className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 transition-colors"
           >
-            <ZoomOut className="w-4 h-4" />
+            <ZoomOut className="w-3.5 h-3.5" />
           </button>
           <span className="font-mono text-[11px] w-9 text-center text-neutral-300 select-none">
             {Math.round(zoom * 100)}%
           </span>
           <button
             onClick={() => onZoomChange(Math.min(2.5, zoom + 0.15))}
-            title="تكبير"
+            title="تكبير (+)"
             className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 transition-colors"
           >
-            <ZoomIn className="w-4 h-4" />
+            <ZoomIn className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {/* Divider */}
-        <div className="w-[1px] h-4 bg-white/15 mx-0.5" />
+        <div className="w-[1px] h-4 bg-white/10 mx-0.5" />
 
         {/* Focus Mode Ruler */}
         <button
@@ -215,49 +239,49 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           title={isFocusRulerActive ? 'إلغاء مسطرة التركيز (R)' : 'تفعيل مسطرة التركيز (R)'}
           className={`p-1.5 rounded-full transition-all ${
             isFocusRulerActive
-              ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/30'
+              ? 'bg-amber-400 text-black shadow-md'
               : 'hover:bg-white/10 text-neutral-300'
           }`}
         >
-          <Glasses className="w-4 h-4" />
+          <Glasses className="w-3.5 h-3.5" />
         </button>
 
         {/* Ambient Sound */}
         <button
           onClick={onToggleAmbient}
-          title={isAmbientActive ? 'إيقاف صوت المطر الهادئ' : 'تشغيل صوت مطر خافت للقراءة'}
+          title={isAmbientActive ? 'إيقاف صوت المطر الهادئ' : 'تشغيل صوت مطر خافت'}
           className={`p-1.5 rounded-full transition-all ${
             isAmbientActive
-              ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/30'
+              ? 'bg-neutral-100 text-neutral-900 shadow-md'
               : 'hover:bg-white/10 text-neutral-300'
           }`}
         >
-          {isAmbientActive ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          {isAmbientActive ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
         </button>
 
         {/* View Mode Toggle */}
         <button
           onClick={() => onViewModeChange(viewMode === 'continuous' ? 'single' : 'continuous')}
-          title={viewMode === 'continuous' ? 'التبديل إلى نمط الصفحة المنفردة' : 'التبديل إلى التمرير المستمر'}
+          title={viewMode === 'continuous' ? 'التبديل لنمط الصفحة الواحدة' : 'التبديل للتمرير المستمر'}
           className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 transition-colors"
         >
-          {viewMode === 'continuous' ? <Scroll className="w-4 h-4" /> : <Columns className="w-4 h-4" />}
+          {viewMode === 'continuous' ? <Scroll className="w-3.5 h-3.5" /> : <Columns className="w-3.5 h-3.5" />}
         </button>
 
         {/* Themes Dropdown */}
         <div className="relative">
           <button
             onClick={() => setShowThemeMenu(!showThemeMenu)}
-            title="تغيير الثيم والنمط اللوني (T)"
-            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 transition-colors flex items-center gap-1"
+            title="أنماط ألوان القراءة (T)"
+            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 transition-colors flex items-center"
           >
-            <Palette className="w-4 h-4" />
+            <Palette className="w-3.5 h-3.5" />
           </button>
 
           {showThemeMenu && (
-            <div className="absolute right-0 top-full mt-2 w-48 rounded-2xl bg-neutral-900/95 border border-white/10 p-1.5 shadow-2xl backdrop-blur-xl z-50 text-neutral-200">
-              <div className="text-[10px] uppercase font-mono px-2 py-1 text-neutral-400 font-semibold tracking-wider">
-                أنماط القراءة
+            <div className="absolute right-0 top-full mt-2 w-48 rounded-2xl bg-neutral-900/98 border border-white/10 p-1.5 shadow-2xl backdrop-blur-xl z-50 text-neutral-200">
+              <div className="text-[10px] uppercase font-mono px-2.5 py-1 text-neutral-500 font-semibold tracking-wider">
+                بيئات القراءة
               </div>
               {themes.map((t) => (
                 <button
@@ -287,16 +311,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           title="ملء الشاشة (F)"
           className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 transition-colors"
         >
-          {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
         </button>
 
         {/* Shortcuts / Help */}
         <button
           onClick={onToggleShortcuts}
-          title="اختصارات لوحة المفاتيح"
-          className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 transition-colors"
+          title="اختصارات لوحة المفاتيح (?)"
+          className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
         >
-          <HelpCircle className="w-4 h-4" />
+          <HelpCircle className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>

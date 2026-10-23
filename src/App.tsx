@@ -9,6 +9,8 @@ import { PdfPage } from './components/PdfPage';
 import { FocusRuler } from './components/FocusRuler';
 import { Sidebar } from './components/Sidebar';
 import { ShortcutsModal } from './components/ShortcutsModal';
+import { Toast, type ToastMessage } from './components/Toast';
+import { SearchBar } from './components/SearchBar';
 
 interface PageSlotProps {
   pageNum: number;
@@ -101,23 +103,28 @@ export const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [zoom, setZoom] = useState<number>(1.15);
   const [theme, setTheme] = useState<ThemeMode>(() => {
-    return (localStorage.getItem('vibe_theme') as ThemeMode) || 'paper';
+    return (localStorage.getItem('tirs_theme') as ThemeMode) || 'paper';
   });
   const [baseAspectRatio, setBaseAspectRatio] = useState<number>(0.707);
   const [viewMode, setViewMode] = useState<ViewMode>('continuous');
   const [isFocusRulerActive, setIsFocusRulerActive] = useState<boolean>(false);
   const [isAmbientActive, setIsAmbientActive] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
+  const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Save theme preference
+  const showToast = (text: string, type: 'info' | 'success' | 'error' = 'info') => {
+    setToast({ id: Date.now().toString(), text, type });
+  };
+
   const handleThemeChange = (newTheme: ThemeMode) => {
     setTheme(newTheme);
-    localStorage.setItem('vibe_theme', newTheme);
+    localStorage.setItem('tirs_theme', newTheme);
   };
 
   // Load document from Uint8Array / ArrayBuffer
@@ -149,23 +156,22 @@ export const App: React.FC = () => {
       }
 
       // Check last saved page
-      const stored = localStorage.getItem(`vibe_page_${title}`);
+      const stored = localStorage.getItem(`tirs_page_${title}`);
       const savedPage = stored ? parseInt(stored, 10) : 1;
       const initialPage = savedPage > 0 && savedPage <= loadedDoc.numPages ? savedPage : 1;
       setCurrentPage(initialPage);
 
-      // Save to recents
       updateRecents(title, initialPage, loadedDoc.numPages);
 
-      // Scroll to saved page if not page 1
       if (initialPage > 1) {
         setTimeout(() => {
           scrollToPage(initialPage);
         }, 400);
       }
+      showToast(`تم فتح الوثيقة (${loadedDoc.numPages} صفحة)`, 'success');
     } catch (err) {
       console.error('Error loading PDF:', err);
-      alert('تعذر فتح ملف الـ PDF. يرجى التأكد من سلامة الملف.');
+      showToast('تعذر فتح ملف الـ PDF. يرجى التأكد من سلامة الملف.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -189,13 +195,11 @@ export const App: React.FC = () => {
     }
   };
 
-  // Open local file
   const handleOpenFile = async (file: File) => {
     const arrayBuffer = await file.arrayBuffer();
     loadPdfData(arrayBuffer, file.name);
   };
 
-  // Open sample book
   const handleOpenSample = async () => {
     setIsLoading(true);
     try {
@@ -204,16 +208,15 @@ export const App: React.FC = () => {
       loadPdfData(arrayBuffer, 'The Art of Vibe Reading.pdf');
     } catch (err) {
       console.error('Error loading sample:', err);
-      alert('تعذر تحميل كتاب العينة.');
+      showToast('تعذر تحميل الوثيقة النموذجية.', 'error');
       setIsLoading(false);
     }
   };
 
-  // Jump to specific page
   const scrollToPage = useCallback((pageNumber: number) => {
     setCurrentPage(pageNumber);
     if (docTitle) {
-      localStorage.setItem(`vibe_page_${docTitle}`, pageNumber.toString());
+      localStorage.setItem(`tirs_page_${docTitle}`, pageNumber.toString());
       updateRecents(docTitle, pageNumber, numPages);
     }
 
@@ -225,13 +228,12 @@ export const App: React.FC = () => {
     }
   }, [docTitle, numPages, viewMode]);
 
-  // Handle ambient rain sound
   const handleToggleAmbient = () => {
     const active = ambientAudio.toggle();
     setIsAmbientActive(active);
+    showToast(active ? 'تم تشغيل صوت المطر الهادئ' : 'تم إيقاف الصوت', 'info');
   };
 
-  // Handle Fullscreen
   const handleToggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {});
@@ -242,11 +244,15 @@ export const App: React.FC = () => {
     }
   };
 
-  // Global Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if typing in input
       if (e.target instanceof HTMLInputElement) return;
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        setIsSearchOpen((prev) => !prev);
+        return;
+      }
 
       switch (e.key.toLowerCase()) {
         case 'j':
@@ -297,6 +303,7 @@ export const App: React.FC = () => {
         case 'escape':
           setIsSidebarOpen(false);
           setIsShortcutsOpen(false);
+          setIsSearchOpen(false);
           break;
       }
     };
@@ -305,7 +312,6 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [numPages, currentPage, viewMode, theme, scrollToPage]);
 
-  // Handle global drag & drop
   useEffect(() => {
     const handleDragOver = (e: DragEvent) => e.preventDefault();
     const handleDrop = async (e: DragEvent) => {
@@ -344,10 +350,11 @@ export const App: React.FC = () => {
 
   return (
     <div
-      className={`relative w-screen h-screen overflow-hidden flex flex-col font-sans transition-colors duration-500 theme-${theme}`}
+      className={`relative w-screen h-screen overflow-hidden flex flex-col font-sans transition-colors duration-300 theme-${theme}`}
       style={{ backgroundColor: getContainerBg() }}
     >
-      {/* If No document is opened, show Welcome Screen */}
+      <Toast toast={toast} onClose={() => setToast(null)} />
+
       {!doc ? (
         <WelcomeScreen
           onOpenFile={handleOpenFile}
@@ -356,16 +363,16 @@ export const App: React.FC = () => {
             if (recent.name === 'The Art of Vibe Reading.pdf') {
               handleOpenSample();
             } else {
-              alert('يرجى سحب وإفلات الملف لإعادة فتحه من محله.');
+              showToast('يرجى سحب وإفلت الملف من مكانه لإعادة فتحه.', 'info');
             }
           }}
         />
       ) : (
         <>
           {/* Subtle Ambient Top Progress Line */}
-          <div className="fixed top-0 inset-x-0 h-1 bg-black/10 dark:bg-white/10 z-40">
+          <div className="fixed top-0 inset-x-0 h-[2px] bg-black/10 dark:bg-white/10 z-40">
             <div
-              className="h-full bg-gradient-to-r from-amber-400 to-amber-600 transition-all duration-300"
+              className="h-full bg-amber-500 transition-all duration-300"
               style={{ width: `${(currentPage / numPages) * 100}%` }}
             />
           </div>
@@ -389,11 +396,20 @@ export const App: React.FC = () => {
             onToggleAmbient={handleToggleAmbient}
             onToggleFullscreen={handleToggleFullscreen}
             onToggleSidebar={() => setIsSidebarOpen(true)}
+            onToggleSearch={() => setIsSearchOpen((prev) => !prev)}
             onToggleShortcuts={() => setIsShortcutsOpen(true)}
             onCloseDocument={() => {
               setDoc(null);
               setDocTitle('');
             }}
+          />
+
+          {/* Search Bar (Ctrl + F) */}
+          <SearchBar
+            isOpen={isSearchOpen}
+            doc={doc}
+            onNavigateToPage={scrollToPage}
+            onClose={() => setIsSearchOpen(false)}
           />
 
           {/* Reading Focus Ruler */}
@@ -432,7 +448,7 @@ export const App: React.FC = () => {
                     onPageVisible={(visiblePage) => {
                       setCurrentPage(visiblePage);
                       if (docTitle) {
-                        localStorage.setItem(`vibe_page_${docTitle}`, visiblePage.toString());
+                        localStorage.setItem(`tirs_page_${docTitle}`, visiblePage.toString());
                       }
                     }}
                   />
@@ -457,9 +473,11 @@ export const App: React.FC = () => {
 
       {/* Global Loading Spinner */}
       {isLoading && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex flex-col items-center justify-center text-white">
-          <div className="w-10 h-10 border-4 border-amber-400 border-t-transparent rounded-full animate-spin mb-3" />
-          <span className="text-sm font-medium tracking-wide">جارٍ تحميل كتابك الهادئ...</span>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center text-white">
+          <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-3" />
+          <span className="text-xs font-mono tracking-widest uppercase text-neutral-300">
+            TIRS • LOADING DOCUMENT
+          </span>
         </div>
       )}
     </div>

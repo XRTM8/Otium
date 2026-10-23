@@ -1,32 +1,54 @@
-# React + TypeScript + Vite
+# Tirs | طِـرْس
+> **A distraction-free, high-fidelity document reading environment.**
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Tirs (طِرس — Arabic for *the pristine folio*) is a modern, local-first PDF reading application crafted for deep focus, typographic clarity, and cognitive calm.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Highlights
 
-## React Compiler
+* **Precision Typography & Native Selection:** High-DPI subpixel canvas rendering coupled with a transparent native TextLayer for accurate text selection, highlighting, and copying (`Ctrl + C`).
+* **Calibrated Ambient Environments:** 5 distinct reading palettes (Paper, Midnight OLED, E-Ink Monochrome, Warm Amber, Studio Pure).
+* **Focus Guidance Ruler:** Minimalist line-level focus mask (`R`) tracking cursor velocity at 144Hz.
+* **In-Document Search:** Rapid sequential phrase matching (`Ctrl + F`) with instant page jumping.
+* **Lightweight Concurrency Pipeline:** Windowed virtualization and adaptive render queue ensuring low memory footprint even on massive volumes.
+* **Ambient Sound Synth:** Zero-external-file synthetic brown noise/rain generator powered entirely by Web Audio API.
+* **Local-First & Private:** Zero telemetry, no cloud dependencies, completely offline.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the Oxlint configuration
+## Keyboard Shortcuts
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+| Shortcut | Action |
+| :---: | :--- |
+| `J` / `↓` | Advance line / Next page |
+| `K` / `↑` | Reverse line / Previous page |
+| `Ctrl + F` | Toggle in-document search |
+| `+` / `-` | Zoom in / Zoom out |
+| `0` | Reset zoom to 100% |
+| `T` | Cycle color environments |
+| `R` | Toggle Focus Ruler mask |
+| `F` | Toggle immersive fullscreen |
+| `S` | Toggle table of contents and page drawer |
+| `Esc` | Dismiss active overlays |
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+---
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Run local development server
+npm run dev
+
+# Build production bundle
+npm run build
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+---
+
+## License
+
+MIT © [XRTM8](https://github.com/XRTM8)
