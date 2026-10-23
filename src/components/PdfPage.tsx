@@ -121,7 +121,10 @@ export const PdfPage: React.FC<PdfPageProps> = ({
         });
         if (!ctx) return;
 
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        // True Native Hardware Resolution: match device pixel ratio for 100% razor sharpness
+        const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         const viewport = page.getViewport({ scale: scale * dpr });
         const cssViewport = page.getViewport({ scale });
 

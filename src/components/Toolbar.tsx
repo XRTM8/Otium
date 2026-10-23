@@ -13,7 +13,8 @@ import {
   MoreHorizontal,
   Settings2,
   Bookmark,
-  Layers
+  Layers,
+  BookOpen
 } from 'lucide-react';
 import type { ThemeMode, ViewMode } from '../types';
 import type { Language } from '../utils/translations';
@@ -71,7 +72,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   const t = getTranslations(currentLang);
 
   const toggleViewMode = () => {
-    onViewModeChange(viewMode === 'continuous' ? 'single' : 'continuous');
+    if (viewMode === 'continuous') {
+      onViewModeChange('dual');
+    } else if (viewMode === 'dual') {
+      onViewModeChange('single');
+    } else {
+      onViewModeChange('continuous');
+    }
   };
 
   useEffect(() => {
@@ -244,14 +251,24 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
           <div className="w-[1px] h-4 bg-white/10 mx-0.5" />
 
-          {/* View Mode Toggle (Continuous <-> Single) */}
+          {/* View Mode Toggle (Continuous -> Dual -> Single) */}
           <button
             onClick={toggleViewMode}
-            title={viewMode === 'continuous' ? t.singleMode : t.continuousMode}
-            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 transition-colors cursor-pointer"
+            title={
+              viewMode === 'continuous'
+                ? t.dualMode
+                : viewMode === 'dual'
+                ? t.singleMode
+                : t.continuousMode
+            }
+            className={`p-1.5 rounded-full transition-colors cursor-pointer ${
+              viewMode === 'dual' ? 'bg-amber-400/20 text-amber-300' : 'hover:bg-white/10 text-neutral-300'
+            }`}
           >
             {viewMode === 'continuous' ? (
               <Scroll className="w-3.5 h-3.5" />
+            ) : viewMode === 'dual' ? (
+              <BookOpen className="w-3.5 h-3.5" />
             ) : (
               <Columns className="w-3.5 h-3.5" />
             )}
@@ -375,14 +392,22 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
             <button
               onClick={toggleViewMode}
-              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-neutral-300 text-[10px] transition-all cursor-pointer"
+              className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-[10px] transition-all cursor-pointer ${
+                viewMode === 'dual'
+                  ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
+                  : 'bg-white/5 text-neutral-300 border-white/5 hover:bg-white/10'
+              }`}
             >
               {viewMode === 'continuous' ? (
                 <Scroll className="w-4 h-4" />
+              ) : viewMode === 'dual' ? (
+                <BookOpen className="w-4 h-4" />
               ) : (
                 <Columns className="w-4 h-4" />
               )}
-              <span>{viewMode === 'continuous' ? 'مستمر' : 'مفردة'}</span>
+              <span>
+                {viewMode === 'continuous' ? 'مستمر' : viewMode === 'dual' ? 'صفحتين' : 'مفردة'}
+              </span>
             </button>
 
             <button

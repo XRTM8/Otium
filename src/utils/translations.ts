@@ -30,6 +30,7 @@ export interface Translations {
   zoomLevel: string;
   continuousMode: string;
   singleMode: string;
+  dualMode: string;
   fullscreen: string;
   pagesTab: string;
   outlineTab: string;
@@ -79,6 +80,7 @@ export const translations: Record<Language, Translations> = {
     zoomLevel: 'نسبة التكبير',
     continuousMode: 'التبديل للتمرير المستمر',
     singleMode: 'التبديل لنمط الصفحة الواحدة',
+    dualMode: 'التبديل لعرض صفحتين متجاورة (كتاب مفتوح)',
     fullscreen: 'ملء الشاشة (F)',
     pagesTab: 'الصفحات',
     outlineTab: 'الفهرس',
@@ -126,6 +128,7 @@ export const translations: Record<Language, Translations> = {
     zoomLevel: 'Zoom Level',
     continuousMode: 'Switch to Continuous Scroll',
     singleMode: 'Switch to Single Page',
+    dualMode: 'Switch to Two-Page Book Spread',
     fullscreen: 'Fullscreen (F)',
     pagesTab: 'Pages',
     outlineTab: 'Outline',

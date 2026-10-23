@@ -6,7 +6,6 @@ import {
   Check,
   ChevronDown,
   Clock,
-  FileText,
   Globe,
   HardDrive,
   Palette,
@@ -463,7 +462,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 >
                   <div className="flex items-center gap-3 min-w-0 pr-1">
                     <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${style.fileIconBox}`}>
-                      <FileText className="w-4 h-4" />
+                      <OtiumLogo theme={currentTheme} size={22} />
                     </div>
                     <div className="flex flex-col min-w-0 gap-1 text-right">
                       <span className={`truncate font-medium text-xs sm:text-sm text-neutral-200 ${style.fileHoverText} transition-colors`}>

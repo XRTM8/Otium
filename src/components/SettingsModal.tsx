@@ -6,7 +6,8 @@ import {
   LayoutTemplate,
   RotateCcw,
   Check,
-  Sparkles
+  Sparkles,
+  Columns
 } from 'lucide-react';
 import type { FontFamilyId, ViewMode } from '../types';
 import type { Language } from '../utils/translations';
@@ -172,7 +173,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <label className="text-xs font-semibold text-neutral-300 block">
                   {t.defaultReadingMode}
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <button
                     onClick={() => onViewModeChange('continuous')}
                     className={`p-3 rounded-2xl border flex flex-col items-center gap-1.5 transition-all text-xs cursor-pointer ${
@@ -182,8 +183,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     }`}
                   >
                     <LayoutTemplate className="w-5 h-5 text-amber-400" />
-                    <span className="font-medium">التمرير العمودي المستمر</span>
-                    <span className="text-[10px] text-neutral-500">مثالي للمستندات والكتب الطويلة</span>
+                    <span className="font-medium">التمرير المستمر</span>
+                    <span className="text-[10px] text-neutral-500">تصفح عمودي سلس</span>
+                  </button>
+
+                  <button
+                    onClick={() => onViewModeChange('dual')}
+                    className={`p-3 rounded-2xl border flex flex-col items-center gap-1.5 transition-all text-xs cursor-pointer ${
+                      viewMode === 'dual'
+                        ? 'bg-amber-400/15 border-amber-400/50 text-amber-200'
+                        : 'bg-white/5 border-white/5 text-neutral-400 hover:bg-white/10'
+                    }`}
+                  >
+                    <BookOpen className="w-5 h-5 text-amber-400" />
+                    <span className="font-medium">صفحتين متجاورة</span>
+                    <span className="text-[10px] text-neutral-500">كتاب مفتوح فخم وهادئ</span>
                   </button>
 
                   <button
@@ -194,9 +208,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         : 'bg-white/5 border-white/5 text-neutral-400 hover:bg-white/10'
                     }`}
                   >
-                    <BookOpen className="w-5 h-5 text-amber-400" />
-                    <span className="font-medium">نمط الصفحة الواحدة</span>
-                    <span className="text-[10px] text-neutral-500">مع انيميشن الانزلاق الحركي</span>
+                    <Columns className="w-5 h-5 text-amber-400" />
+                    <span className="font-medium">صفحة واحدة</span>
+                    <span className="text-[10px] text-neutral-500">تركيز عالي بملء الشاشة</span>
                   </button>
                 </div>
               </div>

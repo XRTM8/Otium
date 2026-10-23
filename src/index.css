@@ -229,41 +229,6 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Kinetic Page Turn Slide Animations */
-@keyframes pageSlideNext {
-  0% {
-    transform: translateX(40px);
-    opacity: 0.88;
-    box-shadow: -25px 0 35px -5px rgba(0, 0, 0, 0.35);
-  }
-  100% {
-    transform: translateX(0);
-    opacity: 1;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
-  }
-}
-
-@keyframes pageSlidePrev {
-  0% {
-    transform: translateX(-40px);
-    opacity: 0.88;
-    box-shadow: 25px 0 35px -5px rgba(0, 0, 0, 0.35);
-  }
-  100% {
-    transform: translateX(0);
-    opacity: 1;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
-  }
-}
-
-.animate-page-slide-next {
-  animation: pageSlideNext 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-page-slide-prev {
-  animation: pageSlidePrev 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
 /* Paper Texture Overlays */
 .paper-overlay {
   position: absolute;

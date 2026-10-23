@@ -15,6 +15,7 @@ import { TextSelectionMenu } from './components/TextSelectionMenu';
 import { getStoredAnnotations, saveStoredAnnotations } from './utils/annotations';
 import { getStoredBookmarks, saveStoredBookmarks } from './utils/bookmarks';
 import { getSavedFont, saveFont, applyFontFamily } from './utils/fonts';
+import { measureRefreshRate, computeOptimalPageScale } from './utils/device';
 import {
   saveDocumentToStorage,
   getDocumentFromStorage,
@@ -30,6 +31,8 @@ interface PageSlotProps {
   annotations: TextAnnotation[];
   onDeleteAnnotation: (id: string) => void;
   baseAspectRatio: number;
+  basePageWidth?: number;
+  basePageHeight?: number;
   searchQuery?: string;
   isCurrentSearchPage?: boolean;
   onPageVisible: (num: number) => void;
@@ -44,6 +47,8 @@ const PageSlot: React.FC<PageSlotProps> = ({
   annotations,
   onDeleteAnnotation,
   baseAspectRatio,
+  basePageWidth = 595,
+  basePageHeight = 842,
   searchQuery,
   isCurrentSearchPage,
   onPageVisible
@@ -75,8 +80,8 @@ const PageSlot: React.FC<PageSlotProps> = ({
     return () => observer.disconnect();
   }, [pageNum, onPageVisible]);
 
-  const standardWidth = Math.round(600 * scale);
-  const standardHeight = Math.round(standardWidth / (baseAspectRatio || 0.707));
+  const standardWidth = Math.round(basePageWidth * scale);
+  const standardHeight = Math.round(basePageHeight * scale);
 
   return (
     <div
@@ -132,7 +137,12 @@ export const App: React.FC = () => {
   });
 
   const [baseAspectRatio, setBaseAspectRatio] = useState<number>(0.707);
+  const [basePageSize, setBasePageSize] = useState<{ width: number; height: number }>({ width: 595, height: 842 });
   const [viewMode, setViewMode] = useState<ViewMode>('continuous');
+
+  useEffect(() => {
+    measureRefreshRate();
+  }, []);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
@@ -216,8 +226,6 @@ export const App: React.FC = () => {
     });
   };
 
-  // Page Turn Animation state
-  const [pageSlideDir, setPageSlideDir] = useState<'next' | 'prev' | null>(null);
   const [touchDeltaX, setTouchDeltaX] = useState<number>(0);
   const [isDraggingTouch, setIsDraggingTouch] = useState<boolean>(false);
 
@@ -226,9 +234,6 @@ export const App: React.FC = () => {
   const touchStartY = useRef<number | null>(null);
 
   const scrollToPage = useCallback((pageNumber: number) => {
-    if (pageNumber !== currentPage && viewMode === 'single') {
-      setPageSlideDir(pageNumber > currentPage ? 'next' : 'prev');
-    }
     setCurrentPage(pageNumber);
     if (docTitle) {
       localStorage.setItem(`otium_page_${docTitle}`, pageNumber.toString());
@@ -241,28 +246,38 @@ export const App: React.FC = () => {
         targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
-  }, [currentPage, docTitle, viewMode]);
+  }, [docTitle, viewMode]);
 
   const goToNextPage = useCallback(() => {
-    if (currentPage < numPages) {
-      setPageSlideDir('next');
-      scrollToPage(currentPage + 1);
+    if (viewMode === 'dual') {
+      if (currentPage + 2 <= numPages) {
+        scrollToPage(currentPage + 2);
+      } else if (currentPage + 1 <= numPages) {
+        scrollToPage(currentPage + 1);
+      }
+    } else {
+      if (currentPage < numPages) {
+        scrollToPage(currentPage + 1);
+      }
     }
-  }, [currentPage, numPages, scrollToPage]);
+  }, [currentPage, numPages, scrollToPage, viewMode]);
 
   const goToPrevPage = useCallback(() => {
-    if (currentPage > 1) {
-      setPageSlideDir('prev');
-      scrollToPage(currentPage - 1);
+    if (viewMode === 'dual') {
+      scrollToPage(Math.max(1, currentPage - 2));
+    } else {
+      if (currentPage > 1) {
+        scrollToPage(currentPage - 1);
+      }
     }
-  }, [currentPage, scrollToPage]);
+  }, [currentPage, scrollToPage, viewMode]);
 
   const lastWheelTimeRef = useRef<number>(0);
   const handleWheel = (e: React.WheelEvent) => {
-    if (viewMode === 'single') {
+    if (viewMode === 'single' || viewMode === 'dual') {
       const now = Date.now();
-      if (now - lastWheelTimeRef.current < 350) return;
-      if (Math.abs(e.deltaY) > 25) {
+      if (now - lastWheelTimeRef.current < 260) return;
+      if (Math.abs(e.deltaY) > 20) {
         if (e.deltaY > 0) {
           goToNextPage();
         } else {
@@ -274,7 +289,7 @@ export const App: React.FC = () => {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1 && viewMode === 'single') {
+    if (e.touches.length === 1 && (viewMode === 'single' || viewMode === 'dual')) {
       touchStartX.current = e.touches[0].clientX;
       touchStartY.current = e.touches[0].clientY;
       setIsDraggingTouch(true);
@@ -282,7 +297,7 @@ export const App: React.FC = () => {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStartX.current !== null && isDraggingTouch && viewMode === 'single') {
+    if (touchStartX.current !== null && isDraggingTouch && (viewMode === 'single' || viewMode === 'dual')) {
       const dx = e.touches[0].clientX - touchStartX.current;
       const dy = e.touches[0].clientY - (touchStartY.current || 0);
       if (Math.abs(dx) > Math.abs(dy)) {
@@ -296,7 +311,7 @@ export const App: React.FC = () => {
     if (touchStartX.current === null) return;
     const deltaX = touchDeltaX;
 
-    if (viewMode === 'single' && Math.abs(deltaX) > 40) {
+    if ((viewMode === 'single' || viewMode === 'dual') && Math.abs(deltaX) > 40) {
       if (deltaX < 0) {
         goToNextPage();
       } else if (deltaX > 0) {
@@ -308,20 +323,36 @@ export const App: React.FC = () => {
     touchStartY.current = null;
   };
 
+  const handleViewModeChange = (newMode: ViewMode) => {
+    setViewMode(newMode);
+    if (basePageSize.width && basePageSize.height) {
+      const optimal = computeOptimalPageScale(
+        basePageSize.width,
+        basePageSize.height,
+        window.innerWidth,
+        window.innerHeight,
+        newMode
+      );
+      setZoom(optimal);
+    }
+  };
+
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 640 && doc) {
-        doc.getPage(1).then((p) => {
-          const vp = p.getViewport({ scale: 1 });
-          const mobileTarget = window.innerWidth - 16;
-          const mobileScale = Math.min(1.1, Math.max(0.4, Number((mobileTarget / vp.width).toFixed(2))));
-          setZoom(mobileScale);
-        }).catch(() => {});
+      if (doc && basePageSize.width && basePageSize.height) {
+        const optimal = computeOptimalPageScale(
+          basePageSize.width,
+          basePageSize.height,
+          window.innerWidth,
+          window.innerHeight,
+          viewMode
+        );
+        setZoom(optimal);
       }
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [doc]);
+  }, [doc, basePageSize, viewMode]);
 
   const handleThemeChange = (newTheme: ThemeMode) => {
     setTheme(newTheme);
@@ -367,18 +398,15 @@ export const App: React.FC = () => {
         const vp = p1.getViewport({ scale: 1 });
         if (vp.width && vp.height) {
           setBaseAspectRatio(vp.width / vp.height);
-          const screenWidth = window.innerWidth;
-          if (screenWidth < 640) {
-            const mobileTarget = screenWidth - 16;
-            const mobileScale = Math.min(1.1, Math.max(0.4, Number((mobileTarget / vp.width).toFixed(2))));
-            setZoom(mobileScale);
-          } else if (screenWidth < 1024) {
-            const tabletTarget = Math.min(screenWidth - 36, 750);
-            const tabletScale = Math.min(1.2, Math.max(0.6, Number((tabletTarget / vp.width).toFixed(2))));
-            setZoom(tabletScale);
-          } else {
-            setZoom(1.15);
-          }
+          setBasePageSize({ width: vp.width, height: vp.height });
+          const optimal = computeOptimalPageScale(
+            vp.width,
+            vp.height,
+            window.innerWidth,
+            window.innerHeight,
+            viewMode
+          );
+          setZoom(optimal);
         }
       } catch {
         // default 0.707
@@ -598,7 +626,7 @@ export const App: React.FC = () => {
             onPageChange={scrollToPage}
             onZoomChange={setZoom}
             onThemeChange={handleThemeChange}
-            onViewModeChange={setViewMode}
+            onViewModeChange={handleViewModeChange}
             onToggleBookmark={() => handleToggleBookmark(currentPage)}
             onToggleFullscreen={handleToggleFullscreen}
             onToggleSidebar={() => setIsSidebarOpen(true)}
@@ -660,14 +688,15 @@ export const App: React.FC = () => {
             onTouchEnd={handleTouchEnd}
             className="flex-1 w-full h-full overflow-y-auto overflow-x-auto pt-14 sm:pt-16 pb-20 sm:pb-24 px-2 sm:px-4 relative"
           >
-            {/* Quick-Flip Side Navigation Buttons (Single Mode) */}
-            {viewMode === 'single' && (
+            {/* Quick-Flip Side Navigation Buttons (Single & Dual Mode) */}
+            {(viewMode === 'single' || viewMode === 'dual') && (
               <>
                 <button
                   type="button"
                   onClick={goToPrevPage}
                   disabled={currentPage <= 1}
                   title="الصفحة السابقة"
+                  aria-label="Previous Page"
                   className="fixed left-2 sm:left-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full bg-neutral-900/60 hover:bg-neutral-900/90 text-white backdrop-blur-md opacity-25 hover:opacity-100 disabled:opacity-0 transition-all cursor-pointer shadow-xl border border-white/10"
                 >
                   <ChevronLeft className="w-5 h-5" />
@@ -675,8 +704,9 @@ export const App: React.FC = () => {
                 <button
                   type="button"
                   onClick={goToNextPage}
-                  disabled={currentPage >= numPages}
+                  disabled={viewMode === 'dual' ? currentPage >= numPages : currentPage >= numPages}
                   title="الصفحة التالية"
+                  aria-label="Next Page"
                   className="fixed right-2 sm:right-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full bg-neutral-900/60 hover:bg-neutral-900/90 text-white backdrop-blur-md opacity-25 hover:opacity-100 disabled:opacity-0 transition-all cursor-pointer shadow-xl border border-white/10"
                 >
                   <ChevronRight className="w-5 h-5" />
@@ -698,6 +728,8 @@ export const App: React.FC = () => {
                     annotations={annotations}
                     onDeleteAnnotation={handleDeleteAnnotation}
                     baseAspectRatio={baseAspectRatio}
+                    basePageWidth={basePageSize.width}
+                    basePageHeight={basePageSize.height}
                     searchQuery={searchQuery}
                     isCurrentSearchPage={activeSearchPage === pageNum}
                     onPageVisible={(visiblePage) => {
@@ -709,22 +741,65 @@ export const App: React.FC = () => {
                   />
                 ))}
               </div>
+            ) : viewMode === 'dual' ? (
+              // Authentic Dual-Page Book Spread (Two Pages Side-by-Side)
+              <div className="min-h-full flex items-center justify-center py-2 sm:py-4">
+                <div
+                  className="flex flex-row items-center justify-center gap-1 sm:gap-2 shadow-2xl"
+                  style={{
+                    transform: isDraggingTouch && touchDeltaX !== 0 ? `translateX(${touchDeltaX}px)` : undefined,
+                  }}
+                >
+                  {/* Left Page (currentPage) */}
+                  <div className="relative">
+                    <PdfPage
+                      doc={doc}
+                      pageNumber={currentPage}
+                      scale={zoom}
+                      theme={theme}
+                      annotations={annotations}
+                      onDeleteAnnotation={handleDeleteAnnotation}
+                      baseAspectRatio={baseAspectRatio}
+                      searchQuery={searchQuery}
+                      isCurrentSearchPage={activeSearchPage === currentPage}
+                    />
+                  </div>
+
+                  {/* Right Page (currentPage + 1 if available) */}
+                  {currentPage + 1 <= numPages ? (
+                    <div className="relative border-l border-neutral-700/20">
+                      <PdfPage
+                        doc={doc}
+                        pageNumber={currentPage + 1}
+                        scale={zoom}
+                        theme={theme}
+                        annotations={annotations}
+                        onDeleteAnnotation={handleDeleteAnnotation}
+                        baseAspectRatio={baseAspectRatio}
+                        searchQuery={searchQuery}
+                        isCurrentSearchPage={activeSearchPage === currentPage + 1}
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        width: Math.round(basePageSize.width * zoom),
+                        height: Math.round(basePageSize.height * zoom),
+                      }}
+                      className="hidden sm:flex items-center justify-center border border-dashed border-white/10 rounded-xs text-xs text-neutral-500 font-mono"
+                    >
+                      {lang === 'ar' ? 'نهاية المستند' : 'End of Document'}
+                    </div>
+                  )}
+                </div>
+              </div>
             ) : (
-              // Single Page Presentation Mode with Kinetic Slide Animation
+              // Single Page Mode - Instant, Centered, 0 Lag, 0 Annoying Slide
               <div
-                key={currentPage}
-                onAnimationEnd={() => setPageSlideDir(null)}
                 style={{
                   transform: isDraggingTouch && touchDeltaX !== 0 ? `translateX(${touchDeltaX}px)` : undefined,
-                  transition: isDraggingTouch ? 'none' : undefined,
                 }}
-                className={`min-h-full flex items-center justify-center will-change-transform ${
-                  pageSlideDir === 'next'
-                    ? 'animate-page-slide-next'
-                    : pageSlideDir === 'prev'
-                    ? 'animate-page-slide-prev'
-                    : ''
-                }`}
+                className="min-h-full flex items-center justify-center py-2 sm:py-4"
               >
                 <PdfPage
                   doc={doc}
@@ -753,7 +828,7 @@ export const App: React.FC = () => {
           saveFont(newFont);
         }}
         viewMode={viewMode}
-        onViewModeChange={setViewMode}
+        onViewModeChange={handleViewModeChange}
         lang={lang}
         onResetDefaults={() => {
           setFontFamily('tajawal');

@@ -2,7 +2,7 @@ export type ThemeMode = 'paper' | 'midnight' | 'eink' | 'amber' | 'pure' | 'amol
 
 export type FontFamilyId = 'tajawal' | 'cairo' | 'amiri' | 'almarai' | 'ibm' | 'lora' | 'jakarta' | 'system';
 
-export type ViewMode = 'continuous' | 'single';
+export type ViewMode = 'continuous' | 'single' | 'dual';
 
 export interface TocItem {
   title: string;
