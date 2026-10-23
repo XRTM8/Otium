@@ -7,79 +7,69 @@ interface OtiumLogoProps {
 
 export const OtiumLogo: React.FC<OtiumLogoProps> = ({
   className = '',
-  size = 32
+  size = 36
 }) => {
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 36 36"
+      viewBox="0 0 44 44"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
       <defs>
-        <linearGradient id="otiumGold" x1="6" y1="4" x2="30" y2="32" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#fef3c7" />
-          <stop offset="45%" stopColor="#f59e0b" />
-          <stop offset="100%" stopColor="#d97706" />
+        <linearGradient id="otiumGoldMain" x1="6" y1="4" x2="38" y2="40" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFFBEB" />
+          <stop offset="35%" stopColor="#F59E0B" />
+          <stop offset="100%" stopColor="#B45309" />
         </linearGradient>
-        <linearGradient id="otiumPageGlow" x1="12" y1="10" x2="24" y2="26" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.25" />
-          <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.05" />
+        <linearGradient id="otiumGoldAccent" x1="14" y1="10" x2="30" y2="34" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FDE68A" />
+          <stop offset="100%" stopColor="#D97706" />
         </linearGradient>
-        <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="1.5" result="blur" />
-          <feComposite in="SourceGraphic" in2="blur" operator="over" />
-        </filter>
       </defs>
 
-      {/* Outer Quiet Circle Ring ("O") */}
+      {/* Pristine Circular Perimeter (Letter O) */}
       <circle
-        cx="18"
-        cy="18"
-        r="14"
-        stroke="url(#otiumGold)"
-        strokeWidth="2"
+        cx="22"
+        cy="22"
+        r="18"
+        stroke="url(#otiumGoldMain)"
+        strokeWidth="1.75"
         strokeLinecap="round"
-        strokeDasharray="76 12"
-        className="opacity-90"
       />
 
-      {/* Soft Ambient Inner Backing */}
-      <circle
-        cx="18"
-        cy="18"
-        r="11"
-        fill="url(#otiumPageGlow)"
-        className="opacity-60"
-      />
-
-      {/* Left Folio Wing */}
+      {/* Symmetrical Left Open Folio Arc */}
       <path
-        d="M18 11.5C15.2 11.5 12 12.8 11 13.6V24.2C12 23.4 15.2 22.3 18 22.3V11.5Z"
-        fill="url(#otiumGold)"
-        fillOpacity="0.85"
+        d="M 22 10.5 C 15 10.5 11 15 11 22 C 11 29 15 33.5 22 33.5"
+        stroke="url(#otiumGoldAccent)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
       />
 
-      {/* Right Folio Wing */}
+      {/* Symmetrical Right Open Folio Arc */}
       <path
-        d="M18 11.5C20.8 11.5 24 12.8 25 13.6V24.2C24 23.4 20.8 22.3 18 22.3V11.5Z"
-        fill="url(#otiumGold)"
-        fillOpacity="0.95"
+        d="M 22 10.5 C 29 10.5 33 15 33 22 C 33 29 29 33.5 22 33.5"
+        stroke="url(#otiumGoldAccent)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
       />
 
-      {/* Book Spine Center Highlight */}
+      {/* Spine Hairline Axis */}
       <line
-        x1="18"
-        y1="11"
-        x2="18"
-        y2="24.5"
-        stroke="#fff"
-        strokeWidth="1.2"
+        x1="22"
+        y1="8.5"
+        x2="22"
+        y2="35.5"
+        stroke="#FFFFFF"
+        strokeWidth="1.25"
         strokeLinecap="round"
-        className="opacity-80"
+        opacity="0.8"
       />
+
+      {/* Golden Focal Core */}
+      <circle cx="22" cy="22" r="2.2" fill="url(#otiumGoldMain)" />
     </svg>
   );
 };
