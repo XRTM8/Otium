@@ -16,9 +16,12 @@ import {
   Scroll,
   HelpCircle,
   Search,
-  MoreHorizontal
+  MoreHorizontal,
+  Globe
 } from 'lucide-react';
 import type { ThemeMode, ViewMode } from '../types';
+import type { Language } from '../utils/translations';
+import { translations } from '../utils/translations';
 import { OtiumLogo } from './OtiumLogo';
 
 interface ToolbarProps {
@@ -28,6 +31,7 @@ interface ToolbarProps {
   zoom: number;
   theme: ThemeMode;
   viewMode: ViewMode;
+  currentLang: Language;
   isFocusRulerActive: boolean;
   isAmbientActive: boolean;
   isFullscreen: boolean;
@@ -35,6 +39,7 @@ interface ToolbarProps {
   onZoomChange: (zoom: number) => void;
   onThemeChange: (theme: ThemeMode) => void;
   onViewModeChange: (mode: ViewMode) => void;
+  onToggleLanguage: () => void;
   onToggleFocusRuler: () => void;
   onToggleAmbient: () => void;
   onToggleFullscreen: () => void;
@@ -51,6 +56,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   zoom,
   theme,
   viewMode,
+  currentLang,
   isFocusRulerActive,
   isAmbientActive,
   isFullscreen,
@@ -58,6 +64,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onZoomChange,
   onThemeChange,
   onViewModeChange,
+  onToggleLanguage,
   onToggleFocusRuler,
   onToggleAmbient,
   onToggleFullscreen,
@@ -70,6 +77,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showMoreMobile, setShowMoreMobile] = useState(false);
   const [inputPage, setInputPage] = useState(currentPage.toString());
+
+  const t = translations[currentLang];
 
   useEffect(() => {
     setInputPage(currentPage.toString());
@@ -113,12 +122,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     }
   };
 
-  const themes: { id: ThemeMode; label: string; bg: string; dot: string }[] = [
-    { id: 'paper', label: 'Paper (ورقي دافئ)', bg: '#f7f3e8', dot: '#d4c5a9' },
-    { id: 'midnight', label: 'Midnight (ليلي عميق)', bg: '#0b0f17', dot: '#38bdf8' },
-    { id: 'eink', label: 'E-Ink (حبر إلكتروني)', bg: '#e5e5e5', dot: '#525252' },
-    { id: 'amber', label: 'Amber (كهرماني هادئ)', bg: '#1a1612', dot: '#f59e0b' },
-    { id: 'pure', label: 'Pure (أبيض استوديو)', bg: '#ffffff', dot: '#94a3b8' }
+  const themes: { id: ThemeMode; label: string; dot: string }[] = [
+    { id: 'paper', label: t.themes.paper, dot: '#d4c5a9' },
+    { id: 'midnight', label: t.themes.midnight, dot: '#38bdf8' },
+    { id: 'eink', label: t.themes.eink, dot: '#a3a3a3' },
+    { id: 'amber', label: t.themes.amber, dot: '#f59e0b' },
+    { id: 'pure', label: t.themes.pure, dot: '#818cf8' }
   ];
 
   return (
@@ -128,12 +137,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       }`}
     >
       {/* Primary Floating Capsule */}
-      <div className="pointer-events-auto flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full shadow-2xl backdrop-blur-2xl border transition-all duration-300 text-xs sm:text-sm bg-neutral-900/90 text-neutral-100 border-white/10 hover:border-amber-400/25 shadow-black/60 max-w-full">
+      <div className="pointer-events-auto flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full shadow-2xl backdrop-blur-2xl border transition-all duration-300 text-xs sm:text-sm bg-neutral-900/90 text-neutral-100 border-white/10 hover:border-white/20 shadow-black/60 max-w-full">
         
-        {/* Brand Monogram */}
+        {/* Brand Monogram with Theme Sync */}
         <div className="flex items-center gap-1.5 pl-1 pr-1.5 shrink-0">
-          <OtiumLogo size={18} />
-          <span className="font-bold text-xs tracking-wider text-amber-200/90 hidden lg:inline">
+          <OtiumLogo size={18} theme={theme} />
+          <span className="font-bold text-xs tracking-wider text-neutral-200 hidden lg:inline">
             OTIUM
           </span>
         </div>
@@ -144,7 +153,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {/* Close & Sidebar */}
         <button
           onClick={onCloseDocument}
-          title="إغلاق الوثيقة (Esc)"
+          title={t.closeDoc}
           className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors shrink-0"
         >
           <X className="w-4 h-4" />
@@ -152,7 +161,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
         <button
           onClick={onToggleSidebar}
-          title="الفهرس ومصغرات الصفحات (S)"
+          title={t.tableOfContents}
           className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 text-neutral-300 transition-colors shrink-0"
         >
           <Menu className="w-4 h-4" />
@@ -175,7 +184,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {/* Search */}
         <button
           onClick={onToggleSearch}
-          title="بحث في الوثيقة (Ctrl + F)"
+          title={t.searchTooltip}
           className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 text-neutral-300 transition-colors shrink-0"
         >
           <Search className="w-4 h-4" />
@@ -186,7 +195,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <button
             onClick={() => onPageChange(Math.max(1, currentPage - 1))}
             disabled={currentPage <= 1}
-            title="الصفحة السابقة (K / ↑)"
+            title={t.prevPage}
             className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 disabled:opacity-20 transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -206,7 +215,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <button
             onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage >= totalPages}
-            title="الصفحة التالية (J / ↓)"
+            title={t.nextPage}
             className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 disabled:opacity-20 transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
@@ -221,7 +230,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <div className="flex items-center gap-0.5">
             <button
               onClick={() => onZoomChange(Math.max(0.4, Number((zoom - 0.15).toFixed(2))))}
-              title="تصغير (-)"
+              title={t.zoomOut}
               className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 transition-colors"
             >
               <ZoomOut className="w-3.5 h-3.5" />
@@ -231,7 +240,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </span>
             <button
               onClick={() => onZoomChange(Math.min(2.5, Number((zoom + 0.15).toFixed(2))))}
-              title="تكبير (+)"
+              title={t.zoomIn}
               className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 transition-colors"
             >
               <ZoomIn className="w-3.5 h-3.5" />
@@ -243,7 +252,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           {/* Focus Mode Ruler */}
           <button
             onClick={onToggleFocusRuler}
-            title={isFocusRulerActive ? 'إلغاء مسطرة التركيز (R)' : 'تفعيل مسطرة التركيز (R)'}
+            title={isFocusRulerActive ? t.focusRulerOff : t.focusRulerOn}
             className={`p-1.5 rounded-full transition-all ${
               isFocusRulerActive
                 ? 'bg-amber-400 text-black shadow-md'
@@ -256,7 +265,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           {/* Ambient Sound */}
           <button
             onClick={onToggleAmbient}
-            title={isAmbientActive ? 'إيقاف صوت المطر الهادئ' : 'تشغيل صوت مطر خافت'}
+            title={t.ambientSound}
             className={`p-1.5 rounded-full transition-all ${
               isAmbientActive
                 ? 'bg-neutral-100 text-neutral-900 shadow-md'
@@ -269,7 +278,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           {/* View Mode Toggle */}
           <button
             onClick={() => onViewModeChange(viewMode === 'continuous' ? 'single' : 'continuous')}
-            title={viewMode === 'continuous' ? 'التبديل لنمط الصفحة الواحدة' : 'التبديل للتمرير المستمر'}
+            title={viewMode === 'continuous' ? t.singleMode : t.continuousMode}
             className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 transition-colors"
           >
             {viewMode === 'continuous' ? <Scroll className="w-3.5 h-3.5" /> : <Columns className="w-3.5 h-3.5" />}
@@ -279,7 +288,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <div className="relative">
             <button
               onClick={() => setShowThemeMenu(!showThemeMenu)}
-              title="بيئات القراءة (T)"
+              title={t.themeLabel}
               className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 transition-colors flex items-center"
             >
               <Palette className="w-3.5 h-3.5" />
@@ -288,34 +297,44 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             {showThemeMenu && (
               <div className="absolute right-0 top-full mt-2 w-48 rounded-2xl bg-neutral-900/98 border border-white/10 p-1.5 shadow-2xl backdrop-blur-xl z-50 text-neutral-200 animate-in fade-in zoom-in-95 duration-150">
                 <div className="text-[10px] uppercase font-mono px-2.5 py-1 text-neutral-500 font-semibold tracking-wider">
-                  بيئات القراءة
+                  {t.readingThemesTitle}
                 </div>
-                {themes.map((t) => (
+                {themes.map((th) => (
                   <button
-                    key={t.id}
+                    key={th.id}
                     onClick={() => {
-                      onThemeChange(t.id);
+                      onThemeChange(th.id);
                       setShowThemeMenu(false);
                     }}
                     className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition-colors ${
-                      theme === t.id ? 'bg-white/15 text-white font-medium' : 'hover:bg-white/5 text-neutral-300'
+                      theme === th.id ? 'bg-white/15 text-white font-medium' : 'hover:bg-white/5 text-neutral-300'
                     }`}
                   >
                     <span
                       className="w-3.5 h-3.5 rounded-full border border-black/20"
-                      style={{ backgroundColor: t.dot }}
+                      style={{ backgroundColor: th.dot }}
                     />
-                    <span>{t.label}</span>
+                    <span>{th.label}</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
 
+          {/* Language Switch Button */}
+          <button
+            onClick={onToggleLanguage}
+            title={currentLang === 'ar' ? 'Switch to English' : 'التحويل إلى العربية'}
+            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 hover:text-white transition-colors flex items-center gap-1 font-mono text-[11px]"
+          >
+            <Globe className="w-3.5 h-3.5" />
+            <span>{currentLang === 'ar' ? 'EN' : 'عربي'}</span>
+          </button>
+
           {/* Fullscreen */}
           <button
             onClick={onToggleFullscreen}
-            title="ملء الشاشة (F)"
+            title={t.fullscreen}
             className="p-1.5 rounded-full hover:bg-white/10 text-neutral-300 transition-colors"
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -324,7 +343,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           {/* Shortcuts / Help */}
           <button
             onClick={onToggleShortcuts}
-            title="اختصارات لوحة المفاتيح (?)"
+            title={t.shortcutsTooltip}
             className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
           >
             <HelpCircle className="w-3.5 h-3.5" />
@@ -339,9 +358,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               setShowMoreMobile(!showMoreMobile);
               setShowThemeMenu(false);
             }}
-            title="المزيد من الأدوات"
+            title={t.moreTools}
             className={`p-1.5 sm:p-2 rounded-full transition-colors ${
-              showMoreMobile ? 'bg-amber-400 text-black' : 'hover:bg-white/10 text-neutral-300'
+              showMoreMobile ? 'bg-white/20 text-white' : 'hover:bg-white/10 text-neutral-300'
             }`}
           >
             <MoreHorizontal className="w-4 h-4" />
@@ -355,7 +374,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           
           {/* Mobile Zoom Row */}
           <div className="flex items-center justify-between px-1">
-            <span className="text-xs text-neutral-400 font-medium">نسبة التكبير</span>
+            <span className="text-xs text-neutral-400 font-medium">{t.zoomLevel}</span>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onZoomChange(Math.max(0.4, Number((zoom - 0.15).toFixed(2))))}
@@ -363,7 +382,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               >
                 <ZoomOut className="w-4 h-4" />
               </button>
-              <span className="font-mono text-xs text-amber-300 w-10 text-center">
+              <span className="font-mono text-xs text-neutral-200 w-10 text-center">
                 {Math.round(zoom * 100)}%
               </span>
               <button
@@ -381,12 +400,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               onClick={onToggleAmbient}
               className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-[11px] transition-all ${
                 isAmbientActive
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                  ? 'bg-white/20 text-white border-white/40'
                   : 'bg-white/5 text-neutral-300 border-white/5 hover:bg-white/10'
               }`}
             >
               <Volume2 className="w-4 h-4" />
-              <span>صوت مطر</span>
+              <span className="truncate max-w-full">{t.ambientSound}</span>
             </button>
 
             <button
@@ -398,39 +417,39 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </button>
 
             <button
-              onClick={onToggleFullscreen}
+              onClick={onToggleLanguage}
               className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-neutral-300 text-[11px] transition-all"
             >
-              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-              <span>ملء الشاشة</span>
+              <Globe className="w-4 h-4" />
+              <span>{currentLang === 'ar' ? 'English' : 'العربية'}</span>
             </button>
           </div>
 
           {/* Themes Swatches */}
           <div className="pt-2 border-t border-white/10 space-y-1.5">
-            <div className="text-[10px] text-neutral-400 font-mono">بيئة القراءة (Themes)</div>
+            <div className="text-[10px] text-neutral-400 font-mono">{t.readingThemesTitle}</div>
             <div className="grid grid-cols-5 gap-1.5">
-              {themes.map((t) => {
-                const isSelected = theme === t.id;
+              {themes.map((th) => {
+                const isSelected = theme === th.id;
                 return (
                   <button
-                    key={t.id}
+                    key={th.id}
                     onClick={() => {
-                      onThemeChange(t.id);
+                      onThemeChange(th.id);
                       setShowMoreMobile(false);
                     }}
                     className={`flex flex-col items-center gap-1 p-1.5 rounded-xl border transition-all ${
                       isSelected
-                        ? 'border-amber-400 bg-amber-500/20 text-white'
+                        ? 'border-white bg-white/20 text-white'
                         : 'border-white/5 bg-white/5 text-neutral-400 hover:text-white'
                     }`}
                   >
                     <span
                       className="w-3.5 h-3.5 rounded-full border border-black/30"
-                      style={{ backgroundColor: t.dot }}
+                      style={{ backgroundColor: th.dot }}
                     />
                     <span className="text-[9px] truncate max-w-full font-sans">
-                      {t.id}
+                      {th.id}
                     </span>
                   </button>
                 );

@@ -1,35 +1,61 @@
 import React from 'react';
 import { X, Command } from 'lucide-react';
+import type { Language } from '../utils/translations';
 
 interface ShortcutsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  lang?: Language;
 }
 
-export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ isOpen, onClose }) => {
+export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({
+  isOpen,
+  onClose,
+  lang = 'ar'
+}) => {
   if (!isOpen) return null;
 
-  const shortcuts = [
+  const shortcutsAr = [
     { key: 'J / ↓', desc: 'الصفحة التالية / تمرير لأسفل' },
     { key: 'K / ↑', desc: 'الصفحة السابقة / تمرير لأعلى' },
     { key: 'Ctrl + F', desc: 'البحث النصي داخل الوثيقة' },
     { key: '+ / -', desc: 'تكبير / تصغير العرض' },
     { key: '0', desc: 'إعادة ضبط نسبة العرض (100%)' },
-    { key: 'T', desc: 'التبديل بين بيئات القراءة (Paper, Midnight, E-Ink)' },
+    { key: 'T', desc: 'التبديل بين بيئات القراءة (Themes)' },
     { key: 'R', desc: 'تفعيل / إلغاء مسطرة التركيز السطري' },
     { key: 'F', desc: 'ملء الشاشة بالكامل' },
     { key: 'S', desc: 'فتح / إغلاق شريط الفهرس والصفحات' },
     { key: 'Esc', desc: 'إغلاق النوافذ المنبثقة' }
   ];
 
+  const shortcutsEn = [
+    { key: 'J / ↓', desc: 'Next Page / Scroll Down' },
+    { key: 'K / ↑', desc: 'Previous Page / Scroll Up' },
+    { key: 'Ctrl + F', desc: 'In-Document Search' },
+    { key: '+ / -', desc: 'Zoom In / Zoom Out' },
+    { key: '0', desc: 'Reset Zoom (100%)' },
+    { key: 'T', desc: 'Cycle Reading Themes' },
+    { key: 'R', desc: 'Toggle Line Focus Ruler' },
+    { key: 'F', desc: 'Toggle Immersive Fullscreen' },
+    { key: 'S', desc: 'Toggle Thumbnails & Outline' },
+    { key: 'Esc', desc: 'Close Active Overlays' }
+  ];
+
+  const shortcuts = lang === 'ar' ? shortcutsAr : shortcutsEn;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      dir={lang === 'ar' ? 'rtl' : 'ltr'}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    >
       <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
       <div className="relative w-full max-w-sm bg-neutral-900 border border-white/10 rounded-2xl shadow-2xl p-5 text-neutral-200 z-10 animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
           <div className="flex items-center gap-2">
             <Command className="w-4 h-4 text-amber-400" />
-            <h3 className="font-semibold text-xs tracking-wide">اختصارات لوحة المفاتيح</h3>
+            <h3 className="font-semibold text-xs tracking-wide">
+              {lang === 'ar' ? 'اختصارات لوحة المفاتيح' : 'Keyboard Shortcuts'}
+            </h3>
           </div>
           <button
             onClick={onClose}

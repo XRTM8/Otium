@@ -3,6 +3,8 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { pdfjsLib } from './utils/pdfWorker';
 import { ambientAudio } from './utils/ambientAudio';
 import type { ThemeMode, ViewMode } from './types';
+import type { Language } from './utils/translations';
+import { translations } from './utils/translations';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { Toolbar } from './components/Toolbar';
 import { PdfPage } from './components/PdfPage';
@@ -128,6 +130,16 @@ export const App: React.FC = () => {
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [lang, setLang] = useState<Language>(() => {
+    return (localStorage.getItem('otium_lang') as Language) || 'ar';
+  });
+  const t = translations[lang];
+
+  const handleLanguageToggle = () => {
+    const next = lang === 'ar' ? 'en' : 'ar';
+    setLang(next);
+    localStorage.setItem('otium_lang', next);
+  };
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -254,10 +266,10 @@ export const App: React.FC = () => {
           scrollToPage(initialPage);
         }, 400);
       }
-      showToast(`تم فتح الوثيقة (${loadedDoc.numPages} صفحة)`, 'success');
+      showToast(t.openDocumentSuccess(loadedDoc.numPages), 'success');
     } catch (err) {
       console.error('Error loading PDF:', err);
-      showToast('تعذر فتح ملف الـ PDF. يرجى التأكد من سلامة الملف.', 'error');
+      showToast(t.openDocumentError, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -299,7 +311,7 @@ export const App: React.FC = () => {
   const handleToggleAmbient = () => {
     const active = ambientAudio.toggle();
     setIsAmbientActive(active);
-    showToast(active ? 'تم تشغيل صوت المطر الهادئ' : 'تم إيقاف الصوت', 'info');
+    showToast(active ? t.ambientOnToast : t.ambientOffToast, 'info');
   };
 
   const handleToggleFullscreen = () => {
@@ -426,7 +438,9 @@ export const App: React.FC = () => {
       {!doc ? (
         <WelcomeScreen
           currentTheme={theme}
+          currentLang={lang}
           onThemeChange={handleThemeChange}
+          onToggleLanguage={handleLanguageToggle}
           onOpenFile={handleOpenFile}
           onOpenSample={handleOpenSample}
           onOpenRecent={async (recent) => {
@@ -440,7 +454,7 @@ export const App: React.FC = () => {
               loadPdfData(data, recent.name);
             } else {
               setIsLoading(false);
-              showToast('تعذر العثور على الوثيقة في الذاكرة المحلية.', 'error');
+              showToast(t.openDocumentError, 'error');
             }
           }}
         />
@@ -462,6 +476,7 @@ export const App: React.FC = () => {
             zoom={zoom}
             theme={theme}
             viewMode={viewMode}
+            currentLang={lang}
             isFocusRulerActive={isFocusRulerActive}
             isAmbientActive={isAmbientActive}
             isFullscreen={isFullscreen}
@@ -469,6 +484,7 @@ export const App: React.FC = () => {
             onZoomChange={setZoom}
             onThemeChange={handleThemeChange}
             onViewModeChange={setViewMode}
+            onToggleLanguage={handleLanguageToggle}
             onToggleFocusRuler={() => setIsFocusRulerActive((prev) => !prev)}
             onToggleAmbient={handleToggleAmbient}
             onToggleFullscreen={handleToggleFullscreen}
@@ -485,6 +501,7 @@ export const App: React.FC = () => {
           <SearchBar
             isOpen={isSearchOpen}
             doc={doc}
+            lang={lang}
             onNavigateToPage={scrollToPage}
             onQueryChange={(q, page) => {
               setSearchQuery(q);
@@ -506,12 +523,13 @@ export const App: React.FC = () => {
             doc={doc}
             totalPages={numPages}
             currentPage={currentPage}
+            lang={lang}
             onSelectPage={scrollToPage}
             onClose={() => setIsSidebarOpen(false)}
           />
 
           {/* Shortcuts Modal */}
-          <ShortcutsModal isOpen={isShortcutsOpen} onClose={() => setIsShortcutsOpen(false)} />
+          <ShortcutsModal isOpen={isShortcutsOpen} onClose={() => setIsShortcutsOpen(false)} lang={lang} />
 
           {/* Main Reading Canvas Area */}
           <div

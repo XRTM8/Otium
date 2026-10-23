@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { X, BookOpen, Layers } from 'lucide-react';
 import type { TocItem } from '../types';
+import type { Language } from '../utils/translations';
+import { translations } from '../utils/translations';
 
 interface SidebarProps {
   isOpen: boolean;
   doc: PDFDocumentProxy | null;
   totalPages: number;
   currentPage: number;
+  lang?: Language;
   onSelectPage: (page: number) => void;
   onClose: () => void;
 }
@@ -17,11 +20,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   doc,
   totalPages,
   currentPage,
+  lang = 'ar',
   onSelectPage,
   onClose
 }) => {
   const [tab, setTab] = useState<'pages' | 'toc'>('pages');
   const [toc, setToc] = useState<TocItem[]>([]);
+  const t = translations[lang];
 
   useEffect(() => {
     if (!doc) return;
@@ -80,7 +85,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>الصفحات ({totalPages})</span>
+              <span>{t.pagesTab} ({totalPages})</span>
             </button>
             <button
               onClick={() => setTab('toc')}
@@ -90,7 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }`}
             >
               <BookOpen className="w-3.5 h-3.5" />
-              <span>الفهرس {toc.length > 0 && `(${toc.length})`}</span>
+              <span>{t.outlineTab} {toc.length > 0 && `(${toc.length})`}</span>
             </button>
           </div>
 

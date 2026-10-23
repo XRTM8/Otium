@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { Search, ChevronDown, ChevronUp, X, Loader2 } from 'lucide-react';
+import type { Language } from '../utils/translations';
+import { translations } from '../utils/translations';
 
 interface SearchResult {
   pageNumber: number;
@@ -9,6 +11,7 @@ interface SearchResult {
 interface SearchBarProps {
   isOpen: boolean;
   doc: PDFDocumentProxy | null;
+  lang?: Language;
   onNavigateToPage: (pageNumber: number) => void;
   onQueryChange: (query: string, activePage: number | null) => void;
   onClose: () => void;
@@ -17,6 +20,7 @@ interface SearchBarProps {
 export const SearchBar: React.FC<SearchBarProps> = ({
   isOpen,
   doc,
+  lang = 'ar',
   onNavigateToPage,
   onQueryChange,
   onClose
@@ -26,6 +30,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const t = translations[lang];
 
   useEffect(() => {
     if (isOpen) {
@@ -101,7 +106,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed top-16 inset-x-4 sm:inset-x-auto sm:right-6 z-40 flex justify-center animate-in fade-in slide-in-from-top-2 duration-150">
+    <div
+      dir={lang === 'ar' ? 'rtl' : 'ltr'}
+      className="fixed top-16 inset-x-4 sm:inset-x-auto sm:right-6 z-40 flex justify-center animate-in fade-in slide-in-from-top-2 duration-150"
+    >
       <div className="flex items-center gap-1.5 p-1.5 pl-3 w-full max-w-sm sm:w-auto rounded-2xl bg-neutral-900/95 border border-white/10 shadow-2xl backdrop-blur-2xl text-neutral-200 text-xs">
         <Search className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
         <input
@@ -117,7 +125,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               onClose();
             }
           }}
-          placeholder="بحث في الوثيقة..."
+          placeholder={t.searchPlaceholder}
           className="flex-1 sm:w-44 bg-transparent text-white placeholder:text-neutral-500 focus:outline-none text-xs"
         />
 
