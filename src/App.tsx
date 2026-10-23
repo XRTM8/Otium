@@ -501,6 +501,11 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [numPages, currentPage, viewMode, theme, scrollToPage, goToNextPage, goToPrevPage]);
 
+  const handleOpenFileRef = useRef(handleOpenFile);
+  useEffect(() => {
+    handleOpenFileRef.current = handleOpenFile;
+  });
+
   useEffect(() => {
     const handleDragOver = (e: DragEvent) => e.preventDefault();
     const handleDrop = async (e: DragEvent) => {
@@ -508,7 +513,7 @@ export const App: React.FC = () => {
       if (e.dataTransfer?.files && e.dataTransfer.files[0]) {
         const file = e.dataTransfer.files[0];
         if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-          handleOpenFile(file);
+          handleOpenFileRef.current(file);
         }
       }
     };

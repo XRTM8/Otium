@@ -1,6 +1,6 @@
 import type { FontFamilyId } from '../types';
 
-export interface FontDefinition {
+interface FontDefinition {
   id: FontFamilyId;
   name: string;
   subname: string;

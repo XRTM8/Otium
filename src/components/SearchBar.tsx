@@ -41,7 +41,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       setCurrentIndex(0);
       onQueryChange('', null);
     }
-  }, [isOpen]);
+  }, [isOpen, onQueryChange]);
 
   const handleSearch = async (searchTerm: string) => {
     setQuery(searchTerm);

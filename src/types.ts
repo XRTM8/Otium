@@ -1,38 +1,13 @@
 export type ThemeMode = 'paper' | 'midnight' | 'eink' | 'amber' | 'pure' | 'amoled' | 'parchment';
 
-export type PaperStyle = 'smooth' | 'book' | 'parchment' | 'linen' | 'kraft' | 'moleskine';
-
 export type FontFamilyId = 'tajawal' | 'cairo' | 'amiri' | 'almarai' | 'ibm' | 'lora' | 'jakarta' | 'system';
 
 export type ViewMode = 'continuous' | 'single';
-
-export interface ReaderSettings {
-  fontFamily: FontFamilyId;
-  uiScale: 'compact' | 'standard' | 'relaxed';
-  defaultViewMode: ViewMode;
-  showToastFeedback: boolean;
-}
-
-export interface DocumentMetadata {
-  title: string;
-  author?: string;
-  numPages: number;
-  fileSize?: string;
-  fingerprint: string;
-}
 
 export interface TocItem {
   title: string;
   pageNumber: number;
   items?: TocItem[];
-}
-
-export interface RecentDoc {
-  id: string;
-  name: string;
-  lastOpened: number;
-  lastPage: number;
-  totalPages: number;
 }
 
 export interface AnnotationRect {
@@ -58,5 +33,3 @@ export interface BookmarkItem {
   title?: string;
   createdAt: number;
 }
-
-

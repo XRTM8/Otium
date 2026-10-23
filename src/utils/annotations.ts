@@ -1,6 +1,6 @@
 import type { TextAnnotation } from '../types';
 
-export interface ColorOption {
+interface ColorOption {
   id: string;
   label: string;
   hex: string;
