@@ -377,14 +377,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         {/* Brand Header with Theme-morphing Logo and Gradient Name */}
         <div className="flex flex-col items-center space-y-3">
           <div className="relative group cursor-default">
-            <OtiumLogo
-              size={84}
-              variant="3d"
-              theme={currentTheme}
-              withAura
-              withGlow
-              className="hover:scale-105 transition-transform duration-300"
-            />
+            <div className={`absolute -inset-1 rounded-3xl ${style.logoGlow} blur-xl opacity-75 group-hover:opacity-100 transition duration-500`} />
+            <div className={`relative p-4 rounded-3xl bg-neutral-900/90 border ${style.logoBorder} shadow-2xl backdrop-blur-2xl group-hover:scale-105 transition-transform duration-300`}>
+              <OtiumLogo theme={currentTheme} size={48} />
+            </div>
           </div>
 
           <h1 className={`text-3xl sm:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r ${style.nameGradient} font-sans transition-all duration-500`}>
@@ -471,7 +467,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 >
                   <div className="flex items-center gap-3 min-w-0 pr-1">
                     <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${style.fileIconBox}`}>
-                      <OtiumLogo theme={currentTheme} size={22} variant="transparent" />
+                      <OtiumLogo theme={currentTheme} size={22} />
                     </div>
                     <div className="flex flex-col min-w-0 gap-1 text-right">
                       <span className={`truncate font-medium text-xs sm:text-sm text-neutral-200 ${style.fileHoverText} transition-colors`}>
