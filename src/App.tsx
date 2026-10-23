@@ -52,9 +52,7 @@ const PageSlot: React.FC<PageSlotProps> = ({
   const [shouldRender, setShouldRender] = useState(isNear);
 
   useEffect(() => {
-    if (isNear) {
-      setShouldRender(true);
-    }
+    setShouldRender(isNear);
   }, [isNear]);
 
   useEffect(() => {
@@ -65,11 +63,10 @@ const PageSlot: React.FC<PageSlotProps> = ({
       (entries) => {
         if (entries[0].isIntersecting) {
           onPageVisible(pageNum);
-          setShouldRender(true);
         }
       },
       {
-        rootMargin: '300px 0px 300px 0px',
+        rootMargin: '400px 0px 400px 0px',
         threshold: 0.01
       }
     );
@@ -87,10 +84,13 @@ const PageSlot: React.FC<PageSlotProps> = ({
       id={`pdf-page-${pageNum}`}
       dir="ltr"
       style={{
-        minWidth: `${standardWidth}px`,
-        minHeight: `${standardHeight}px`
+        width: `${standardWidth}px`,
+        height: `${standardHeight}px`,
+        contentVisibility: 'auto',
+        containIntrinsicSize: `${standardWidth}px ${standardHeight}px`,
+        contain: 'layout paint'
       }}
-      className="my-5 mx-auto flex items-center justify-center will-change-transform"
+      className="my-5 mx-auto flex items-center justify-center transform-gpu"
     >
       {shouldRender ? (
         <PdfPage

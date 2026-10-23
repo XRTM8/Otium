@@ -162,31 +162,39 @@ export const PdfPage: React.FC<PdfPageProps> = ({
         currentRenderTaskRef.current = renderTask;
         await renderTask.promise;
 
-        // Render Selectable Text Layer with precise scale factors
-        if (isCurrentEffect && textLayerRef.current) {
-          try {
-            const container = textLayerRef.current;
-            container.innerHTML = '';
-            container.style.setProperty('--total-scale-factor', `${scale}`);
-            container.style.setProperty('--scale-round-x', '1px');
-            container.style.setProperty('--scale-round-y', '1px');
-
-            const textContent = await page.getTextContent();
-            const textLayer = new TextLayer({
-              textContentSource: textContent,
-              container: container,
-              viewport: cssViewport
-            });
-            await textLayer.render();
-          } catch (textErr) {
-            console.warn('TextLayer notice:', textErr);
-          }
-        }
-
         if (isCurrentEffect) {
           setHasRenderedOnce(true);
           lastRenderedScaleRef.current = scale;
           currentRenderTaskRef.current = null;
+        }
+
+        // Render Selectable Text Layer during browser idle window to avoid blocking 120Hz frame budget
+        if (isCurrentEffect && textLayerRef.current) {
+          const scheduleIdle = typeof window !== 'undefined' && 'requestIdleCallback' in window
+            ? (cb: () => void) => (window as any).requestIdleCallback(cb, { timeout: 120 })
+            : (cb: () => void) => setTimeout(cb, 30);
+
+          scheduleIdle(async () => {
+            if (!isCurrentEffect || !textLayerRef.current) return;
+            try {
+              const container = textLayerRef.current;
+              container.innerHTML = '';
+              container.style.setProperty('--total-scale-factor', `${scale}`);
+              container.style.setProperty('--scale-round-x', '1px');
+              container.style.setProperty('--scale-round-y', '1px');
+
+              const textContent = await page.getTextContent();
+              if (!isCurrentEffect || !textLayerRef.current) return;
+              const textLayer = new TextLayer({
+                textContentSource: textContent,
+                container: container,
+                viewport: cssViewport
+              });
+              await textLayer.render();
+            } catch {
+              // Non-blocking
+            }
+          });
         }
       } catch (err: any) {
         if (err?.name !== 'RenderingCancelledException') {
