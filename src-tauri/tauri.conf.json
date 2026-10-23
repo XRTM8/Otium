@@ -15,15 +15,14 @@
         "label": "main",
         "title": "Otium — The Quiet Reader",
         "url": "index.html",
-        "backgroundColor": "#0d0d0f",
-        "devtools": true,
         "width": 1200,
         "height": 820,
         "minWidth": 420,
         "minHeight": 550,
         "center": true,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "visible": false
       }
     ],
     "security": {

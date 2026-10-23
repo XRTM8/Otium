@@ -14,6 +14,8 @@
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
+    /* Prevent browser native pinch-zoom from conflicting with our custom pinch handler */
+    touch-action: pan-x pan-y;
     font-family: var(--app-font-family, 'Tajawal', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
   }
 
@@ -269,6 +271,33 @@
 .theme-amber .paper-overlay {
   mix-blend-mode: overlay;
   opacity: 0.35;
+}
+
+/* =====================================================
+   Dual-Page Book Flip Animations
+   Forward  = قلب للأمام  (3D subtle page curl from right)
+   Backward = قلب للخلف  (3D subtle page curl from left)
+   ===================================================== */
+@keyframes dualPageFlipForward {
+  0% {
+    opacity: 0.2;
+    transform: perspective(1400px) rotateY(-6deg) translateX(36px) scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(1400px) rotateY(0deg) translateX(0) scale(1);
+  }
+}
+
+@keyframes dualPageFlipBackward {
+  0% {
+    opacity: 0.2;
+    transform: perspective(1400px) rotateY(6deg) translateX(-36px) scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(1400px) rotateY(0deg) translateX(0) scale(1);
+  }
 }
 
 

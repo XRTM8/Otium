@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useTransition } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { pdfjsLib } from './utils/pdfWorker';
@@ -128,6 +128,12 @@ export const App: React.FC = () => {
   const [numPages, setNumPages] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [zoom, setZoom] = useState<number>(1.15);
+  const [, startZoomTransition] = useTransition();
+
+  // Dual-page flip animation
+  const [dualFlipKey, setDualFlipKey] = useState<number>(0);
+  const [dualFlipDir, setDualFlipDir] = useState<'forward' | 'backward'>('forward');
+
   const [theme, setTheme] = useState<ThemeMode>(() => {
     return (
       (localStorage.getItem('otium_theme') as ThemeMode) ||
@@ -234,6 +240,7 @@ export const App: React.FC = () => {
   const touchStartY = useRef<number | null>(null);
   const pinchStartDistRef = useRef<number | null>(null);
   const pinchStartZoomRef = useRef<number>(1);
+  const isPinchingRef = useRef<boolean>(false);
 
   // Native Android and Keyboard Back Step Handler
   useEffect(() => {
@@ -324,6 +331,10 @@ export const App: React.FC = () => {
   }, []);
 
   const scrollToPage = useCallback((pageNumber: number) => {
+    if (pageNumber !== currentPage) {
+      setDualFlipDir(pageNumber > currentPage ? 'forward' : 'backward');
+      setDualFlipKey((k) => k + 1);
+    }
     setCurrentPage(pageNumber);
     if (docTitle) {
       localStorage.setItem(`otium_page_${docTitle}`, pageNumber.toString());
@@ -336,7 +347,9 @@ export const App: React.FC = () => {
         targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
-  }, [docTitle, viewMode]);
+  }, [docTitle, viewMode, currentPage]);
+
+  const navigateToPage = scrollToPage;
 
   const goToNextPage = useCallback(() => {
     if (viewMode === 'dual') {
@@ -387,17 +400,25 @@ export const App: React.FC = () => {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
+      // Pinch gesture starting — capture both fingers
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
-      pinchStartDistRef.current = dist;
-      pinchStartZoomRef.current = zoom;
+      if (dist > 10) {
+        pinchStartDistRef.current = dist;
+        pinchStartZoomRef.current = zoom;
+        isPinchingRef.current = true;
+      }
+      // Cancel any swipe in progress
+      touchStartX.current = null;
+      touchStartY.current = null;
       setIsDraggingTouch(false);
+      setTouchDeltaX(0);
       return;
     }
 
-    if (e.touches.length === 1 && (viewMode === 'single' || viewMode === 'dual')) {
+    if (e.touches.length === 1 && !isPinchingRef.current && (viewMode === 'single' || viewMode === 'dual')) {
       touchStartX.current = e.touches[0].clientX;
       touchStartY.current = e.touches[0].clientY;
       setIsDraggingTouch(true);
@@ -405,6 +426,7 @@ export const App: React.FC = () => {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    // Active pinch zoom
     if (e.touches.length === 2 && pinchStartDistRef.current !== null && pinchStartDistRef.current > 0) {
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
@@ -412,11 +434,19 @@ export const App: React.FC = () => {
       );
       const factor = dist / pinchStartDistRef.current;
       const targetZoom = Math.min(3.5, Math.max(0.5, Number((pinchStartZoomRef.current * factor).toFixed(2))));
-      setZoom(targetZoom);
+      startZoomTransition(() => { setZoom(targetZoom); });
       return;
     }
 
-    if (touchStartX.current !== null && isDraggingTouch && (viewMode === 'single' || viewMode === 'dual')) {
+    // If a second finger appeared mid-swipe, abort swipe
+    if (e.touches.length >= 2) {
+      touchStartX.current = null;
+      setIsDraggingTouch(false);
+      setTouchDeltaX(0);
+      return;
+    }
+
+    if (touchStartX.current !== null && isDraggingTouch && !isPinchingRef.current && (viewMode === 'single' || viewMode === 'dual')) {
       const dx = e.touches[0].clientX - touchStartX.current;
       const dy = e.touches[0].clientY - (touchStartY.current || 0);
       if (Math.abs(dx) > Math.abs(dy)) {
@@ -425,8 +455,21 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleTouchEnd = () => {
-    pinchStartDistRef.current = null;
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    // If all fingers lifted, reset pinch state
+    if (e.touches.length === 0) {
+      isPinchingRef.current = false;
+      pinchStartDistRef.current = null;
+    }
+    // If still pinching (one finger still down), just cancel swipe
+    if (isPinchingRef.current || e.touches.length > 0) {
+      touchStartX.current = null;
+      touchStartY.current = null;
+      setIsDraggingTouch(false);
+      setTouchDeltaX(0);
+      return;
+    }
+
     setIsDraggingTouch(false);
     if (touchStartX.current === null) return;
     const deltaX = touchDeltaX;
@@ -743,7 +786,7 @@ export const App: React.FC = () => {
             currentLang={lang}
             isFullscreen={isFullscreen}
             isBookmarked={bookmarks.some((b) => b.pageNumber === currentPage)}
-            onPageChange={scrollToPage}
+            onPageChange={navigateToPage}
             onZoomChange={setZoom}
             onThemeChange={handleThemeChange}
             onViewModeChange={handleViewModeChange}
@@ -793,7 +836,7 @@ export const App: React.FC = () => {
             lang={lang}
             bookmarks={bookmarks}
             annotations={annotations}
-            onSelectPage={scrollToPage}
+            onSelectPage={navigateToPage}
             onToggleBookmark={handleToggleBookmark}
             onDeleteAnnotation={handleDeleteAnnotation}
             onClose={() => setIsSidebarOpen(false)}
@@ -807,7 +850,8 @@ export const App: React.FC = () => {
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             style={{
-              paddingTop: 'max(4.5rem, calc(env(safe-area-inset-top, 0px) + 4.2rem))'
+              paddingTop: 'max(4.5rem, calc(env(safe-area-inset-top, 0px) + 4.2rem))',
+              touchAction: 'pan-x pan-y pinch-zoom'
             }}
             className="flex-1 w-full h-full overflow-y-auto overflow-x-auto pb-20 sm:pb-24 px-2 sm:px-4 relative"
           >
@@ -865,17 +909,22 @@ export const App: React.FC = () => {
                 ))}
               </div>
             ) : viewMode === 'dual' ? (
-              // Authentic Dual-Page Book Spread (Two Pages Side-by-Side)
-              <div className="min-h-full flex items-center justify-center py-2 sm:py-4">
+              // Authentic Dual-Page Book Spread with Flip Animation
+              <div className="min-h-full flex items-center justify-center py-2 sm:py-4 overflow-hidden">
                 <div
+                  key={dualFlipKey}
                   className="flex flex-row items-center justify-center gap-1 sm:gap-2 shadow-2xl"
                   style={{
                     transform: isDraggingTouch && touchDeltaX !== 0 ? `translateX(${touchDeltaX}px)` : undefined,
+                    animation: !isDraggingTouch && dualFlipKey > 0
+                      ? `dualPageFlip${dualFlipDir === 'forward' ? 'Forward' : 'Backward'} 280ms cubic-bezier(0.16, 1, 0.3, 1) both`
+                      : undefined,
                   }}
                 >
                   {/* Left Page (currentPage) */}
                   <div className="relative">
                     <PdfPage
+                      key={`dual-page-${currentPage}`}
                       doc={doc}
                       pageNumber={currentPage}
                       scale={zoom}
@@ -892,6 +941,7 @@ export const App: React.FC = () => {
                   {currentPage + 1 <= numPages ? (
                     <div className="relative border-l border-neutral-700/20">
                       <PdfPage
+                        key={`dual-page-${currentPage + 1}`}
                         doc={doc}
                         pageNumber={currentPage + 1}
                         scale={zoom}
@@ -925,6 +975,7 @@ export const App: React.FC = () => {
                 className="min-h-full flex items-center justify-center py-2 sm:py-4"
               >
                 <PdfPage
+                  key={`single-page-${currentPage}`}
                   doc={doc}
                   pageNumber={currentPage}
                   scale={zoom}

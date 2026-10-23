@@ -14,6 +14,13 @@ val tauriProperties = Properties().apply {
     }
 }
 
+val keystorePropertiesFile = file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
+}
+
 android {
     compileSdk = 36
     namespace = "com.otium.reader"
@@ -25,6 +32,23 @@ android {
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
     }
+
+    signingConfigs {
+        create("release") {
+            val keyFilePath = keystoreProperties.getProperty("storeFile")
+            val keyFile = if (keyFilePath != null) file(keyFilePath) else null
+            if (keyFile != null && keyFile.exists()) {
+                storeFile = keyFile
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
+            }
+        }
+    }
+
     buildTypes {
         getByName("debug") {
             applicationIdSuffix = ".debug"
@@ -40,7 +64,8 @@ android {
             }
         }
         getByName("release") {
-            signingConfig = signingConfigs.getByName("debug")
+            val releaseConfig = signingConfigs.getByName("release")
+            signingConfig = if (releaseConfig.storeFile != null) releaseConfig else signingConfigs.getByName("debug")
             isMinifyEnabled = false
             
             proguardFiles(
@@ -82,4 +107,3 @@ dependencies {
 }
 
 apply(from = file("tauri.build.gradle.kts"))
-

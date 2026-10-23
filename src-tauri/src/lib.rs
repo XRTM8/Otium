@@ -38,11 +38,12 @@ pub fn run() {
   tauri::Builder::default()
     .invoke_handler(tauri::generate_handler![get_initial_pdf, read_pdf_bytes])
     .setup(|app| {
-      #[cfg(desktop)]
+      #[cfg(not(mobile))]
       {
         use tauri::Manager;
         if let Some(window) = app.get_webview_window("main") {
-          let _ = window;
+          // Show the window only after the webview is ready to avoid black screen on Windows
+          window.show().unwrap_or_default();
         }
       }
       Ok(())

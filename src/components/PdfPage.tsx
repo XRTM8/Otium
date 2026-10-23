@@ -37,6 +37,13 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   const [activeAnno, setActiveAnno] = useState<{ id: string; type: string; x: number; y: number } | null>(null);
   const currentRenderTaskRef = useRef<any>(null);
   const lastRenderedScaleRef = useRef<number>(0);
+  const lastRenderedPageRef = useRef<number | null>(null);
+
+  // Reset rendered state when page number changes so fresh canvas is drawn
+  useEffect(() => {
+    setHasRenderedOnce(false);
+    lastRenderedScaleRef.current = 0;
+  }, [pageNumber]);
 
   // Computed page dimensions
   const standardWidth = Math.round(600 * scale);
@@ -93,8 +100,12 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   useEffect(() => {
     if (!isVisible) return;
 
-    // Skip if already rendered at this exact scale
-    if (hasRenderedOnce && Math.abs(lastRenderedScaleRef.current - scale) < 0.01) {
+    // Skip if already rendered at this exact page and scale
+    if (
+      hasRenderedOnce &&
+      lastRenderedPageRef.current === pageNumber &&
+      Math.abs(lastRenderedScaleRef.current - scale) < 0.01
+    ) {
       return;
     }
 
@@ -168,6 +179,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
         if (isCurrentEffect) {
           setHasRenderedOnce(true);
           lastRenderedScaleRef.current = scale;
+          lastRenderedPageRef.current = pageNumber;
           currentRenderTaskRef.current = null;
         }
 

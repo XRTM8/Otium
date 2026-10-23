@@ -1,13 +1,15 @@
 <div align="center">
 
-  <img src="./app-icon.png" width="128" height="128" alt="Otium Logo" style="border-radius: 28px; box-shadow: 0 10px 30px rgba(16, 185, 129, 0.35);" />
+  <a href="https://github.com/XRTM8/Otium">
+    <img src="./app-icon.png" width="144" height="144" alt="Otium Official Logo" style="border-radius: 32px; box-shadow: 0 12px 40px rgba(16, 185, 129, 0.4);" />
+  </a>
 
   # Otium (أوتيوم)
-  ### The Quiet Reader • قارئ المستندات الهادئ
+  ### The Quiet Reader • قارئ المستندات والكتب الهادئ
 
   <p align="center">
     <b>A high-performance, distraction-free document reader crafted with Rust, Tauri v2, and React 19.</b><br>
-    <i>Designed for deep focus, tactile book reading, and ultra-smooth 120Hz+ displays.</i>
+    <i>Designed for deep focus, tactile book reading, and ultra-smooth 120Hz–240Hz displays.</i>
   </p>
 
   <p align="center">
@@ -20,14 +22,16 @@
     <img src="https://img.shields.io/badge/Rust-Tauri_v2-black?style=for-the-badge&logo=rust&logoColor=white" alt="Rust Tauri" />
     <img src="https://img.shields.io/badge/Display-120Hz--240Hz_Native-emerald?style=for-the-badge" alt="High Refresh Rate" />
     <img src="https://img.shields.io/badge/Privacy-100%25_Offline-000000?style=for-the-badge&logo=shield" alt="Local First" />
+    <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" />
   </p>
 
   <p align="center">
     <a href="#-downloads--التحميل-المباشر">📥 Downloads</a> •
+    <a href="#-brand-identity--logo-suite--الهوية-البصرية-وشعار-أوتيوم">🎨 Brand Suite</a> •
     <a href="#-features--الميزات-الرئيسية">✨ Features</a> •
     <a href="#-shortcuts--اختصارات-لوحة-المفاتيح">⌨️ Shortcuts</a> •
     <a href="#-building-from-source--البناء-من-المصدر">🛠️ Building</a> •
-    <a href="#-عربي">🇸🇦 دليل بالعربية</a>
+    <a href="#-دليل-الاستخدام-بالعربية">🇸🇦 دليل بالعربية</a>
   </p>
 
 </div>
@@ -43,6 +47,22 @@ Get the latest standalone release directly:
 | **Android** | [**`Otium.apk`**](https://github.com/XRTM8/Otium/releases/latest/download/Otium.apk) | ~48 MB | Universal APK supporting all ARM64, ARMv7, x86_64 devices |
 | **Windows** | [**`Otium-Windows.exe`**](https://github.com/XRTM8/Otium/releases/latest/download/Otium-Windows.exe) | ~11 MB | Standalone Portable executable (0 installation required) |
 | **Windows (Zip)** | [**`Otium-Windows-x64.zip`**](https://github.com/XRTM8/Otium/releases/latest/download/Otium-Windows-x64.zip) | ~5 MB | Ultra-compressed archive with the standalone binary |
+
+---
+
+## 🎨 Brand Identity & Logo Suite • الهوية البصرية وشعار أوتيوم
+
+The official Otium visual identity depicts **"The Floating Pages"** — three layered, translucent frosted glass document sheets hovering in 3D perspective with radiant emerald rim lighting on a pitch-black AMOLED canvas. It embodies tactile physical depth, distraction-free tranquility, and high-performance reading.
+
+All official master branding assets are provided in uncompressed, production-grade resolutions:
+
+| Asset | Resolution | Format | Description |
+| :--- | :---: | :---: | :--- |
+| [**`Otium_Logo_4K.png`**](./Otium_Logo_HighRes/Otium_Logo_4K_4096x4096.png) | 4096 × 4096 | PNG (Ultra HD) | Master 4K uncompressed render for press, high-DPI displays, and 4K wallpaper |
+| [**`Otium_Logo_2K.png`**](./Otium_Logo_HighRes/Otium_Logo_2K_2048x2048.png) | 2048 × 2048 | PNG (Retina) | Crisp 2K master for high-DPI store listings and presentations |
+| [**`Otium_Logo_1024.png`**](./Otium_Logo_HighRes/Otium_Logo_1024x1024.png) | 1024 × 1024 | PNG | Official store asset for Google Play, Apple App Store, and Microsoft Store |
+| [**`Otium_Logo_Transparent_4K.png`**](./Otium_Logo_HighRes/Otium_Logo_Transparent_4K.png) | 4096 × 4096 | PNG (Transparent) | Transparent background cutout for overlays, videos, and merchandise |
+| [**`Otium_Logo_Vector_Infinite.svg`**](./Otium_Logo_HighRes/Otium_Logo_Vector_Infinite.svg) | Infinite | SVG (100% Vector) | Scalable vector graphic for infinite scaling with 0 pixelation |
 
 ---
 
@@ -94,9 +114,9 @@ Tailor your reading atmosphere to reduce cognitive fatigue:
 
 ---
 
-## 🇸🇦 عربي (دليل الاستخدام)
+## 🇸🇦 دليل الاستخدام بالعربية
 
-**Otium (أوتيوم)** هو قارئ كتب ومستندات إلكتروني فائق السرعة، صُمم خصيصاً للقراءة المتأملة والمطالعة العميقة دون أي مشتتات.
+**Otium (أوتيوم)** هو قارئ كتب ومستندات إلكتروني فائق السرعة، صُمم خصيصاً للقراءة المتأملة والمطالعة العميقة دون أي مشتتات، مبني بالكامل بأحدث تقنيات Rust و Tauri v2 و React 19.
 
 ### 🌟 أبرز ما يميز التطبيق:
 1. **عرض صفحتين متجاورتين (Dual-Page Spread):** محاكاة واقعية ورائعة لفتح كتاب حقيقي وتقليب صفحتين في آن واحد دون أي تأخير أو حركات بطيئة.
@@ -107,7 +127,7 @@ Tailor your reading atmosphere to reduce cognitive fatigue:
    - تكبير متجهي ذكي (Pinch-to-zoom) يُكبّر صفحة الكتاب فقط مع الحفاظ على صغر وأناقة القوائم والأزرار.
    - تحديد ونسخ وتظليل النصوص بالضغط المطول.
    - فتح أي ملف PDF تلقائياً بمجرد النقر عليه من مدير الملفات أو واتساب.
-4. **شعار وأيقونة AMOLED الزمردية الفاخرة:** هوية بصرية مريحة للعين وخلفية سوداء مطلقة تحافظ على بطارية هواتف OLED.
+4. **شعار وأيقونة AMOLED الزمردية الفاخرة (The Floating Pages):** هوية بصرية مريحة للعين بخلفية سوداء مطلقة تحافظ على بطارية هواتف OLED وتمنح التطبيق حضوراً بصرياً فريداً.
 5. **خصوصية مطلقة (100% Local-First):** لا يحتاج إلى إنترنت، لا يحتوي على أي تتبّع، ويحفظ آخر صفحة وصلت إليها في كل كتاب تلقائياً.
 
 ---

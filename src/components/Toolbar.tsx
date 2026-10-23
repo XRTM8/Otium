@@ -370,7 +370,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
       {/* MOBILE POPUP TOOLBAR DRAWER */}
       {showMoreMobile && (
-        <div className="pointer-events-auto md:hidden mt-2 p-3 rounded-2xl bg-neutral-900/98 border border-white/10 shadow-2xl backdrop-blur-2xl z-40 text-neutral-200 flex flex-col gap-3 w-72 max-w-[90vw] animate-in fade-in zoom-in-95 duration-150">
+        <div className="pointer-events-auto md:hidden mt-2 p-3 rounded-2xl bg-neutral-900/98 border border-white/10 shadow-2xl backdrop-blur-2xl z-50 text-neutral-200 flex flex-col gap-3 w-72 max-w-[90vw] animate-in fade-in zoom-in-95 duration-150">
           
           {/* Mobile Zoom Row */}
           <div className="flex items-center justify-between px-1">

@@ -12,18 +12,12 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
-// PWA Offline Service Worker Registration (Web only, never in native desktop app)
-if ('serviceWorker' in navigator) {
-  if ('__TAURI_INTERNALS__' in window) {
-    navigator.serviceWorker.getRegistrations().then((registrations) => {
-      for (const reg of registrations) {
-        reg.unregister().catch(() => {});
-      }
-    }).catch(() => {});
-  } else if (import.meta.env.PROD) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
-    });
-  }
+// Ensure any legacy service workers from previous PWA tests are purged completely
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    for (const reg of registrations) {
+      reg.unregister().catch(() => {});
+    }
+  }).catch(() => {});
 }
 

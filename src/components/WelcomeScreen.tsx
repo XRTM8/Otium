@@ -378,8 +378,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         <div className="flex flex-col items-center space-y-2.5">
           <div className="relative group">
             <div className={`absolute -inset-1.5 rounded-2xl ${style.logoGlow} blur-md opacity-75 group-hover:opacity-100 transition duration-500`} />
-            <div className={`relative p-3.5 rounded-2xl bg-neutral-900/90 border ${style.logoBorder} shadow-2xl backdrop-blur-2xl transition-all duration-500`}>
-              <OtiumLogo size={42} theme={currentTheme} />
+            <div className={`relative p-2 rounded-2xl bg-neutral-900/90 border ${style.logoBorder} shadow-2xl backdrop-blur-2xl transition-all duration-500 overflow-hidden`}>
+              <OtiumLogo size={52} variant="3d" theme={currentTheme} />
             </div>
           </div>
 
