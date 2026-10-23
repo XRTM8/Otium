@@ -1,12 +1,17 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { ArrowUpRight, Clock, FileText, Upload } from 'lucide-react';
-import type { RecentDoc } from '../types';
+import { ArrowUpRight, Clock, FileText, Upload, Trash2, X } from 'lucide-react';
+import type { RecentDocItem } from '../utils/storage';
+import {
+  getRecentDocumentsList,
+  removeDocumentFromStorage,
+  clearAllStoredDocuments
+} from '../utils/storage';
 import { TirsLogo } from './TirsLogo';
 
 interface WelcomeScreenProps {
   onOpenFile: (file: File) => void;
   onOpenSample: () => void;
-  onOpenRecent: (doc: RecentDoc) => void;
+  onOpenRecent: (doc: RecentDocItem) => void;
 }
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
@@ -16,17 +21,15 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [recents, setRecents] = useState<RecentDoc[]>([]);
+  const [recents, setRecents] = useState<RecentDocItem[]>([]);
+
+  const loadRecents = async () => {
+    const docs = await getRecentDocumentsList();
+    setRecents(docs);
+  };
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('vibe_recent_docs');
-      if (stored) {
-        setRecents(JSON.parse(stored));
-      }
-    } catch {
-      // ignore
-    }
+    loadRecents();
   }, []);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -53,6 +56,14 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
     if (e.target.files && e.target.files[0]) {
       onOpenFile(e.target.files[0]);
     }
+  };
+
+  const formatSize = (bytes: number) => {
+    if (!bytes) return '';
+    if (bytes < 1024 * 1024) {
+      return `${Math.round(bytes / 1024)} KB`;
+    }
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   return (
@@ -127,38 +138,61 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           </button>
         </div>
 
-        {/* Recent Files */}
+        {/* Real Stored Recent Files */}
         {recents.length > 0 && (
           <div className="w-full text-right pt-3 border-t border-white/10 space-y-2">
             <div className="flex items-center justify-between text-[11px] text-neutral-500 font-mono px-1">
               <span className="flex items-center gap-1.5">
                 <Clock className="w-3 h-3" />
-                <span>المستندات الأخيرة</span>
+                <span>المستندات المحفوظة محلياً (فتح فوري)</span>
               </span>
               <button
-                onClick={() => {
-                  localStorage.removeItem('vibe_recent_docs');
+                onClick={async () => {
+                  await clearAllStoredDocuments();
                   setRecents([]);
                 }}
-                className="hover:text-neutral-400 transition-colors"
+                className="hover:text-rose-400 transition-colors flex items-center gap-1"
+                title="مسح كل الملفات المحفوظة"
               >
-                مسح السجل
+                <Trash2 className="w-3 h-3" />
+                <span>مسح الكل</span>
               </button>
             </div>
 
-            <div className="space-y-1">
-              {recents.slice(0, 3).map((r) => (
+            <div className="space-y-1.5">
+              {recents.map((r) => (
                 <div
                   key={r.id}
                   onClick={() => onOpenRecent(r)}
-                  className="flex items-center justify-between p-2.5 rounded-xl bg-neutral-900/40 hover:bg-neutral-900 cursor-pointer border border-white/5 transition-colors text-xs group"
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-neutral-900/50 hover:bg-neutral-900 cursor-pointer border border-white/5 transition-all text-xs group"
                 >
-                  <span className="truncate max-w-[280px] font-medium text-neutral-300 group-hover:text-white transition-colors">
-                    {r.name}
-                  </span>
-                  <span className="font-mono text-[10px] text-neutral-500 group-hover:text-amber-400 transition-colors">
-                    صفحة {r.lastPage} / {r.totalPages}
-                  </span>
+                  <div className="flex items-center gap-2 max-w-[280px]">
+                    <span className="truncate font-medium text-neutral-300 group-hover:text-white transition-colors">
+                      {r.name}
+                    </span>
+                    {r.sizeBytes > 0 && (
+                      <span className="text-[10px] text-neutral-600 font-mono shrink-0">
+                        {formatSize(r.sizeBytes)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-[11px] text-neutral-500 group-hover:text-amber-400 transition-colors">
+                      صفحة {r.lastPage} / {r.totalPages}
+                    </span>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        await removeDocumentFromStorage(r.id);
+                        loadRecents();
+                      }}
+                      title="إزالة هذا الملف من الذاكرة"
+                      className="p-1 rounded opacity-0 group-hover:opacity-60 hover:opacity-100 hover:bg-white/10 text-neutral-400 hover:text-rose-400 transition-all"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { pdfjsLib } from './utils/pdfWorker';
 import { ambientAudio } from './utils/ambientAudio';
-import type { ThemeMode, ViewMode, RecentDoc } from './types';
+import type { ThemeMode, ViewMode } from './types';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { Toolbar } from './components/Toolbar';
 import { PdfPage } from './components/PdfPage';
@@ -11,6 +11,11 @@ import { Sidebar } from './components/Sidebar';
 import { ShortcutsModal } from './components/ShortcutsModal';
 import { Toast, type ToastMessage } from './components/Toast';
 import { SearchBar } from './components/SearchBar';
+import {
+  saveDocumentToStorage,
+  getDocumentFromStorage,
+  updateDocumentPage
+} from './utils/storage';
 
 interface PageSlotProps {
   pageNum: number;
@@ -169,7 +174,8 @@ export const App: React.FC = () => {
       const initialPage = savedPage > 0 && savedPage <= loadedDoc.numPages ? savedPage : 1;
       setCurrentPage(initialPage);
 
-      updateRecents(title, initialPage, loadedDoc.numPages);
+      // Save to IndexedDB for 1-click reopen anytime
+      saveDocumentToStorage(title, data, loadedDoc.numPages, initialPage);
 
       if (initialPage > 1) {
         setTimeout(() => {
@@ -182,24 +188,6 @@ export const App: React.FC = () => {
       showToast('تعذر فتح ملف الـ PDF. يرجى التأكد من سلامة الملف.', 'error');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const updateRecents = (name: string, page: number, total: number) => {
-    try {
-      const stored = localStorage.getItem('vibe_recent_docs');
-      let recents: RecentDoc[] = stored ? JSON.parse(stored) : [];
-      recents = recents.filter((r) => r.name !== name);
-      recents.unshift({
-        id: name + '_' + Date.now(),
-        name,
-        lastOpened: Date.now(),
-        lastPage: page,
-        totalPages: total
-      });
-      localStorage.setItem('vibe_recent_docs', JSON.stringify(recents.slice(0, 5)));
-    } catch {
-      // ignore
     }
   };
 
@@ -225,7 +213,7 @@ export const App: React.FC = () => {
     setCurrentPage(pageNumber);
     if (docTitle) {
       localStorage.setItem(`tirs_page_${docTitle}`, pageNumber.toString());
-      updateRecents(docTitle, pageNumber, numPages);
+      updateDocumentPage(docTitle, pageNumber);
     }
 
     if (viewMode === 'continuous') {
@@ -367,11 +355,18 @@ export const App: React.FC = () => {
         <WelcomeScreen
           onOpenFile={handleOpenFile}
           onOpenSample={handleOpenSample}
-          onOpenRecent={(recent) => {
+          onOpenRecent={async (recent) => {
             if (recent.name === 'The Art of Vibe Reading.pdf') {
               handleOpenSample();
+              return;
+            }
+            setIsLoading(true);
+            const data = await getDocumentFromStorage(recent.name);
+            if (data) {
+              loadPdfData(data, recent.name);
             } else {
-              showToast('يرجى سحب وإفلت الملف من مكانه لإعادة فتحه.', 'info');
+              setIsLoading(false);
+              showToast('تعذر العثور على الوثيقة في الذاكرة المحلية.', 'error');
             }
           }}
         />
