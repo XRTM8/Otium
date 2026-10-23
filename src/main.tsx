@@ -12,10 +12,18 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
-// PWA Offline Service Worker Registration
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
-  });
+// PWA Offline Service Worker Registration (Web only, never in native desktop app)
+if ('serviceWorker' in navigator) {
+  if ('__TAURI_INTERNALS__' in window) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const reg of registrations) {
+        reg.unregister().catch(() => {});
+      }
+    }).catch(() => {});
+  } else if (import.meta.env.PROD) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+  }
 }
 
