@@ -1,60 +1,144 @@
-# Otium — The Quiet Reader
-> **A distraction-free, high-fidelity document reading environment for deep focus and contemplative study.**
+<div align="center">
 
-*Otium* (Latin for *fruitful leisure, quiet reading, and contemplation*) is a modern, local-first PDF reading application crafted for deep focus, typographic clarity, and cognitive calm.
+  <img src="./app-icon.png" width="128" height="128" alt="Otium Logo" style="border-radius: 28px; box-shadow: 0 10px 30px rgba(16, 185, 129, 0.35);" />
+
+  # Otium (أوتيوم)
+  ### The Quiet Reader • قارئ المستندات الهادئ
+
+  <p align="center">
+    <b>A high-performance, distraction-free document reader crafted with Rust, Tauri v2, and React 19.</b><br>
+    <i>Designed for deep focus, tactile book reading, and ultra-smooth 120Hz+ displays.</i>
+  </p>
+
+  <p align="center">
+    <a href="https://github.com/XRTM8/Otium/releases/latest">
+      <img src="https://img.shields.io/badge/Release-v1.0-10B981?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release" />
+    </a>
+    <a href="https://github.com/XRTM8/Otium/releases/latest">
+      <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Android-047857?style=for-the-badge&logo=windows&logoColor=white" alt="Platform" />
+    </a>
+    <img src="https://img.shields.io/badge/Rust-Tauri_v2-black?style=for-the-badge&logo=rust&logoColor=white" alt="Rust Tauri" />
+    <img src="https://img.shields.io/badge/Display-120Hz--240Hz_Native-emerald?style=for-the-badge" alt="High Refresh Rate" />
+    <img src="https://img.shields.io/badge/Privacy-100%25_Offline-000000?style=for-the-badge&logo=shield" alt="Local First" />
+  </p>
+
+  <p align="center">
+    <a href="#-downloads--التحميل-المباشر">📥 Downloads</a> •
+    <a href="#-features--الميزات-الرئيسية">✨ Features</a> •
+    <a href="#-shortcuts--اختصارات-لوحة-المفاتيح">⌨️ Shortcuts</a> •
+    <a href="#-building-from-source--البناء-من-المصدر">🛠️ Building</a> •
+    <a href="#-عربي">🇸🇦 دليل بالعربية</a>
+  </p>
+
+</div>
 
 ---
 
-## ✨ Key Capabilities
+## 📥 Downloads • التحميل المباشر
 
-* **High-DPI Retina Rendering & Native Selection:** Crisp subpixel rendering paired with an aligned native TextLayer for laser-accurate selection, highlighting, and copying (`Ctrl + C`).
-* **Visual In-Document Search:** Live phrase highlighting (`Ctrl + F`) with glowing markers and active pulse navigation across all pages.
-* **1-Click Offline Document Persistence:** Powered by IndexedDB — reopen your recent books instantly at your exact reading position with zero re-picking.
-* **Calibrated Reading Environments:** 5 curated palettes tailored to reduce eye strain:
-  * 📜 **Paper:** Warm, natural cream paper aesthetic.
-  * 🌌 **Midnight:** Deep OLED dark mode with muted cool accents.
-  * 🖨️ **E-Ink:** High-contrast paperwhite monochrome.
-  * 🍯 **Amber:** Ultra-low blue light for nighttime reading.
-  * ⚪ **Pure:** Studio crisp white for drafting.
-* **Focus Guidance Ruler:** 144Hz RAF cursor tracking line-level focus mask (`R`) for intense deep work.
-* **Ambient Sound Synth:** 0 KB synthetic brown noise and rain generator powered entirely by Web Audio API (`A`).
-* **Windowed Concurrency Pipeline:** Virtualized page loading ensuring smooth 60fps scrolling and a featherlight memory footprint.
-* **100% Local-First & Private:** No telemetry, no external tracking, no cloud dependencies. Works completely offline.
+Get the latest standalone release directly:
+
+| Platform | File | Size | Description |
+| :--- | :--- | :---: | :--- |
+| **Android** | [**`Otium.apk`**](https://github.com/XRTM8/Otium/releases/latest/download/Otium.apk) | ~48 MB | Universal APK supporting all ARM64, ARMv7, x86_64 devices |
+| **Windows** | [**`Otium-Windows.exe`**](https://github.com/XRTM8/Otium/releases/latest/download/Otium-Windows.exe) | ~11 MB | Standalone Portable executable (0 installation required) |
+| **Windows (Zip)** | [**`Otium-Windows-x64.zip`**](https://github.com/XRTM8/Otium/releases/latest/download/Otium-Windows-x64.zip) | ~5 MB | Ultra-compressed archive with the standalone binary |
 
 ---
 
-## ⌨️ Keyboard Shortcuts
+## ✨ Features • الميزات الرئيسية
+
+### 📖 Dual-Page Book Spread (عرض الكتاب الحقيقي)
+Experience authentic reading with a **two-page side-by-side spread** (`N` & `N+1`) featuring a subtle center spine divider and instant zero-lag page flips. Easily switch between Continuous Scroll, Dual Book, or Single Page modes.
+
+### ⚡ 120Hz – 240Hz Hardware Sync & Razor-Sharp DPI
+* **Dynamic Refresh Calibration:** Automatically detects your display's refresh rate (60Hz, 75Hz, 90Hz, 120Hz, 144Hz, 165Hz, 240Hz) for fluid scrolling.
+* **True Native Resolution:** Completely unthrottled `devicePixelRatio` canvas pipeline with high-precision subpixel antialiasing. No blurry text, ever.
+
+### 📱 Tailored Mobile & Desktop Experience
+* **Smart Back Navigation:** Hardware Android back button steps back gracefully (closes modals/search/doc first) instead of abruptly quitting.
+* **Safe-Area Notch Inset:** Top navigation bar and controls gracefully clear the phone status bar and camera notch.
+* **Vector Pinch-to-Zoom:** Zooming pinches the document vector canvas directly while toolbars, buttons, and menus stay fixed, sharp, and proportional.
+* **1-Click System Associations:** Associate `.pdf` files on Windows and Android to launch directly into Otium.
+* **Native Text Selection:** Long-press or click-drag to select, copy, highlight, or underline text.
+
+### 🎨 Curated Reading Environments
+Tailor your reading atmosphere to reduce cognitive fatigue:
+* 🟢 **AMOLED Pitch Black (`#000000`):** Pure black with emerald accents for battery preservation on OLED screens.
+* 📜 **Natural Paper:** Warm, organic cream tone replicating fine physical paperbacks.
+* 🖨️ **E-Ink Paperwhite:** High-contrast monochrome simulation for outdoor readability.
+* 🏺 **Antique Parchment:** Historic manuscript aesthetic with delicate organic grain.
+* 🌌 **Midnight:** Deep cosmic navy with soothing cyan highlights.
+* 🍯 **Warm Amber:** Blue-light filtered palette for nighttime reading.
+
+### 🔒 100% Offline & Local-First
+* Zero telemetry, zero tracking, zero cloud dependencies.
+* All reading progress, bookmarks, and annotations are stored locally via IndexedDB.
+
+---
+
+## ⌨️ Shortcuts • اختصارات لوحة المفاتيح
 
 | Shortcut | Action |
 | :---: | :--- |
-| `J` / `↓` | Next page / Scroll down |
-| `K` / `↑` | Previous page / Scroll up |
-| `Ctrl + F` | In-document search with live highlight |
-| `+` / `-` | Zoom in / Zoom out |
-| `0` | Reset zoom to 100% |
-| `T` | Cycle reading environments |
-| `R` | Toggle Focus Ruler |
-| `F` | Fullscreen presentation mode |
-| `S` | Toggle thumbnail sidebar & index |
-| `Esc` | Dismiss modals / Exit search |
+| `J` / `↓` / `Space` | Next Page / Scroll Down (+2 pages in Dual Mode) |
+| `K` / `↑` | Previous Page / Scroll Up (-2 pages in Dual Mode) |
+| `Ctrl + F` | Live Search with animated pulse highlights |
+| `Ctrl + Mouse Wheel` | Smooth Vector Zoom In / Zoom Out |
+| `+` / `-` | Zoom In / Out |
+| `T` | Cycle through 7 reading themes |
+| `M` | Cycle View Modes (Continuous ➔ Dual Spread ➔ Single) |
+| `F` | Toggle Fullscreen |
+| `S` | Toggle Page Thumbnails & Bookmarks Sidebar |
+| `Esc` | Back step / Close dialogs / Return to Library |
 
 ---
 
-## 🚀 Getting Started
+## 🇸🇦 عربي (دليل الاستخدام)
+
+**Otium (أوتيوم)** هو قارئ كتب ومستندات إلكتروني فائق السرعة، صُمم خصيصاً للقراءة المتأملة والمطالعة العميقة دون أي مشتتات.
+
+### 🌟 أبرز ما يميز التطبيق:
+1. **عرض صفحتين متجاورتين (Dual-Page Spread):** محاكاة واقعية ورائعة لفتح كتاب حقيقي وتقليب صفحتين في آن واحد دون أي تأخير أو حركات بطيئة.
+2. **دعم الشاشات السريعة (120Hz - 240Hz):** يتزامن التطبيق تلقائياً مع تردد شاشتك ويعرض النصوص بأعلى دقة فيزيائية (Full DPR) لمنع أي تشويش أو تغبيش.
+3. **تجربة هاتف ذكية ومتكاملة:**
+   - زر الرجوع في الهاتف يعود خطوة واحدة إلى الوراء بدلاً من إغلاق التطبيق.
+   - شريط الأدوات العلوي يبتعد تلقائياً عن شريط الإشعارات (البردة) وفتحة الكاميرا.
+   - تكبير متجهي ذكي (Pinch-to-zoom) يُكبّر صفحة الكتاب فقط مع الحفاظ على صغر وأناقة القوائم والأزرار.
+   - تحديد ونسخ وتظليل النصوص بالضغط المطول.
+   - فتح أي ملف PDF تلقائياً بمجرد النقر عليه من مدير الملفات أو واتساب.
+4. **شعار وأيقونة AMOLED الزمردية الفاخرة:** هوية بصرية مريحة للعين وخلفية سوداء مطلقة تحافظ على بطارية هواتف OLED.
+5. **خصوصية مطلقة (100% Local-First):** لا يحتاج إلى إنترنت، لا يحتوي على أي تتبّع، ويحفظ آخر صفحة وصلت إليها في كل كتاب تلقائياً.
+
+---
+
+## 🛠️ Building from Source • البناء من المصدر
+
+### Prerequisites
+- [Node.js](https://nodejs.org/) (v18+)
+- [Rust](https://www.rust-lang.org/) (latest stable)
+- For Android: JDK 17, Android SDK & NDK
 
 ```bash
-# Install dependencies
+# 1. Clone the repository
+git clone https://github.com/XRTM8/Otium.git
+cd Otium
+
+# 2. Install dependencies
 npm install
 
-# Run local development server
-npm run dev
+# 3. Run development mode (Desktop)
+npm run tauri:dev
 
-# Build production bundle
-npm run build
+# 4. Build standalone Windows .exe
+npm run tauri:build -- --no-bundle
+
+# 5. Build Android Universal APK
+npm run tauri:android
 ```
 
 ---
 
 ## 📄 License
 
-MIT © [XRTM8](https://github.com/XRTM8)
+Distributed under the **MIT License**. Crafted with passion by [XRTM8](https://github.com/XRTM8).
