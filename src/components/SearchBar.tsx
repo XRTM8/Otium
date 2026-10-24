@@ -100,7 +100,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           }
         }
       })();
-    }, 250);
+    }, 300);
 
     return () => {
       window.clearTimeout(timer);

@@ -51,6 +51,17 @@ export function measureRefreshRate(callback?: (hz: number) => void): void {
   requestAnimationFrame(sample);
 }
 
+/**
+ * Canvas backing-store ratio. Mobile screens report devicePixelRatio 3 or 4,
+ * which multiplies the canvas memory by 9-16x and can OOM the WebView on large
+ * pages. Capping at 2 keeps glyphs sharp while bounding memory and fill rate.
+ */
+export function getCanvasPixelRatio(limit = 2): number {
+  if (typeof window === 'undefined') return 1;
+  const raw = Number.isFinite(window.devicePixelRatio) ? window.devicePixelRatio : 1;
+  return Math.min(limit, Math.max(1, raw));
+}
+
 // Compute the optimal razor-sharp scale for a PDF page given container size and view mode
 export function computeOptimalPageScale(
   pageWidth: number,

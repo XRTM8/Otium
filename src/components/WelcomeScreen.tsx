@@ -267,6 +267,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
       
       {/* Top Floating Action Bar with Safe Area Inset for mobile notches & status bars */}
       <div
+        dir="ltr"
         style={{
           top: 'max(1rem, calc(env(safe-area-inset-top, 0px) + 0.6rem))'
         }}
@@ -328,7 +329,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                   onClick={() => setShowThemeMenu(false)}
                 />
                 <div
-                  className={`absolute ${currentLang === 'ar' ? 'left-0 sm:right-auto' : 'right-0 sm:left-auto'} top-full mt-2 w-52 rounded-2xl bg-neutral-900/98 border border-white/10 p-1.5 shadow-2xl backdrop-blur-2xl z-50 text-neutral-200 animate-in fade-in zoom-in-95 duration-150`}
+                  dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
+                  className="absolute right-0 top-full mt-2 w-52 rounded-2xl bg-neutral-900/98 border border-white/10 p-1.5 shadow-2xl backdrop-blur-2xl z-50 text-neutral-200 animate-in fade-in zoom-in-95 duration-150"
                 >
                   <div className="text-[10px] uppercase font-mono px-2.5 py-1 text-neutral-500 font-semibold tracking-wider">
                     {t.readingThemesTitle}

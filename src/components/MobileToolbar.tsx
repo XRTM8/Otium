@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   ArrowLeft,
-  ArrowRight,
   Bookmark,
   BookOpen,
   ChevronLeft,
@@ -93,7 +92,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
   return (
     <>
       <div
-        dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
+        dir="ltr"
         style={{ top: 'max(0.6rem, calc(env(safe-area-inset-top, 0px) + 0.45rem))' }}
         className="fixed inset-x-0 z-40 flex justify-center px-2 pointer-events-none"
       >
@@ -105,18 +104,17 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             aria-label={t.closeDoc}
             className="p-2 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 active:scale-95 transition-transform shrink-0"
           >
-            {currentLang === 'ar' ? (
-              <ArrowRight className="w-4 h-4" />
-            ) : (
-              <ArrowLeft className="w-4 h-4" />
-            )}
+            <ArrowLeft className="w-4 h-4" />
           </button>
 
           <div className="px-0.5 shrink-0">
             <OtiumLogo theme={theme} size={20} />
           </div>
 
-          <span className="flex-1 min-w-0 truncate text-[11px] font-medium text-neutral-300 select-none">
+          <span
+            dir="auto"
+            className="flex-1 min-w-0 truncate text-[11px] font-medium text-neutral-300 select-none"
+          >
             {title}
           </span>
 
@@ -246,7 +244,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
       )}
 
       <div
-        dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
+        dir="ltr"
         style={{ bottom: 'max(0.6rem, calc(env(safe-area-inset-bottom, 0px) + 0.45rem))' }}
         className="fixed inset-x-0 z-40 flex justify-center px-2 pointer-events-none"
       >
@@ -258,7 +256,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             aria-label={t.prevPage}
             className="p-2 rounded-xl text-neutral-300 disabled:opacity-30 active:bg-white/15"
           >
-            {ar ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+            <ChevronLeft className="w-5 h-5" />
           </button>
 
           <button
@@ -276,7 +274,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             aria-label={t.nextPage}
             className="p-2 rounded-xl text-neutral-300 disabled:opacity-30 active:bg-white/15"
           >
-            {ar ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+            <ChevronRight className="w-5 h-5" />
           </button>
 
           <div className="w-px h-5 bg-white/10 mx-0.5" />

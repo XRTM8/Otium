@@ -15,7 +15,6 @@ import {
   Bookmark,
   Layers,
   BookOpen,
-  ArrowRight,
   ArrowLeft
 } from 'lucide-react';
 import type { ThemeMode, ViewMode } from '../core/types';
@@ -137,7 +136,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
   return (
     <div
-      dir="rtl"
+      dir="ltr"
       style={{
         top: 'max(0.75rem, calc(env(safe-area-inset-top, 0px) + 0.6rem))'
       }}
@@ -153,11 +152,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           title={currentLang === 'ar' ? 'العودة للمكتبة' : 'Back to Library'}
           className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 text-emerald-300 hover:text-emerald-200 transition-all cursor-pointer shrink-0 border border-emerald-500/30"
         >
-          {currentLang === 'ar' ? (
-            <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />
-          ) : (
-            <ArrowLeft className="w-3.5 h-3.5 text-emerald-400" />
-          )}
+          <ArrowLeft className="w-3.5 h-3.5 text-emerald-400" />
           <span className="text-[11px] font-medium hidden sm:inline">
             {currentLang === 'ar' ? 'المكتبة' : 'Library'}
           </span>
@@ -180,6 +175,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {/* Document Title */}
         <div
           title={title}
+          dir="auto"
           className="max-w-[75px] sm:max-w-[140px] md:max-w-[200px] truncate font-medium text-neutral-300 select-none text-xs px-1 hidden sm:block shrink-0"
         >
           {title}

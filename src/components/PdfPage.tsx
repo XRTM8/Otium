@@ -4,6 +4,7 @@ import { TextLayer } from 'pdfjs-dist';
 import { Trash2, X } from 'lucide-react';
 import type { ThemeMode, TextAnnotation } from '../core/types';
 import type { Language } from '../core/i18n/translations';
+import { getCanvasPixelRatio } from '../core/reader/device';
 
 interface PdfPageProps {
   doc: PDFDocumentProxy;
@@ -130,8 +131,9 @@ export const PdfPage: React.FC<PdfPageProps> = ({
         });
         if (!ctx) return;
 
-        // True Native Hardware Resolution: match device pixel ratio for 100% razor sharpness
-        const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+        // Match the screen for razor-sharp text, capped so high-DPI phones do
+        // not allocate 9-16x the canvas memory and crash the WebView.
+        const dpr = getCanvasPixelRatio();
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         const viewport = page.getViewport({ scale: scale * dpr });

@@ -33,6 +33,7 @@ import {
   saveViewMode
 } from '../core/settings/preferences';
 import { computeOptimalPageScale, measureRefreshRate } from '../core/reader/device';
+import { clearSearchTextCache } from '../core/search/documentSearch';
 import { registerIncomingDocumentHandler } from '../platform/incomingDocument';
 
 export interface ReaderCapabilities {
@@ -150,6 +151,16 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   useEffect(() => {
     applyFontFamily(fontFamily);
   }, [fontFamily]);
+
+  // Reading direction follows the content language. Chrome may pin itself to
+  // LTR, but the document root always mirrors the language for dialogs,
+  // typography and text alignment.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    root.lang = lang;
+    root.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  }, [lang]);
 
   useEffect(() => {
     if (!docTitle) return;
@@ -324,6 +335,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
   const closeDocument = useCallback(() => {
     const activeDoc = docRef.current;
+    clearSearchTextCache(activeDoc);
     docRef.current = null;
     setDoc(null);
     setDocTitle('');
@@ -472,6 +484,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       }
 
       if (previousDoc && previousDoc !== opened.doc) {
+        clearSearchTextCache(previousDoc);
         destroyDocumentSoon(previousDoc);
       }
     } catch (error) {
