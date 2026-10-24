@@ -96,13 +96,13 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
         style={{ top: 'max(0.6rem, calc(env(safe-area-inset-top, 0px) + 0.45rem))' }}
         className="fixed inset-x-0 z-40 flex justify-center px-2 pointer-events-none"
       >
-        <div className="pointer-events-auto flex items-center gap-1 w-full max-w-lg px-2 py-1.5 rounded-2xl bg-neutral-900/95 text-white border border-white/10 shadow-2xl backdrop-blur-xl">
+        <div className="pointer-events-auto flex items-center gap-1 w-full max-w-lg px-2 py-1.5 rounded-2xl bg-surface text-ink border border-line shadow-2xl backdrop-blur-xl">
           <button
             type="button"
             onClick={onCloseDocument}
             title={t.closeDoc}
             aria-label={t.closeDoc}
-            className="p-2 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 active:scale-95 transition-transform shrink-0"
+            className="p-2 rounded-xl bg-emerald-500/15 text-success-ink border border-emerald-500/25 active:scale-95 transition-transform shrink-0"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -113,7 +113,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
 
           <span
             dir="auto"
-            className="flex-1 min-w-0 truncate text-[11px] font-medium text-neutral-300 select-none"
+            className="flex-1 min-w-0 truncate text-[11px] font-medium text-ink-muted select-none"
           >
             {title}
           </span>
@@ -123,7 +123,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             onClick={onToggleSearch}
             title={t.searchTooltip}
             aria-label={t.searchTooltip}
-            className="p-2 rounded-xl text-neutral-300 hover:bg-white/10 active:bg-white/15 transition-colors shrink-0"
+            className="p-2 rounded-xl text-ink-muted hover:bg-hover active:bg-hover-strong transition-colors shrink-0"
           >
             <Search className="w-4 h-4" />
           </button>
@@ -134,7 +134,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             title={t.moreTools}
             aria-label={t.moreTools}
             className={`p-2 rounded-xl transition-colors shrink-0 ${
-              showMenu ? 'bg-white/20 text-white' : 'text-neutral-300 hover:bg-white/10'
+              showMenu ? 'bg-hover-strong text-ink' : 'text-ink-muted hover:bg-hover'
             }`}
           >
             <MoreHorizontal className="w-4 h-4" />
@@ -145,16 +145,16 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
       {showMenu && (
         <div
           dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
-          className="fixed inset-x-2 top-16 z-50 mx-auto max-w-lg rounded-2xl bg-neutral-900/98 border border-white/10 p-3 shadow-2xl backdrop-blur-2xl text-neutral-200 space-y-3 animate-in fade-in zoom-in-95 duration-150"
+          className="fixed inset-x-2 top-16 z-50 mx-auto max-w-lg rounded-2xl bg-surface border border-line p-3 shadow-2xl backdrop-blur-2xl text-ink space-y-3 animate-in fade-in zoom-in-95 duration-150"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-500">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-ink-faint">
               {t.moreTools}
             </span>
             <button
               type="button"
               onClick={() => setShowMenu(false)}
-              className="p-1 rounded-full text-neutral-400 hover:text-white hover:bg-white/10"
+              className="p-1 rounded-full text-ink-muted hover:text-ink hover:bg-hover"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -169,18 +169,18 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
               }}
               className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-[10px] transition-colors ${
                 isBookmarked
-                  ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
-                  : 'bg-white/5 text-neutral-300 border-white/5'
+                  ? 'bg-accent/20 text-accent border-accent/40'
+                  : 'bg-hover-subtle text-ink-muted border-line-subtle'
               }`}
             >
-              <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-amber-400' : ''}`} />
+              <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-highlight' : ''}`} />
               <span>{ar ? 'إشارة' : 'Bookmark'}</span>
             </button>
 
             <button
               type="button"
               onClick={() => onViewModeChange(VIEW_MODES[(VIEW_MODES.indexOf(viewMode) + 1) % VIEW_MODES.length])}
-              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 border border-white/5 text-neutral-300 text-[10px]"
+              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-hover-subtle border border-line-subtle text-ink-muted text-[10px]"
             >
               {viewModeIcon}
               <span>{viewModeLabel}</span>
@@ -192,7 +192,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
                 onOpenSidebar();
                 setShowMenu(false);
               }}
-              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 border border-white/5 text-neutral-300 text-[10px]"
+              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-hover-subtle border border-line-subtle text-ink-muted text-[10px]"
             >
               <Layers className="w-4 h-4" />
               <span>{t.pagesTab}</span>
@@ -204,15 +204,15 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
                 onOpenSettings();
                 setShowMenu(false);
               }}
-              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 border border-white/5 text-amber-300 text-[10px]"
+              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-hover-subtle border border-line-subtle text-accent text-[10px]"
             >
               <Settings2 className="w-4 h-4" />
               <span>{ar ? 'إعدادات' : 'Settings'}</span>
             </button>
           </div>
 
-          <div className="pt-2 border-t border-white/10">
-            <div className="flex items-center gap-1.5 text-[10px] text-neutral-400 font-mono mb-1.5">
+          <div className="pt-2 border-t border-line">
+            <div className="flex items-center gap-1.5 text-[10px] text-ink-muted font-mono mb-1.5">
               <Palette className="w-3 h-3" />
               <span>{t.readingThemesTitle}</span>
             </div>
@@ -226,8 +226,8 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
                     onClick={() => onThemeChange(item.id)}
                     className={`flex items-center gap-1.5 p-1.5 rounded-xl border text-[10px] transition-colors ${
                       selected
-                        ? 'border-amber-400 bg-amber-400/20 text-white'
-                        : 'border-white/5 bg-white/5 text-neutral-300'
+                        ? 'border-accent bg-accent/20 text-ink'
+                        : 'border-line-subtle bg-hover-subtle text-ink-muted'
                     }`}
                   >
                     <span
@@ -248,13 +248,13 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
         style={{ bottom: 'max(0.6rem, calc(env(safe-area-inset-bottom, 0px) + 0.45rem))' }}
         className="fixed inset-x-0 z-40 flex justify-center px-2 pointer-events-none"
       >
-        <div className="pointer-events-auto flex items-center gap-1 px-2 py-1.5 rounded-2xl bg-neutral-900/95 text-white border border-white/10 shadow-2xl backdrop-blur-xl">
+        <div className="pointer-events-auto flex items-center gap-1 px-2 py-1.5 rounded-2xl bg-surface text-ink border border-line shadow-2xl backdrop-blur-xl">
           <button
             type="button"
             onClick={() => onPageChange(Math.max(1, currentPage - 1))}
             disabled={currentPage <= 1}
             aria-label={t.prevPage}
-            className="p-2 rounded-xl text-neutral-300 disabled:opacity-30 active:bg-white/15"
+            className="p-2 rounded-xl text-ink-muted disabled:opacity-30 active:bg-hover-strong"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -262,7 +262,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
           <button
             type="button"
             onClick={onOpenSidebar}
-            className="px-3 py-1.5 rounded-xl bg-white/5 font-mono text-[11px] text-neutral-200"
+            className="px-3 py-1.5 rounded-xl bg-hover-subtle font-mono text-[11px] text-ink"
           >
             {currentPage} / {totalPages}
           </button>
@@ -272,29 +272,29 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage >= totalPages}
             aria-label={t.nextPage}
-            className="p-2 rounded-xl text-neutral-300 disabled:opacity-30 active:bg-white/15"
+            className="p-2 rounded-xl text-ink-muted disabled:opacity-30 active:bg-hover-strong"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
 
-          <div className="w-px h-5 bg-white/10 mx-0.5" />
+          <div className="w-px h-5 bg-hover mx-0.5" />
 
           <button
             type="button"
             onClick={onToggleBookmark}
             aria-label={isBookmarked ? t.removeBookmark : t.addBookmark}
-            className={`p-2 rounded-xl active:bg-white/15 ${
-              isBookmarked ? 'text-amber-400' : 'text-neutral-300'
+            className={`p-2 rounded-xl active:bg-hover-strong ${
+              isBookmarked ? 'text-highlight' : 'text-ink-muted'
             }`}
           >
-            <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-amber-400' : ''}`} />
+            <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-highlight' : ''}`} />
           </button>
 
           <button
             type="button"
             onClick={onToggleSearch}
             aria-label={t.searchTooltip}
-            className="p-2 rounded-xl text-neutral-300 active:bg-white/15"
+            className="p-2 rounded-xl text-ink-muted active:bg-hover-strong"
           >
             <Search className="w-4 h-4" />
           </button>

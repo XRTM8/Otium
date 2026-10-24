@@ -35,6 +35,7 @@ import {
 import { computeOptimalPageScale, measureRefreshRate } from '../core/reader/device';
 import { clearSearchTextCache } from '../core/search/documentSearch';
 import { registerIncomingDocumentHandler } from '../platform/incomingDocument';
+import { syncNativeTheme } from '../platform/theme';
 
 export interface ReaderCapabilities {
   keyboard: boolean;
@@ -161,6 +162,11 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     root.lang = lang;
     root.dir = lang === 'ar' ? 'rtl' : 'ltr';
   }, [lang]);
+
+  // Recolour every surface and tell the native shell to match.
+  useEffect(() => {
+    syncNativeTheme(theme);
+  }, [theme]);
 
   useEffect(() => {
     if (!docTitle) return;

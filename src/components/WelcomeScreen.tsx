@@ -145,124 +145,25 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  // Comprehensive Theme Styling Engine that modifies EVERYTHING (Logo, Name, Glows, Borders, Cards)
-  const getThemeStyling = () => {
-    switch (currentTheme) {
-      case 'amoled':
-        return {
-          containerBg: 'bg-black',
-          glow1: 'bg-emerald-500/15',
-          glow2: 'bg-teal-600/10',
-          logoGlow: 'bg-emerald-500/30',
-          logoBorder: 'border-emerald-400/40',
-          nameGradient: 'from-white via-emerald-100 to-emerald-400 drop-shadow-[0_0_25px_rgba(16,185,129,0.35)]',
-          dropzoneBorder: 'hover:border-emerald-400/50 hover:shadow-[0_16px_40px_rgba(16,185,129,0.2)]',
-          dropzoneIcon: 'bg-gradient-to-tr from-emerald-500/25 via-emerald-400/15 to-neutral-900 border-emerald-400/35 text-emerald-300',
-          sampleBtn: 'hover:border-emerald-400/40 text-emerald-400',
-          fileIconBox: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
-          fileHoverText: 'group-hover:text-emerald-200',
-          accentColor: '#10b981'
-        };
-      case 'parchment':
-        return {
-          containerBg: 'bg-gradient-to-b from-[#16100a] via-[#0f0b07] to-black',
-          glow1: 'bg-amber-600/16',
-          glow2: 'bg-yellow-700/12',
-          logoGlow: 'bg-amber-600/25',
-          logoBorder: 'border-amber-500/40',
-          nameGradient: 'from-amber-100 via-yellow-200 to-amber-600 drop-shadow-[0_0_25px_rgba(217,119,6,0.35)]',
-          dropzoneBorder: 'hover:border-amber-500/50 hover:shadow-[0_16px_40px_rgba(217,119,6,0.22)]',
-          dropzoneIcon: 'bg-gradient-to-tr from-amber-600/25 via-yellow-500/15 to-neutral-800 border-amber-500/35 text-amber-300',
-          sampleBtn: 'hover:border-amber-500/40 text-amber-400',
-          fileIconBox: 'bg-amber-600/10 border-amber-600/20 text-amber-400',
-          fileHoverText: 'group-hover:text-amber-200',
-          accentColor: '#d97706'
-        };
-      case 'midnight':
-        return {
-          containerBg: 'bg-gradient-to-b from-[#060a14] via-[#04060d] to-black',
-          glow1: 'bg-sky-500/18',
-          glow2: 'bg-indigo-600/22',
-          logoGlow: 'bg-sky-500/25',
-          logoBorder: 'border-sky-400/40',
-          nameGradient: 'from-white via-sky-100 to-sky-400 drop-shadow-[0_0_25px_rgba(56,189,248,0.35)]',
-          dropzoneBorder: 'hover:border-sky-400/50 hover:shadow-[0_16px_40px_rgba(56,189,248,0.18)]',
-          dropzoneIcon: 'bg-gradient-to-tr from-sky-500/25 via-sky-400/15 to-neutral-800 border-sky-400/35 text-sky-300',
-          sampleBtn: 'hover:border-sky-400/40 text-sky-400',
-          fileIconBox: 'bg-sky-500/10 border-sky-500/20 text-sky-400',
-          fileHoverText: 'group-hover:text-sky-200',
-          accentColor: '#38bdf8'
-        };
-      case 'amber':
-        return {
-          containerBg: 'bg-gradient-to-b from-[#140d06] via-[#0d0803] to-black',
-          glow1: 'bg-amber-600/22',
-          glow2: 'bg-orange-600/18',
-          logoGlow: 'bg-orange-500/25',
-          logoBorder: 'border-amber-400/40',
-          nameGradient: 'from-amber-100 via-orange-200 to-amber-500 drop-shadow-[0_0_30px_rgba(245,158,11,0.4)]',
-          dropzoneBorder: 'hover:border-orange-400/50 hover:shadow-[0_16px_40px_rgba(245,158,11,0.22)]',
-          dropzoneIcon: 'bg-gradient-to-tr from-orange-500/25 via-amber-400/15 to-neutral-800 border-amber-400/35 text-amber-300',
-          sampleBtn: 'hover:border-amber-400/40 text-amber-400',
-          fileIconBox: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
-          fileHoverText: 'group-hover:text-amber-200',
-          accentColor: '#f59e0b'
-        };
-      case 'eink':
-        return {
-          containerBg: 'bg-gradient-to-b from-neutral-950 via-neutral-900 to-black',
-          glow1: 'bg-neutral-500/12',
-          glow2: 'bg-neutral-700/12',
-          logoGlow: 'bg-neutral-300/15',
-          logoBorder: 'border-white/25',
-          nameGradient: 'from-white via-neutral-100 to-neutral-400 drop-shadow-none',
-          dropzoneBorder: 'hover:border-white/35 hover:shadow-[0_16px_40px_rgba(255,255,255,0.08)]',
-          dropzoneIcon: 'bg-gradient-to-tr from-neutral-500/20 via-neutral-400/10 to-neutral-800 border-white/25 text-neutral-200',
-          sampleBtn: 'hover:border-white/30 text-neutral-200',
-          fileIconBox: 'bg-white/10 border-white/15 text-neutral-200',
-          fileHoverText: 'group-hover:text-white',
-          accentColor: '#a3a3a3'
-        };
-      case 'pure':
-        return {
-          containerBg: 'bg-gradient-to-b from-[#090b14] via-[#06070e] to-black',
-          glow1: 'bg-indigo-500/18',
-          glow2: 'bg-sky-500/14',
-          logoGlow: 'bg-indigo-500/22',
-          logoBorder: 'border-indigo-400/35',
-          nameGradient: 'from-white via-indigo-100 to-indigo-400 drop-shadow-[0_0_20px_rgba(129,140,248,0.25)]',
-          dropzoneBorder: 'hover:border-indigo-400/45 hover:shadow-[0_16px_40px_rgba(129,140,248,0.16)]',
-          dropzoneIcon: 'bg-gradient-to-tr from-indigo-500/25 via-indigo-400/15 to-neutral-800 border-indigo-400/35 text-indigo-300',
-          sampleBtn: 'hover:border-indigo-400/40 text-indigo-400',
-          fileIconBox: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400',
-          fileHoverText: 'group-hover:text-indigo-200',
-          accentColor: '#818cf8'
-        };
-      case 'paper':
-      default:
-        return {
-          containerBg: 'bg-gradient-to-b from-neutral-950 via-[#100e0a] to-black',
-          glow1: 'bg-amber-500/14',
-          glow2: 'bg-yellow-600/10',
-          logoGlow: 'bg-amber-500/20',
-          logoBorder: 'border-amber-400/30',
-          nameGradient: 'from-white via-amber-100 to-amber-300 drop-shadow-[0_0_20px_rgba(245,158,11,0.2)]',
-          dropzoneBorder: 'hover:border-amber-400/40 hover:shadow-[0_16px_40px_rgba(245,158,11,0.12)]',
-          dropzoneIcon: 'bg-gradient-to-tr from-amber-500/20 via-amber-400/10 to-neutral-800 border-amber-400/25 text-amber-300',
-          sampleBtn: 'hover:border-amber-400/35 text-amber-400',
-          fileIconBox: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
-          fileHoverText: 'group-hover:text-amber-200',
-          accentColor: '#d4c5a9'
-        };
-    }
+  // Themes change accent tokens; surfaces and ink come from the global token layer.
+  const style = {
+    glow1: 'bg-accent/10',
+    glow2: 'bg-accent/5',
+    logoGlow: 'bg-accent/20',
+    logoBorder: 'border-accent/30',
+    nameGradient: 'from-ink via-accent to-accent-strong',
+    dropzoneBorder: 'hover:border-accent/60',
+    dropzoneIcon: 'bg-accent/10 border-accent/30 text-accent',
+    sampleBtn: 'hover:border-accent/50 text-accent',
+    fileIconBox: 'bg-accent/10 border-accent/25 text-accent',
+    fileHoverText: 'group-hover:text-accent'
   };
 
-  const style = getThemeStyling();
 
   return (
     <div
       dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
-      className={`relative min-h-screen w-full flex flex-col items-center justify-center p-6 ${style.containerBg} text-neutral-100 select-none overflow-hidden transition-colors duration-700`}
+      className="relative min-h-screen w-full flex flex-col items-center justify-center p-6 bg-[var(--app-bg)] text-ink select-none overflow-hidden transition-colors duration-700"
     >
       
       {/* Top Floating Action Bar with Safe Area Inset for mobile notches & status bars */}
@@ -279,9 +180,9 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           <button
             onClick={onToggleLanguage}
             title={currentLang === 'ar' ? 'Switch to English' : 'التحويل إلى العربية'}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-900/85 hover:bg-neutral-900 border border-white/10 hover:border-amber-400/30 shadow-xl backdrop-blur-2xl text-xs text-neutral-200 transition-all duration-200 active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface/85 hover:bg-surface border border-line hover:border-accent/30 shadow-xl backdrop-blur-2xl text-xs text-ink transition-all duration-200 active:scale-95"
           >
-            <Globe className="w-3.5 h-3.5 text-neutral-400" />
+            <Globe className="w-3.5 h-3.5 text-ink-muted" />
             <span className="font-mono text-[11px] font-semibold tracking-wider">
               {currentLang === 'ar' ? 'EN' : 'عربي'}
             </span>
@@ -291,9 +192,9 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             <button
               onClick={onOpenSettings}
               title={t.settingsTitle}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-900/85 hover:bg-neutral-900 border border-white/10 hover:border-amber-400/30 shadow-xl backdrop-blur-2xl text-xs text-neutral-200 transition-all duration-200 active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface/85 hover:bg-surface border border-line hover:border-accent/30 shadow-xl backdrop-blur-2xl text-xs text-ink transition-all duration-200 active:scale-95"
             >
-              <Settings2 className="w-3.5 h-3.5 text-neutral-400" />
+              <Settings2 className="w-3.5 h-3.5 text-ink-muted" />
               <span className="text-[11px] font-medium hidden sm:inline">
                 {t.settingsTitle}
               </span>
@@ -308,17 +209,17 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             <button
               onClick={() => setShowThemeMenu(!showThemeMenu)}
               title={t.themeLabel}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-900/85 hover:bg-neutral-900 border border-white/10 hover:border-amber-400/30 shadow-xl backdrop-blur-2xl text-xs transition-all duration-200 active:scale-95 cursor-pointer"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface/85 hover:bg-surface border border-line hover:border-accent/30 shadow-xl backdrop-blur-2xl text-xs transition-all duration-200 active:scale-95 cursor-pointer"
             >
               <span
-                className="w-2.5 h-2.5 rounded-full ring-2 ring-white/15 transition-colors"
+                className="w-2.5 h-2.5 rounded-full ring-2 ring-line-strong transition-colors"
                 style={{ backgroundColor: activeThemeMeta.dot }}
               />
-              <span className="font-medium text-[11px] text-neutral-200">
+              <span className="font-medium text-[11px] text-ink">
                 {activeThemeMeta.label}
               </span>
-              <Palette className="w-3.5 h-3.5 text-neutral-400" />
-              <ChevronDown className={`w-3 h-3 text-neutral-400 transition-transform duration-200 ${showThemeMenu ? 'rotate-180' : ''}`} />
+              <Palette className="w-3.5 h-3.5 text-ink-muted" />
+              <ChevronDown className={`w-3 h-3 text-ink-muted transition-transform duration-200 ${showThemeMenu ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Theme Dropdown Panel */}
@@ -330,9 +231,9 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 />
                 <div
                   dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
-                  className="absolute right-0 top-full mt-2 w-52 rounded-2xl bg-neutral-900/98 border border-white/10 p-1.5 shadow-2xl backdrop-blur-2xl z-50 text-neutral-200 animate-in fade-in zoom-in-95 duration-150"
+                  className="absolute right-0 top-full mt-2 w-52 rounded-2xl bg-surface border border-line p-1.5 shadow-2xl backdrop-blur-2xl z-50 text-ink animate-in fade-in zoom-in-95 duration-150"
                 >
-                  <div className="text-[10px] uppercase font-mono px-2.5 py-1 text-neutral-500 font-semibold tracking-wider">
+                  <div className="text-[10px] uppercase font-mono px-2.5 py-1 text-ink-faint font-semibold tracking-wider">
                     {t.readingThemesTitle}
                   </div>
                   {themesList.map((th) => {
@@ -346,8 +247,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                         }}
                         className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs transition-colors ${
                           isSelected
-                            ? 'bg-white/15 text-white font-medium border border-white/10'
-                            : 'hover:bg-white/5 text-neutral-300 border border-transparent'
+                            ? 'bg-hover-strong text-ink font-medium border border-line'
+                            : 'hover:bg-hover-subtle text-ink-muted border border-transparent'
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
@@ -358,7 +259,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                           <span>{th.label}</span>
                         </div>
                         {isSelected && (
-                          <Check className="w-3.5 h-3.5 text-white shrink-0" />
+                          <Check className="w-3.5 h-3.5 text-ink shrink-0" />
                         )}
                       </button>
                     );
@@ -380,7 +281,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         <div className="flex flex-col items-center space-y-3">
           <div className="relative group cursor-default">
             <div className={`absolute -inset-1 rounded-3xl ${style.logoGlow} blur-xl opacity-75 group-hover:opacity-100 transition duration-500`} />
-            <div className={`relative p-4 rounded-3xl bg-neutral-900/90 border ${style.logoBorder} shadow-2xl backdrop-blur-2xl group-hover:scale-105 transition-transform duration-300`}>
+            <div className={`relative p-4 rounded-3xl bg-surface border ${style.logoBorder} shadow-2xl backdrop-blur-2xl group-hover:scale-105 transition-transform duration-300`}>
               <OtiumLogo theme={currentTheme} size={48} />
             </div>
           </div>
@@ -398,8 +299,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           onClick={() => fileInputRef.current?.click()}
           className={`w-full p-8 rounded-3xl border-2 border-dashed transition-all duration-300 cursor-pointer flex flex-col items-center justify-center gap-3 backdrop-blur-2xl ${
             isDragging
-              ? 'border-white bg-white/10 scale-[1.02] shadow-2xl'
-              : `border-white/10 bg-neutral-900/60 ${style.dropzoneBorder} hover:bg-neutral-900/85 hover:-translate-y-0.5 shadow-2xl`
+              ? 'border-accent bg-hover scale-[1.02] shadow-2xl'
+              : `border-line bg-surface/60 ${style.dropzoneBorder} hover:bg-surface/85 hover:-translate-y-0.5 shadow-2xl`
           }`}
         >
           <div className={`w-13 h-13 rounded-2xl border flex items-center justify-center shadow-md transition-all duration-500 ${style.dropzoneIcon}`}>
@@ -407,10 +308,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           </div>
 
           <div className="space-y-1">
-            <div className="text-sm font-semibold text-neutral-100">
+            <div className="text-sm font-semibold text-ink">
               {t.dropzoneTitle}
             </div>
-            <div className="text-xs text-neutral-400">
+            <div className="text-xs text-ink-muted">
               {t.dropzoneSubtitle}
             </div>
           </div>
@@ -428,7 +329,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         <div className="flex items-center justify-center w-full">
           <button
             onClick={onOpenSample}
-            className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-neutral-900/80 hover:bg-neutral-800 text-neutral-200 border border-white/10 transition-all hover:scale-[1.01] active:scale-95 shadow-md group ${style.sampleBtn}`}
+            className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-surface hover:bg-surface-2 text-ink border border-line transition-all hover:scale-[1.01] active:scale-95 shadow-md group ${style.sampleBtn}`}
           >
             <BookOpen className="w-4 h-4 transition-colors" />
             <span>{t.openSample}</span>
@@ -438,12 +339,12 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
         {/* Stored Recent Files with Theme-aware styling */}
         {recents.length > 0 && (
-          <div className="w-full text-right pt-4 border-t border-white/10 space-y-2.5">
-            <div className="flex items-center justify-between text-xs text-neutral-400 px-1">
+          <div className="w-full text-right pt-4 border-t border-line space-y-2.5">
+            <div className="flex items-center justify-between text-xs text-ink-muted px-1">
               <span className="flex items-center gap-1.5 font-medium">
                 <Clock className="w-3.5 h-3.5 opacity-80" />
                 <span>{t.savedDocs}</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-neutral-400 font-mono">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-hover-subtle border border-line text-ink-muted font-mono">
                   {recents.length}
                 </span>
               </span>
@@ -452,7 +353,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                   await clearAllStoredDocuments();
                   setRecents([]);
                 }}
-                className="hover:text-rose-400 transition-colors flex items-center gap-1 text-[11px] text-neutral-500 hover:text-neutral-300"
+                className="hover:text-danger-ink transition-colors flex items-center gap-1 text-[11px] text-ink-faint hover:text-ink-muted"
                 title={t.clearAll}
               >
                 <Trash2 className="w-3 h-3" />
@@ -465,28 +366,28 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 <div
                   key={r.id}
                   onClick={() => onOpenRecent(r)}
-                  className="flex items-center justify-between p-3.5 rounded-2xl bg-neutral-900/60 hover:bg-neutral-900/95 cursor-pointer border border-white/5 hover:border-white/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg group"
+                  className="flex items-center justify-between p-3.5 rounded-2xl bg-surface/60 hover:bg-surface cursor-pointer border border-line-subtle hover:border-line-strong transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg group"
                 >
                   <div className="flex items-center gap-3 min-w-0 pr-1">
                     <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${style.fileIconBox}`}>
                       <OtiumLogo theme={currentTheme} size={22} />
                     </div>
                     <div className="flex flex-col min-w-0 gap-1 text-right">
-                      <span className={`truncate font-medium text-xs sm:text-sm text-neutral-200 ${style.fileHoverText} transition-colors`}>
+                      <span className={`truncate font-medium text-xs sm:text-sm text-ink ${style.fileHoverText} transition-colors`}>
                         {r.name}
                       </span>
-                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-neutral-400 font-mono">
-                        <span className="font-sans font-medium text-neutral-300">
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-ink-muted font-mono">
+                        <span className="font-sans font-medium text-ink-muted">
                           {t.pageOf(r.lastPage, r.totalPages)}
                         </span>
-                        <span className="text-neutral-600 hidden sm:inline">•</span>
-                        <span className="flex items-center gap-1 font-sans text-neutral-400">
-                          <Calendar className="w-3 h-3 text-neutral-500 shrink-0" />
+                        <span className="text-ink-faint hidden sm:inline">•</span>
+                        <span className="flex items-center gap-1 font-sans text-ink-muted">
+                          <Calendar className="w-3 h-3 text-ink-faint shrink-0" />
                           <span>{formatDate(r.lastOpened)}</span>
                         </span>
-                        <span className="text-neutral-600 hidden sm:inline">•</span>
-                        <span className="flex items-center gap-1 font-mono text-neutral-400">
-                          <HardDrive className="w-3 h-3 text-neutral-500 shrink-0" />
+                        <span className="text-ink-faint hidden sm:inline">•</span>
+                        <span className="flex items-center gap-1 font-mono text-ink-muted">
+                          <HardDrive className="w-3 h-3 text-ink-faint shrink-0" />
                           <span>{formatSize(r.sizeBytes)}</span>
                         </span>
                       </div>
@@ -501,7 +402,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                         loadRecents();
                       }}
                       title={t.deleteTooltip}
-                      className="p-1.5 rounded-lg opacity-70 sm:opacity-0 group-hover:opacity-100 hover:bg-rose-500/20 text-neutral-400 hover:text-rose-400 transition-all"
+                      className="p-1.5 rounded-lg opacity-70 sm:opacity-0 group-hover:opacity-100 hover:bg-rose-500/20 text-ink-muted hover:text-danger-ink transition-all"
                     >
                       <X className="w-4 h-4" />
                     </button>

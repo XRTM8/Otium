@@ -1,5 +1,31 @@
 @import "tailwindcss";
 
+/*
+ * Semantic design tokens. Every chrome surface, modal and dialog reads these
+ * variables, so switching a theme recolours the whole product instead of just
+ * the PDF page. Native shells receive the same values through platform/theme.
+ */
+@theme inline {
+  --color-surface: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-hover: var(--surface-hover);
+  --color-hover-subtle: var(--surface-hover-subtle);
+  --color-hover-strong: var(--surface-hover-strong);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-line-subtle: var(--line-subtle);
+  --color-line-strong: var(--line-strong);
+  --color-scrim: var(--scrim);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-on-accent: var(--on-accent);
+  --color-highlight: var(--highlight);
+  --color-success-ink: var(--success-ink);
+  --color-danger-ink: var(--danger-ink);
+}
+
 @layer base {
   * {
     box-sizing: border-box;
@@ -16,6 +42,8 @@
     -webkit-tap-highlight-color: transparent;
     /* Prevent browser native pinch-zoom from conflicting with our custom pinch handler */
     touch-action: pan-x pan-y;
+    background-color: var(--app-bg, #f4ede1);
+    color: var(--ink, #2d261e);
     font-family: var(--app-font-family, 'Tajawal', 'Plus Jakarta Sans Variable', system-ui, -apple-system, sans-serif);
   }
 
@@ -24,6 +52,25 @@
     --sab: env(safe-area-inset-bottom, 0px);
     --sal: env(safe-area-inset-left, 0px);
     --sar: env(safe-area-inset-right, 0px);
+    --app-bg: #f4ede1;
+    --surface-1: rgba(250, 246, 238, 0.94);
+    --surface-2: rgba(255, 252, 246, 0.98);
+    --surface-hover: rgba(45, 38, 30, 0.08);
+    --surface-hover-subtle: rgba(45, 38, 30, 0.045);
+    --surface-hover-strong: rgba(45, 38, 30, 0.14);
+    --ink: #2d261e;
+    --ink-muted: #5a4f42;
+    --ink-faint: #85776a;
+    --line: rgba(45, 38, 30, 0.16);
+    --line-subtle: rgba(45, 38, 30, 0.08);
+    --line-strong: rgba(45, 38, 30, 0.28);
+    --scrim: rgba(41, 37, 36, 0.42);
+    --accent: #d97706;
+    --accent-strong: #b45309;
+    --on-accent: #1c1917;
+    --highlight: #b45309;
+    --success-ink: #047857;
+    --danger-ink: #be123c;
   }
 
   /* Custom Smooth Scrollbar for the reader */
@@ -138,70 +185,168 @@
   user-select: none;
 }
 
-/* Themes styling classes */
+/* Themes: each block supplies the same semantic token contract. */
 .theme-paper {
-  --bg-color: #f7f3e8;
-  --panel-bg: rgba(247, 243, 232, 0.9);
-  --text-primary: #2d261e;
-  --text-secondary: #74685a;
-  --border-color: rgba(116, 104, 90, 0.18);
-  --pdf-filter: none;
+  color-scheme: light;
+  --app-bg: #f4ede1;
+  --surface-1: rgba(250, 246, 238, 0.94);
+  --surface-2: rgba(255, 252, 246, 0.98);
+  --surface-hover: rgba(45, 38, 30, 0.08);
+  --surface-hover-subtle: rgba(45, 38, 30, 0.045);
+  --surface-hover-strong: rgba(45, 38, 30, 0.14);
+  --ink: #2d261e;
+  --ink-muted: #5a4f42;
+  --ink-faint: #85776a;
+  --line: rgba(45, 38, 30, 0.16);
+  --line-subtle: rgba(45, 38, 30, 0.08);
+  --line-strong: rgba(45, 38, 30, 0.28);
+  --scrim: rgba(41, 37, 36, 0.42);
+  --accent: #d97706;
+  --accent-strong: #b45309;
+  --on-accent: #1c1917;
+  --highlight: #b45309;
+  --success-ink: #047857;
+  --danger-ink: #be123c;
 }
 
 .theme-midnight {
-  --bg-color: #06090f;
-  --panel-bg: rgba(10, 15, 26, 0.9);
-  --text-primary: #e0f2fe;
-  --text-secondary: #7dd3fc;
-  --border-color: rgba(56, 189, 248, 0.15);
-  --pdf-filter: invert(0.93) hue-rotate(185deg) contrast(0.98) brightness(0.92);
+  color-scheme: dark;
+  --app-bg: #06090f;
+  --surface-1: rgba(10, 15, 26, 0.94);
+  --surface-2: rgba(14, 20, 33, 0.98);
+  --surface-hover: rgba(224, 242, 254, 0.10);
+  --surface-hover-subtle: rgba(224, 242, 254, 0.05);
+  --surface-hover-strong: rgba(224, 242, 254, 0.16);
+  --ink: #e0f2fe;
+  --ink-muted: #cbd5e1;
+  --ink-faint: #94a3b8;
+  --line: rgba(148, 163, 184, 0.20);
+  --line-subtle: rgba(148, 163, 184, 0.10);
+  --line-strong: rgba(148, 163, 184, 0.32);
+  --scrim: rgba(0, 0, 0, 0.62);
+  --accent: #38bdf8;
+  --accent-strong: #0284c7;
+  --on-accent: #06121f;
+  --highlight: #fbbf24;
+  --success-ink: #6ee7b7;
+  --danger-ink: #fecdd3;
 }
 
 .theme-eink {
-  --bg-color: #e5e5e5;
-  --panel-bg: rgba(229, 229, 229, 0.92);
-  --text-primary: #121212;
-  --text-secondary: #404040;
-  --border-color: rgba(0, 0, 0, 0.2);
-  --pdf-filter: grayscale(1) contrast(1.15) brightness(0.95);
+  color-scheme: light;
+  --app-bg: #dfdfdf;
+  --surface-1: rgba(238, 238, 238, 0.95);
+  --surface-2: rgba(246, 246, 246, 0.98);
+  --surface-hover: rgba(0, 0, 0, 0.08);
+  --surface-hover-subtle: rgba(0, 0, 0, 0.045);
+  --surface-hover-strong: rgba(0, 0, 0, 0.14);
+  --ink: #121212;
+  --ink-muted: #404040;
+  --ink-faint: #6b6b6b;
+  --line: rgba(0, 0, 0, 0.18);
+  --line-subtle: rgba(0, 0, 0, 0.09);
+  --line-strong: rgba(0, 0, 0, 0.30);
+  --scrim: rgba(0, 0, 0, 0.38);
+  --accent: #575757;
+  --accent-strong: #2d2d2d;
+  --on-accent: #fafafa;
+  --highlight: #1f1f1f;
+  --success-ink: #14532d;
+  --danger-ink: #7f1d1d;
 }
 
 .theme-amber {
-  --bg-color: #150f0a;
-  --panel-bg: rgba(28, 18, 12, 0.9);
-  --text-primary: #fef3c7;
-  --text-secondary: #f59e0b;
-  --border-color: rgba(245, 158, 11, 0.18);
-  --pdf-filter: sepia(0.7) hue-rotate(-22deg) invert(0.92) brightness(0.88);
+  color-scheme: dark;
+  --app-bg: #14100c;
+  --surface-1: rgba(30, 21, 14, 0.94);
+  --surface-2: rgba(38, 27, 17, 0.98);
+  --surface-hover: rgba(254, 243, 199, 0.10);
+  --surface-hover-subtle: rgba(254, 243, 199, 0.05);
+  --surface-hover-strong: rgba(254, 243, 199, 0.16);
+  --ink: #fef3c7;
+  --ink-muted: #e7d6ac;
+  --ink-faint: #b8a37c;
+  --line: rgba(245, 158, 11, 0.20);
+  --line-subtle: rgba(245, 158, 11, 0.10);
+  --line-strong: rgba(245, 158, 11, 0.34);
+  --scrim: rgba(10, 5, 0, 0.66);
+  --accent: #f59e0b;
+  --accent-strong: #c2410c;
+  --on-accent: #1c1206;
+  --highlight: #fbbf24;
+  --success-ink: #6ee7b7;
+  --danger-ink: #fecdd3;
 }
 
 .theme-pure {
-  --bg-color: #f8fafc;
-  --panel-bg: rgba(255, 255, 255, 0.92);
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --border-color: rgba(148, 163, 184, 0.25);
-  --pdf-filter: none;
+  color-scheme: light;
+  --app-bg: #f1f5f9;
+  --surface-1: rgba(255, 255, 255, 0.95);
+  --surface-2: rgba(255, 255, 255, 0.99);
+  --surface-hover: rgba(15, 23, 42, 0.07);
+  --surface-hover-subtle: rgba(15, 23, 42, 0.04);
+  --surface-hover-strong: rgba(15, 23, 42, 0.13);
+  --ink: #0f172a;
+  --ink-muted: #475569;
+  --ink-faint: #64748b;
+  --line: rgba(15, 23, 42, 0.13);
+  --line-subtle: rgba(15, 23, 42, 0.07);
+  --line-strong: rgba(15, 23, 42, 0.24);
+  --scrim: rgba(15, 23, 42, 0.38);
+  --accent: #6366f1;
+  --accent-strong: #4338ca;
+  --on-accent: #ffffff;
+  --highlight: #b45309;
+  --success-ink: #047857;
+  --danger-ink: #be123c;
 }
 
-/* New: AMOLED True Pitch Black (#000000) for OLED mobile screens */
+/* AMOLED true black for OLED phones */
 .theme-amoled {
-  --bg-color: #000000;
-  --panel-bg: rgba(0, 0, 0, 0.95);
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --border-color: rgba(255, 255, 255, 0.15);
-  --pdf-filter: invert(1) hue-rotate(180deg) contrast(1.08) brightness(0.94);
+  color-scheme: dark;
+  --app-bg: #000000;
+  --surface-1: rgba(8, 8, 8, 0.96);
+  --surface-2: rgba(14, 14, 14, 0.99);
+  --surface-hover: rgba(248, 250, 252, 0.10);
+  --surface-hover-subtle: rgba(248, 250, 252, 0.05);
+  --surface-hover-strong: rgba(248, 250, 252, 0.16);
+  --ink: #f8fafc;
+  --ink-muted: #cbd5e1;
+  --ink-faint: #94a3b8;
+  --line: rgba(248, 250, 252, 0.16);
+  --line-subtle: rgba(248, 250, 252, 0.08);
+  --line-strong: rgba(248, 250, 252, 0.28);
+  --scrim: rgba(0, 0, 0, 0.70);
+  --accent: #10b981;
+  --accent-strong: #047857;
+  --on-accent: #04140d;
+  --highlight: #fbbf24;
+  --success-ink: #6ee7b7;
+  --danger-ink: #fecdd3;
 }
 
-/* New: Historical Manuscript / Antique Parchment */
+/* Historical parchment */
 .theme-parchment {
-  --bg-color: #ede2cd;
-  --panel-bg: rgba(237, 226, 205, 0.92);
-  --text-primary: #2a1c0d;
-  --text-secondary: #63472b;
-  --border-color: rgba(99, 71, 43, 0.22);
-  --pdf-filter: none;
+  color-scheme: light;
+  --app-bg: #ede2cd;
+  --surface-1: rgba(247, 239, 225, 0.95);
+  --surface-2: rgba(252, 246, 236, 0.99);
+  --surface-hover: rgba(99, 71, 43, 0.08);
+  --surface-hover-subtle: rgba(99, 71, 43, 0.045);
+  --surface-hover-strong: rgba(99, 71, 43, 0.14);
+  --ink: #2a1c0d;
+  --ink-muted: #63472b;
+  --ink-faint: #8a6a48;
+  --line: rgba(99, 71, 43, 0.20);
+  --line-subtle: rgba(99, 71, 43, 0.10);
+  --line-strong: rgba(99, 71, 43, 0.32);
+  --scrim: rgba(42, 28, 13, 0.40);
+  --accent: #b45309;
+  --accent-strong: #78350f;
+  --on-accent: #fffaf0;
+  --highlight: #9a3412;
+  --success-ink: #166534;
+  --danger-ink: #991b1b;
 }
 
 /* Ambient glow breathing animations */

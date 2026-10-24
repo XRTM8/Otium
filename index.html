@@ -3,14 +3,41 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#0d0d0f" />
+    <meta name="theme-color" content="#f4ede1" />
+    <script>
+      (function () {
+        try {
+          var themes = {
+            paper: ['#f4ede1', true],
+            parchment: ['#ede2cd', true],
+            eink: ['#dfdfdf', true],
+            pure: ['#f1f5f9', true],
+            midnight: ['#06090f', false],
+            amber: ['#14100c', false],
+            amoled: ['#000000', false]
+          };
+          var saved = localStorage.getItem('otium_theme') || localStorage.getItem('tirs_theme') || 'paper';
+          var entry = themes[saved] || themes.paper;
+          var root = document.documentElement;
+          root.classList.add('theme-' + (themes[saved] ? saved : 'paper'));
+          root.style.colorScheme = entry[1] ? 'light' : 'dark';
+          root.style.backgroundColor = entry[0];
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', entry[0]);
+          var bridge = window.OtiumTheme;
+          if (bridge && bridge.setTheme) {
+            bridge.setTheme(entry[1] ? 'light' : 'dark', entry[0], entry[1]);
+          }
+        } catch (error) {}
+      })();
+    </script>
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <title>Otium — The Quiet Reader</title>
   </head>
-  <body class="bg-neutral-950 text-neutral-100 antialiased selection:bg-amber-400/30 selection:text-amber-200">
+  <body class="antialiased selection:bg-amber-400/30 selection:text-amber-200">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

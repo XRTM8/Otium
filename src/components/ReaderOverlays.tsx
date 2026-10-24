@@ -60,15 +60,15 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader }) => {
       {reader.documentError && (
         <div
           dir={reader.lang === 'ar' ? 'rtl' : 'ltr'}
-          className="fixed bottom-20 sm:bottom-6 inset-x-3 sm:inset-x-auto sm:right-6 z-50 flex items-start gap-2.5 rounded-2xl border border-rose-400/30 bg-neutral-900/98 px-3.5 py-3 text-xs text-rose-100 shadow-2xl backdrop-blur-xl"
+          className="fixed bottom-20 sm:bottom-6 inset-x-3 sm:inset-x-auto sm:right-6 z-50 flex items-start gap-2.5 rounded-2xl border border-rose-400/30 bg-surface px-3.5 py-3 text-xs text-danger-ink shadow-2xl backdrop-blur-xl"
         >
-          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+          <AlertTriangle className="w-4 h-4 text-danger-ink shrink-0 mt-0.5" />
           <span className="flex-1 leading-relaxed">{reader.documentError}</span>
           <button
             type="button"
             onClick={reader.clearDocumentError}
             aria-label="Dismiss"
-            className="p-1 rounded-full text-neutral-400 hover:text-white hover:bg-white/10"
+            className="p-1 rounded-full text-ink-muted hover:text-ink hover:bg-hover"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -76,13 +76,13 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader }) => {
       )}
 
       {reader.isLoading && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center text-white">
-          <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-3" />
-          <span className="text-xs font-mono tracking-widest uppercase text-amber-200">
+        <div className="fixed inset-0 z-50 bg-scrim backdrop-blur-xs flex flex-col items-center justify-center text-ink">
+          <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mb-3" />
+          <span className="text-xs font-mono tracking-widest uppercase text-highlight">
             OTIUM • LOADING DOCUMENT
           </span>
           {reader.loadProgress !== null && (
-            <span className="mt-2 font-mono text-[11px] text-neutral-300">
+            <span className="mt-2 font-mono text-[11px] text-ink-muted">
               {reader.loadProgress}%
             </span>
           )}

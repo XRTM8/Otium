@@ -1,6 +1,7 @@
 package com.otium.reader
 
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -8,9 +9,11 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.OpenableColumns
 import android.util.Base64
+import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
+import androidx.core.view.WindowInsetsControllerCompat
 import org.json.JSONObject
 import java.io.File
 
@@ -74,7 +77,46 @@ class MainActivity : TauriActivity() {
   override fun onWebViewCreate(webView: WebView) {
     appWebView = webView
     webView.addJavascriptInterface(AndroidUpdateBridge(this, webView), "OtiumAndroid")
+    webView.addJavascriptInterface(ThemeBridge(), "OtiumTheme")
     schedulePdfDelivery()
+  }
+
+  /** Receives the active theme from the shared web UI. */
+  private inner class ThemeBridge {
+    @JavascriptInterface
+    fun setTheme(mode: String, background: String, lightTheme: Boolean) {
+      runOnUiThread {
+        applySystemBars(background, lightTheme)
+      }
+    }
+  }
+
+  private fun applySystemBars(background: String, lightTheme: Boolean) {
+    if (isFinishing || isDestroyed) return
+
+    val color = try {
+      Color.parseColor(background)
+    } catch (_: Exception) {
+      if (lightTheme) Color.WHITE else Color.BLACK
+    }
+
+    // Android 15 draws edge-to-edge and ignores the legacy bar colours; older
+    // versions get the page colour so the safe-area bands never flash black.
+    if (Build.VERSION.SDK_INT < 35) {
+      window.statusBarColor = color
+      window.navigationBarColor = color
+    }
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      window.isNavigationBarContrastEnforced = false
+    }
+
+    WindowInsetsControllerCompat(window, window.decorView).apply {
+      isAppearanceLightStatusBars = lightTheme
+      isAppearanceLightNavigationBars = lightTheme
+    }
+
+    window.decorView.setBackgroundColor(color)
+    appWebView?.setBackgroundColor(color)
   }
 
   override fun onNewIntent(intent: Intent) {

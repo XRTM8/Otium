@@ -209,7 +209,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
         top: `${selectionState.coords.y}px`,
         transform: selectionState.coords.isTop ? 'translate(-50%, -100%)' : 'translate(-50%, 0%)'
       }}
-      className="fixed z-50 flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl bg-neutral-900/98 text-white border border-white/20 shadow-2xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-100 select-none pointer-events-auto"
+      className="fixed z-50 flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl bg-surface text-ink border border-line-strong shadow-2xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-100 select-none pointer-events-auto"
     >
       {/* 1. Copy Button */}
       <button
@@ -217,22 +217,22 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
         onMouseDown={(e) => e.preventDefault()}
         onClick={handleCopy}
         title="نسخ النص (Ctrl + C)"
-        className="flex items-center gap-1 px-2 py-1 rounded-xl hover:bg-white/10 active:bg-white/20 transition-all text-xs font-medium cursor-pointer"
+        className="flex items-center gap-1 px-2 py-1 rounded-xl hover:bg-hover active:bg-hover-strong transition-all text-xs font-medium cursor-pointer"
       >
         {copied ? (
           <>
-            <Check className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-emerald-300 font-sans text-[11px]">تم النسخ</span>
+            <Check className="w-3.5 h-3.5 text-success-ink" />
+            <span className="text-success-ink font-sans text-[11px]">تم النسخ</span>
           </>
         ) : (
           <>
-            <Copy className="w-3.5 h-3.5 text-neutral-300" />
+            <Copy className="w-3.5 h-3.5 text-ink-muted" />
             <span className="text-[11px] font-sans">نسخ</span>
           </>
         )}
       </button>
 
-      <div className="w-[1px] h-3.5 bg-white/20" />
+      <div className="w-[1px] h-3.5 bg-hover-strong" />
 
       {/* 2. Instant Highlighter Color Dots (1-Click Highlight) */}
       <div className="flex items-center gap-1.5 px-0.5">
@@ -249,7 +249,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
         ))}
       </div>
 
-      <div className="w-[1px] h-3.5 bg-white/20" />
+      <div className="w-[1px] h-3.5 bg-hover-strong" />
 
       {/* 3. Instant Underline Button */}
       <button
@@ -257,7 +257,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => handleCreateUnderline(UNDERLINE_COLORS[0].hex)}
         title="تسطير النص"
-        className="p-1.5 rounded-xl hover:bg-white/10 active:bg-white/20 text-sky-300 transition-colors cursor-pointer"
+        className="p-1.5 rounded-xl hover:bg-hover active:bg-hover-strong text-sky-300 transition-colors cursor-pointer"
       >
         <UnderlineIcon className="w-3.5 h-3.5" />
       </button>
@@ -265,7 +265,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
       {/* 4. Remove / Delete Existing Annotation (if text is already highlighted/underlined) */}
       {overlappingAnnotation && onDeleteAnnotation && (
         <>
-          <div className="w-[1px] h-3.5 bg-white/20" />
+          <div className="w-[1px] h-3.5 bg-hover-strong" />
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
@@ -274,7 +274,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
               clearSelection();
             }}
             title="إلغاء وإزالة هذا التظليل أو التسطير"
-            className="flex items-center gap-1 px-2 py-1 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 text-rose-300 border border-rose-500/30 transition-all text-xs font-medium cursor-pointer"
+            className="flex items-center gap-1 px-2 py-1 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 text-danger-ink border border-rose-500/30 transition-all text-xs font-medium cursor-pointer"
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span className="text-[11px] font-sans">
@@ -284,7 +284,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
         </>
       )}
 
-      <div className="w-[1px] h-3.5 bg-white/20" />
+      <div className="w-[1px] h-3.5 bg-hover-strong" />
 
       {/* 5. Deselect / Cancel button */}
       <button
@@ -292,7 +292,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
         onMouseDown={(e) => e.preventDefault()}
         onClick={clearSelection}
         title="إلغاء التحديد (Esc)"
-        className="flex items-center gap-1 px-1.5 py-1 rounded-xl hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer text-xs"
+        className="flex items-center gap-1 px-1.5 py-1 rounded-xl hover:bg-hover text-ink-muted hover:text-ink transition-colors cursor-pointer text-xs"
       >
         <X className="w-3 h-3" />
         <span className="text-[10px]">إلغاء</span>

@@ -39,34 +39,34 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none animate-in fade-in duration-200"
     >
-      <div className="fixed inset-0 bg-black/75 backdrop-blur-md" onClick={onCancel} />
+      <div className="fixed inset-0 bg-scrim backdrop-blur-md" onClick={onCancel} />
 
-      <div className="relative w-full max-w-sm bg-neutral-900 border border-white/15 rounded-3xl shadow-2xl p-6 text-neutral-100 z-10 flex flex-col items-center text-center backdrop-blur-2xl">
+      <div className="relative w-full max-w-sm bg-surface border border-line rounded-3xl shadow-2xl p-6 text-ink z-10 flex flex-col items-center text-center backdrop-blur-2xl">
         <button
           onClick={onCancel}
-          className="absolute top-4 left-4 p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+          className="absolute top-4 left-4 p-1.5 rounded-full hover:bg-hover text-ink-muted hover:text-ink transition-colors cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
 
-        <div className="w-14 h-14 rounded-2xl bg-amber-400/15 border border-amber-400/30 flex items-center justify-center text-amber-400 mb-4 shadow-lg shadow-amber-400/10">
+        <div className="w-14 h-14 rounded-2xl bg-accent/15 border border-accent/30 flex items-center justify-center text-accent mb-4 shadow-lg shadow-accent/10">
           <Lock className="w-7 h-7" />
         </div>
 
-        <h3 className="text-base font-bold text-white mb-1">
+        <h3 className="text-base font-bold text-ink mb-1">
           {t.passwordRequired}
         </h3>
         {docTitle && (
-          <p className="text-[11px] font-mono text-amber-300/80 mb-2 truncate max-w-[240px]">
+          <p className="text-[11px] font-mono text-accent/80 mb-2 truncate max-w-[240px]">
             {docTitle}
           </p>
         )}
-        <p className="text-xs text-neutral-400 max-w-xs mb-5 leading-relaxed font-sans">
+        <p className="text-xs text-ink-muted max-w-xs mb-5 leading-relaxed font-sans">
           {t.enterPasswordPrompt}
         </p>
 
         {isIncorrect && (
-          <div className="w-full mb-4 p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-sans">
+          <div className="w-full mb-4 p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-danger-ink text-xs font-sans">
             {t.passwordIncorrect}
           </div>
         )}
@@ -79,12 +79,12 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••••••"
               autoFocus
-              className="w-full py-2.5 px-4 pr-10 rounded-2xl bg-white/5 border border-white/15 focus:border-amber-400 focus:outline-hidden text-sm text-center text-white tracking-widest placeholder:tracking-normal placeholder:text-neutral-500 transition-colors"
+              className="w-full py-2.5 px-4 pr-10 rounded-2xl bg-hover-subtle border border-line focus:border-accent focus:outline-hidden text-sm text-center text-ink tracking-widest placeholder:tracking-normal placeholder:text-ink-faint transition-colors"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors cursor-pointer p-1"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink transition-colors cursor-pointer p-1"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -93,7 +93,7 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
           <button
             type="submit"
             disabled={password.trim().length === 0}
-            className="w-full py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-300 disabled:opacity-40 text-neutral-950 font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-md shadow-amber-400/10"
+            className="w-full py-2.5 rounded-2xl bg-accent hover:bg-accent-strong disabled:opacity-40 text-on-accent font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-md shadow-accent/10"
           >
             <KeyRound className="w-4 h-4" />
             <span>{t.unlockButton}</span>

@@ -479,9 +479,9 @@ export const PdfPage: React.FC<PdfPageProps> = ({
               top: `${activeAnno.y}px`,
               transform: 'translate(-50%, -100%)'
             }}
-            className="absolute z-40 flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl bg-neutral-900/98 text-white border border-white/20 shadow-2xl backdrop-blur-2xl text-xs select-none animate-in fade-in zoom-in-95 pointer-events-auto"
+            className="absolute z-40 flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl bg-surface text-ink border border-line-strong shadow-2xl backdrop-blur-2xl text-xs select-none animate-in fade-in zoom-in-95 pointer-events-auto"
           >
-            <span className="text-[11px] text-neutral-400 font-sans">
+            <span className="text-[11px] text-ink-muted font-sans">
               {activeAnno.type === 'highlight'
                 ? lang === 'ar'
                   ? 'تظليل'
@@ -497,7 +497,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
                 onDeleteAnnotation(activeAnno.id);
                 setActiveAnno(null);
               }}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 text-rose-300 transition-colors text-xs cursor-pointer font-medium"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 text-danger-ink transition-colors text-xs cursor-pointer font-medium"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>{lang === 'ar' ? 'إلغاء' : 'Delete'}</span>
@@ -508,7 +508,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
                 e.stopPropagation();
                 setActiveAnno(null);
               }}
-              className="p-1 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1 rounded-lg hover:bg-hover text-ink-muted hover:text-ink transition-colors cursor-pointer"
             >
               <X className="w-3 h-3" />
             </button>
@@ -524,7 +524,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
         )}
 
         {/* Page Badge */}
-        <div className="absolute bottom-2 right-3 px-1.5 py-0.5 rounded text-[10px] font-mono opacity-25 pointer-events-none bg-black/10 dark:bg-white/10 z-20">
+        <div className="absolute bottom-2 right-3 px-1.5 py-0.5 rounded text-[10px] font-mono opacity-25 pointer-events-none bg-line dark:bg-hover z-20">
           {pageNumber}
         </div>
       </div>

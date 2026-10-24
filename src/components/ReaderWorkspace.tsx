@@ -92,7 +92,7 @@ const PageSlot: React.FC<PageSlotProps> = ({
       ) : (
         <div
           style={{ width: `${standardWidth}px`, height: `${standardHeight}px` }}
-          className="rounded-sm border border-dashed border-white/5 bg-black/5 dark:bg-white/5 flex items-center justify-center font-mono text-xs opacity-20 select-none shadow-xs"
+          className="rounded-sm border border-dashed border-line-subtle bg-hover-subtle dark:bg-hover-subtle flex items-center justify-center font-mono text-xs opacity-20 select-none shadow-xs"
         >
           <span>{lang === 'ar' ? `صفحة ${pageNum}` : `Page ${pageNum}`}</span>
         </div>
@@ -160,9 +160,9 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
       className="flex-1 w-full h-full overflow-y-auto overflow-x-auto pb-20 sm:pb-24 px-2 sm:px-4 relative"
     >
       {/* Reading progress for the current document. */}
-      <div className="fixed top-0 inset-x-0 h-[2px] bg-black/10 dark:bg-white/10 z-40 pointer-events-none">
+      <div className="fixed top-0 inset-x-0 h-[2px] bg-line dark:bg-hover z-40 pointer-events-none">
         <div
-          className="h-full bg-amber-500 transition-all duration-300"
+          className="h-full bg-accent transition-all duration-300"
           style={{ width: `${(currentPage / Math.max(1, numPages)) * 100}%` }}
         />
       </div>
@@ -175,7 +175,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             disabled={currentPage <= 1}
             title={lang === 'ar' ? 'الصفحة السابقة' : 'Previous page'}
             aria-label={lang === 'ar' ? 'الصفحة السابقة' : 'Previous page'}
-            className="fixed left-2 sm:left-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full bg-neutral-900/60 hover:bg-neutral-900/90 text-white backdrop-blur-md opacity-25 hover:opacity-100 disabled:opacity-0 transition-all cursor-pointer shadow-xl border border-white/10"
+            className="fixed left-2 sm:left-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full bg-surface/60 hover:bg-surface text-ink backdrop-blur-md opacity-25 hover:opacity-100 disabled:opacity-0 transition-all cursor-pointer shadow-xl border border-line"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -185,7 +185,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             disabled={currentPage >= numPages}
             title={lang === 'ar' ? 'الصفحة التالية' : 'Next page'}
             aria-label={lang === 'ar' ? 'الصفحة التالية' : 'Next page'}
-            className="fixed right-2 sm:right-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full bg-neutral-900/60 hover:bg-neutral-900/90 text-white backdrop-blur-md opacity-25 hover:opacity-100 disabled:opacity-0 transition-all cursor-pointer shadow-xl border border-white/10"
+            className="fixed right-2 sm:right-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full bg-surface/60 hover:bg-surface text-ink backdrop-blur-md opacity-25 hover:opacity-100 disabled:opacity-0 transition-all cursor-pointer shadow-xl border border-line"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -245,7 +245,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             </div>
 
             {currentPage + 1 <= numPages ? (
-              <div className="relative border-l border-neutral-700/20">
+              <div className="relative border-l border-line">
                 <PdfPage
                   key={`dual-page-${currentPage + 1}`}
                   doc={doc}
@@ -266,7 +266,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
                   width: Math.round(basePageSize.width * zoom),
                   height: Math.round(basePageSize.height * zoom)
                 }}
-                className="hidden sm:flex items-center justify-center border border-dashed border-white/10 rounded-xs text-xs text-neutral-500 font-mono"
+                className="hidden sm:flex items-center justify-center border border-dashed border-line rounded-xs text-xs text-ink-faint font-mono"
               >
                 {lang === 'ar' ? 'نهاية المستند' : 'End of Document'}
               </div>
