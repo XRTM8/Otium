@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 import { TextLayer } from 'pdfjs-dist';
 import { Trash2, X } from 'lucide-react';
@@ -44,31 +44,33 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   const lastRenderedScaleRef = useRef<number>(0);
   const lastRenderedPageRef = useRef<number | null>(null);
 
-  // Computed page dimensions
-  const standardWidth = Math.round(600 * scale);
-  const standardHeight = Math.round(standardWidth / (baseAspectRatio || 0.707));
+  // The PDF page's unscaled size is fixed; scale it synchronously so gesture
+  // zoom never lags behind the focal point by an async render pass.
+  const [pageSize, setPageSize] = useState<{ width: number; height: number }>(() => ({
+    width: 600,
+    height: 600 / (baseAspectRatio || 0.707)
+  }));
 
-  const [dimensions, setDimensions] = useState<{ width: number; height: number }>({
-    width: standardWidth,
-    height: standardHeight
-  });
-
-  // Fetch precise dimensions
   useEffect(() => {
     let active = true;
     doc.getPage(pageNumber).then((page: PDFPageProxy) => {
       if (!active) return;
       const unscaledViewport = page.getViewport({ scale: 1 });
-      setDimensions({
-        width: Math.round(unscaledViewport.width * scale),
-        height: Math.round(unscaledViewport.height * scale)
-      });
+      setPageSize({ width: unscaledViewport.width, height: unscaledViewport.height });
     }).catch(() => {});
 
     return () => {
       active = false;
     };
-  }, [doc, pageNumber, scale]);
+  }, [doc, pageNumber]);
+
+  const dimensions = useMemo(
+    () => ({
+      width: Math.round(pageSize.width * scale),
+      height: Math.round(pageSize.height * scale)
+    }),
+    [pageSize, scale]
+  );
 
   // Viewport IntersectionObserver
   useEffect(() => {
@@ -146,11 +148,6 @@ export const PdfPage: React.FC<PdfPageProps> = ({
         canvas.height = Math.floor(viewport.height);
         canvas.style.width = `${displayWidth}px`;
         canvas.style.height = `${displayHeight}px`;
-
-        setDimensions({
-          width: displayWidth,
-          height: displayHeight
-        });
 
         // Paint background pure white
         ctx.fillStyle = '#ffffff';
@@ -384,7 +381,8 @@ export const PdfPage: React.FC<PdfPageProps> = ({
         onClick={handlePageClick}
         dir="ltr"
         data-page-number={pageNumber}
-        className="relative flex items-center justify-center overflow-hidden will-change-transform select-text transition-all duration-300"
+        data-pdf-page={pageNumber}
+        className="relative flex items-center justify-center overflow-hidden will-change-transform select-text transition-colors duration-300 shrink-0 max-w-none"
         style={{
           width: `${dimensions.width}px`,
           height: `${dimensions.height}px`,

@@ -78,20 +78,27 @@ export function computeOptimalPageScale(
   const availW = Math.max(320, containerWidth - paddingH);
   const availH = Math.max(400, containerHeight - paddingV);
 
+  // A short viewport (landscape phones, small windows) cannot show a readable
+  // full page. Fit the width and let the page scroll vertically instead of
+  // shrinking the text to a sliver.
+  const shortViewport = containerHeight < 540;
+
   if (mode === 'dual') {
     // Two pages side by side: each page gets half the available horizontal space
     const targetW = (availW - 32) / 2;
     const scaleByW = targetW / pageWidth;
     const scaleByH = availH / pageHeight;
+    const basis = shortViewport ? scaleByW : Math.min(scaleByW, scaleByH);
     // Fit so both pages fit within height and width without vertical/horizontal overflow
-    return Math.max(0.4, Math.min(1.8, Number(Math.min(scaleByW, scaleByH).toFixed(2))));
+    return Math.max(0.4, Math.min(1.8, Number(basis.toFixed(2))));
   }
 
   if (mode === 'single') {
     // Single page presentation: fit cleanly inside the screen viewport
     const scaleByW = (availW - 16) / pageWidth;
     const scaleByH = (availH - 20) / pageHeight;
-    return Math.max(0.5, Math.min(2.2, Number(Math.min(scaleByW, scaleByH).toFixed(2))));
+    const basis = shortViewport ? scaleByW : Math.min(scaleByW, scaleByH);
+    return Math.max(0.5, Math.min(2.2, Number(basis.toFixed(2))));
   }
 
   // Continuous vertical scroll: comfortable reading width

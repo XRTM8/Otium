@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useTransition } from 'react';
 import type { TouchEvent as ReactTouchEvent, WheelEvent as ReactWheelEvent } from 'react';
 import type { PDFDocumentLoadingTask, PDFDocumentProxy } from 'pdfjs-dist';
 import type {
@@ -68,6 +68,23 @@ const THEME_ORDER: ThemeMode[] = [
 
 const SAMPLE_DOCUMENT_NAME = 'The Art of Vibe Reading.pdf';
 
+/**
+ * Page-turn physics. A wheel gesture or edge swipe must travel this far before
+ * it flips a page, and a short cooldown prevents trackpads from tumbling
+ * through several pages when a gesture ends.
+ */
+const WHEEL_TURN_THRESHOLD = 170;
+const WHEEL_TURN_COOLDOWN_MS = 480;
+const TOUCH_EDGE_TURN_THRESHOLD = 54;
+const DOUBLE_TAP_MS = 320;
+const ZOOM_ANIMATION_MS = 260;
+
+interface ZoomAnchor {
+  element: HTMLElement;
+  fractionX: number;
+  fractionY: number;
+}
+
 function destroyDocumentSoon(doc: PDFDocumentProxy | null): void {
   if (!doc) return;
   window.setTimeout(() => {
@@ -93,6 +110,41 @@ function isEditableTarget(target: EventTarget | null): boolean {
     target instanceof HTMLSelectElement ||
     target.isContentEditable
   );
+}
+
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return Boolean(
+    target.closest(
+      'button, a, input, textarea, select, [role="button"], [contenteditable="true"]'
+    )
+  );
+}
+
+/**
+ * In paged modes the container always overflows slightly because of its
+ * breathing-room padding. Measure the rendered pages themselves so padding
+ * never swallows a gesture or hides part of a zoomed page.
+ */
+function measurePageContent(container: HTMLElement): { width: number; height: number } | null {
+  const pages = container.querySelectorAll<HTMLElement>('[data-pdf-page]');
+  if (!pages.length) return null;
+
+  let left = Infinity;
+  let top = Infinity;
+  let right = -Infinity;
+  let bottom = -Infinity;
+
+  pages.forEach((page) => {
+    const rect = page.getBoundingClientRect();
+    left = Math.min(left, rect.left);
+    top = Math.min(top, rect.top);
+    right = Math.max(right, rect.right);
+    bottom = Math.max(bottom, rect.bottom);
+  });
+
+  if (!Number.isFinite(left) || !Number.isFinite(top)) return null;
+  return { width: right - left, height: bottom - top };
 }
 
 export function useReaderController(capabilities: ReaderCapabilities) {
@@ -129,25 +181,146 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
   const [touchDeltaX, setTouchDeltaX] = useState(0);
   const [isDraggingTouch, setIsDraggingTouch] = useState(false);
+  const [edgePull, setEdgePull] = useState(0);
+  const [isEdgePulling, setIsEdgePulling] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
+  const touchStartTimeRef = useRef(0);
+  const touchDeltaXRef = useRef(0);
+  const touchEdgeDirectionRef = useRef(0);
+  const touchEdgeDistanceRef = useRef(0);
+  const touchEdgeAnchorYRef = useRef<number | null>(null);
   const pinchStartDistRef = useRef<number | null>(null);
   const pinchStartZoomRef = useRef(1);
   const isPinchingRef = useRef(false);
+  const zoomAnchorRef = useRef<ZoomAnchor | null>(null);
+  const zoomFocusRef = useRef<{ x: number; y: number } | null>(null);
+  const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
 
   const docRef = useRef<PDFDocumentProxy | null>(null);
   const loadingTaskRef = useRef<PDFDocumentLoadingTask | null>(null);
   const loadGenerationRef = useRef(0);
   const pendingScrollPageRef = useRef<number | null>(null);
   const lastWheelTimeRef = useRef(0);
+  const wheelAccumRef = useRef(0);
+  const wheelDirectionRef = useRef(0);
+  const wheelIdleTimerRef = useRef<number | null>(null);
+  const lastFitScaleRef = useRef(0);
   const pageSaveTimerRef = useRef<number | null>(null);
   const lastSavedPageRef = useRef<{ title: string; page: number } | null>(null);
 
   useEffect(() => {
     measureRefreshRate();
   }, []);
+
+  const getFitScale = useCallback(() => {
+    if (!basePageSize.width || !basePageSize.height || typeof window === 'undefined') {
+      return 1.15;
+    }
+    return computeOptimalPageScale(
+      basePageSize.width,
+      basePageSize.height,
+      window.innerWidth,
+      window.innerHeight,
+      viewMode
+    );
+  }, [basePageSize, viewMode]);
+
+  const canScrollVertically = useCallback(
+    (direction: number) => {
+      const container = scrollContainerRef.current;
+      if (!container) return false;
+
+      // In paged modes the container always overflows a little because of its
+      // breathing-room padding. That padding must not swallow a gesture: only
+      // a page that is genuinely taller than the viewport scrolls first.
+      if (viewMode !== 'continuous') {
+        const content = measurePageContent(container);
+        if (content && content.height <= container.clientHeight - 48) {
+          return false;
+        }
+      }
+
+      const maxScroll = container.scrollHeight - container.clientHeight;
+      if (maxScroll <= 2) return false;
+      return direction > 0 ? container.scrollTop < maxScroll - 1 : container.scrollTop > 1;
+    },
+    [viewMode]
+  );
+
+  const canScrollHorizontally = useCallback(
+    (direction: number) => {
+      const container = scrollContainerRef.current;
+      if (!container) return false;
+
+      if (viewMode !== 'continuous') {
+        const content = measurePageContent(container);
+        if (content && content.width <= container.clientWidth - 48) {
+          return false;
+        }
+      }
+
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      if (maxScroll <= 2) return false;
+      return direction > 0 ? container.scrollLeft < maxScroll - 1 : container.scrollLeft > 1;
+    },
+    [viewMode]
+  );
+
+  const resetEdgePull = useCallback(() => {
+    setEdgePull(0);
+    setIsEdgePulling(false);
+  }, []);
+
+  /** Remembers which point of which page sits under the user's fingers. */
+  const captureZoomAnchor = useCallback((clientX: number, clientY: number) => {
+    const target = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
+    const page = target?.closest<HTMLElement>('[data-pdf-page]');
+    if (!page) {
+      zoomAnchorRef.current = null;
+      zoomFocusRef.current = null;
+      return;
+    }
+    const rect = page.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      zoomAnchorRef.current = null;
+      zoomFocusRef.current = null;
+      return;
+    }
+    zoomAnchorRef.current = {
+      element: page,
+      fractionX: (clientX - rect.left) / rect.width,
+      fractionY: (clientY - rect.top) / rect.height
+    };
+    zoomFocusRef.current = { x: clientX, y: clientY };
+  }, []);
+
+  const clearZoomAnchor = useCallback(() => {
+    zoomAnchorRef.current = null;
+    zoomFocusRef.current = null;
+  }, []);
+
+  // Zooming changes page geometry. Keep the anchored page point under the
+  // gesture focus so pinch and double-tap feel spatial instead of jumping.
+  useLayoutEffect(() => {
+    const anchor = zoomAnchorRef.current;
+    const focus = zoomFocusRef.current;
+    const container = scrollContainerRef.current;
+    if (!anchor || !focus || !container || !anchor.element.isConnected) return;
+
+    const rect = anchor.element.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+
+    const targetX = rect.left + anchor.fractionX * rect.width;
+    const targetY = rect.top + anchor.fractionY * rect.height;
+    const deltaX = targetX - focus.x;
+    const deltaY = targetY - focus.y;
+
+    if (Math.abs(deltaX) > 1) container.scrollLeft += deltaX;
+    if (Math.abs(deltaY) > 1) container.scrollTop += deltaY;
+  }, [zoom]);
 
   useEffect(() => {
     applyFontFamily(fontFamily);
@@ -189,6 +362,9 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     return () => {
       if (pageSaveTimerRef.current !== null) {
         window.clearTimeout(pageSaveTimerRef.current);
+      }
+      if (wheelIdleTimerRef.current !== null) {
+        window.clearTimeout(wheelIdleTimerRef.current);
       }
       if (loadingTaskRef.current) {
         void loadingTaskRef.current.destroy().catch(() => {});
@@ -254,6 +430,19 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     scrollToRenderedPage(pageNumber);
   }, [currentPage, doc, viewMode, scrollToRenderedPage]);
 
+  // Single and dual pages are separate viewports: a new page starts at the
+  // top, never wherever the previous page happened to be scrolled.
+  useEffect(() => {
+    if (viewMode === 'continuous') return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    container.scrollTop = 0;
+    container.scrollLeft = 0;
+    wheelAccumRef.current = 0;
+    wheelDirectionRef.current = 0;
+    resetEdgePull();
+  }, [currentPage, viewMode, resetEdgePull]);
+
   const handlePageVisible = useCallback(
     (pageNumber: number) => {
       setCurrentPage((current) => (current === pageNumber ? current : pageNumber));
@@ -307,37 +496,72 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       setViewMode(nextMode);
       saveViewMode(nextMode);
       if (basePageSize.width && basePageSize.height && typeof window !== 'undefined') {
-        setZoom(
-          computeOptimalPageScale(
-            basePageSize.width,
-            basePageSize.height,
-            window.innerWidth,
-            window.innerHeight,
-            nextMode
-          )
+        const fit = computeOptimalPageScale(
+          basePageSize.width,
+          basePageSize.height,
+          window.innerWidth,
+          window.innerHeight,
+          nextMode
         );
+        lastFitScaleRef.current = fit;
+        setZoom(fit);
       }
     },
     [basePageSize]
   );
 
+  // Orientation changes and window resizes keep a fit-to-page zoom, but never
+  // throw away a manual zoom the reader chose.
   useEffect(() => {
-    const handleResize = () => {
-      if (doc && basePageSize.width && basePageSize.height) {
-        setZoom(
-          computeOptimalPageScale(
-            basePageSize.width,
-            basePageSize.height,
-            window.innerWidth,
-            window.innerHeight,
-            viewMode
-          )
+    let timer: number | null = null;
+
+    const rescale = () => {
+      if (timer !== null) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        timer = null;
+        if (!doc || !basePageSize.width || !basePageSize.height) return;
+        const fit = computeOptimalPageScale(
+          basePageSize.width,
+          basePageSize.height,
+          window.innerWidth,
+          window.innerHeight,
+          viewMode
         );
-      }
+        const previousFit = lastFitScaleRef.current;
+        lastFitScaleRef.current = fit;
+        setZoom((current) =>
+          current <= (previousFit || fit) * 1.08
+            ? fit
+            : Math.min(3.5, Math.max(0.5, current))
+        );
+      }, 140);
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+
+    window.addEventListener('resize', rescale);
+    window.addEventListener('orientationchange', rescale);
+    return () => {
+      if (timer !== null) window.clearTimeout(timer);
+      window.removeEventListener('resize', rescale);
+      window.removeEventListener('orientationchange', rescale);
+    };
   }, [doc, basePageSize, viewMode]);
+
+  // React registers wheel listeners as passive, so preventDefault inside
+  // onWheel is ignored. This guard stops the container's breathing-room
+  // padding from scrolling while a page-turn gesture is being accumulated.
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || !doc) return;
+
+    const guard = (event: WheelEvent) => {
+      if (event.ctrlKey || event.deltaY === 0 || viewMode === 'continuous') return;
+      const direction = event.deltaY > 0 ? 1 : -1;
+      if (!canScrollVertically(direction)) event.preventDefault();
+    };
+
+    container.addEventListener('wheel', guard, { passive: false });
+    return () => container.removeEventListener('wheel', guard);
+  }, [canScrollVertically, doc, viewMode]);
 
   const closeDocument = useCallback(() => {
     const activeDoc = docRef.current;
@@ -358,6 +582,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     setDocumentError(null);
     setIsLoading(false);
     setLoadProgress(null);
+    lastFitScaleRef.current = 0;
     if (activeDoc) destroyDocumentSoon(activeDoc);
   }, []);
 
@@ -466,15 +691,15 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       setDocumentError(null);
 
       if (opened.basePageSize.width && opened.basePageSize.height && typeof window !== 'undefined') {
-        setZoom(
-          computeOptimalPageScale(
-            opened.basePageSize.width,
-            opened.basePageSize.height,
-            window.innerWidth,
-            window.innerHeight,
-            viewMode
-          )
+        const fit = computeOptimalPageScale(
+          opened.basePageSize.width,
+          opened.basePageSize.height,
+          window.innerWidth,
+          window.innerHeight,
+          viewMode
         );
+        lastFitScaleRef.current = fit;
+        setZoom(fit);
       }
 
       const savedPage = loadLastPage(title);
@@ -644,18 +869,87 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
       if (viewMode !== 'single' && viewMode !== 'dual') return;
 
-      const now = Date.now();
-      if (now - lastWheelTimeRef.current < 260) return;
-      if (Math.abs(event.deltaY) <= 20) return;
+      const container = scrollContainerRef.current;
+      const multiplier =
+        event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? container?.clientHeight ?? 400 : 1;
+      const delta = event.deltaY * multiplier;
+      if (Math.abs(delta) < 1) return;
 
-      if (event.deltaY > 0) {
+      const direction = delta > 0 ? 1 : -1;
+
+      // Scroll the page itself before turning it. Only a gesture that pushes
+      // against a real edge becomes a page turn.
+      if (canScrollVertically(direction)) {
+        wheelAccumRef.current = 0;
+        wheelDirectionRef.current = 0;
+        if (isEdgePulling) resetEdgePull();
+        return;
+      }
+
+      const now = performance.now();
+      if (now - lastWheelTimeRef.current < WHEEL_TURN_COOLDOWN_MS) return;
+
+      if (wheelDirectionRef.current !== direction) {
+        wheelDirectionRef.current = direction;
+        wheelAccumRef.current = 0;
+      }
+      wheelAccumRef.current += Math.abs(delta);
+
+      setIsEdgePulling(true);
+      setEdgePull(
+        direction > 0
+          ? -Math.min(16, wheelAccumRef.current / 9)
+          : Math.min(16, wheelAccumRef.current / 9)
+      );
+
+      if (wheelIdleTimerRef.current !== null) {
+        window.clearTimeout(wheelIdleTimerRef.current);
+      }
+      wheelIdleTimerRef.current = window.setTimeout(() => {
+        wheelIdleTimerRef.current = null;
+        wheelAccumRef.current = 0;
+        wheelDirectionRef.current = 0;
+        resetEdgePull();
+      }, 170);
+
+      if (wheelAccumRef.current < WHEEL_TURN_THRESHOLD) return;
+
+      wheelAccumRef.current = 0;
+      wheelDirectionRef.current = 0;
+      lastWheelTimeRef.current = now;
+      resetEdgePull();
+      if (direction > 0) {
         goToNextPage();
       } else {
         goToPrevPage();
       }
-      lastWheelTimeRef.current = now;
     },
-    [goToNextPage, goToPrevPage, viewMode]
+    [
+      canScrollVertically,
+      goToNextPage,
+      goToPrevPage,
+      isEdgePulling,
+      resetEdgePull,
+      viewMode
+    ]
+  );
+
+  const handleDoubleTap = useCallback(
+    (clientX: number, clientY: number) => {
+      const fit = getFitScale();
+      captureZoomAnchor(clientX, clientY);
+      // Double-tap toggles between fit and roughly 2x fit. Any other zoom
+      // level (including a pinch below fit) returns to fit first.
+      const nearFit = Math.abs(zoom - fit) <= Math.max(0.08, fit * 0.1);
+      const target = nearFit ? Math.min(3.5, Math.max(1.6, fit * 2)) : fit;
+      startZoomTransition(() => setZoom(Number(target.toFixed(2))));
+
+      const captured = zoomAnchorRef.current;
+      window.setTimeout(() => {
+        if (zoomAnchorRef.current === captured) clearZoomAnchor();
+      }, ZOOM_ANIMATION_MS);
+    },
+    [captureZoomAnchor, clearZoomAnchor, getFitScale, startZoomTransition, zoom]
   );
 
   const handleTouchStart = (event: ReactTouchEvent<HTMLDivElement>) => {
@@ -668,22 +962,32 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         pinchStartDistRef.current = distance;
         pinchStartZoomRef.current = zoom;
         isPinchingRef.current = true;
+        captureZoomAnchor(
+          (event.touches[0].clientX + event.touches[1].clientX) / 2,
+          (event.touches[0].clientY + event.touches[1].clientY) / 2
+        );
       }
       touchStartX.current = null;
       touchStartY.current = null;
+      touchEdgeAnchorYRef.current = null;
+      touchEdgeDistanceRef.current = 0;
       setIsDraggingTouch(false);
       setTouchDeltaX(0);
+      touchDeltaXRef.current = 0;
       return;
     }
 
-    if (
-      event.touches.length === 1 &&
-      !isPinchingRef.current &&
-      (viewMode === 'single' || viewMode === 'dual')
-    ) {
-      touchStartX.current = event.touches[0].clientX;
-      touchStartY.current = event.touches[0].clientY;
-      setIsDraggingTouch(true);
+    if (event.touches.length === 1 && !isPinchingRef.current) {
+      const touch = event.touches[0];
+      touchStartX.current = touch.clientX;
+      touchStartY.current = touch.clientY;
+      touchStartTimeRef.current = performance.now();
+      touchEdgeAnchorYRef.current = null;
+      touchEdgeDirectionRef.current = 0;
+      touchEdgeDistanceRef.current = 0;
+      if (viewMode === 'single' || viewMode === 'dual') {
+        setIsDraggingTouch(true);
+      }
     }
   };
 
@@ -697,6 +1001,10 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         event.touches[0].clientX - event.touches[1].clientX,
         event.touches[0].clientY - event.touches[1].clientY
       );
+      zoomFocusRef.current = {
+        x: (event.touches[0].clientX + event.touches[1].clientX) / 2,
+        y: (event.touches[0].clientY + event.touches[1].clientY) / 2
+      };
       const factor = distance / pinchStartDistRef.current;
       const targetZoom = Math.min(
         3.5,
@@ -710,59 +1018,189 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       touchStartX.current = null;
       setIsDraggingTouch(false);
       setTouchDeltaX(0);
+      touchDeltaXRef.current = 0;
       return;
     }
 
     if (
-      touchStartX.current !== null &&
-      isDraggingTouch &&
-      !isPinchingRef.current &&
-      (viewMode === 'single' || viewMode === 'dual')
+      touchStartX.current === null ||
+      touchStartY.current === null ||
+      isPinchingRef.current ||
+      (viewMode !== 'single' && viewMode !== 'dual')
     ) {
-      const deltaX = event.touches[0].clientX - touchStartX.current;
-      const deltaY = event.touches[0].clientY - (touchStartY.current || 0);
-      if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        setTouchDeltaX(deltaX);
-      }
-    }
-  };
-
-  const handleTouchEnd = (event: ReactTouchEvent<HTMLDivElement>) => {
-    if (event.touches.length === 0) {
-      isPinchingRef.current = false;
-      pinchStartDistRef.current = null;
-    }
-    if (isPinchingRef.current || event.touches.length > 0) {
-      touchStartX.current = null;
-      touchStartY.current = null;
-      setIsDraggingTouch(false);
-      setTouchDeltaX(0);
       return;
     }
 
-    setIsDraggingTouch(false);
-    if (touchStartX.current === null) return;
+    const touch = event.touches[0];
+    const deltaX = touch.clientX - touchStartX.current;
+    const deltaY = touch.clientY - touchStartY.current;
 
-    if ((viewMode === 'single' || viewMode === 'dual') && Math.abs(touchDeltaX) > 40) {
-      if (touchDeltaX < 0) {
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      const scrollDirection = deltaX < 0 ? 1 : -1;
+      if (canScrollHorizontally(scrollDirection)) {
+        setTouchDeltaX(0);
+        touchDeltaXRef.current = 0;
+        resetEdgePull();
+        return;
+      }
+      setTouchDeltaX(deltaX);
+      touchDeltaXRef.current = deltaX;
+      touchEdgeAnchorYRef.current = null;
+      touchEdgeDistanceRef.current = 0;
+      if (isEdgePulling) resetEdgePull();
+      return;
+    }
+
+    if (Math.abs(deltaY) < 8 || Math.abs(deltaX) > 18) return;
+
+    // Once a gesture is clearly vertical, discard any horizontal travel so a
+    // wobbly swipe cannot turn a page sideways at release.
+    if (touchDeltaXRef.current !== 0) {
+      setTouchDeltaX(0);
+      touchDeltaXRef.current = 0;
+    }
+
+    const direction = deltaY < 0 ? 1 : -1;
+    if (canScrollVertically(direction)) {
+      touchEdgeAnchorYRef.current = null;
+      touchEdgeDistanceRef.current = 0;
+      if (isEdgePulling) resetEdgePull();
+      return;
+    }
+
+    if (touchEdgeAnchorYRef.current === null) {
+      touchEdgeAnchorYRef.current = touch.clientY;
+    }
+    const edgeDistance = Math.abs(touch.clientY - touchEdgeAnchorYRef.current);
+    touchEdgeDirectionRef.current = touch.clientY < touchEdgeAnchorYRef.current ? 1 : -1;
+    touchEdgeDistanceRef.current = edgeDistance;
+    setIsEdgePulling(true);
+    setEdgePull(
+      touchEdgeDirectionRef.current > 0
+        ? -Math.min(22, edgeDistance * 0.4)
+        : Math.min(22, edgeDistance * 0.4)
+    );
+  };
+
+  const handleTouchEnd = (event: ReactTouchEvent<HTMLDivElement>) => {
+    const wasPinching = isPinchingRef.current;
+    if (event.touches.length === 0) {
+      isPinchingRef.current = false;
+      pinchStartDistRef.current = null;
+      const captured = zoomAnchorRef.current;
+      window.setTimeout(() => {
+        if (zoomAnchorRef.current === captured) clearZoomAnchor();
+      }, 0);
+    }
+    if (wasPinching || event.touches.length > 0) {
+      touchStartX.current = null;
+      touchStartY.current = null;
+      touchEdgeAnchorYRef.current = null;
+      touchEdgeDistanceRef.current = 0;
+      setIsDraggingTouch(false);
+      setTouchDeltaX(0);
+      touchDeltaXRef.current = 0;
+      return;
+    }
+
+    const startX = touchStartX.current;
+    const startY = touchStartY.current;
+    const duration = performance.now() - touchStartTimeRef.current;
+    const edgeDistance = touchEdgeDistanceRef.current;
+    const edgeDirection = touchEdgeDirectionRef.current;
+    const touch = event.changedTouches[0];
+
+    setIsDraggingTouch(false);
+    touchStartX.current = null;
+    touchStartY.current = null;
+    touchEdgeAnchorYRef.current = null;
+    touchEdgeDistanceRef.current = 0;
+
+    if (startX === null || startY === null || !touch) {
+      setTouchDeltaX(0);
+      touchDeltaXRef.current = 0;
+      resetEdgePull();
+      return;
+    }
+
+    const movedX = touch.clientX - startX;
+    const movedY = touch.clientY - startY;
+
+    if (
+      viewMode !== 'continuous' &&
+      edgeDistance >= TOUCH_EDGE_TURN_THRESHOLD
+    ) {
+      setTouchDeltaX(0);
+      touchDeltaXRef.current = 0;
+      resetEdgePull();
+      lastTapRef.current = null;
+      if (edgeDirection > 0) {
         goToNextPage();
       } else {
         goToPrevPage();
       }
+      return;
+    }
+
+    if (
+      viewMode !== 'continuous' &&
+      Math.abs(touchDeltaXRef.current) > 40
+    ) {
+      const direction = touchDeltaXRef.current < 0 ? 1 : -1;
+      setTouchDeltaX(0);
+      touchDeltaXRef.current = 0;
+      resetEdgePull();
+      lastTapRef.current = null;
+      if (direction > 0) {
+        goToNextPage();
+      } else {
+        goToPrevPage();
+      }
+      return;
     }
 
     setTouchDeltaX(0);
-    touchStartX.current = null;
-    touchStartY.current = null;
+    touchDeltaXRef.current = 0;
+    resetEdgePull();
+
+    const isTap =
+      duration < 280 &&
+      Math.abs(movedX) < 12 &&
+      Math.abs(movedY) < 12 &&
+      !isInteractiveTarget(event.target);
+
+    if (!isTap) {
+      lastTapRef.current = null;
+      return;
+    }
+
+    const now = performance.now();
+    const previous = lastTapRef.current;
+    if (
+      previous &&
+      now - previous.time < DOUBLE_TAP_MS &&
+      Math.hypot(touch.clientX - previous.x, touch.clientY - previous.y) < 40
+    ) {
+      lastTapRef.current = null;
+      handleDoubleTap(touch.clientX, touch.clientY);
+      return;
+    }
+
+    lastTapRef.current = { time: now, x: touch.clientX, y: touch.clientY };
   };
 
   const handleTouchCancel = () => {
     isPinchingRef.current = false;
     pinchStartDistRef.current = null;
+    clearZoomAnchor();
     touchStartX.current = null;
     touchStartY.current = null;
+    touchEdgeAnchorYRef.current = null;
+    touchEdgeDistanceRef.current = 0;
     setIsDraggingTouch(false);
     setTouchDeltaX(0);
+    touchDeltaXRef.current = 0;
+    resetEdgePull();
   };
 
   const handleToggleFullscreen = useCallback(() => {
@@ -915,6 +1353,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     dualFlipDir,
     touchDeltaX,
     isDraggingTouch,
+    edgePull,
+    isEdgePulling,
     scrollContainerRef,
     openFile,
     openSample,

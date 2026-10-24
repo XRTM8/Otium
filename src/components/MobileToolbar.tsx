@@ -68,6 +68,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
   onCloseDocument
 }) => {
   const [showMenu, setShowMenu] = useState(false);
+  const [compactLandscape, setCompactLandscape] = useState(false);
   const t = getTranslations(currentLang);
   const ar = currentLang === 'ar';
   const viewModeLabel = ar
@@ -79,6 +80,24 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
     const timer = window.setTimeout(() => setShowMenu(false), 8000);
     return () => window.clearTimeout(timer);
   }, [showMenu]);
+
+  // Landscape phones have very little height: shrink the chrome and drop the
+  // duplicate actions that also live in the overflow menu.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const query = window.matchMedia('(orientation: landscape) and (max-height: 540px)');
+    const update = () => setCompactLandscape(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+
+  const topOffset = compactLandscape
+    ? 'max(0.35rem, calc(env(safe-area-inset-top, 0px) + 0.25rem))'
+    : 'max(0.6rem, calc(env(safe-area-inset-top, 0px) + 0.45rem))';
+  const bottomOffset = compactLandscape
+    ? 'max(0.35rem, calc(env(safe-area-inset-bottom, 0px) + 0.25rem))'
+    : 'max(0.6rem, calc(env(safe-area-inset-bottom, 0px) + 0.45rem))';
 
   const viewModeIcon =
     viewMode === 'continuous' ? (
@@ -93,10 +112,14 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
     <>
       <div
         dir="ltr"
-        style={{ top: 'max(0.6rem, calc(env(safe-area-inset-top, 0px) + 0.45rem))' }}
+        style={{
+          top: topOffset,
+          paddingLeft: 'max(0.5rem, env(safe-area-inset-left, 0px))',
+          paddingRight: 'max(0.5rem, env(safe-area-inset-right, 0px))'
+        }}
         className="fixed inset-x-0 z-40 flex justify-center px-2 pointer-events-none"
       >
-        <div className="pointer-events-auto flex items-center gap-1 w-full max-w-lg px-2 py-1.5 rounded-2xl bg-surface text-ink border border-line shadow-2xl backdrop-blur-xl">
+        <div className="mobile-chrome-bar pointer-events-auto flex items-center gap-1 w-full max-w-lg px-2 py-1.5 rounded-2xl bg-surface text-ink border border-line shadow-2xl backdrop-blur-xl">
           <button
             type="button"
             onClick={onCloseDocument}
@@ -145,6 +168,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
       {showMenu && (
         <div
           dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
+          style={{ top: compactLandscape ? 'max(2.9rem, calc(env(safe-area-inset-top, 0px) + 2.5rem))' : undefined }}
           className="fixed inset-x-2 top-16 z-50 mx-auto max-w-lg rounded-2xl bg-surface border border-line p-3 shadow-2xl backdrop-blur-2xl text-ink space-y-3 animate-in fade-in zoom-in-95 duration-150"
         >
           <div className="flex items-center justify-between">
@@ -245,10 +269,14 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
 
       <div
         dir="ltr"
-        style={{ bottom: 'max(0.6rem, calc(env(safe-area-inset-bottom, 0px) + 0.45rem))' }}
+        style={{
+          bottom: bottomOffset,
+          paddingLeft: 'max(0.5rem, env(safe-area-inset-left, 0px))',
+          paddingRight: 'max(0.5rem, env(safe-area-inset-right, 0px))'
+        }}
         className="fixed inset-x-0 z-40 flex justify-center px-2 pointer-events-none"
       >
-        <div className="pointer-events-auto flex items-center gap-1 px-2 py-1.5 rounded-2xl bg-surface text-ink border border-line shadow-2xl backdrop-blur-xl">
+        <div className="mobile-chrome-bar pointer-events-auto flex items-center gap-1 px-2 py-1.5 rounded-2xl bg-surface text-ink border border-line shadow-2xl backdrop-blur-xl">
           <button
             type="button"
             onClick={() => onPageChange(Math.max(1, currentPage - 1))}
@@ -277,13 +305,13 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             <ChevronRight className="w-5 h-5" />
           </button>
 
-          <div className="w-px h-5 bg-hover mx-0.5" />
+          <div className="mobile-chrome-extra w-px h-5 bg-hover mx-0.5" />
 
           <button
             type="button"
             onClick={onToggleBookmark}
             aria-label={isBookmarked ? t.removeBookmark : t.addBookmark}
-            className={`p-2 rounded-xl active:bg-hover-strong ${
+            className={`mobile-chrome-extra p-2 rounded-xl active:bg-hover-strong ${
               isBookmarked ? 'text-highlight' : 'text-ink-muted'
             }`}
           >
@@ -294,7 +322,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             type="button"
             onClick={onToggleSearch}
             aria-label={t.searchTooltip}
-            className="p-2 rounded-xl text-ink-muted active:bg-hover-strong"
+            className="mobile-chrome-extra p-2 rounded-xl text-ink-muted active:bg-hover-strong"
           >
             <Search className="w-4 h-4" />
           </button>

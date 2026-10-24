@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { TextAnnotation, ThemeMode } from '../core/types';
@@ -133,31 +133,84 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
     handleTouchStart,
     handleTouchMove,
     handleTouchEnd,
+    handleTouchCancel,
     touchDeltaX,
     isDraggingTouch,
+    edgePull,
+    isEdgePulling,
     dualFlipKey,
     dualFlipDir
   } = reader;
 
+  const [compactLandscape, setCompactLandscape] = useState(false);
+
+  useEffect(() => {
+    if (!compact || typeof window === 'undefined') return;
+    const query = window.matchMedia('(orientation: landscape) and (max-height: 540px)');
+    const update = () => setCompactLandscape(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, [compact]);
+
+  // When the page fits vertically, vertical touch gestures are page turns,
+  // not scrolling: block native panning so only the spring edge-pull moves.
+  // Overflowing pages keep pan-y so scrolling through them stays native.
+  useLayoutEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    if (!doc || viewMode === 'continuous') {
+      container.style.touchAction = 'pan-x pan-y';
+      return;
+    }
+    let tallest = 0;
+    container.querySelectorAll<HTMLElement>('[data-pdf-page]').forEach((page) => {
+      tallest = Math.max(tallest, page.getBoundingClientRect().height);
+    });
+    container.style.touchAction =
+      tallest > 0 && tallest <= container.clientHeight - 48 ? 'pan-x' : 'pan-x pan-y';
+  }, [doc, viewMode, currentPage, zoom, compactLandscape, scrollContainerRef]);
+
   if (!doc) return null;
+
+  const gestureTransform =
+    isDraggingTouch || edgePull !== 0
+      ? `translate3d(${touchDeltaX}px, ${edgePull}px, 0)`
+      : undefined;
+  const gestureTransition =
+    isDraggingTouch || isEdgePulling
+      ? 'none'
+      : 'transform 280ms cubic-bezier(0.22, 1.36, 0.36, 1)';
 
   return (
     <div
       ref={scrollContainerRef}
+      dir="ltr"
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchCancel}
       style={{
-        paddingTop: compact
-          ? 'max(4.1rem, calc(env(safe-area-inset-top, 0px) + 3.6rem))'
-          : 'max(4.5rem, calc(env(safe-area-inset-top, 0px) + 4.2rem))',
-        paddingBottom: compact
-          ? 'max(5.5rem, calc(env(safe-area-inset-bottom, 0px) + 5rem))'
-          : undefined,
-        touchAction: 'pan-x pan-y pinch-zoom'
+        paddingTop: compactLandscape
+          ? 'max(3rem, calc(env(safe-area-inset-top, 0px) + 2.6rem))'
+          : compact
+            ? 'max(4.1rem, calc(env(safe-area-inset-top, 0px) + 3.6rem))'
+            : 'max(4.5rem, calc(env(safe-area-inset-top, 0px) + 4.2rem))',
+        paddingBottom: compactLandscape
+          ? 'max(3.2rem, calc(env(safe-area-inset-bottom, 0px) + 2.8rem))'
+          : compact
+            ? 'max(5.5rem, calc(env(safe-area-inset-bottom, 0px) + 5rem))'
+            : undefined,
+        ...(compact
+          ? {
+              paddingLeft: 'max(0.5rem, env(safe-area-inset-left, 0px))',
+              paddingRight: 'max(0.5rem, env(safe-area-inset-right, 0px))'
+            }
+          : {}),
+        touchAction: 'pan-x pan-y'
       }}
-      className="flex-1 w-full h-full overflow-y-auto overflow-x-auto pb-20 sm:pb-24 px-2 sm:px-4 relative"
+      className="flex-1 w-full h-full overflow-y-auto overflow-x-auto overscroll-contain pb-20 sm:pb-24 px-2 sm:px-4 relative"
     >
       {/* Reading progress for the current document. */}
       <div className="fixed top-0 inset-x-0 h-[2px] bg-line dark:bg-hover z-40 pointer-events-none">
@@ -193,7 +246,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
       )}
 
       {viewMode === 'continuous' ? (
-        <div className="flex flex-col items-center">
+        <div className="w-max min-w-full flex flex-col items-center">
           {Array.from({ length: numPages }, (_, index) => index + 1).map((pageNum) => (
             <PageSlot
               key={pageNum}
@@ -215,71 +268,78 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
           ))}
         </div>
       ) : viewMode === 'dual' ? (
-        <div className="min-h-full flex items-center justify-center py-2 sm:py-4 overflow-hidden">
+        <div className="min-h-full w-max min-w-full flex items-center justify-center py-2 sm:py-4 overflow-hidden">
           <div
-            key={dualFlipKey}
-            className="flex flex-row items-center justify-center gap-1 sm:gap-2 shadow-2xl"
             style={{
-              transform:
-                isDraggingTouch && touchDeltaX !== 0 ? `translateX(${touchDeltaX}px)` : undefined,
-              animation:
-                !isDraggingTouch && dualFlipKey > 0
-                  ? `dualPageFlip${dualFlipDir === 'forward' ? 'Forward' : 'Backward'} 280ms cubic-bezier(0.16, 1, 0.3, 1) both`
-                  : undefined
+              transform: gestureTransform,
+              transition: gestureTransition,
+              willChange: 'transform'
             }}
           >
-            <div className="relative">
-              <PdfPage
-                key={`dual-page-${currentPage}`}
-                doc={doc}
-                pageNumber={currentPage}
-                scale={zoom}
-                theme={theme}
-                annotations={annotations}
-                onDeleteAnnotation={deleteAnnotation}
-                baseAspectRatio={baseAspectRatio}
-                searchQuery={searchQuery}
-                isCurrentSearchPage={activeSearchPage === currentPage}
-                lang={lang}
-              />
-            </div>
-
-            {currentPage + 1 <= numPages ? (
-              <div className="relative border-l border-line">
+            <div
+              key={dualFlipKey}
+              className="flex flex-row items-center justify-center gap-1 sm:gap-2 shadow-2xl"
+              style={{
+                animation:
+                  !isDraggingTouch && !isEdgePulling && dualFlipKey > 0
+                    ? `dualPageFlip${dualFlipDir === 'forward' ? 'Forward' : 'Backward'} 280ms cubic-bezier(0.16, 1, 0.3, 1) both`
+                    : undefined
+              }}
+            >
+              <div className="relative shrink-0">
                 <PdfPage
-                  key={`dual-page-${currentPage + 1}`}
+                  key={`dual-page-${currentPage}`}
                   doc={doc}
-                  pageNumber={currentPage + 1}
+                  pageNumber={currentPage}
                   scale={zoom}
                   theme={theme}
                   annotations={annotations}
                   onDeleteAnnotation={deleteAnnotation}
                   baseAspectRatio={baseAspectRatio}
                   searchQuery={searchQuery}
-                  isCurrentSearchPage={activeSearchPage === currentPage + 1}
+                  isCurrentSearchPage={activeSearchPage === currentPage}
                   lang={lang}
                 />
               </div>
-            ) : (
-              <div
-                style={{
-                  width: Math.round(basePageSize.width * zoom),
-                  height: Math.round(basePageSize.height * zoom)
-                }}
-                className="hidden sm:flex items-center justify-center border border-dashed border-line rounded-xs text-xs text-ink-faint font-mono"
-              >
-                {lang === 'ar' ? 'نهاية المستند' : 'End of Document'}
-              </div>
-            )}
+
+              {currentPage + 1 <= numPages ? (
+                <div className="relative shrink-0 border-l border-line">
+                  <PdfPage
+                    key={`dual-page-${currentPage + 1}`}
+                    doc={doc}
+                    pageNumber={currentPage + 1}
+                    scale={zoom}
+                    theme={theme}
+                    annotations={annotations}
+                    onDeleteAnnotation={deleteAnnotation}
+                    baseAspectRatio={baseAspectRatio}
+                    searchQuery={searchQuery}
+                    isCurrentSearchPage={activeSearchPage === currentPage + 1}
+                    lang={lang}
+                  />
+                </div>
+              ) : (
+                <div
+                  style={{
+                    width: Math.round(basePageSize.width * zoom),
+                    height: Math.round(basePageSize.height * zoom)
+                  }}
+                  className="hidden sm:flex items-center justify-center border border-dashed border-line rounded-xs text-xs text-ink-faint font-mono"
+                >
+                  {lang === 'ar' ? 'نهاية المستند' : 'End of Document'}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       ) : (
         <div
           style={{
-            transform:
-              isDraggingTouch && touchDeltaX !== 0 ? `translateX(${touchDeltaX}px)` : undefined
+            transform: gestureTransform,
+            transition: gestureTransition,
+            willChange: 'transform'
           }}
-          className="min-h-full flex items-center justify-center py-2 sm:py-4"
+          className="min-h-full w-max min-w-full flex items-center justify-center py-2 sm:py-4"
         >
           <PdfPage
             key={`single-page-${currentPage}`}

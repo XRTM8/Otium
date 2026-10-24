@@ -418,6 +418,22 @@
   opacity: 0.35;
 }
 
+/* Landscape phones need slimmer chrome so the page keeps the height. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .mobile-chrome-bar {
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+  }
+
+  .mobile-chrome-bar button {
+    padding: 0.35rem;
+  }
+
+  .mobile-chrome-extra {
+    display: none;
+  }
+}
+
 /* =====================================================
    Dual-Page Book Flip Animations
    Forward  = قلب للأمام  (3D subtle page curl from right)

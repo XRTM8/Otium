@@ -245,7 +245,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           {/* Zoom */}
           <div className="flex items-center gap-0.5">
             <button
-              onClick={() => onZoomChange(Math.max(0.4, Number((zoom - 0.15).toFixed(2))))}
+              onClick={() => onZoomChange(Math.max(0.5, Number((zoom - 0.15).toFixed(2))))}
               title={t.zoomOut}
               className="p-1.5 rounded-full hover:bg-hover text-ink-muted transition-colors cursor-pointer"
             >
@@ -255,7 +255,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               {Math.round(zoom * 100)}%
             </span>
             <button
-              onClick={() => onZoomChange(Math.min(2.5, Number((zoom + 0.15).toFixed(2))))}
+              onClick={() => onZoomChange(Math.min(3.5, Number((zoom + 0.15).toFixed(2))))}
               title={t.zoomIn}
               className="p-1.5 rounded-full hover:bg-hover text-ink-muted transition-colors cursor-pointer"
             >
@@ -373,7 +373,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <span className="text-xs text-ink-muted font-medium">{t.zoomLevel}</span>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => onZoomChange(Math.max(0.4, Number((zoom - 0.15).toFixed(2))))}
+                onClick={() => onZoomChange(Math.max(0.5, Number((zoom - 0.15).toFixed(2))))}
                 className="p-1 rounded-lg bg-hover-subtle hover:bg-hover text-ink-muted cursor-pointer"
               >
                 <ZoomOut className="w-4 h-4" />
@@ -382,7 +382,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 {Math.round(zoom * 100)}%
               </span>
               <button
-                onClick={() => onZoomChange(Math.min(2.5, Number((zoom + 0.15).toFixed(2))))}
+                onClick={() => onZoomChange(Math.min(3.5, Number((zoom + 0.15).toFixed(2))))}
                 className="p-1 rounded-lg bg-hover-subtle hover:bg-hover text-ink-muted cursor-pointer"
               >
                 <ZoomIn className="w-4 h-4" />
