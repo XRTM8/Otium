@@ -30,35 +30,54 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const debounceTimerRef = useRef<number | null>(null);
+  const searchRunRef = useRef(0);
+  const onQueryChangeRef = useRef(onQueryChange);
   const t = getTranslations(lang);
+
+  useEffect(() => {
+    onQueryChangeRef.current = onQueryChange;
+  }, [onQueryChange]);
 
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 50);
     } else {
+      if (debounceTimerRef.current !== null) {
+        window.clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+      searchRunRef.current += 1;
       setQuery('');
       setResults([]);
       setCurrentIndex(0);
-      onQueryChange('', null);
+      setIsSearching(false);
+      onQueryChangeRef.current('', null);
     }
-  }, [isOpen, onQueryChange]);
+  }, [isOpen]);
 
-  const handleSearch = async (searchTerm: string) => {
-    setQuery(searchTerm);
-    if (!doc || !searchTerm.trim() || searchTerm.length < 2) {
-      setResults([]);
-      setCurrentIndex(0);
-      onQueryChange('', null);
-      return;
-    }
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current !== null) {
+        window.clearTimeout(debounceTimerRef.current);
+      }
+      searchRunRef.current += 1;
+    };
+  }, []);
+
+  const performSearch = async (searchTerm: string) => {
+    const runId = ++searchRunRef.current;
+    const normalized = searchTerm.trim().toLowerCase();
+    const matches: SearchResult[] = [];
 
     setIsSearching(true);
-    const matches: SearchResult[] = [];
-    const normalized = searchTerm.trim().toLowerCase();
+    onQueryChangeRef.current('', null);
 
     try {
-      for (let i = 1; i <= doc.numPages; i++) {
-        const page = await doc.getPage(i);
+      for (let i = 1; i <= doc!.numPages; i++) {
+        if (runId !== searchRunRef.current) return;
+
+        const page = await doc!.getPage(i);
         const textContent = await page.getTextContent();
         const pageText = textContent.items
           .map((item: any) => item.str)
@@ -68,21 +87,60 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         if (pageText.includes(normalized)) {
           matches.push({ pageNumber: i });
         }
+
+        if (i % 8 === 0) {
+          await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+        }
       }
+
+      if (runId !== searchRunRef.current) return;
 
       setResults(matches);
       if (matches.length > 0) {
         setCurrentIndex(0);
         onNavigateToPage(matches[0].pageNumber);
-        onQueryChange(searchTerm.trim(), matches[0].pageNumber);
+        onQueryChangeRef.current(searchTerm.trim(), matches[0].pageNumber);
       } else {
-        onQueryChange(searchTerm.trim(), null);
+        onQueryChangeRef.current(searchTerm.trim(), null);
       }
     } catch (err) {
-      console.warn('Search error:', err);
+      if (runId === searchRunRef.current) {
+        console.warn('Search error:', err);
+      }
     } finally {
-      setIsSearching(false);
+      if (runId === searchRunRef.current) {
+        setIsSearching(false);
+      }
     }
+  };
+
+  const handleSearch = (searchTerm: string) => {
+    setQuery(searchTerm);
+
+    if (debounceTimerRef.current !== null) {
+      window.clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    searchRunRef.current += 1;
+
+    const trimmed = searchTerm.trim();
+    if (!doc || trimmed.length < 2) {
+      setResults([]);
+      setCurrentIndex(0);
+      setIsSearching(false);
+      onQueryChangeRef.current('', null);
+      return;
+    }
+
+    setResults([]);
+    setCurrentIndex(0);
+    setIsSearching(true);
+    onQueryChangeRef.current('', null);
+
+    debounceTimerRef.current = window.setTimeout(() => {
+      debounceTimerRef.current = null;
+      void performSearch(trimmed);
+    }, 250);
   };
 
   const nextMatch = () => {

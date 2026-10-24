@@ -16,7 +16,7 @@
     -webkit-tap-highlight-color: transparent;
     /* Prevent browser native pinch-zoom from conflicting with our custom pinch handler */
     touch-action: pan-x pan-y;
-    font-family: var(--app-font-family, 'Tajawal', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
+    font-family: var(--app-font-family, 'Tajawal', 'Plus Jakarta Sans Variable', system-ui, -apple-system, sans-serif);
   }
 
   :root {

@@ -15,7 +15,7 @@ export const FONTS_LIST: FontDefinition[] = [
     id: 'tajawal',
     name: 'تجوال',
     subname: 'Tajawal',
-    cssFamily: "'Tajawal', 'Plus Jakarta Sans', sans-serif",
+    cssFamily: "'Tajawal', 'Plus Jakarta Sans Variable', sans-serif",
     badge: 'افتراضي متوازن',
     sampleAr: 'أبجد هوز حطي كلمن',
     sampleEn: 'The quiet reading vibe'
@@ -33,7 +33,7 @@ export const FONTS_LIST: FontDefinition[] = [
     id: 'cairo',
     name: 'كايرو',
     subname: 'Cairo',
-    cssFamily: "'Cairo', sans-serif",
+    cssFamily: "'Cairo Variable', 'Tajawal', sans-serif",
     badge: 'معاصر وجريء',
     sampleAr: 'وضوح فائق وسهولة تصفح',
     sampleEn: 'Bold and clear modern type'
@@ -60,7 +60,7 @@ export const FONTS_LIST: FontDefinition[] = [
     id: 'lora',
     name: 'لورا سيريف',
     subname: 'Lora Editorial',
-    cssFamily: "'Lora', 'Amiri', serif",
+    cssFamily: "'Lora Variable', 'Amiri', serif",
     badge: 'مطبوعات ورقية',
     sampleAr: 'طابع المطابع الكلاسيكية الراقية',
     sampleEn: 'Editorial book typography'
@@ -69,7 +69,7 @@ export const FONTS_LIST: FontDefinition[] = [
     id: 'jakarta',
     name: 'بلس جاكرتا',
     subname: 'Plus Jakarta Sans',
-    cssFamily: "'Plus Jakarta Sans', 'Tajawal', sans-serif",
+    cssFamily: "'Plus Jakarta Sans Variable', 'Tajawal', sans-serif",
     badge: 'واجهات رقمية',
     sampleAr: 'تصميم عالمي حديث',
     sampleEn: 'Geometric & tech minimal'

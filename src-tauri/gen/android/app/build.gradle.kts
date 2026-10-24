@@ -21,6 +21,28 @@ val keystoreProperties = Properties().apply {
     }
 }
 
+val releaseStoreFile = keystoreProperties.getProperty("storeFile")?.let { file(it) }
+val releaseSigningReady =
+    releaseStoreFile?.exists() == true &&
+    !keystoreProperties.getProperty("storePassword").isNullOrBlank() &&
+    !keystoreProperties.getProperty("keyAlias").isNullOrBlank() &&
+    !keystoreProperties.getProperty("keyPassword").isNullOrBlank()
+
+// Fail fast for release builds. Checking the requested task names works with
+// Gradle's configuration cache, unlike inspecting the task graph. A missing
+// release key must never silently produce a debug-signed distributable.
+val releaseBuildRequested = gradle.startParameter.taskNames.any {
+    it.contains("release", ignoreCase = true)
+}
+
+if (releaseBuildRequested && !releaseSigningReady) {
+    throw GradleException(
+        "Release signing is not configured. Add app/keystore.properties with " +
+        "storeFile, storePassword, keyAlias, and keyPassword, and verify the keystore exists. " +
+        "Release builds must never be signed with the debug key."
+    )
+}
+
 android {
     compileSdk = 36
     namespace = "com.otium.reader"
@@ -35,10 +57,8 @@ android {
 
     signingConfigs {
         create("release") {
-            val keyFilePath = keystoreProperties.getProperty("storeFile")
-            val keyFile = if (keyFilePath != null) file(keyFilePath) else null
-            if (keyFile != null && keyFile.exists()) {
-                storeFile = keyFile
+            if (releaseSigningReady) {
+                storeFile = releaseStoreFile
                 storePassword = keystoreProperties.getProperty("storePassword")
                 keyAlias = keystoreProperties.getProperty("keyAlias")
                 keyPassword = keystoreProperties.getProperty("keyPassword")
@@ -64,8 +84,8 @@ android {
             }
         }
         getByName("release") {
-            val releaseConfig = signingConfigs.getByName("release")
-            signingConfig = if (releaseConfig.storeFile != null) releaseConfig else signingConfigs.getByName("debug")
+            // Never fall back to debug signing for a distributable APK.
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             
             proguardFiles(

@@ -34,6 +34,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   const textLayerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [hasRenderedOnce, setHasRenderedOnce] = useState(false);
+  const [textLayerVersion, setTextLayerVersion] = useState(0);
   const [activeAnno, setActiveAnno] = useState<{ id: string; type: string; x: number; y: number } | null>(null);
   const currentRenderTaskRef = useRef<any>(null);
   const lastRenderedScaleRef = useRef<number>(0);
@@ -200,6 +201,9 @@ export const PdfPage: React.FC<PdfPageProps> = ({
                 viewport: cssViewport
               });
               await textLayer.render();
+              if (isCurrentEffect) {
+                setTextLayerVersion((version) => version + 1);
+              }
             } catch {
               // Non-blocking
             }
@@ -223,37 +227,71 @@ export const PdfPage: React.FC<PdfPageProps> = ({
     };
   }, [doc, pageNumber, scale, isVisible, hasRenderedOnce]);
 
-  // Apply Search Highlight Markers inside TextLayer
+  // Apply Search Highlight Markers inside TextLayer without injecting HTML
   useEffect(() => {
     const container = textLayerRef.current;
     if (!container || !hasRenderedOnce) return;
 
-    // Clean previous highlights
-    const existingMarks = container.querySelectorAll('.search-highlight');
-    existingMarks.forEach((m) => {
-      const parent = m.parentNode;
-      if (parent) {
-        parent.replaceChild(document.createTextNode(m.textContent || ''), m);
-        parent.normalize();
+    // Restore the original text nodes before applying a new query.
+    const existingMarks = container.querySelectorAll('mark.search-highlight');
+    existingMarks.forEach((mark) => {
+      const parent = mark.parentNode;
+      if (!parent) return;
+      while (mark.firstChild) {
+        parent.insertBefore(mark.firstChild, mark);
       }
+      parent.removeChild(mark);
     });
+    container.normalize();
 
-    if (!searchQuery || !searchQuery.trim() || searchQuery.length < 2) return;
+    if (!searchQuery || !searchQuery.trim() || searchQuery.trim().length < 2) return;
 
-    const safeTerm = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`(${safeTerm})`, 'gi');
+    const safeTerm = searchQuery.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(safeTerm, 'gi');
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+    const textNodes: Text[] = [];
 
-    const spans = container.querySelectorAll('span');
-    spans.forEach((span) => {
-      const text = span.textContent || '';
-      if (regex.test(text)) {
-        span.innerHTML = text.replace(
-          regex,
-          `<mark class="search-highlight ${isCurrentSearchPage ? 'active-search-highlight' : ''}">$1</mark>`
-        );
+    let currentNode = walker.nextNode();
+    while (currentNode) {
+      if (currentNode.nodeValue) {
+        textNodes.push(currentNode as Text);
       }
-    });
-  }, [searchQuery, isCurrentSearchPage, hasRenderedOnce]);
+      currentNode = walker.nextNode();
+    }
+
+    for (const textNode of textNodes) {
+      const text = textNode.nodeValue || '';
+      if (!text) continue;
+
+      regex.lastIndex = 0;
+      const matches = Array.from(text.matchAll(regex));
+      if (matches.length === 0) continue;
+
+      const fragment = document.createDocumentFragment();
+      let cursor = 0;
+
+      for (const match of matches) {
+        const start = match.index ?? 0;
+        if (start > cursor) {
+          fragment.appendChild(document.createTextNode(text.slice(cursor, start)));
+        }
+
+        const marker = document.createElement('mark');
+        marker.className = isCurrentSearchPage
+          ? 'search-highlight active-search-highlight'
+          : 'search-highlight';
+        marker.textContent = match[0];
+        fragment.appendChild(marker);
+        cursor = start + match[0].length;
+      }
+
+      if (cursor < text.length) {
+        fragment.appendChild(document.createTextNode(text.slice(cursor)));
+      }
+
+      textNode.parentNode?.replaceChild(fragment, textNode);
+    }
+  }, [searchQuery, isCurrentSearchPage, hasRenderedOnce, textLayerVersion]);
 
   const getThemeFilterStyle = (): React.CSSProperties => {
     switch (theme) {

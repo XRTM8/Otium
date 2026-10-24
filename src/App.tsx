@@ -283,51 +283,6 @@ const App: React.FC = () => {
   // Incoming PDF Handler (Android Intent or Windows Open-With)
   const loadPdfDataRef = useRef<(data: ArrayBuffer, title: string) => Promise<void>>(() => Promise.resolve());
 
-  useEffect(() => {
-    const loadFromBase64 = (base64Data: string, fileName: string) => {
-      try {
-        const binaryString = atob(base64Data);
-        const len = binaryString.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        loadPdfDataRef.current(bytes.buffer, fileName);
-      } catch (err) {
-        console.error('Failed to parse incoming PDF:', err);
-      }
-    };
-
-    (window as any).__OTIUM_LOAD_PDF_BASE64__ = loadFromBase64;
-
-    if ((window as any).__OTIUM_INITIAL_PDF__) {
-      const { base64, name } = (window as any).__OTIUM_INITIAL_PDF__;
-      if (base64 && name) {
-        loadFromBase64(base64, name);
-      }
-    }
-
-    // Desktop Tauri: Check if launched with a PDF file argument
-    if (typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window)) {
-      import('@tauri-apps/api/core').then(({ invoke }) => {
-        invoke('get_initial_pdf').then((initial: any) => {
-          if (initial && initial.path) {
-            invoke('read_pdf_bytes', { path: initial.path }).then((bytes: any) => {
-              if (bytes && bytes.length) {
-                const arr = new Uint8Array(bytes);
-                loadPdfDataRef.current(arr.buffer, initial.name || 'document.pdf');
-              }
-            }).catch(() => {});
-          }
-        }).catch(() => {});
-      }).catch(() => {});
-    }
-
-    return () => {
-      delete (window as any).__OTIUM_LOAD_PDF_BASE64__;
-    };
-  }, []);
-
   const scrollToPage = useCallback((pageNumber: number) => {
     if (pageNumber !== currentPage) {
       setDualFlipDir(pageNumber > currentPage ? 'forward' : 'backward');
@@ -600,6 +555,45 @@ const App: React.FC = () => {
   useEffect(() => {
     loadPdfDataRef.current = loadPdfData;
   });
+
+  // Native bridges are exposed after the PDF loader ref is bound, so a cold-start
+  // Android intent cannot be acknowledged before the loader is ready.
+  useEffect(() => {
+    const loadFromBase64 = (base64Data: string, fileName: string) => {
+      try {
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        void loadPdfDataRef.current(bytes.buffer, fileName);
+      } catch (err) {
+        console.error('Failed to parse incoming PDF:', err);
+      }
+    };
+
+    (window as any).__OTIUM_LOAD_PDF_BASE64__ = loadFromBase64;
+
+    // Desktop Tauri: check if the app was launched with a PDF path.
+    if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+      import('@tauri-apps/api/core').then(({ invoke }) => {
+        invoke('get_initial_pdf').then((initial: any) => {
+          if (initial?.path) {
+            invoke('read_pdf_bytes', { path: initial.path }).then((bytes: any) => {
+              if (bytes?.length) {
+                const arr = new Uint8Array(bytes);
+                void loadPdfDataRef.current(arr.buffer, initial.name || 'document.pdf');
+              }
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+      }).catch(() => {});
+    }
+
+    return () => {
+      delete (window as any).__OTIUM_LOAD_PDF_BASE64__;
+    };
+  }, []);
 
   const handleOpenFile = async (file: File) => {
     const arrayBuffer = await file.arrayBuffer();
