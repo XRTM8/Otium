@@ -1,11 +1,10 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "enables the default permissions",
-  "windows": [
-    "main"
-  ],
+  "description": "Core access and external links for every Otium shell.",
+  "windows": ["main"],
   "permissions": [
-    "core:default"
+    "core:default",
+    "opener:default"
   ]
 }

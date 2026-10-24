@@ -1,0 +1,69 @@
+import React from 'react';
+import { useReaderController } from '../app/useReaderController';
+import { getThemeBackground } from '../app/themeBackground';
+import { ReaderOverlays } from '../components/ReaderOverlays';
+import { ReaderWorkspace } from '../components/ReaderWorkspace';
+import { TextSelectionMenu } from '../components/TextSelectionMenu';
+import { Toolbar } from '../components/Toolbar';
+import { WelcomeScreen } from '../components/WelcomeScreen';
+
+/** Windows shell: floating desktop toolbar, keyboard shortcuts and drag/drop. */
+export const DesktopShell: React.FC = () => {
+  const reader = useReaderController({ keyboard: true, dragDrop: true });
+
+  return (
+    <div
+      className={`relative w-screen h-screen overflow-hidden flex flex-col font-sans transition-colors duration-300 theme-${reader.theme}`}
+      style={{ backgroundColor: getThemeBackground(reader.theme) }}
+    >
+      {!reader.doc ? (
+        <WelcomeScreen
+          currentTheme={reader.theme}
+          currentLang={reader.lang}
+          onThemeChange={reader.changeTheme}
+          onToggleLanguage={reader.changeLanguage}
+          onOpenSettings={() => reader.setIsSettingsOpen(true)}
+          onOpenFile={reader.openFile}
+          onOpenSample={reader.openSample}
+          onOpenRecent={reader.openRecent}
+        />
+      ) : (
+        <>
+          <Toolbar
+            title={reader.docTitle}
+            currentPage={reader.currentPage}
+            totalPages={reader.numPages}
+            zoom={reader.zoom}
+            theme={reader.theme}
+            viewMode={reader.viewMode}
+            currentLang={reader.lang}
+            isFullscreen={reader.isFullscreen}
+            isBookmarked={reader.bookmarks.some(
+              (bookmark) => bookmark.pageNumber === reader.currentPage
+            )}
+            onPageChange={reader.scrollToPage}
+            onZoomChange={reader.setZoom}
+            onThemeChange={reader.changeTheme}
+            onViewModeChange={reader.changeViewMode}
+            onToggleBookmark={() => reader.toggleBookmark(reader.currentPage)}
+            onToggleFullscreen={reader.handleToggleFullscreen}
+            onToggleSidebar={() => reader.setIsSidebarOpen(true)}
+            onToggleSearch={() => reader.setIsSearchOpen((open) => !open)}
+            onToggleSettings={() => reader.setIsSettingsOpen(true)}
+            onCloseDocument={reader.closeDocument}
+          />
+
+          <TextSelectionMenu
+            onAddAnnotation={reader.addAnnotation}
+            onDeleteAnnotation={reader.deleteAnnotation}
+            annotations={reader.annotations}
+          />
+
+          <ReaderWorkspace reader={reader} />
+        </>
+      )}
+
+      <ReaderOverlays reader={reader} />
+    </div>
+  );
+};

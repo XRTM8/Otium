@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Copy, Underline as UnderlineIcon, Check, X, Trash2 } from 'lucide-react';
-import type { TextAnnotation, AnnotationRect } from '../types';
-import { HIGHLIGHT_COLORS, UNDERLINE_COLORS } from '../utils/annotations';
+import type { TextAnnotation, AnnotationRect } from '../core/types';
+import { HIGHLIGHT_COLORS, UNDERLINE_COLORS } from '../core/storage/annotations';
 
 interface TextSelectionMenuProps {
   onAddAnnotation: (annotation: TextAnnotation) => void;

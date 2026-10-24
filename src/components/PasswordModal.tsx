@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, Eye, EyeOff, X, KeyRound } from 'lucide-react';
-import type { Language } from '../utils/translations';
-import { getTranslations } from '../utils/translations';
+import type { Language } from '../core/i18n/translations';
+import { getTranslations } from '../core/i18n/translations';
 
 interface PasswordModalProps {
   isOpen: boolean;

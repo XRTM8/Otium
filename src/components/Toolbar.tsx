@@ -18,9 +18,9 @@ import {
   ArrowRight,
   ArrowLeft
 } from 'lucide-react';
-import type { ThemeMode, ViewMode } from '../types';
-import type { Language } from '../utils/translations';
-import { getTranslations } from '../utils/translations';
+import type { ThemeMode, ViewMode } from '../core/types';
+import type { Language } from '../core/i18n/translations';
+import { getTranslations } from '../core/i18n/translations';
 import { OtiumLogo } from './OtiumLogo';
 
 interface ToolbarProps {

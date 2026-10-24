@@ -1,0 +1,234 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag, for example v0.1.0 (must match package.json)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  NODE_VERSION: '22'
+
+jobs:
+  verify:
+    name: Verify shared version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Check version and tag
+        id: version
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').version")"
+          node scripts/check-version.mjs "$RELEASE_TAG"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+
+  windows:
+    name: Windows installer and portable
+    needs: verify
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - run: npm ci
+
+      - name: Build signed NSIS installer and portable EXE
+        run: npm run tauri:build -- --bundles nsis
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Stage canonical artifacts
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force release | Out-Null
+
+          $setup = Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if (-not $setup) { throw 'No NSIS installer was produced.' }
+
+          $signature = "$($setup.FullName).sig"
+          if (-not (Test-Path $signature)) {
+            throw 'No updater signature was produced. Check TAURI_SIGNING_PRIVATE_KEY.'
+          }
+
+          $portable = 'src-tauri/target/release/otium.exe'
+          if (-not (Test-Path $portable)) { throw 'No portable EXE was produced.' }
+
+          Copy-Item $setup.FullName "release/Otium_${env:VERSION}_x64-setup.exe"
+          Copy-Item $signature "release/Otium_${env:VERSION}_x64-setup.exe.sig"
+          Copy-Item $portable "release/Otium_${env:VERSION}_x64-portable.exe"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: release/*
+          if-no-files-found: error
+
+  android:
+    name: Android APK
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          key: android
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager --install \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "ndk;27.0.12077973"
+          yes | sdkmanager --licenses > /dev/null || true
+          echo "NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> "$GITHUB_ENV"
+          echo "$ANDROID_HOME/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin" >> "$GITHUB_PATH"
+
+      - run: npm ci
+
+      - name: Restore release keystore
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          keystore_dir="src-tauri/gen/android/app"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore_dir/otium-release.jks"
+          cat > "$keystore_dir/keystore.properties" <<EOF
+          storeFile=otium-release.jks
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          keyPassword=$ANDROID_KEY_PASSWORD
+          EOF
+
+      - name: Build signed universal APK
+        run: npm run tauri:android
+
+      - name: Stage canonical APK
+        shell: bash
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          set -euo pipefail
+          apk="$(find src-tauri/gen/android/app/build/outputs/apk -path '*/release/*universal*.apk' -print -quit)"
+          if [ -z "$apk" ]; then
+            echo 'No universal release APK was produced.'
+            find src-tauri/gen/android/app/build/outputs/apk -name '*.apk' -print || true
+            exit 1
+          fi
+          mkdir -p release
+          cp "$apk" "release/Otium_${VERSION}_universal.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-android
+          path: release/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish release feed
+    needs: [verify, windows, android]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: upload
+          merge-multiple: true
+
+      - name: Generate latest.json
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+          TAG: ${{ needs.verify.outputs.tag }}
+        run: |
+          set -euo pipefail
+          node scripts/generate-latest-json.mjs \
+            --version "$VERSION" \
+            --tag "$TAG" \
+            --installer "upload/Otium_${VERSION}_x64-setup.exe" \
+            --signature "upload/Otium_${VERSION}_x64-setup.exe.sig" \
+            --portable "upload/Otium_${VERSION}_x64-portable.exe" \
+            --apk "upload/Otium_${VERSION}_universal.apk" \
+            --output-dir upload
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.verify.outputs.tag }}
+          name: Otium ${{ needs.verify.outputs.version }}
+          body_path: release-notes.md
+          files: upload/*
+          fail_on_unmatched_files: true
+          make_latest: true

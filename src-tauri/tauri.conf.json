@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Otium",
-  "version": "0.1.0",
+  "version": "1.2.0",
   "identifier": "com.otium.reader",
   "build": {
     "frontendDist": "../dist",
@@ -28,7 +28,7 @@
     "security": {
       "csp": {
         "default-src": "'self'",
-        "connect-src": "'self' ipc: http://ipc.localhost",
+        "connect-src": "'self' ipc: http://ipc.localhost https://github.com https://*.githubusercontent.com",
         "font-src": "'self' data:",
         "img-src": "'self' data: blob:",
         "style-src": "'self' 'unsafe-inline'",
@@ -42,7 +42,7 @@
       },
       "devCsp": {
         "default-src": "'self'",
-        "connect-src": "'self' ipc: http://ipc.localhost http://localhost:5173 ws://localhost:5173",
+        "connect-src": "'self' ipc: http://ipc.localhost https://github.com https://*.githubusercontent.com http://localhost:5173 ws://localhost:5173",
         "font-src": "'self' data:",
         "img-src": "'self' data: blob:",
         "style-src": "'self' 'unsafe-inline'",
@@ -59,6 +59,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -68,7 +69,9 @@
     ],
     "fileAssociations": [
       {
-        "ext": ["pdf"],
+        "ext": [
+          "pdf"
+        ],
         "name": "PDF Document",
         "description": "Portable Document Format",
         "role": "Viewer"
@@ -76,6 +79,17 @@
     ],
     "android": {
       "debugApplicationIdSuffix": ".debug"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/XRTM8/Otium/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMxMEIwMjQwRTBEREMxNzcKUldSM3dkM2dRQUlMd1UvSU9hSituUm5aRUQ4MUhDSmNpVU1nSmR5L1NGY3NNNU50akYyUGNZMm8K",
+      "windows": {
+        "installMode": "passive"
+      }
     }
   }
 }

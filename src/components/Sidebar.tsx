@@ -11,9 +11,9 @@ import {
   Download,
   Plus
 } from 'lucide-react';
-import type { TocItem, BookmarkItem, TextAnnotation } from '../types';
-import type { Language } from '../utils/translations';
-import { getTranslations } from '../utils/translations';
+import type { TocItem, BookmarkItem, TextAnnotation } from '../core/types';
+import type { Language } from '../core/i18n/translations';
+import { getTranslations } from '../core/i18n/translations';
 
 interface SidebarProps {
   isOpen: boolean;

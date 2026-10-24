@@ -14,15 +14,15 @@ import {
   X,
   Settings2
 } from 'lucide-react';
-import type { ThemeMode } from '../types';
-import type { Language } from '../utils/translations';
-import { getTranslations } from '../utils/translations';
-import type { RecentDocItem } from '../utils/storage';
+import type { ThemeMode } from '../core/types';
+import type { Language } from '../core/i18n/translations';
+import { getTranslations } from '../core/i18n/translations';
+import type { RecentDocItem } from '../core/storage/documents';
 import {
   getRecentDocumentsList,
   removeDocumentFromStorage,
   clearAllStoredDocuments
-} from '../utils/storage';
+} from '../core/storage/documents';
 import { OtiumLogo } from './OtiumLogo';
 
 interface WelcomeScreenProps {

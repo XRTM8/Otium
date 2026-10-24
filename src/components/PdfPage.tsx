@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 import { TextLayer } from 'pdfjs-dist';
 import { Trash2, X } from 'lucide-react';
-import type { ThemeMode, TextAnnotation } from '../types';
+import type { ThemeMode, TextAnnotation } from '../core/types';
+import type { Language } from '../core/i18n/translations';
 
 interface PdfPageProps {
   doc: PDFDocumentProxy;
@@ -14,6 +15,7 @@ interface PdfPageProps {
   baseAspectRatio: number;
   searchQuery?: string;
   isCurrentSearchPage?: boolean;
+  lang?: Language;
   onPageVisible?: (pageNumber: number) => void;
 }
 
@@ -27,6 +29,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   baseAspectRatio,
   searchQuery,
   isCurrentSearchPage,
+  lang = 'ar',
   onPageVisible
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -477,7 +480,13 @@ export const PdfPage: React.FC<PdfPageProps> = ({
             className="absolute z-40 flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl bg-neutral-900/98 text-white border border-white/20 shadow-2xl backdrop-blur-2xl text-xs select-none animate-in fade-in zoom-in-95 pointer-events-auto"
           >
             <span className="text-[11px] text-neutral-400 font-sans">
-              {activeAnno.type === 'highlight' ? 'تظليل' : 'تسطير'}
+              {activeAnno.type === 'highlight'
+                ? lang === 'ar'
+                  ? 'تظليل'
+                  : 'Highlight'
+                : lang === 'ar'
+                  ? 'تسطير'
+                  : 'Underline'}
             </span>
             <button
               type="button"
@@ -489,7 +498,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
               className="flex items-center gap-1 px-2 py-0.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 text-rose-300 transition-colors text-xs cursor-pointer font-medium"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>إلغاء</span>
+              <span>{lang === 'ar' ? 'إلغاء' : 'Delete'}</span>
             </button>
             <button
               type="button"
@@ -508,7 +517,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
         {!hasRenderedOnce && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-xs opacity-25 select-none font-mono z-15">
             <div className="w-6 h-6 rounded-full border-2 border-current border-t-transparent animate-spin mb-2" />
-            <span>صفحة {pageNumber}</span>
+            <span>{lang === 'ar' ? `صفحة ${pageNumber}` : `Page ${pageNumber}`}</span>
           </div>
         )}
 

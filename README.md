@@ -14,7 +14,7 @@
 
   <p align="center">
     <a href="https://github.com/XRTM8/Otium/releases/latest">
-      <img src="https://img.shields.io/badge/Release-v1.0-10B981?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release" />
+      <img src="https://img.shields.io/github/v/release/XRTM8/Otium?style=for-the-badge&logo=github&logoColor=white&color=10B981" alt="Latest Release" />
     </a>
     <a href="https://github.com/XRTM8/Otium/releases/latest">
       <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Android-047857?style=for-the-badge&logo=windows&logoColor=white" alt="Platform" />
@@ -39,13 +39,15 @@
 
 ## 📥 Downloads • التحميل المباشر
 
-Get the latest standalone release directly:
+Get the latest release from [**GitHub Releases**](https://github.com/XRTM8/Otium/releases/latest). Windows and Android share the same version and release notes; only the interface differs.
 
-| Platform | File | Size | Description |
-| :--- | :--- | :---: | :--- |
-| **Android** | [**`Otium.apk`**](https://github.com/XRTM8/Otium/releases/latest/download/Otium.apk) | ~48 MB | Universal APK supporting all ARM64, ARMv7, x86_64 devices |
-| **Windows** | [**`Otium-Windows.exe`**](https://github.com/XRTM8/Otium/releases/latest/download/Otium-Windows.exe) | ~11 MB | Standalone Portable executable (0 installation required) |
-| **Windows (Zip)** | [**`Otium-Windows-x64.zip`**](https://github.com/XRTM8/Otium/releases/latest/download/Otium-Windows-x64.zip) | ~5 MB | Ultra-compressed archive with the standalone binary |
+| Platform | Asset | Description |
+| :--- | :--- | :--- |
+| **Windows** | `Otium_<version>_x64-setup.exe` | Signed installer with automatic updates |
+| **Windows (Portable)** | `Otium_<version>_x64-portable.exe` | Standalone executable; download the new file to update |
+| **Android** | `Otium_<version>_universal.apk` | Universal APK for ARM64, ARMv7 and x86_64 devices |
+
+Each release also publishes `latest.json`, the shared version feed used by both updaters.
 
 ---
 
@@ -79,6 +81,22 @@ A signature **3D Frosted Glass Book** with razor-sharp glowing neon rims and amb
 ### 🔒 100% Offline & Local-First
 * Zero telemetry, zero tracking, zero cloud dependencies.
 * All reading progress, bookmarks, and annotations are stored locally via IndexedDB.
+
+---
+
+## 🧱 One Core, Two Editions • نواة واحدة وإصداران
+
+The repository contains one product, not two forks:
+
+```
+src/core/       PDF engine, search, storage, annotations, bookmarks, i18n, settings, update rules
+src/platform/   Windows and Android transports (files, updates, runtime detection)
+src/app/        Shared reader controller used by both shells
+src/shells/     DesktopShell and MobileShell — the only platform-specific UI
+src-tauri/      One Rust backend with desktop and Android entry points
+```
+
+Both shells read the same version from `package.json`, the same notes from `release-notes.md`, and the same feed from `latest.json`. A release tag builds the Windows installer, the portable EXE and the Android APK together.
 
 ---
 
@@ -136,12 +154,22 @@ npm install
 # 3. Run development mode (Desktop)
 npm run tauri:dev
 
-# 4. Build standalone Windows .exe
-npm run tauri:build -- --no-bundle
+# 4. Build the signed Windows installer + portable EXE
+#    Requires TAURI_SIGNING_PRIVATE_KEY for updater artifacts.
+npm run tauri:build -- --bundles nsis
 
-# 5. Build Android Universal APK
+# 5. Build the signed Android Universal APK
+#    Requires app/keystore.properties and the release keystore.
 npm run tauri:android
+
+# 6. Verify that every build input shares one version
+npm run version:check
+
+# 7. Stage artifacts and generate latest.json from release-notes.md
+npm run release:feed
 ```
+
+Pushing a `v<version>` tag runs `.github/workflows/release.yml`, which builds both editions and publishes them with the same release notes and `latest.json`. The workflow needs the updater signing key and Android keystore secrets listed in that file.
 
 ---
 

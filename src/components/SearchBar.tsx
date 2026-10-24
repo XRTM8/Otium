@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { Search, ChevronDown, ChevronUp, X, Loader2 } from 'lucide-react';
-import type { Language } from '../utils/translations';
-import { getTranslations } from '../utils/translations';
+import type { Language } from '../core/i18n/translations';
+import { getTranslations } from '../core/i18n/translations';
+import {
+  SearchCancelledError,
+  searchDocumentPages
+} from '../core/search/documentSearch';
 
 interface SearchResult {
   pageNumber: number;
@@ -30,100 +34,35 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const debounceTimerRef = useRef<number | null>(null);
-  const searchRunRef = useRef(0);
+  const onNavigateToPageRef = useRef(onNavigateToPage);
   const onQueryChangeRef = useRef(onQueryChange);
   const t = getTranslations(lang);
+
+  useEffect(() => {
+    onNavigateToPageRef.current = onNavigateToPage;
+  }, [onNavigateToPage]);
 
   useEffect(() => {
     onQueryChangeRef.current = onQueryChange;
   }, [onQueryChange]);
 
   useEffect(() => {
-    if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 50);
-    } else {
-      if (debounceTimerRef.current !== null) {
-        window.clearTimeout(debounceTimerRef.current);
-        debounceTimerRef.current = null;
-      }
-      searchRunRef.current += 1;
+    if (!isOpen) {
       setQuery('');
       setResults([]);
       setCurrentIndex(0);
       setIsSearching(false);
-      onQueryChangeRef.current('', null);
+      return;
     }
+
+    const timer = window.setTimeout(() => inputRef.current?.focus(), 50);
+    return () => window.clearTimeout(timer);
   }, [isOpen]);
 
   useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current !== null) {
-        window.clearTimeout(debounceTimerRef.current);
-      }
-      searchRunRef.current += 1;
-    };
-  }, []);
+    if (!isOpen) return;
 
-  const performSearch = async (searchTerm: string) => {
-    const runId = ++searchRunRef.current;
-    const normalized = searchTerm.trim().toLowerCase();
-    const matches: SearchResult[] = [];
-
-    setIsSearching(true);
-    onQueryChangeRef.current('', null);
-
-    try {
-      for (let i = 1; i <= doc!.numPages; i++) {
-        if (runId !== searchRunRef.current) return;
-
-        const page = await doc!.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items
-          .map((item: any) => item.str)
-          .join(' ')
-          .toLowerCase();
-
-        if (pageText.includes(normalized)) {
-          matches.push({ pageNumber: i });
-        }
-
-        if (i % 8 === 0) {
-          await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
-        }
-      }
-
-      if (runId !== searchRunRef.current) return;
-
-      setResults(matches);
-      if (matches.length > 0) {
-        setCurrentIndex(0);
-        onNavigateToPage(matches[0].pageNumber);
-        onQueryChangeRef.current(searchTerm.trim(), matches[0].pageNumber);
-      } else {
-        onQueryChangeRef.current(searchTerm.trim(), null);
-      }
-    } catch (err) {
-      if (runId === searchRunRef.current) {
-        console.warn('Search error:', err);
-      }
-    } finally {
-      if (runId === searchRunRef.current) {
-        setIsSearching(false);
-      }
-    }
-  };
-
-  const handleSearch = (searchTerm: string) => {
-    setQuery(searchTerm);
-
-    if (debounceTimerRef.current !== null) {
-      window.clearTimeout(debounceTimerRef.current);
-      debounceTimerRef.current = null;
-    }
-    searchRunRef.current += 1;
-
-    const trimmed = searchTerm.trim();
+    const trimmed = query.trim();
     if (!doc || trimmed.length < 2) {
       setResults([]);
       setCurrentIndex(0);
@@ -132,16 +71,42 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       return;
     }
 
-    setResults([]);
-    setCurrentIndex(0);
+    const controller = new AbortController();
     setIsSearching(true);
-    onQueryChangeRef.current('', null);
 
-    debounceTimerRef.current = window.setTimeout(() => {
-      debounceTimerRef.current = null;
-      void performSearch(trimmed);
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const matches = await searchDocumentPages(doc, trimmed, controller.signal);
+          if (controller.signal.aborted) return;
+
+          setResults(matches.map((pageNumber) => ({ pageNumber })));
+          setCurrentIndex(0);
+
+          if (matches.length > 0) {
+            onNavigateToPageRef.current(matches[0]);
+            onQueryChangeRef.current(trimmed, matches[0]);
+          } else {
+            onQueryChangeRef.current(trimmed, null);
+          }
+        } catch (error) {
+          if (!controller.signal.aborted && !(error instanceof SearchCancelledError)) {
+            console.warn('Search error:', error);
+            onQueryChangeRef.current(trimmed, null);
+          }
+        } finally {
+          if (!controller.signal.aborted) {
+            setIsSearching(false);
+          }
+        }
+      })();
     }, 250);
-  };
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [doc, isOpen, query]);
 
   const nextMatch = () => {
     if (results.length === 0) return;
@@ -174,12 +139,12 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           ref={inputRef}
           type="text"
           value={query}
-          onChange={(e) => handleSearch(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              if (e.shiftKey) prevMatch();
+          onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              if (event.shiftKey) prevMatch();
               else nextMatch();
-            } else if (e.key === 'Escape') {
+            } else if (event.key === 'Escape') {
               onClose();
             }
           }}
@@ -188,6 +153,12 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         />
 
         {isSearching && <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400 shrink-0" />}
+
+        {!isSearching && query.trim().length >= 2 && results.length === 0 && (
+          <span className="font-mono text-[10px] text-neutral-500 px-1 select-none">
+            {lang === 'ar' ? 'لا نتائج' : 'No results'}
+          </span>
+        )}
 
         {results.length > 0 && (
           <span className="font-mono text-[10px] text-neutral-400 px-1 select-none">
@@ -199,14 +170,14 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           <div className="flex items-center gap-0.5">
             <button
               onClick={prevMatch}
-              title="النتيجة السابقة (Shift + Enter)"
+              title={lang === 'ar' ? 'النتيجة السابقة (Shift + Enter)' : 'Previous result (Shift + Enter)'}
               className="p-1 rounded hover:bg-white/10 text-neutral-300 transition-colors"
             >
               <ChevronUp className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={nextMatch}
-              title="النتيجة التالية (Enter)"
+              title={lang === 'ar' ? 'النتيجة التالية (Enter)' : 'Next result (Enter)'}
               className="p-1 rounded hover:bg-white/10 text-neutral-300 transition-colors"
             >
               <ChevronDown className="w-3.5 h-3.5" />

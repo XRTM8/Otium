@@ -12,6 +12,7 @@ import android.webkit.WebView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import org.json.JSONObject
+import java.io.File
 
 class MainActivity : TauriActivity() {
   private var appWebView: WebView? = null
@@ -22,7 +23,23 @@ class MainActivity : TauriActivity() {
   private var deliveryGeneration = 0
   private var intentGeneration = 0
 
+  /**
+   * Otium 1.0 registered a cache-first service worker. WebView storage
+   * survives app updates, so that worker would keep serving the old
+   * index.html and the new frontend would never start. Remove the worker and
+   * its cache storage before the WebView is created. localStorage, IndexedDB
+   * and reading progress are stored elsewhere and are preserved.
+   */
+  private fun clearLegacyServiceWorker() {
+    val defaultDir = File(dataDir, "app_webview/Default")
+    for (name in arrayOf("Service Worker", "CacheStorage")) {
+      val path = File(defaultDir, name)
+      if (path.exists()) path.deleteRecursively()
+    }
+  }
+
   override fun onCreate(savedInstanceState: Bundle?) {
+    clearLegacyServiceWorker()
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
 
@@ -56,6 +73,7 @@ class MainActivity : TauriActivity() {
 
   override fun onWebViewCreate(webView: WebView) {
     appWebView = webView
+    webView.addJavascriptInterface(AndroidUpdateBridge(this, webView), "OtiumAndroid")
     schedulePdfDelivery()
   }
 

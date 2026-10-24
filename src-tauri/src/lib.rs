@@ -2,6 +2,8 @@ use std::env;
 use std::fs;
 use std::path::Path;
 
+use tauri::ipc::Response;
+
 #[derive(serde::Serialize, Clone)]
 struct InitialPdf {
   name: String,
@@ -28,20 +30,86 @@ fn get_initial_pdf() -> Option<InitialPdf> {
   None
 }
 
+/// Return raw bytes instead of a JSON number array. Large PDFs would otherwise
+/// be serialized into millions of numbers before reaching the WebView.
 #[tauri::command]
-fn read_pdf_bytes(path: String) -> Result<Vec<u8>, String> {
-  fs::read(&path).map_err(|e| e.to_string())
+fn read_pdf_bytes(path: String) -> Result<Response, String> {
+  fs::read(&path)
+    .map(Response::new)
+    .map_err(|error| error.to_string())
+}
+
+/// True when Windows has an Otium uninstall entry, which is written by the
+/// NSIS installer. A portable executable has no such entry and therefore uses
+/// the manual download path instead of the automatic updater.
+#[tauri::command]
+fn is_installed_build() -> bool {
+  #[cfg(windows)]
+  {
+    use winreg::enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
+    use winreg::RegKey;
+
+    const KEY: &str = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Otium";
+
+    for hive in [HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE] {
+      if RegKey::predef(hive).open_subkey(KEY).is_ok() {
+        return true;
+      }
+    }
+
+    false
+  }
+
+  #[cfg(not(windows))]
+  {
+    false
+  }
+}
+
+/// Otium 1.0 registered a cache-first service worker. WebView profiles persist
+/// across installer and APK updates, so an old worker would keep serving the
+/// old `index.html` forever and the new frontend would never start. Clear the
+/// worker and its cache storage before the webview is created. Site data such
+/// as localStorage, IndexedDB and PDF progress lives in sibling directories
+/// and is intentionally left untouched.
+#[cfg(windows)]
+fn clear_legacy_service_worker() {
+  let Some(local_app_data) = env::var_os("LOCALAPPDATA") else {
+    return;
+  };
+  let default_dir = Path::new(&local_app_data)
+    .join("com.otium.reader")
+    .join("EBWebView")
+    .join("Default");
+
+  for name in ["Service Worker", "CacheStorage"] {
+    let _ = fs::remove_dir_all(default_dir.join(name));
+  }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-  tauri::Builder::default()
-    .invoke_handler(tauri::generate_handler![get_initial_pdf, read_pdf_bytes])
-    .setup(|app| {
+  #[cfg(windows)]
+  clear_legacy_service_worker();
+
+  let builder = tauri::Builder::default().plugin(tauri_plugin_opener::init());
+
+  #[cfg(not(mobile))]
+  let builder = builder
+    .plugin(tauri_plugin_updater::Builder::new().build())
+    .plugin(tauri_plugin_process::init());
+
+  builder
+    .invoke_handler(tauri::generate_handler![
+      get_initial_pdf,
+      read_pdf_bytes,
+      is_installed_build
+    ])
+    .setup(|_app| {
       #[cfg(not(mobile))]
       {
         use tauri::Manager;
-        if let Some(window) = app.get_webview_window("main") {
+        if let Some(window) = _app.get_webview_window("main") {
           // Show the window only after the webview is ready to avoid black screen on Windows
           window.show().unwrap_or_default();
         }

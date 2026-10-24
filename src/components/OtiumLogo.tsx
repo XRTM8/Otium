@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ThemeMode } from '../types';
+import type { ThemeMode } from '../core/types';
 
 export interface OtiumLogoProps {
   className?: string;
