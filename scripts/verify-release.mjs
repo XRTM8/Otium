@@ -42,6 +42,11 @@ function parseMinisign(text) {
   return Buffer.from(text.trim(), 'base64').toString('utf8').split(/\r?\n/).filter(Boolean);
 }
 
+function parsePublicKey(pubkeyB64) {
+  const blob = Buffer.from(parseMinisign(pubkeyB64)[1], 'base64');
+  return { keyId: blob.subarray(2, 10), key: blob.subarray(10, 42) };
+}
+
 async function main() {
   console.log('feed:', FEED_URL);
   const feed = JSON.parse((await fetchBuffer(FEED_URL)).toString('utf8'));
@@ -55,10 +60,7 @@ async function main() {
   }
 
   const conf = JSON.parse(readFileSync(path.join(root, 'src-tauri', 'tauri.conf.json'), 'utf8'));
-  const pubkeyB64 = conf.plugins.updater.pubkey.trim();
-  const pubId = Buffer.from(pubkeyB64, 'base64');
-  const pubKeyId = pubId.subarray(2, 10);
-  const pubKey = pubId.subarray(10, 42);
+  const { keyId: pubKeyId, key: pubKey } = parsePublicKey(conf.plugins.updater.pubkey.trim());
 
   for (const [key, asset] of Object.entries(feed.assets || {})) {
     if (!asset || !asset.url) {

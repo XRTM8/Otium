@@ -167,6 +167,9 @@ npm run version:check
 
 # 7. Stage artifacts and generate latest.json from release-notes.md
 npm run release:feed
+
+# 8. Verify the published feed, hashes, and updater signature
+node scripts/verify-release.mjs
 ```
 
 Pushing a `v<version>` tag runs `.github/workflows/release.yml`, which builds both editions and publishes them with the same release notes and `latest.json`. The workflow needs the updater signing key and Android keystore secrets listed in that file.
