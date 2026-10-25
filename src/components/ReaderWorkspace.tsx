@@ -1,9 +1,10 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { TextAnnotation, ThemeMode } from '../core/types';
 import type { Language } from '../core/i18n/translations';
 import type { ReaderController } from '../app/useReaderController';
+import { markScrollActivity } from '../core/reader/renderScheduler';
 import { PdfPage } from './PdfPage';
 
 interface PageSlotProps {
@@ -20,10 +21,10 @@ interface PageSlotProps {
   searchQuery?: string;
   isCurrentSearchPage?: boolean;
   lang: Language;
-  onPageVisible: (num: number) => void;
+  renderPriority: number;
 }
 
-const PageSlot: React.FC<PageSlotProps> = ({
+const PageSlotView: React.FC<PageSlotProps> = ({
   pageNum,
   isNear,
   doc,
@@ -37,35 +38,16 @@ const PageSlot: React.FC<PageSlotProps> = ({
   searchQuery,
   isCurrentSearchPage,
   lang,
-  onPageVisible
+  renderPriority
 }) => {
-  const slotRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = slotRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          onPageVisible(pageNum);
-        }
-      },
-      { rootMargin: '400px 0px 400px 0px', threshold: 0.01 }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [pageNum, onPageVisible]);
-
   const standardWidth = Math.round(basePageWidth * scale);
   const standardHeight = Math.round(basePageHeight * scale);
 
   return (
     <div
-      ref={slotRef}
       id={`pdf-page-${pageNum}`}
       dir="ltr"
+      data-page-slot={pageNum}
       style={{
         width: `${standardWidth}px`,
         height: `${standardHeight}px`,
@@ -73,7 +55,7 @@ const PageSlot: React.FC<PageSlotProps> = ({
         containIntrinsicSize: `${standardWidth}px ${standardHeight}px`,
         contain: 'layout paint'
       }}
-      className="my-4 sm:my-5 mx-auto flex items-center justify-center transform-gpu"
+      className="pdf-page-frame my-4 sm:my-5 mx-auto flex items-center justify-center"
     >
       {isNear ? (
         <PdfPage
@@ -87,12 +69,12 @@ const PageSlot: React.FC<PageSlotProps> = ({
           searchQuery={searchQuery}
           isCurrentSearchPage={isCurrentSearchPage}
           lang={lang}
-          onPageVisible={onPageVisible}
+          renderPriority={renderPriority}
         />
       ) : (
         <div
           style={{ width: `${standardWidth}px`, height: `${standardHeight}px` }}
-          className="rounded-sm border border-dashed border-line-subtle bg-hover-subtle dark:bg-hover-subtle flex items-center justify-center font-mono text-xs opacity-20 select-none shadow-xs"
+          className="flex items-center justify-center rounded-sm border border-dashed border-line-subtle bg-hover-subtle font-mono text-xs opacity-25 select-none"
         >
           <span>{lang === 'ar' ? `صفحة ${pageNum}` : `Page ${pageNum}`}</span>
         </div>
@@ -101,14 +83,16 @@ const PageSlot: React.FC<PageSlotProps> = ({
   );
 };
 
+const PageSlot = React.memo(PageSlotView);
+
 interface ReaderWorkspaceProps {
   reader: ReaderController;
   compact?: boolean;
 }
 
 /**
- * The reading surface shared by both shells. It knows about pages, gestures and
- * view modes, but nothing about desktop toolbars or Android navigation.
+ * The reading surface shared by both shells. It owns layout, page geometry and
+ * gestures; toolbars and platform navigation stay in the shells.
  */
 export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compact = false }) => {
   const {
@@ -129,20 +113,19 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
     goToNextPage,
     goToPrevPage,
     scrollContainerRef,
-    handleWheel,
     handleTouchStart,
     handleTouchMove,
     handleTouchEnd,
     handleTouchCancel,
     touchDeltaX,
     isDraggingTouch,
-    edgePull,
-    isEdgePulling,
     dualFlipKey,
     dualFlipDir
   } = reader;
 
   const [compactLandscape, setCompactLandscape] = useState(false);
+  const lastScrollPageRef = useRef<number>(currentPage);
+  const scrollFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!compact || typeof window === 'undefined') return;
@@ -153,9 +136,61 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
     return () => query.removeEventListener('change', update);
   }, [compact]);
 
-  // When the page fits vertically, vertical touch gestures are page turns,
-  // not scrolling: block native panning so only the spring edge-pull moves.
-  // Overflowing pages keep pan-y so scrolling through them stays native.
+  // Continuous mode owns page visibility. IntersectionObserver with a fixed
+  // rootMargin jumps around during inertial scrolling; measuring against the
+  // reading line is stable and marks the scheduler so distant pages wait.
+  useEffect(() => {
+    if (viewMode !== 'continuous' || !doc) return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    lastScrollPageRef.current = currentPage;
+
+    const measure = () => {
+      scrollFrameRef.current = null;
+      const slots = container.querySelectorAll<HTMLElement>('[data-page-slot]');
+      if (slots.length === 0) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const readingLine = containerRect.top + containerRect.height * 0.38;
+      let bestPage = lastScrollPageRef.current;
+      let bestDistance = Number.POSITIVE_INFINITY;
+
+      slots.forEach((slot) => {
+        const rect = slot.getBoundingClientRect();
+        if (rect.bottom < containerRect.top || rect.top > containerRect.bottom) return;
+        const distance = Math.abs(rect.top + Math.min(rect.height * 0.25, 96) - readingLine);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestPage = Number.parseInt(slot.dataset.pageSlot || '', 10) || bestPage;
+        }
+      });
+
+      if (bestPage !== lastScrollPageRef.current) {
+        lastScrollPageRef.current = bestPage;
+        handlePageVisible(bestPage);
+      }
+    };
+
+    const onScroll = () => {
+      markScrollActivity();
+      if (scrollFrameRef.current !== null) return;
+      scrollFrameRef.current = window.requestAnimationFrame(measure);
+    };
+
+    container.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', onScroll);
+      if (scrollFrameRef.current !== null) {
+        window.cancelAnimationFrame(scrollFrameRef.current);
+        scrollFrameRef.current = null;
+      }
+    };
+  }, [viewMode, doc, currentPage, handlePageVisible, scrollContainerRef]);
+
+  // When the page fits vertically, vertical touch gestures turn pages instead
+  // of panning: block native vertical panning so the page stays perfectly
+  // still until release. Overflowing pages keep native scrolling first.
   useLayoutEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -171,32 +206,42 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
       tallest > 0 && tallest <= container.clientHeight - 48 ? 'pan-x' : 'pan-x pan-y';
   }, [doc, viewMode, currentPage, zoom, compactLandscape, scrollContainerRef]);
 
+  const continuousPages = useMemo(
+    () => Array.from({ length: numPages }, (_, index) => index + 1),
+    [numPages]
+  );
+
   if (!doc) return null;
 
   const gestureTransform =
-    isDraggingTouch || edgePull !== 0
-      ? `translate3d(${touchDeltaX}px, ${edgePull}px, 0)`
+    isDraggingTouch && touchDeltaX !== 0 ? `translate3d(${touchDeltaX}px, 0, 0)` : undefined;
+  const gestureTransition = isDraggingTouch
+    ? 'none'
+    : 'transform 260ms cubic-bezier(0.22, 1, 0.36, 1)';
+  const pagedAnimation =
+    !isDraggingTouch && dualFlipKey > 0
+      ? `pagedTurn${dualFlipDir === 'forward' ? 'Forward' : 'Backward'} 220ms cubic-bezier(0.16, 1, 0.3, 1) both`
       : undefined;
-  const gestureTransition =
-    isDraggingTouch || isEdgePulling
-      ? 'none'
-      : 'transform 280ms cubic-bezier(0.22, 1.36, 0.36, 1)';
+
+  // Anchored scrolling (page search, outline, mode switch) must land below the
+  // floating toolbar instead of underneath it.
+  const topInset = compactLandscape
+    ? 'max(3rem, calc(env(safe-area-inset-top, 0px) + 2.6rem))'
+    : compact
+      ? 'max(4.1rem, calc(env(safe-area-inset-top, 0px) + 3.6rem))'
+      : 'max(4.5rem, calc(env(safe-area-inset-top, 0px) + 4.2rem))';
 
   return (
     <div
       ref={scrollContainerRef}
       dir="ltr"
-      onWheel={handleWheel}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchCancel}
       style={{
-        paddingTop: compactLandscape
-          ? 'max(3rem, calc(env(safe-area-inset-top, 0px) + 2.6rem))'
-          : compact
-            ? 'max(4.1rem, calc(env(safe-area-inset-top, 0px) + 3.6rem))'
-            : 'max(4.5rem, calc(env(safe-area-inset-top, 0px) + 4.2rem))',
+        paddingTop: topInset,
+        scrollPaddingTop: topInset,
         paddingBottom: compactLandscape
           ? 'max(3.2rem, calc(env(safe-area-inset-bottom, 0px) + 2.8rem))'
           : compact
@@ -210,17 +255,17 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
           : {}),
         touchAction: 'pan-x pan-y'
       }}
-      className="flex-1 w-full h-full overflow-y-auto overflow-x-auto overscroll-contain pb-20 sm:pb-24 px-2 sm:px-4 relative"
+      className="reader-viewport flex-1 w-full h-full overflow-y-auto overflow-x-auto overscroll-contain pb-20 sm:pb-24 px-2 sm:px-4 relative"
     >
       {/* Reading progress for the current document. */}
-      <div className="fixed top-0 inset-x-0 h-[2px] bg-line dark:bg-hover z-40 pointer-events-none">
+      <div className="fixed top-0 inset-x-0 h-[2px] bg-line z-40 pointer-events-none">
         <div
           className="h-full bg-accent transition-all duration-300"
           style={{ width: `${(currentPage / Math.max(1, numPages)) * 100}%` }}
         />
       </div>
 
-      {(viewMode === 'single' || viewMode === 'dual') && (
+      {viewMode !== 'continuous' && (
         <>
           <button
             type="button"
@@ -228,7 +273,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             disabled={currentPage <= 1}
             title={lang === 'ar' ? 'الصفحة السابقة' : 'Previous page'}
             aria-label={lang === 'ar' ? 'الصفحة السابقة' : 'Previous page'}
-            className="fixed left-2 sm:left-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full bg-surface/60 hover:bg-surface text-ink backdrop-blur-md opacity-25 hover:opacity-100 disabled:opacity-0 transition-all cursor-pointer shadow-xl border border-line"
+            className="paged-arrow fixed left-2 sm:left-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full text-ink disabled:opacity-0"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -238,7 +283,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             disabled={currentPage >= numPages}
             title={lang === 'ar' ? 'الصفحة التالية' : 'Next page'}
             aria-label={lang === 'ar' ? 'الصفحة التالية' : 'Next page'}
-            className="fixed right-2 sm:right-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full bg-surface/60 hover:bg-surface text-ink backdrop-blur-md opacity-25 hover:opacity-100 disabled:opacity-0 transition-all cursor-pointer shadow-xl border border-line"
+            className="paged-arrow fixed right-2 sm:right-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full text-ink disabled:opacity-0"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -247,7 +292,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
 
       {viewMode === 'continuous' ? (
         <div className="w-max min-w-full flex flex-col items-center">
-          {Array.from({ length: numPages }, (_, index) => index + 1).map((pageNum) => (
+          {continuousPages.map((pageNum) => (
             <PageSlot
               key={pageNum}
               pageNum={pageNum}
@@ -263,7 +308,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
               searchQuery={searchQuery}
               isCurrentSearchPage={activeSearchPage === pageNum}
               lang={lang}
-              onPageVisible={handlePageVisible}
+              renderPriority={Math.abs(pageNum - currentPage)}
             />
           ))}
         </div>
@@ -277,18 +322,12 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             }}
           >
             <div
-              key={dualFlipKey}
+              key={`dual-${dualFlipKey}`}
               className="flex flex-row items-center justify-center gap-1 sm:gap-2 shadow-2xl"
-              style={{
-                animation:
-                  !isDraggingTouch && !isEdgePulling && dualFlipKey > 0
-                    ? `dualPageFlip${dualFlipDir === 'forward' ? 'Forward' : 'Backward'} 280ms cubic-bezier(0.16, 1, 0.3, 1) both`
-                    : undefined
-              }}
+              style={{ animation: pagedAnimation, willChange: 'transform, opacity' }}
             >
               <div className="relative shrink-0">
                 <PdfPage
-                  key={`dual-page-${currentPage}`}
                   doc={doc}
                   pageNumber={currentPage}
                   scale={zoom}
@@ -299,13 +338,13 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
                   searchQuery={searchQuery}
                   isCurrentSearchPage={activeSearchPage === currentPage}
                   lang={lang}
+                  renderPriority={0}
                 />
               </div>
 
               {currentPage + 1 <= numPages ? (
                 <div className="relative shrink-0 border-l border-line">
                   <PdfPage
-                    key={`dual-page-${currentPage + 1}`}
                     doc={doc}
                     pageNumber={currentPage + 1}
                     scale={zoom}
@@ -316,6 +355,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
                     searchQuery={searchQuery}
                     isCurrentSearchPage={activeSearchPage === currentPage + 1}
                     lang={lang}
+                    renderPriority={1}
                   />
                 </div>
               ) : (
@@ -339,21 +379,26 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             transition: gestureTransition,
             willChange: 'transform'
           }}
-          className="min-h-full w-max min-w-full flex items-center justify-center py-2 sm:py-4"
+          className="min-h-full w-max min-w-full flex items-center justify-center py-2 sm:py-4 overflow-hidden"
         >
-          <PdfPage
-            key={`single-page-${currentPage}`}
-            doc={doc}
-            pageNumber={currentPage}
-            scale={zoom}
-            theme={theme}
-            annotations={annotations}
-            onDeleteAnnotation={deleteAnnotation}
-            baseAspectRatio={baseAspectRatio}
-            searchQuery={searchQuery}
-            isCurrentSearchPage={activeSearchPage === currentPage}
-            lang={lang}
-          />
+          <div
+            key={`single-${dualFlipKey}`}
+            style={{ animation: pagedAnimation, willChange: 'transform, opacity' }}
+          >
+            <PdfPage
+              doc={doc}
+              pageNumber={currentPage}
+              scale={zoom}
+              theme={theme}
+              annotations={annotations}
+              onDeleteAnnotation={deleteAnnotation}
+              baseAspectRatio={baseAspectRatio}
+              searchQuery={searchQuery}
+              isCurrentSearchPage={activeSearchPage === currentPage}
+              lang={lang}
+              renderPriority={0}
+            />
+          </div>
         </div>
       )}
     </div>

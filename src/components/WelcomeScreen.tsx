@@ -163,7 +163,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   return (
     <div
       dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
-      className="relative min-h-screen w-full flex flex-col items-center justify-center p-6 bg-[var(--app-bg)] text-ink select-none overflow-hidden transition-colors duration-700"
+      className="relative min-h-screen w-full flex flex-col items-center justify-center p-6 pb-16 bg-[var(--app-bg)] text-ink select-none overflow-y-auto overflow-x-hidden transition-colors duration-700"
     >
       
       {/* Top Floating Action Bar with Safe Area Inset for mobile notches & status bars */}
@@ -180,7 +180,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           <button
             onClick={onToggleLanguage}
             title={currentLang === 'ar' ? 'Switch to English' : 'التحويل إلى العربية'}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface/85 hover:bg-surface border border-line hover:border-accent/30 shadow-xl backdrop-blur-2xl text-xs text-ink transition-all duration-200 active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full chrome-surface text-xs text-ink transition-all duration-200 active:scale-95"
           >
             <Globe className="w-3.5 h-3.5 text-ink-muted" />
             <span className="font-mono text-[11px] font-semibold tracking-wider">
@@ -192,7 +192,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             <button
               onClick={onOpenSettings}
               title={t.settingsTitle}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface/85 hover:bg-surface border border-line hover:border-accent/30 shadow-xl backdrop-blur-2xl text-xs text-ink transition-all duration-200 active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full chrome-surface text-xs text-ink transition-all duration-200 active:scale-95"
             >
               <Settings2 className="w-3.5 h-3.5 text-ink-muted" />
               <span className="text-[11px] font-medium hidden sm:inline">
@@ -209,7 +209,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             <button
               onClick={() => setShowThemeMenu(!showThemeMenu)}
               title={t.themeLabel}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface/85 hover:bg-surface border border-line hover:border-accent/30 shadow-xl backdrop-blur-2xl text-xs transition-all duration-200 active:scale-95 cursor-pointer"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full chrome-surface text-xs transition-all duration-200 active:scale-95 cursor-pointer"
             >
               <span
                 className="w-2.5 h-2.5 rounded-full ring-2 ring-line-strong transition-colors"
@@ -231,7 +231,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 />
                 <div
                   dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
-                  className="absolute right-0 top-full mt-2 w-52 rounded-2xl bg-surface border border-line p-1.5 shadow-2xl backdrop-blur-2xl z-50 text-ink animate-in fade-in zoom-in-95 duration-150"
+                  className="chrome-surface absolute right-0 top-full mt-2 w-52 rounded-2xl p-1.5 z-50 text-ink animate-in fade-in zoom-in-95 duration-150"
                 >
                   <div className="text-[10px] uppercase font-mono px-2.5 py-1 text-ink-faint font-semibold tracking-wider">
                     {t.readingThemesTitle}
@@ -297,13 +297,13 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`w-full p-8 rounded-3xl border-2 border-dashed transition-all duration-300 cursor-pointer flex flex-col items-center justify-center gap-3 backdrop-blur-2xl ${
+          className={`w-full p-8 rounded-3xl border-2 border-dashed transition-all duration-300 cursor-pointer flex flex-col items-center justify-center gap-3 backdrop-blur-xl ${
             isDragging
-              ? 'border-accent bg-hover scale-[1.02] shadow-2xl'
-              : `border-line bg-surface/60 ${style.dropzoneBorder} hover:bg-surface/85 hover:-translate-y-0.5 shadow-2xl`
+              ? 'border-accent bg-accent/5 scale-[1.01] shadow-2xl'
+              : 'border-line bg-surface/60 hover:border-accent/40 hover:bg-surface/85 hover:-translate-y-0.5 shadow-xl'
           }`}
         >
-          <div className={`w-13 h-13 rounded-2xl border flex items-center justify-center shadow-md transition-all duration-500 ${style.dropzoneIcon}`}>
+          <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center shadow-md transition-all duration-500 ${style.dropzoneIcon}`}>
             <Upload className="w-6 h-6" />
           </div>
 
@@ -329,7 +329,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         <div className="flex items-center justify-center w-full">
           <button
             onClick={onOpenSample}
-            className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-surface hover:bg-surface-2 text-ink border border-line transition-all hover:scale-[1.01] active:scale-95 shadow-md group ${style.sampleBtn}`}
+            className="btn-primary px-5 py-2 text-xs sm:text-sm"
           >
             <BookOpen className="w-4 h-4 transition-colors" />
             <span>{t.openSample}</span>

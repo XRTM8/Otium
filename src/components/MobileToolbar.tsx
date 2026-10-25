@@ -119,19 +119,19 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
         }}
         className="fixed inset-x-0 z-40 flex justify-center px-2 pointer-events-none"
       >
-        <div className="mobile-chrome-bar pointer-events-auto flex items-center gap-1 w-full max-w-lg px-2 py-1.5 rounded-2xl bg-surface text-ink border border-line shadow-2xl backdrop-blur-xl">
+        <div className="chrome-surface mobile-chrome-bar pointer-events-auto flex w-full max-w-lg items-center gap-1 rounded-2xl px-1.5 py-1.5 text-ink">
           <button
             type="button"
             onClick={onCloseDocument}
             title={t.closeDoc}
             aria-label={t.closeDoc}
-            className="p-2 rounded-xl bg-emerald-500/15 text-success-ink border border-emerald-500/25 active:scale-95 transition-transform shrink-0"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line-subtle bg-hover-subtle text-ink-muted transition-colors active:scale-95 active:bg-hover"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
 
-          <div className="px-0.5 shrink-0">
-            <OtiumLogo theme={theme} size={20} />
+          <div className="shrink-0 px-0.5 text-accent">
+            <OtiumLogo size={20} />
           </div>
 
           <span
@@ -169,7 +169,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
         <div
           dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
           style={{ top: compactLandscape ? 'max(2.9rem, calc(env(safe-area-inset-top, 0px) + 2.5rem))' : undefined }}
-          className="fixed inset-x-2 top-16 z-50 mx-auto max-w-lg rounded-2xl bg-surface border border-line p-3 shadow-2xl backdrop-blur-2xl text-ink space-y-3 animate-in fade-in zoom-in-95 duration-150"
+          className="fixed inset-x-2 top-16 z-50 mx-auto max-w-lg rounded-2xl chrome-surface p-3 text-ink space-y-3 animate-in fade-in zoom-in-95 duration-150"
         >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono uppercase tracking-wider text-ink-faint">
@@ -276,7 +276,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
         }}
         className="fixed inset-x-0 z-40 flex justify-center px-2 pointer-events-none"
       >
-        <div className="mobile-chrome-bar pointer-events-auto flex items-center gap-1 px-2 py-1.5 rounded-2xl bg-surface text-ink border border-line shadow-2xl backdrop-blur-xl">
+        <div className="chrome-surface mobile-chrome-bar pointer-events-auto flex items-center gap-1 rounded-2xl px-1.5 py-1.5 text-ink">
           <button
             type="button"
             onClick={() => onPageChange(Math.max(1, currentPage - 1))}

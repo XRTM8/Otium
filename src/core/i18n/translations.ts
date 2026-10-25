@@ -53,13 +53,13 @@ const translations: Record<Language, Translations> = {
   ar: {
     themeLabel: 'بيئة القراءة',
     themes: {
-      paper: 'Paper (ورقي دافئ)',
-      midnight: 'Midnight (ليلي عميق)',
-      eink: 'E-Ink (حبر إلكتروني)',
-      amber: 'Amber (كهرماني هادئ)',
-      pure: 'Pure (أبيض استوديو)',
-      amoled: 'AMOLED (أسود مطلق)',
-      parchment: 'Parchment (ورق تاريخي)'
+      paper: 'ورق دافئ',
+      midnight: 'ليلي عميق',
+      eink: 'حبر إلكتروني',
+      amber: 'كهرماني هادئ',
+      pure: 'أبيض استوديو',
+      amoled: 'أسود مطلق',
+      parchment: 'ورق قديم'
     },
     dropzoneTitle: 'اسحب وأفلت ملف PDF هنا',
     dropzoneSubtitle: 'أو انقر للاستعراض من جهازك',
@@ -91,7 +91,7 @@ const translations: Record<Language, Translations> = {
     passwordIncorrect: 'كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى',
     unlockButton: 'فتح الوثيقة',
     moreTools: 'المزيد من الأدوات',
-    readingThemesTitle: 'بيئات القراءة (Themes)',
+    readingThemesTitle: 'بيئات القراءة',
     settingsTitle: 'إعدادات القارئ',
     typographyTitle: 'الخط والطباعة',
     fontsTitle: 'مكتبة الخطوط المدعومة',
@@ -101,13 +101,13 @@ const translations: Record<Language, Translations> = {
   en: {
     themeLabel: 'Reading Theme',
     themes: {
-      paper: 'Paper (Warm Ivory)',
-      midnight: 'Midnight (OLED Dark)',
-      eink: 'E-Ink (Monochrome)',
-      amber: 'Amber (Low Blue Light)',
-      pure: 'Pure (Studio Titanium)',
-      amoled: 'AMOLED (Pitch Black)',
-      parchment: 'Parchment (Historic Codex)'
+      paper: 'Paper',
+      midnight: 'Midnight',
+      eink: 'E-Ink',
+      amber: 'Amber',
+      pure: 'Pure',
+      amoled: 'AMOLED',
+      parchment: 'Parchment'
     },
     dropzoneTitle: 'Drag & drop a PDF file here',
     dropzoneSubtitle: 'or click to browse from your device',

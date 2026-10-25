@@ -53,6 +53,8 @@ export const MobileShell: React.FC = () => {
             onAddAnnotation={reader.addAnnotation}
             onDeleteAnnotation={reader.deleteAnnotation}
             annotations={reader.annotations}
+            lang={reader.lang}
+            onSearchSelectedText={reader.openSearchWithText}
           />
 
           <ReaderWorkspace reader={reader} compact />

@@ -18,6 +18,7 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader }) => {
         isOpen={reader.isSearchOpen}
         doc={reader.doc}
         lang={reader.lang}
+        initialQuery={reader.searchSeed}
         onNavigateToPage={reader.scrollToPage}
         onQueryChange={reader.handleSearchQueryChange}
         onClose={reader.closeSearch}
@@ -60,7 +61,7 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader }) => {
       {reader.documentError && (
         <div
           dir={reader.lang === 'ar' ? 'rtl' : 'ltr'}
-          className="fixed bottom-20 sm:bottom-6 inset-x-3 sm:inset-x-auto sm:right-6 z-50 flex items-start gap-2.5 rounded-2xl border border-rose-400/30 bg-surface px-3.5 py-3 text-xs text-danger-ink shadow-2xl backdrop-blur-xl"
+          className="chrome-surface fixed bottom-20 inset-x-3 z-50 flex items-start gap-2.5 rounded-2xl px-3.5 py-3 text-xs text-danger-ink sm:bottom-6 sm:inset-x-auto sm:right-6"
         >
           <AlertTriangle className="w-4 h-4 text-danger-ink shrink-0 mt-0.5" />
           <span className="flex-1 leading-relaxed">{reader.documentError}</span>
@@ -68,7 +69,7 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader }) => {
             type="button"
             onClick={reader.clearDocumentError}
             aria-label="Dismiss"
-            className="p-1 rounded-full text-ink-muted hover:text-ink hover:bg-hover"
+            className="toolbar-icon"
           >
             <X className="w-3.5 h-3.5" />
           </button>

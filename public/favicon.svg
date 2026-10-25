@@ -1,47 +1,14 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="bgGrad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stopColor="#181410"/>
-      <stop offset="50%" stopColor="#0d0b08"/>
-      <stop offset="100%" stopColor="#040404"/>
-    </linearGradient>
-    <linearGradient id="borderGrad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stopColor="#f59e0b" stop-opacity="0.4"/>
-      <stop offset="100%" stopColor="#d97706" stop-opacity="0.1"/>
-    </linearGradient>
-    <linearGradient id="mainGold" x1="100" y1="80" x2="412" y2="432" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stopColor="#FFFBEB"/>
-      <stop offset="40%" stopColor="#F59E0B"/>
-      <stop offset="100%" stopColor="#B45309"/>
-    </linearGradient>
-    <linearGradient id="accentGold" x1="160" y1="140" x2="352" y2="372" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stopColor="#FDE68A"/>
-      <stop offset="100%" stopColor="#D97706"/>
-    </linearGradient>
-    <radialGradient id="centerGlow" cx="50%" cy="50%" r="42%">
-      <stop offset="0%" stopColor="#f59e0b" stop-opacity="0.22"/>
-      <stop offset="100%" stopColor="#000000" stop-opacity="0"/>
-    </radialGradient>
-  </defs>
+  <!-- Flat, high-contrast plate: crisp in light and dark taskbars, no glow or
+       gradients that could smear at 16px. -->
+  <rect width="512" height="512" rx="112" fill="#0B0906"/>
+  <rect x="2" y="2" width="508" height="508" rx="110" stroke="#F7D08A" stroke-opacity="0.16" stroke-width="4"/>
 
-  <!-- Squircle Base with Warm Amber Border -->
-  <rect x="8" y="8" width="496" height="496" rx="116" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="6"/>
-
-  <!-- Ambient Floor Glow -->
-  <circle cx="256" cy="256" r="180" fill="url(#centerGlow)"/>
-
-  <!-- Pristine Circular Perimeter (Letter O) -->
-  <circle cx="256" cy="256" r="144" stroke="url(#mainGold)" stroke-width="14" stroke-linecap="round"/>
-
-  <!-- Symmetrical Left Open Folio Arc -->
-  <path d="M 256 164 C 200 164 168 200 168 256 C 168 312 200 348 256 348" stroke="url(#accentGold)" stroke-width="12" stroke-linecap="round"/>
-
-  <!-- Symmetrical Right Open Folio Arc -->
-  <path d="M 256 164 C 312 164 344 200 344 256 C 344 312 312 348 256 348" stroke="url(#accentGold)" stroke-width="12" stroke-linecap="round"/>
-
-  <!-- Spine Hairline Axis -->
-  <line x1="256" y1="148" x2="256" y2="364" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" opacity="0.9"/>
-
-  <!-- Radiant Focal Core -->
-  <circle cx="256" cy="256" r="18" fill="#F59E0B"/>
+  <!-- Otium folio mark -->
+  <g>
+    <path d="M256 198C222 176 182 169 147 173V338C182 334 222 341 256 363V198Z" fill="#F7D08A"/>
+    <path d="M256 198C290 176 330 169 365 173V338C330 334 290 341 256 363V198Z" fill="#F7D08A"/>
+    <path d="M256 204V357" stroke="#0B0906" stroke-width="11" stroke-linecap="round"/>
+    <path d="M178 218C204 217 229 221 245 231M178 250C204 249 229 253 245 263M334 218C308 217 283 221 267 231M334 250C308 249 283 253 267 263" stroke="#0B0906" stroke-width="8" stroke-linecap="round" opacity="0.38"/>
+  </g>
 </svg>

@@ -16,6 +16,7 @@ interface SearchBarProps {
   isOpen: boolean;
   doc: PDFDocumentProxy | null;
   lang?: Language;
+  initialQuery?: { query: string; id: number } | null;
   onNavigateToPage: (pageNumber: number) => void;
   onQueryChange: (query: string, activePage: number | null) => void;
   onClose: () => void;
@@ -25,6 +26,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   isOpen,
   doc,
   lang = 'ar',
+  initialQuery = null,
   onNavigateToPage,
   onQueryChange,
   onClose
@@ -58,6 +60,18 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     const timer = window.setTimeout(() => inputRef.current?.focus(), 50);
     return () => window.clearTimeout(timer);
   }, [isOpen]);
+
+  // Selecting text and choosing "Search" opens this bar with the quote already
+  // entered, so the user does not have to copy and paste it again.
+  useEffect(() => {
+    if (!isOpen || !initialQuery?.query) return;
+    setQuery(initialQuery.query);
+    const timer = window.setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }, 40);
+    return () => window.clearTimeout(timer);
+  }, [isOpen, initialQuery]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -133,8 +147,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
       className="fixed top-16 inset-x-4 sm:inset-x-auto sm:right-6 z-40 flex justify-center animate-in fade-in slide-in-from-top-2 duration-150"
     >
-      <div className="flex items-center gap-1.5 p-1.5 pl-3 w-full max-w-sm sm:w-auto rounded-2xl bg-surface border border-line shadow-2xl backdrop-blur-2xl text-ink text-xs">
-        <Search className="w-3.5 h-3.5 text-ink-muted shrink-0" />
+      <div className="chrome-surface flex w-full max-w-sm items-center gap-1.5 rounded-2xl p-1.5 text-xs text-ink sm:w-auto">
+        <Search className="ml-1 w-3.5 h-3.5 text-ink-muted shrink-0" />
         <input
           ref={inputRef}
           type="text"
@@ -149,7 +163,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             }
           }}
           placeholder={t.searchPlaceholder}
-          className="flex-1 sm:w-44 bg-transparent text-ink placeholder:text-ink-faint focus:outline-none text-xs"
+          className="flex-1 rounded-lg bg-transparent px-1.5 py-1 text-xs text-ink outline-none placeholder:text-ink-faint focus:bg-hover-subtle sm:w-48"
         />
 
         {isSearching && <Loader2 className="w-3.5 h-3.5 animate-spin text-accent shrink-0" />}
@@ -167,18 +181,18 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         )}
 
         {results.length > 0 && (
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-0.5 rounded-lg bg-hover-subtle">
             <button
               onClick={prevMatch}
               title={lang === 'ar' ? 'النتيجة السابقة (Shift + Enter)' : 'Previous result (Shift + Enter)'}
-              className="p-1 rounded hover:bg-hover text-ink-muted transition-colors"
+              className="toolbar-icon h-7 w-7"
             >
               <ChevronUp className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={nextMatch}
               title={lang === 'ar' ? 'النتيجة التالية (Enter)' : 'Next result (Enter)'}
-              className="p-1 rounded hover:bg-hover text-ink-muted transition-colors"
+              className="toolbar-icon h-7 w-7"
             >
               <ChevronDown className="w-3.5 h-3.5" />
             </button>
@@ -187,7 +201,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
         <button
           onClick={onClose}
-          className="p-1 rounded-full hover:bg-hover text-ink-muted hover:text-ink transition-colors ml-1"
+          className="toolbar-icon"
         >
           <X className="w-3.5 h-3.5" />
         </button>

@@ -207,7 +207,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     >
       <div className="fixed inset-0 bg-scrim backdrop-blur-sm transition-opacity" onClick={onClose} />
 
-      <div className="relative w-full max-w-xl bg-surface border border-line rounded-3xl shadow-2xl p-5 sm:p-6 text-ink z-10 flex flex-col max-h-[90vh] overflow-hidden backdrop-blur-2xl">
+      <div className="otium-panel relative z-10 flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden p-5 text-ink sm:p-6">
         <div className="flex items-center justify-between pb-4 border-b border-line shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-accent/15 border border-accent/25 flex items-center justify-center text-accent">
@@ -231,16 +231,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
 
-        <div className="flex items-center gap-1.5 p-1 bg-hover-subtle rounded-2xl border border-line-subtle my-3 shrink-0">
+        <div className="segmented my-3 flex w-full shrink-0">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 py-1.5 px-2 rounded-xl text-[11px] sm:text-xs font-medium transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                activeTab === tab.id
-                  ? 'bg-accent text-on-accent shadow-md font-semibold'
-                  : 'text-ink-muted hover:text-ink'
-              }`}
+              data-active={activeTab === tab.id}
+              className="flex-1 justify-center py-1.5 text-[11px] sm:text-xs"
             >
               {tab.icon}
               <span>{tab.label}</span>
@@ -266,10 +263,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       key={font.id}
                       onClick={() => onFontChange(font.id)}
                       style={{ fontFamily: font.cssFamily }}
-                      className={`flex flex-col text-right p-3 rounded-2xl border transition-all cursor-pointer relative ${
+                      className={`relative flex cursor-pointer flex-col rounded-2xl border p-3 text-right transition-all ${
                         isSelected
-                          ? 'bg-accent/15 border-accent/40 text-accent shadow-md'
-                          : 'bg-hover-subtle border-line-subtle hover:bg-hover text-ink-muted hover:border-line'
+                          ? 'border-accent/45 bg-accent/10 text-ink shadow-sm ring-1 ring-accent/25'
+                          : 'border-line-subtle bg-hover-subtle text-ink-muted hover:border-line hover:bg-hover'
                       }`}
                     >
                       <div className="flex items-center justify-between w-full mb-1">
@@ -279,7 +276,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             {font.badge}
                           </span>
                           {isSelected && (
-                            <div className="w-4 h-4 rounded-full bg-accent text-on-accent flex items-center justify-center">
+                            <div className="flex h-4 w-4 items-center justify-center rounded-full bg-accent text-on-accent">
                               <Check className="w-2.5 h-2.5 stroke-[3]" />
                             </div>
                           )}
@@ -431,7 +428,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-accent text-on-accent font-semibold text-xs hover:bg-accent-strong transition-colors cursor-pointer shadow-md shadow-accent/10"
+            className="btn-primary px-5 py-2 text-xs"
           >
             {ar ? 'تم وحفظ' : 'Done'}
           </button>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useTransition } from 'react';
-import type { TouchEvent as ReactTouchEvent, WheelEvent as ReactWheelEvent } from 'react';
+import type { TouchEvent as ReactTouchEvent } from 'react';
 import type { PDFDocumentLoadingTask, PDFDocumentProxy } from 'pdfjs-dist';
 import type {
   BookmarkItem,
@@ -16,10 +16,7 @@ import {
   saveDocumentToStorage,
   updateDocumentPage
 } from '../core/storage/documents';
-import {
-  getStoredAnnotations,
-  saveStoredAnnotations
-} from '../core/storage/annotations';
+import { loadStoredAnnotations, saveStoredAnnotations } from '../core/storage/annotations';
 import { getStoredBookmarks, saveStoredBookmarks } from '../core/storage/bookmarks';
 import { applyFontFamily, getSavedFont, saveFont } from '../core/settings/fonts';
 import {
@@ -69,13 +66,14 @@ const THEME_ORDER: ThemeMode[] = [
 const SAMPLE_DOCUMENT_NAME = 'The Art of Vibe Reading.pdf';
 
 /**
- * Page-turn physics. A wheel gesture or edge swipe must travel this far before
- * it flips a page, and a short cooldown prevents trackpads from tumbling
- * through several pages when a gesture ends.
+ * Page-turn physics. A wheel gesture or a swipe must travel this far before it
+ * flips a page, and a short cooldown prevents trackpads from tumbling through
+ * several pages when one gesture ends.
  */
-const WHEEL_TURN_THRESHOLD = 170;
-const WHEEL_TURN_COOLDOWN_MS = 480;
-const TOUCH_EDGE_TURN_THRESHOLD = 54;
+const WHEEL_TURN_THRESHOLD = 96;
+const WHEEL_TURN_COOLDOWN_MS = 320;
+const TOUCH_SWIPE_TURN_THRESHOLD = 46;
+const TOUCH_VERTICAL_TURN_THRESHOLD = 64;
 const DOUBLE_TAP_MS = 320;
 const ZOOM_ANIMATION_MS = 260;
 
@@ -181,17 +179,13 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
   const [touchDeltaX, setTouchDeltaX] = useState(0);
   const [isDraggingTouch, setIsDraggingTouch] = useState(false);
-  const [edgePull, setEdgePull] = useState(0);
-  const [isEdgePulling, setIsEdgePulling] = useState(false);
+  const [searchSeed, setSearchSeed] = useState<{ query: string; id: number } | null>(null);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
   const touchStartTimeRef = useRef(0);
   const touchDeltaXRef = useRef(0);
-  const touchEdgeDirectionRef = useRef(0);
-  const touchEdgeDistanceRef = useRef(0);
-  const touchEdgeAnchorYRef = useRef<number | null>(null);
   const pinchStartDistRef = useRef<number | null>(null);
   const pinchStartZoomRef = useRef(1);
   const isPinchingRef = useRef(false);
@@ -202,6 +196,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const docRef = useRef<PDFDocumentProxy | null>(null);
   const loadingTaskRef = useRef<PDFDocumentLoadingTask | null>(null);
   const loadGenerationRef = useRef(0);
+  const annotationsGenerationRef = useRef(0);
+  const annotationsHydratedRef = useRef(false);
   const pendingScrollPageRef = useRef<number | null>(null);
   const lastWheelTimeRef = useRef(0);
   const wheelAccumRef = useRef(0);
@@ -215,6 +211,10 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     measureRefreshRate();
   }, []);
 
+  // Android chrome floats above the reader: the top bar and the bottom nav
+  // cover part of the scroll area, so paged fit calculations reserve for them.
+  const chromeInset = capabilities.keyboard ? 0 : 96;
+
   const getFitScale = useCallback(() => {
     if (!basePageSize.width || !basePageSize.height || typeof window === 'undefined') {
       return 1.15;
@@ -223,10 +223,10 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       basePageSize.width,
       basePageSize.height,
       window.innerWidth,
-      window.innerHeight,
+      window.innerHeight - chromeInset,
       viewMode
     );
-  }, [basePageSize, viewMode]);
+  }, [basePageSize, chromeInset, viewMode]);
 
   const canScrollVertically = useCallback(
     (direction: number) => {
@@ -269,9 +269,9 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     [viewMode]
   );
 
-  const resetEdgePull = useCallback(() => {
-    setEdgePull(0);
-    setIsEdgePulling(false);
+  const resetPageGesture = useCallback(() => {
+    setTouchDeltaX(0);
+    touchDeltaXRef.current = 0;
   }, []);
 
   /** Remembers which point of which page sits under the user's fingers. */
@@ -341,9 +341,14 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     syncNativeTheme(theme);
   }, [theme]);
 
+  // Annotation writes are debounced and persisted off the interaction path;
+  // highlighting never waits for IndexedDB or blocks the canvas.
   useEffect(() => {
-    if (!docTitle) return;
-    saveStoredAnnotations(docTitle, annotations);
+    if (!docTitle || !annotationsHydratedRef.current) return;
+    const timer = window.setTimeout(() => {
+      void saveStoredAnnotations(docTitle, annotations);
+    }, 240);
+    return () => window.clearTimeout(timer);
   }, [annotations, docTitle]);
 
   useEffect(() => {
@@ -440,8 +445,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     container.scrollLeft = 0;
     wheelAccumRef.current = 0;
     wheelDirectionRef.current = 0;
-    resetEdgePull();
-  }, [currentPage, viewMode, resetEdgePull]);
+    resetPageGesture();
+  }, [currentPage, viewMode, resetPageGesture]);
 
   const handlePageVisible = useCallback(
     (pageNumber: number) => {
@@ -493,6 +498,11 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
   const changeViewMode = useCallback(
     (nextMode: ViewMode) => {
+      // Continuous has no page viewport of its own, so remember which page the
+      // reader was on and scroll to it once the new layout has mounted.
+      if (nextMode === 'continuous' && currentPage > 1) {
+        pendingScrollPageRef.current = currentPage;
+      }
       setViewMode(nextMode);
       saveViewMode(nextMode);
       if (basePageSize.width && basePageSize.height && typeof window !== 'undefined') {
@@ -500,14 +510,14 @@ export function useReaderController(capabilities: ReaderCapabilities) {
           basePageSize.width,
           basePageSize.height,
           window.innerWidth,
-          window.innerHeight,
+          window.innerHeight - chromeInset,
           nextMode
         );
         lastFitScaleRef.current = fit;
         setZoom(fit);
       }
     },
-    [basePageSize]
+    [basePageSize, chromeInset, currentPage]
   );
 
   // Orientation changes and window resizes keep a fit-to-page zoom, but never
@@ -524,7 +534,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
           basePageSize.width,
           basePageSize.height,
           window.innerWidth,
-          window.innerHeight,
+          window.innerHeight - chromeInset,
           viewMode
         );
         const previousFit = lastFitScaleRef.current;
@@ -544,29 +554,94 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       window.removeEventListener('resize', rescale);
       window.removeEventListener('orientationchange', rescale);
     };
-  }, [doc, basePageSize, viewMode]);
+  }, [doc, basePageSize, chromeInset, viewMode]);
 
   // React registers wheel listeners as passive, so preventDefault inside
-  // onWheel is ignored. This guard stops the container's breathing-room
-  // padding from scrolling while a page-turn gesture is being accumulated.
+  // onWheel is ignored. This native listener owns paged wheel physics: a
+  // gesture that has nowhere left to scroll immediately turns the page; one
+  // that can still scroll stays entirely native.
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container || !doc) return;
 
-    const guard = (event: WheelEvent) => {
-      if (event.ctrlKey || event.deltaY === 0 || viewMode === 'continuous') return;
-      const direction = event.deltaY > 0 ? 1 : -1;
-      if (!canScrollVertically(direction)) event.preventDefault();
+    const handleNativeWheel = (event: WheelEvent) => {
+      if (event.ctrlKey) {
+        event.preventDefault();
+        const delta = event.deltaY > 0 ? -0.1 : 0.1;
+        setZoom((current) =>
+          Math.min(3.5, Math.max(0.5, Number((current + delta).toFixed(2))))
+        );
+        return;
+      }
+
+      if (viewMode === 'continuous') return;
+
+      const multiplier =
+        event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? container.clientHeight : 1;
+      const horizontal = Math.abs(event.deltaX) > Math.abs(event.deltaY);
+      const rawDelta = horizontal ? event.deltaX : event.deltaY;
+      const delta = rawDelta * multiplier;
+      if (Math.abs(delta) < 1) return;
+
+      const direction = delta > 0 ? 1 : -1;
+      const canScroll = horizontal
+        ? canScrollHorizontally(direction)
+        : canScrollVertically(direction);
+
+      if (canScroll) {
+        wheelAccumRef.current = 0;
+        wheelDirectionRef.current = 0;
+        return;
+      }
+
+      // The page fits: no vertical drift is allowed before the turn.
+      event.preventDefault();
+
+      const now = performance.now();
+      if (now - lastWheelTimeRef.current < WHEEL_TURN_COOLDOWN_MS) return;
+
+      if (wheelDirectionRef.current !== direction) {
+        wheelDirectionRef.current = direction;
+        wheelAccumRef.current = 0;
+      }
+      wheelAccumRef.current += Math.abs(delta);
+
+      if (wheelIdleTimerRef.current !== null) {
+        window.clearTimeout(wheelIdleTimerRef.current);
+      }
+      wheelIdleTimerRef.current = window.setTimeout(() => {
+        wheelIdleTimerRef.current = null;
+        wheelAccumRef.current = 0;
+        wheelDirectionRef.current = 0;
+      }, 180);
+
+      if (wheelAccumRef.current < WHEEL_TURN_THRESHOLD) return;
+
+      wheelAccumRef.current = 0;
+      wheelDirectionRef.current = 0;
+      lastWheelTimeRef.current = now;
+
+      if (direction > 0) goToNextPage();
+      else goToPrevPage();
     };
 
-    container.addEventListener('wheel', guard, { passive: false });
-    return () => container.removeEventListener('wheel', guard);
-  }, [canScrollVertically, doc, viewMode]);
+    container.addEventListener('wheel', handleNativeWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleNativeWheel);
+  }, [
+    canScrollHorizontally,
+    canScrollVertically,
+    doc,
+    goToNextPage,
+    goToPrevPage,
+    viewMode
+  ]);
 
   const closeDocument = useCallback(() => {
     const activeDoc = docRef.current;
     clearSearchTextCache(activeDoc);
     docRef.current = null;
+    annotationsGenerationRef.current += 1;
+    annotationsHydratedRef.current = false;
     setDoc(null);
     setDocTitle('');
     setNumPages(0);
@@ -575,6 +650,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     setBookmarks([]);
     setSearchQuery('');
     setActiveSearchPage(null);
+    setSearchSeed(null);
     setIsSearchOpen(false);
     setIsSidebarOpen(false);
     setIsSettingsOpen(false);
@@ -632,6 +708,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     }
 
     const generation = ++loadGenerationRef.current;
+    const annotationGeneration = ++annotationsGenerationRef.current;
+    annotationsHydratedRef.current = false;
     setDocumentError(null);
     setLoadProgress(null);
     setIsLoading(true);
@@ -679,13 +757,25 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       setDoc(opened.doc);
       setDocTitle(title);
       setNumPages(opened.numPages);
-      setAnnotations(getStoredAnnotations(title));
+      setAnnotations([]);
+      void loadStoredAnnotations(title)
+        .then((stored) => {
+          if (annotationGeneration !== annotationsGenerationRef.current) return;
+          annotationsHydratedRef.current = true;
+          setAnnotations(stored);
+        })
+        .catch(() => {
+          if (annotationGeneration !== annotationsGenerationRef.current) return;
+          annotationsHydratedRef.current = true;
+          setAnnotations([]);
+        });
       setBookmarks(getStoredBookmarks(title));
       setBasePageSize(opened.basePageSize);
       setBaseAspectRatio(opened.baseAspectRatio);
       setPasswordModal(EMPTY_PASSWORD_MODAL);
       setSearchQuery('');
       setActiveSearchPage(null);
+      setSearchSeed(null);
       setIsSearchOpen(false);
       setIsSidebarOpen(false);
       setDocumentError(null);
@@ -695,7 +785,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
           opened.basePageSize.width,
           opened.basePageSize.height,
           window.innerWidth,
-          window.innerHeight,
+          window.innerHeight - chromeInset,
           viewMode
         );
         lastFitScaleRef.current = fit;
@@ -856,84 +946,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     setLoadProgress(null);
   }, []);
 
-  const handleWheel = useCallback(
-    (event: ReactWheelEvent<HTMLDivElement>) => {
-      if (event.ctrlKey) {
-        event.preventDefault();
-        const delta = event.deltaY > 0 ? -0.1 : 0.1;
-        setZoom((current) =>
-          Math.min(3.5, Math.max(0.5, Number((current + delta).toFixed(2))))
-        );
-        return;
-      }
-
-      if (viewMode !== 'single' && viewMode !== 'dual') return;
-
-      const container = scrollContainerRef.current;
-      const multiplier =
-        event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? container?.clientHeight ?? 400 : 1;
-      const delta = event.deltaY * multiplier;
-      if (Math.abs(delta) < 1) return;
-
-      const direction = delta > 0 ? 1 : -1;
-
-      // Scroll the page itself before turning it. Only a gesture that pushes
-      // against a real edge becomes a page turn.
-      if (canScrollVertically(direction)) {
-        wheelAccumRef.current = 0;
-        wheelDirectionRef.current = 0;
-        if (isEdgePulling) resetEdgePull();
-        return;
-      }
-
-      const now = performance.now();
-      if (now - lastWheelTimeRef.current < WHEEL_TURN_COOLDOWN_MS) return;
-
-      if (wheelDirectionRef.current !== direction) {
-        wheelDirectionRef.current = direction;
-        wheelAccumRef.current = 0;
-      }
-      wheelAccumRef.current += Math.abs(delta);
-
-      setIsEdgePulling(true);
-      setEdgePull(
-        direction > 0
-          ? -Math.min(16, wheelAccumRef.current / 9)
-          : Math.min(16, wheelAccumRef.current / 9)
-      );
-
-      if (wheelIdleTimerRef.current !== null) {
-        window.clearTimeout(wheelIdleTimerRef.current);
-      }
-      wheelIdleTimerRef.current = window.setTimeout(() => {
-        wheelIdleTimerRef.current = null;
-        wheelAccumRef.current = 0;
-        wheelDirectionRef.current = 0;
-        resetEdgePull();
-      }, 170);
-
-      if (wheelAccumRef.current < WHEEL_TURN_THRESHOLD) return;
-
-      wheelAccumRef.current = 0;
-      wheelDirectionRef.current = 0;
-      lastWheelTimeRef.current = now;
-      resetEdgePull();
-      if (direction > 0) {
-        goToNextPage();
-      } else {
-        goToPrevPage();
-      }
-    },
-    [
-      canScrollVertically,
-      goToNextPage,
-      goToPrevPage,
-      isEdgePulling,
-      resetEdgePull,
-      viewMode
-    ]
-  );
-
   const handleDoubleTap = useCallback(
     (clientX: number, clientY: number) => {
       const fit = getFitScale();
@@ -969,8 +981,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       }
       touchStartX.current = null;
       touchStartY.current = null;
-      touchEdgeAnchorYRef.current = null;
-      touchEdgeDistanceRef.current = 0;
       setIsDraggingTouch(false);
       setTouchDeltaX(0);
       touchDeltaXRef.current = 0;
@@ -982,9 +992,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       touchStartX.current = touch.clientX;
       touchStartY.current = touch.clientY;
       touchStartTimeRef.current = performance.now();
-      touchEdgeAnchorYRef.current = null;
-      touchEdgeDirectionRef.current = 0;
-      touchEdgeDistanceRef.current = 0;
+      setTouchDeltaX(0);
+      touchDeltaXRef.current = 0;
       if (viewMode === 'single' || viewMode === 'dual') {
         setIsDraggingTouch(true);
       }
@@ -1031,6 +1040,16 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       return;
     }
 
+    // A drag that is extending a text selection must never turn a page.
+    const selection = typeof window !== 'undefined' ? window.getSelection() : null;
+    if (selection && !selection.isCollapsed && selection.toString().trim().length > 0) {
+      if (touchDeltaXRef.current !== 0) {
+        setTouchDeltaX(0);
+        touchDeltaXRef.current = 0;
+      }
+      return;
+    }
+
     const touch = event.touches[0];
     const deltaX = touch.clientX - touchStartX.current;
     const deltaY = touch.clientY - touchStartY.current;
@@ -1038,48 +1057,33 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     if (Math.abs(deltaX) > Math.abs(deltaY)) {
       const scrollDirection = deltaX < 0 ? 1 : -1;
       if (canScrollHorizontally(scrollDirection)) {
-        setTouchDeltaX(0);
-        touchDeltaXRef.current = 0;
-        resetEdgePull();
+        if (touchDeltaXRef.current !== 0) {
+          setTouchDeltaX(0);
+          touchDeltaXRef.current = 0;
+        }
         return;
       }
-      setTouchDeltaX(deltaX);
-      touchDeltaXRef.current = deltaX;
-      touchEdgeAnchorYRef.current = null;
-      touchEdgeDistanceRef.current = 0;
-      if (isEdgePulling) resetEdgePull();
+
+      // Elastic, horizontal-only feedback. The page never drifts vertically.
+      const resisted = Math.max(-72, Math.min(72, deltaX * 0.35));
+      setTouchDeltaX(resisted);
+      touchDeltaXRef.current = resisted;
       return;
     }
 
     if (Math.abs(deltaY) < 8 || Math.abs(deltaX) > 18) return;
 
-    // Once a gesture is clearly vertical, discard any horizontal travel so a
-    // wobbly swipe cannot turn a page sideways at release.
+    // Once the gesture is clearly vertical, discard horizontal travel so a
+    // wobbly swipe cannot turn the page sideways at release.
     if (touchDeltaXRef.current !== 0) {
       setTouchDeltaX(0);
       touchDeltaXRef.current = 0;
     }
 
+    // Overflowing pages scroll natively first. Fit pages stay perfectly still
+    // and turn only when the finger is released.
     const direction = deltaY < 0 ? 1 : -1;
-    if (canScrollVertically(direction)) {
-      touchEdgeAnchorYRef.current = null;
-      touchEdgeDistanceRef.current = 0;
-      if (isEdgePulling) resetEdgePull();
-      return;
-    }
-
-    if (touchEdgeAnchorYRef.current === null) {
-      touchEdgeAnchorYRef.current = touch.clientY;
-    }
-    const edgeDistance = Math.abs(touch.clientY - touchEdgeAnchorYRef.current);
-    touchEdgeDirectionRef.current = touch.clientY < touchEdgeAnchorYRef.current ? 1 : -1;
-    touchEdgeDistanceRef.current = edgeDistance;
-    setIsEdgePulling(true);
-    setEdgePull(
-      touchEdgeDirectionRef.current > 0
-        ? -Math.min(22, edgeDistance * 0.4)
-        : Math.min(22, edgeDistance * 0.4)
-    );
+    if (canScrollVertically(direction)) return;
   };
 
   const handleTouchEnd = (event: ReactTouchEvent<HTMLDivElement>) => {
@@ -1095,8 +1099,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     if (wasPinching || event.touches.length > 0) {
       touchStartX.current = null;
       touchStartY.current = null;
-      touchEdgeAnchorYRef.current = null;
-      touchEdgeDistanceRef.current = 0;
       setIsDraggingTouch(false);
       setTouchDeltaX(0);
       touchDeltaXRef.current = 0;
@@ -1106,62 +1108,48 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     const startX = touchStartX.current;
     const startY = touchStartY.current;
     const duration = performance.now() - touchStartTimeRef.current;
-    const edgeDistance = touchEdgeDistanceRef.current;
-    const edgeDirection = touchEdgeDirectionRef.current;
     const touch = event.changedTouches[0];
 
     setIsDraggingTouch(false);
     touchStartX.current = null;
     touchStartY.current = null;
-    touchEdgeAnchorYRef.current = null;
-    touchEdgeDistanceRef.current = 0;
+    setTouchDeltaX(0);
+    touchDeltaXRef.current = 0;
 
-    if (startX === null || startY === null || !touch) {
-      setTouchDeltaX(0);
-      touchDeltaXRef.current = 0;
-      resetEdgePull();
-      return;
-    }
+    if (startX === null || startY === null || !touch) return;
 
     const movedX = touch.clientX - startX;
     const movedY = touch.clientY - startY;
 
-    if (
-      viewMode !== 'continuous' &&
-      edgeDistance >= TOUCH_EDGE_TURN_THRESHOLD
-    ) {
-      setTouchDeltaX(0);
-      touchDeltaXRef.current = 0;
-      resetEdgePull();
-      lastTapRef.current = null;
-      if (edgeDirection > 0) {
-        goToNextPage();
-      } else {
-        goToPrevPage();
-      }
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed && selection.toString().trim().length > 0) {
       return;
     }
 
-    if (
-      viewMode !== 'continuous' &&
-      Math.abs(touchDeltaXRef.current) > 40
-    ) {
-      const direction = touchDeltaXRef.current < 0 ? 1 : -1;
-      setTouchDeltaX(0);
-      touchDeltaXRef.current = 0;
-      resetEdgePull();
-      lastTapRef.current = null;
-      if (direction > 0) {
-        goToNextPage();
-      } else {
-        goToPrevPage();
+    if (viewMode === 'single' || viewMode === 'dual') {
+      const horizontal =
+        Math.abs(movedX) > TOUCH_SWIPE_TURN_THRESHOLD &&
+        Math.abs(movedX) > Math.abs(movedY) * 1.2;
+      if (horizontal) {
+        lastTapRef.current = null;
+        if (movedX < 0) goToNextPage();
+        else goToPrevPage();
+        return;
       }
-      return;
-    }
 
-    setTouchDeltaX(0);
-    touchDeltaXRef.current = 0;
-    resetEdgePull();
+      const vertical =
+        Math.abs(movedY) > TOUCH_VERTICAL_TURN_THRESHOLD &&
+        Math.abs(movedY) > Math.abs(movedX) * 1.2;
+      if (vertical) {
+        const direction = movedY < 0 ? 1 : -1;
+        if (!canScrollVertically(direction)) {
+          lastTapRef.current = null;
+          if (direction > 0) goToNextPage();
+          else goToPrevPage();
+          return;
+        }
+      }
+    }
 
     const isTap =
       duration < 280 &&
@@ -1195,12 +1183,9 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     clearZoomAnchor();
     touchStartX.current = null;
     touchStartY.current = null;
-    touchEdgeAnchorYRef.current = null;
-    touchEdgeDistanceRef.current = 0;
     setIsDraggingTouch(false);
     setTouchDeltaX(0);
     touchDeltaXRef.current = 0;
-    resetEdgePull();
   };
 
   const handleToggleFullscreen = useCallback(() => {
@@ -1234,10 +1219,10 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         case 'pagedown':
         case ' ':
           event.preventDefault();
-          if (viewMode === 'single') {
-            goToNextPage();
-          } else {
+          if (viewMode === 'continuous') {
             scrollContainerRef.current?.scrollBy({ top: 220, behavior: 'smooth' });
+          } else {
+            goToNextPage();
           }
           break;
         case 'k':
@@ -1245,10 +1230,10 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         case 'arrowleft':
         case 'pageup':
           event.preventDefault();
-          if (viewMode === 'single') {
-            goToPrevPage();
-          } else {
+          if (viewMode === 'continuous') {
             scrollContainerRef.current?.scrollBy({ top: -220, behavior: 'smooth' });
+          } else {
+            goToPrevPage();
           }
           break;
         case '+':
@@ -1312,10 +1297,17 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     setActiveSearchPage(page);
   }, []);
 
+  const openSearchWithText = useCallback((text: string) => {
+    const query = text.replace(/\s+/g, ' ').trim().slice(0, 96);
+    setIsSearchOpen(true);
+    setSearchSeed(query ? { query, id: Date.now() } : null);
+  }, []);
+
   const closeSearch = useCallback(() => {
     setIsSearchOpen(false);
     setSearchQuery('');
     setActiveSearchPage(null);
+    setSearchSeed(null);
   }, []);
 
   const resetDefaults = useCallback(() => {
@@ -1346,6 +1338,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     documentError,
     searchQuery,
     activeSearchPage,
+    searchSeed,
     annotations,
     bookmarks,
     passwordModal,
@@ -1353,8 +1346,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     dualFlipDir,
     touchDeltaX,
     isDraggingTouch,
-    edgePull,
-    isEdgePulling,
     scrollContainerRef,
     openFile,
     openSample,
@@ -1374,13 +1365,13 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     deleteAnnotation,
     handlePasswordSubmit,
     handlePasswordCancel,
-    handleWheel,
     handleTouchStart,
     handleTouchMove,
     handleTouchEnd,
     handleTouchCancel,
     handleToggleFullscreen,
     handleSearchQueryChange,
+    openSearchWithText,
     closeSearch,
     setIsSidebarOpen,
     setIsSearchOpen,

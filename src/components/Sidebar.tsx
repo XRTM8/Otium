@@ -46,6 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [toc, setToc] = useState<TocItem[]>([]);
   const [copiedAll, setCopiedAll] = useState(false);
   const t = getTranslations(lang);
+  const ar = lang === 'ar';
 
   useEffect(() => {
     if (!doc) return;
@@ -99,16 +100,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       />
 
       {/* Drawer */}
-      <div className="relative w-84 max-w-[90vw] h-full bg-surface text-ink border-x border-line shadow-2xl backdrop-blur-2xl flex flex-col z-10 animate-in slide-in-from-right sm:slide-in-from-left duration-300">
+      <div className="chrome-surface relative z-10 flex h-full w-[21rem] max-w-[90vw] flex-col border-x-0 border-l border-line text-ink animate-in slide-in-from-right sm:slide-in-from-left duration-300">
         
-        {/* Header Tabs (3 Clean Tabs) */}
-        <div className="p-3 border-b border-line flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-1.5">
+        {/* Header Tabs */}
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-line-subtle p-3">
+          <div className="segmented min-w-0 flex-1">
             <button
               onClick={() => setTab('pages')}
-              className={`p-1.5 px-2.5 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
-                tab === 'pages' ? 'bg-accent/20 text-accent font-semibold' : 'text-ink-muted hover:text-ink'
-              }`}
+              data-active={tab === 'pages'}
+              className="flex-1 justify-center py-1.5 text-xs"
               title={t.pagesTab}
             >
               <Layers className="w-3.5 h-3.5" />
@@ -118,9 +118,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={() => setTab('toc')}
               disabled={toc.length === 0}
-              className={`p-1.5 px-2.5 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-30 ${
-                tab === 'toc' ? 'bg-accent/20 text-accent font-semibold' : 'text-ink-muted hover:text-ink'
-              }`}
+              data-active={tab === 'toc'}
+              className="flex-1 justify-center py-1.5 text-xs disabled:opacity-30"
               title={t.outlineTab}
             >
               <BookOpen className="w-3.5 h-3.5" />
@@ -129,15 +128,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             <button
               onClick={() => setTab('notes')}
-              className={`p-1.5 px-2.5 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
-                tab === 'notes' ? 'bg-accent/20 text-accent font-semibold' : 'text-ink-muted hover:text-ink'
-              }`}
-              title="الملاحظات والفواصل"
+              data-active={tab === 'notes'}
+              className="flex-1 justify-center py-1.5 text-xs"
+              title={ar ? 'Notes & Bookmarks' : 'الملاحظات والفواصل'}
             >
               <Bookmark className="w-3.5 h-3.5" />
-              <span>الملاحظات</span>
+              <span>{ar ? 'Notes' : 'الملاحظات'}</span>
               {totalNotesCount > 0 && (
-                <span className="w-4 h-4 rounded-full bg-accent text-on-accent text-[10px] font-mono flex items-center justify-center font-bold">
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-accent font-mono text-[10px] font-bold text-on-accent">
                   {totalNotesCount}
                 </span>
               )}
@@ -146,7 +144,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-hover text-ink-muted hover:text-ink transition-colors shrink-0 cursor-pointer"
+            aria-label={ar ? 'إغلاق' : 'Close'}
+            className="toolbar-icon"
           >
             <X className="w-4 h-4" />
           </button>
@@ -180,7 +179,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <div className="w-12 h-16 rounded-lg border border-line bg-surface-2 flex items-center justify-center mb-1 group-hover:scale-105 transition-transform shadow-xs">
                       <span className="text-[11px] opacity-60">{pageNum}</span>
                     </div>
-                    <span className="text-[11px]">صفحة {pageNum}</span>
+                    <span className="text-[11px]">{ar ? `صفحة ${pageNum}` : `Page ${pageNum}`}</span>
                   </button>
                 );
               })}
@@ -192,7 +191,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="space-y-1">
               {toc.length === 0 ? (
                 <div className="py-12 text-center text-xs text-ink-faint font-sans">
-                  لا يحتوي هذا المستند على فهرس عناوين مدمج
+                  {ar ? 'لا يحتوي هذا المستند على فهرس عناوين مدمج' : 'This document has no embedded outline'}
                 </div>
               ) : (
                 toc.map((item, idx) => (
@@ -208,7 +207,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       {item.title}
                     </span>
                     <span className="font-mono text-[10px] opacity-40 group-hover:opacity-80 shrink-0">
-                      ص {item.pageNumber}
+                      {ar ? `ص ${item.pageNumber}` : `p. ${item.pageNumber}`}
                     </span>
                   </button>
                 ))
@@ -227,12 +226,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {isCurrentPageBookmarked ? (
                   <>
                     <Bookmark className="w-4 h-4 fill-highlight text-highlight" />
-                    <span>{t.removeBookmark} (صفحة {currentPage})</span>
+                    <span>{t.removeBookmark} ({ar ? `صفحة ${currentPage}` : `page ${currentPage}`})</span>
                   </>
                 ) : (
                   <>
                     <Plus className="w-4 h-4" />
-                    <span>{t.addBookmark} (صفحة {currentPage})</span>
+                    <span>{t.addBookmark} ({ar ? `صفحة ${currentPage}` : `page ${currentPage}`})</span>
                   </>
                 )}
               </button>
@@ -242,7 +241,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="space-y-1.5">
                   <div className="text-[11px] font-medium text-ink-muted font-sans px-1 flex items-center gap-1.5">
                     <Bookmark className="w-3 h-3 text-highlight" />
-                    <span>فواصل القراءة ({bookmarks.length})</span>
+                    <span>{ar ? `فواصل القراءة (${bookmarks.length})` : `Bookmarks (${bookmarks.length})`}</span>
                   </div>
                   {bookmarks.map((bm) => (
                     <div
@@ -258,13 +257,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       >
                         <Bookmark className="w-3.5 h-3.5 text-highlight fill-highlight shrink-0" />
                         <span className="font-sans font-medium">
-                          صفحة {bm.pageNumber}
+                          {ar ? `صفحة ${bm.pageNumber}` : `Page ${bm.pageNumber}`}
                         </span>
                       </button>
 
                       <button
                         onClick={() => onToggleBookmark?.(bm.pageNumber)}
-                        title="حذف الإشارة"
+                        title={ar ? 'حذف الإشارة' : 'Remove bookmark'}
                         className="p-1 rounded-lg text-ink-muted hover:text-danger-ink hover:bg-rose-500/10 transition-colors cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -285,24 +284,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <button
                         onClick={async () => {
                           const content = annotations
-                            .map((a, i) => `${i + 1}. [صفحة ${a.pageNumber}] "${a.text}"`)
+                            .map((a, i) => `${i + 1}. [${ar ? 'صفحة' : 'page'} ${a.pageNumber}] "${a.text}"`)
                             .join('\n\n');
                           await navigator.clipboard.writeText(content);
                           setCopiedAll(true);
                           setTimeout(() => setCopiedAll(false), 2000);
                         }}
                         className="text-[10px] text-highlight hover:text-highlight flex items-center gap-1 cursor-pointer font-sans"
-                        title="نسخ جميع الاقتباسات إلى الحافظة"
+                        title={ar ? 'نسخ جميع الاقتباسات إلى الحافظة' : 'Copy all quotes to clipboard'}
                       >
                         {copiedAll ? (
                           <>
                             <Check className="w-3 h-3 text-success-ink" />
-                            <span className="text-success-ink">تم النسخ</span>
+                            <span className="text-success-ink">{ar ? 'تم النسخ' : 'Copied'}</span>
                           </>
                         ) : (
                           <>
                             <Copy className="w-3 h-3" />
-                            <span>نسخ الكل</span>
+                            <span>{ar ? 'نسخ الكل' : 'Copy all'}</span>
                           </>
                         )}
                       </button>
@@ -320,10 +319,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           URL.revokeObjectURL(url);
                         }}
                         className="text-[10px] text-ink-muted hover:text-ink flex items-center gap-1 cursor-pointer font-sans"
-                        title="تنزيل كملف Markdown (.md)"
+                        title={ar ? 'تنزيل كملف Markdown (.md)' : 'Download as Markdown (.md)'}
                       >
                         <Download className="w-3 h-3" />
-                        <span>تحميل .md</span>
+                        <span>{ar ? 'تحميل .md' : 'Download .md'}</span>
                       </button>
                     </div>
                   </div>
@@ -346,11 +345,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               className="w-2 h-2 rounded-full border border-black/30"
                               style={{ backgroundColor: anno.color }}
                             />
-                            <span>ص {anno.pageNumber}</span>
+                            <span>{ar ? `ص ${anno.pageNumber}` : `p. ${anno.pageNumber}`}</span>
                           </button>
                           <button
                             onClick={() => onDeleteAnnotation?.(anno.id)}
-                            title="حذف"
+                            title={ar ? 'حذف' : 'Delete'}
                             className="opacity-0 group-hover:opacity-100 hover:text-danger-ink transition-opacity cursor-pointer p-0.5"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -373,7 +372,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               {bookmarks.length === 0 && annotations.length === 0 && (
                 <div className="py-12 text-center text-xs text-ink-faint font-sans">
-                  لا توجد فواصل أو اقتباسات محفوظة في هذا المستند
+                  {ar ? 'لا توجد فواصل أو اقتباسات محفوظة في هذا المستند' : 'No bookmarks or highlights saved in this document'}
                 </div>
               )}
             </div>

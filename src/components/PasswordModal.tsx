@@ -41,10 +41,11 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
     >
       <div className="fixed inset-0 bg-scrim backdrop-blur-md" onClick={onCancel} />
 
-      <div className="relative w-full max-w-sm bg-surface border border-line rounded-3xl shadow-2xl p-6 text-ink z-10 flex flex-col items-center text-center backdrop-blur-2xl">
+      <div className="otium-panel relative z-10 flex w-full max-w-sm flex-col items-center p-6 text-center text-ink">
         <button
           onClick={onCancel}
-          className="absolute top-4 left-4 p-1.5 rounded-full hover:bg-hover text-ink-muted hover:text-ink transition-colors cursor-pointer"
+          aria-label={lang === 'ar' ? 'إغلاق' : 'Close'}
+          className="toolbar-icon absolute left-4 top-4"
         >
           <X className="w-4 h-4" />
         </button>
@@ -79,7 +80,7 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••••••"
               autoFocus
-              className="w-full py-2.5 px-4 pr-10 rounded-2xl bg-hover-subtle border border-line focus:border-accent focus:outline-hidden text-sm text-center text-ink tracking-widest placeholder:tracking-normal placeholder:text-ink-faint transition-colors"
+              className="w-full rounded-2xl border border-line bg-hover-subtle px-4 py-2.5 text-center text-sm tracking-widest text-ink transition-colors placeholder:tracking-normal placeholder:text-ink-faint focus:border-accent focus:outline-hidden"
             />
             <button
               type="button"
@@ -93,7 +94,7 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
           <button
             type="submit"
             disabled={password.trim().length === 0}
-            className="w-full py-2.5 rounded-2xl bg-accent hover:bg-accent-strong disabled:opacity-40 text-on-accent font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-md shadow-accent/10"
+            className="btn-primary w-full px-4 py-2.5 text-xs disabled:opacity-40"
           >
             <KeyRound className="w-4 h-4" />
             <span>{t.unlockButton}</span>

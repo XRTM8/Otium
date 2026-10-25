@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  ArrowLeft,
+  Bookmark,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
-  ZoomIn,
-  ZoomOut,
+  Columns,
+  Layers,
   Maximize2,
   Minimize2,
+  MoreHorizontal,
   Palette,
-  Columns,
   Scroll,
   Search,
-  MoreHorizontal,
   Settings2,
-  Bookmark,
-  Layers,
-  BookOpen,
-  ArrowLeft
+  ZoomIn,
+  ZoomOut
 } from 'lucide-react';
 import type { ThemeMode, ViewMode } from '../core/types';
 import type { Language } from '../core/i18n/translations';
@@ -44,6 +44,22 @@ interface ToolbarProps {
   onCloseDocument: () => void;
 }
 
+const THEME_DOTS: Record<ThemeMode, string> = {
+  paper: '#d4c5a9',
+  midnight: '#38bdf8',
+  amoled: '#10b981',
+  parchment: '#d97706',
+  amber: '#f59e0b',
+  eink: '#9ca3af',
+  pure: '#f8fafc'
+};
+
+const VIEW_MODES: { id: ViewMode; icon: React.ReactNode; key: keyof ReturnType<typeof getTranslations> }[] = [
+  { id: 'continuous', icon: <Scroll className="w-3.5 h-3.5" />, key: 'continuousMode' },
+  { id: 'dual', icon: <BookOpen className="w-3.5 h-3.5" />, key: 'dualMode' },
+  { id: 'single', icon: <Columns className="w-3.5 h-3.5" />, key: 'singleMode' }
+];
+
 export const Toolbar: React.FC<ToolbarProps> = ({
   title,
   currentPage,
@@ -71,31 +87,20 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   const [inputPage, setInputPage] = useState(currentPage.toString());
 
   const t = getTranslations(currentLang);
-
-  const toggleViewMode = () => {
-    if (viewMode === 'continuous') {
-      onViewModeChange('dual');
-    } else if (viewMode === 'dual') {
-      onViewModeChange('single');
-    } else {
-      onViewModeChange('continuous');
-    }
-  };
+  const ar = currentLang === 'ar';
 
   useEffect(() => {
     setInputPage(currentPage.toString());
   }, [currentPage]);
 
-  // Auto-hide toolbar after inactivity
+  // Auto-hide the chrome after inactivity so the page owns the screen.
   useEffect(() => {
-    let timeout: any;
+    let timeout: number | undefined;
     const handleActivity = () => {
       setIsVisible(true);
-      clearTimeout(timeout);
-      timeout = setTimeout(() => {
-        if (!showThemeMenu && !showMoreMobile) {
-          setIsVisible(false);
-        }
+      window.clearTimeout(timeout);
+      timeout = window.setTimeout(() => {
+        if (!showThemeMenu && !showMoreMobile) setIsVisible(false);
       }, 5000);
     };
 
@@ -110,364 +115,361 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       window.removeEventListener('keydown', handleActivity);
       window.removeEventListener('touchstart', handleActivity);
       window.removeEventListener('scroll', handleActivity);
-      clearTimeout(timeout);
+      window.clearTimeout(timeout);
     };
   }, [showThemeMenu, showMoreMobile]);
 
-  const handlePageSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const pageNum = parseInt(inputPage, 10);
-    if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
+  const handlePageSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const pageNum = Number.parseInt(inputPage, 10);
+    if (!Number.isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
       onPageChange(pageNum);
     } else {
       setInputPage(currentPage.toString());
     }
   };
 
-  const themes: { id: ThemeMode; label: string; dot: string }[] = [
-    { id: 'paper', label: t.themes.paper, dot: '#d4c5a9' },
-    { id: 'midnight', label: t.themes.midnight, dot: '#38bdf8' },
-    { id: 'amoled', label: t.themes.amoled, dot: '#10b981' },
-    { id: 'parchment', label: t.themes.parchment, dot: '#d97706' },
-    { id: 'amber', label: t.themes.amber, dot: '#f59e0b' },
-    { id: 'eink', label: t.themes.eink, dot: '#9ca3af' },
-    { id: 'pure', label: t.themes.pure, dot: '#f8fafc' },
-  ];
+  const themes = (Object.keys(THEME_DOTS) as ThemeMode[]).map((id) => ({
+    id,
+    label: t.themes[id],
+    dot: THEME_DOTS[id]
+  }));
+
+  const pageControls = (
+    <div className="flex shrink-0 items-center gap-0.5">
+      <button
+        type="button"
+        onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+        disabled={currentPage <= 1}
+        title={t.prevPage}
+        aria-label={t.prevPage}
+        className="toolbar-icon disabled:opacity-20"
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+
+      <form
+        onSubmit={handlePageSubmit}
+        className="flex items-center gap-1 rounded-lg bg-hover-subtle px-1.5 py-1 font-mono text-[11px]"
+      >
+        <input
+          type="text"
+          inputMode="numeric"
+          value={inputPage}
+          onChange={(event) => setInputPage(event.target.value)}
+          onBlur={handlePageSubmit}
+          aria-label={t.pageOf(currentPage, totalPages)}
+          className="w-7 bg-transparent text-center text-ink outline-none focus:text-accent"
+        />
+        <span className="select-none text-ink-faint">/ {totalPages}</span>
+      </form>
+
+      <button
+        type="button"
+        onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+        disabled={currentPage >= totalPages}
+        title={t.nextPage}
+        aria-label={t.nextPage}
+        className="toolbar-icon disabled:opacity-20"
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
+    </div>
+  );
 
   return (
     <div
       dir="ltr"
-      style={{
-        top: 'max(0.75rem, calc(env(safe-area-inset-top, 0px) + 0.6rem))'
-      }}
-      className={`fixed inset-x-0 z-40 flex flex-col items-center pointer-events-none transition-all duration-300 ${
-        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
+      style={{ top: 'max(0.75rem, calc(env(safe-area-inset-top, 0px) + 0.6rem))' }}
+      className={`fixed inset-x-0 z-40 flex flex-col items-center px-2 pointer-events-none transition-all duration-300 ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'
       }`}
     >
-      <div className="pointer-events-auto flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 rounded-full bg-surface text-ink border border-line shadow-2xl backdrop-blur-xl transition-all">
-        {/* Prominent Back Button (العودة للمكتبة) */}
+      <div className={`chrome-surface ${isVisible ? 'pointer-events-auto' : 'pointer-events-none'} flex max-w-[calc(100vw-1rem)] items-center gap-1 rounded-2xl px-1.5 py-1.5 sm:gap-1.5 sm:px-2`}>
         <button
           type="button"
           onClick={onCloseDocument}
-          title={currentLang === 'ar' ? 'العودة للمكتبة' : 'Back to Library'}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 text-success-ink hover:text-success-ink transition-all cursor-pointer shrink-0 border border-emerald-500/30"
+          title={t.closeDoc}
+          className="flex shrink-0 items-center gap-1.5 rounded-xl border border-line-subtle bg-hover-subtle px-2 py-1.5 text-ink-muted transition-colors hover:bg-hover hover:text-ink active:scale-[0.97]"
         >
-          <ArrowLeft className="w-3.5 h-3.5 text-success-ink" />
-          <span className="text-[11px] font-medium hidden sm:inline">
-            {currentLang === 'ar' ? 'المكتبة' : 'Library'}
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span className="text-[11px] font-semibold hidden lg:inline">
+            {ar ? 'المكتبة' : 'Library'}
           </span>
         </button>
 
-        {/* Dynamic Brand Symbol reflecting active theme */}
-        <div className="p-0.5 flex items-center justify-center shrink-0" title="Otium Brandmark">
-          <OtiumLogo theme={theme} size={22} />
-        </div>
+        <span className="flex shrink-0 items-center px-0.5 text-accent" title="Otium">
+          <OtiumLogo size={22} />
+        </span>
 
-        {/* Sidebar Trigger */}
         <button
+          type="button"
           onClick={onToggleSidebar}
           title={t.pagesTab}
-          className="p-1.5 sm:p-2 rounded-full hover:bg-hover text-ink-muted transition-colors shrink-0 cursor-pointer"
+          aria-label={t.pagesTab}
+          className="toolbar-icon"
         >
           <Layers className="w-4 h-4" />
         </button>
 
-        {/* Document Title */}
-        <div
+        <span
           title={title}
           dir="auto"
-          className="max-w-[75px] sm:max-w-[140px] md:max-w-[200px] truncate font-medium text-ink-muted select-none text-xs px-1 hidden sm:block shrink-0"
+          className="hidden max-w-[90px] shrink-0 select-none truncate px-1 text-xs font-medium text-ink-muted sm:block md:max-w-[150px] xl:max-w-[220px]"
         >
           {title}
-        </div>
+        </span>
 
-        {/* Divider */}
-        <div className="w-[1px] h-4 bg-hover mx-0.5 shrink-0" />
+        <span className="mx-0.5 h-4 w-px shrink-0 bg-line-subtle" />
 
-        {/* Search */}
         <button
+          type="button"
           onClick={onToggleSearch}
           title={t.searchTooltip}
-          className="p-1.5 sm:p-2 rounded-full hover:bg-hover text-ink-muted transition-colors shrink-0 cursor-pointer"
+          aria-label={t.searchTooltip}
+          className="toolbar-icon"
         >
           <Search className="w-4 h-4" />
         </button>
 
-        {/* Page Nav */}
-        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
-          <button
-            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-            disabled={currentPage <= 1}
-            title={t.prevPage}
-            className="p-1.5 rounded-full hover:bg-hover text-ink-muted disabled:opacity-20 transition-colors cursor-pointer"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
+        {pageControls}
 
-          <form onSubmit={handlePageSubmit} className="flex items-center gap-1 font-mono text-xs">
-            <input
-              type="text"
-              value={inputPage}
-              onChange={(e) => setInputPage(e.target.value)}
-              onBlur={handlePageSubmit}
-              className="w-8 sm:w-9 text-center bg-hover rounded py-0.5 px-0.5 text-ink focus:outline-none focus:ring-1 focus:ring-accent text-xs"
-            />
-            <span className="opacity-40 select-none text-[11px]">/ {totalPages}</span>
-          </form>
+        <div className="hidden shrink-0 items-center gap-0.5 lg:flex">
+          <span className="mx-0.5 h-4 w-px bg-line-subtle" />
 
           <button
-            onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-            disabled={currentPage >= totalPages}
-            title={t.nextPage}
-            className="p-1.5 rounded-full hover:bg-hover text-ink-muted disabled:opacity-20 transition-colors cursor-pointer"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* DESKTOP ONLY CONTROLS */}
-        <div className="hidden md:flex items-center gap-1 sm:gap-1.5 shrink-0">
-          <div className="w-[1px] h-4 bg-hover mx-0.5" />
-
-          {/* Bookmark Button */}
-          <button
+            type="button"
             onClick={onToggleBookmark}
             title={isBookmarked ? t.removeBookmark : t.addBookmark}
-            className={`p-1.5 rounded-full transition-all flex items-center cursor-pointer ${
-              isBookmarked
-                ? 'bg-accent/20 text-accent shadow-xs'
-                : 'hover:bg-hover text-ink-muted'
-            }`}
+            aria-label={isBookmarked ? t.removeBookmark : t.addBookmark}
+            className={`toolbar-icon ${isBookmarked ? 'text-highlight' : ''}`}
           >
-            <Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-highlight' : ''}`} />
+            <Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-current' : ''}`} />
           </button>
 
-          {/* Zoom */}
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-0.5 rounded-lg bg-hover-subtle px-0.5">
             <button
+              type="button"
               onClick={() => onZoomChange(Math.max(0.5, Number((zoom - 0.15).toFixed(2))))}
               title={t.zoomOut}
-              className="p-1.5 rounded-full hover:bg-hover text-ink-muted transition-colors cursor-pointer"
+              aria-label={t.zoomOut}
+              className="toolbar-icon"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
-            <span className="font-mono text-[11px] w-9 text-center text-ink-muted select-none">
+            <span className="w-8 select-none text-center font-mono text-[10px] text-ink-muted">
               {Math.round(zoom * 100)}%
             </span>
             <button
+              type="button"
               onClick={() => onZoomChange(Math.min(3.5, Number((zoom + 0.15).toFixed(2))))}
               title={t.zoomIn}
-              className="p-1.5 rounded-full hover:bg-hover text-ink-muted transition-colors cursor-pointer"
+              aria-label={t.zoomIn}
+              className="toolbar-icon"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <div className="w-[1px] h-4 bg-hover mx-0.5" />
+          <div className="segmented ml-0.5 hidden lg:inline-flex">
+            {VIEW_MODES.map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                data-active={viewMode === mode.id}
+                onClick={() => onViewModeChange(mode.id)}
+                title={t[mode.key] as string}
+                aria-label={t[mode.key] as string}
+              >
+                {mode.icon}
+              </button>
+            ))}
+          </div>
 
-          {/* View Mode Toggle (Continuous -> Dual -> Single) */}
-          <button
-            onClick={toggleViewMode}
-            title={
-              viewMode === 'continuous'
-                ? t.dualMode
-                : viewMode === 'dual'
-                ? t.singleMode
-                : t.continuousMode
-            }
-            className={`p-1.5 rounded-full transition-colors cursor-pointer ${
-              viewMode === 'dual' ? 'bg-accent/20 text-accent' : 'hover:bg-hover text-ink-muted'
-            }`}
-          >
-            {viewMode === 'continuous' ? (
-              <Scroll className="w-3.5 h-3.5" />
-            ) : viewMode === 'dual' ? (
-              <BookOpen className="w-3.5 h-3.5" />
-            ) : (
-              <Columns className="w-3.5 h-3.5" />
-            )}
-          </button>
-
-          {/* Themes Dropdown */}
           <div className="relative">
             <button
-              onClick={() => setShowThemeMenu(!showThemeMenu)}
+              type="button"
+              onClick={() => setShowThemeMenu((open) => !open)}
               title={t.themeLabel}
-              className={`p-1.5 rounded-full transition-colors flex items-center cursor-pointer ${
-                showThemeMenu ? 'bg-hover-strong text-ink' : 'hover:bg-hover text-ink-muted'
-              }`}
+              aria-label={t.themeLabel}
+              aria-expanded={showThemeMenu}
+              className={`toolbar-icon ${showThemeMenu ? 'bg-hover text-ink' : ''}`}
             >
               <Palette className="w-3.5 h-3.5" />
             </button>
 
             {showThemeMenu && (
-              <div className="absolute right-0 top-full mt-2 w-52 rounded-2xl bg-surface border border-line p-1.5 shadow-2xl backdrop-blur-xl z-50 text-ink animate-in fade-in zoom-in-95 duration-150">
-                <div className="text-[10px] uppercase font-mono px-2.5 py-1 text-ink-faint font-semibold tracking-wider">
+              <div className="chrome-surface absolute right-0 top-full z-50 mt-2 w-52 rounded-2xl p-1.5 text-ink animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
                   {t.readingThemesTitle}
                 </div>
-                {themes.map((th) => (
+                {themes.map((entry) => (
                   <button
-                    key={th.id}
+                    key={entry.id}
+                    type="button"
                     onClick={() => {
-                      onThemeChange(th.id);
+                      onThemeChange(entry.id);
                       setShowThemeMenu(false);
                     }}
-                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition-colors cursor-pointer ${
-                      theme === th.id ? 'bg-hover-strong text-ink font-medium' : 'hover:bg-hover-subtle text-ink-muted'
+                    className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs transition-colors ${
+                      theme === entry.id
+                        ? 'bg-hover text-ink font-medium'
+                        : 'text-ink-muted hover:bg-hover-subtle'
                     }`}
                   >
                     <span
-                      className="w-3.5 h-3.5 rounded-full border border-black/20"
-                      style={{ backgroundColor: th.dot }}
+                      className="h-3.5 w-3.5 rounded-full border border-black/20"
+                      style={{ backgroundColor: entry.dot }}
                     />
-                    <span>{th.label}</span>
+                    <span className="truncate">{entry.label}</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Fullscreen */}
           <button
+            type="button"
             onClick={onToggleFullscreen}
             title={t.fullscreen}
-            className="p-1.5 rounded-full hover:bg-hover text-ink-muted transition-colors cursor-pointer"
+            aria-label={t.fullscreen}
+            className="toolbar-icon"
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
 
-          {/* Settings Trigger */}
           <button
+            type="button"
             onClick={onToggleSettings}
             title={t.settingsTitle}
-            className="p-1.5 rounded-full hover:bg-hover text-ink-muted hover:text-ink transition-colors cursor-pointer"
+            aria-label={t.settingsTitle}
+            className="toolbar-icon"
           >
             <Settings2 className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* MOBILE MORE MENU BUTTON (< md) */}
-        <div className="md:hidden flex items-center gap-0.5 shrink-0">
-          <div className="w-[1px] h-4 bg-hover mx-0.5" />
-          <button
-            onClick={() => {
-              setShowMoreMobile(!showMoreMobile);
-              setShowThemeMenu(false);
-            }}
-            title={t.moreTools}
-            className={`p-1.5 sm:p-2 rounded-full transition-colors cursor-pointer ${
-              showMoreMobile ? 'bg-hover-strong text-ink' : 'hover:bg-hover text-ink-muted'
-            }`}
-          >
-            <MoreHorizontal className="w-4 h-4" />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setShowMoreMobile((open) => !open);
+            setShowThemeMenu(false);
+          }}
+          title={t.moreTools}
+          aria-label={t.moreTools}
+          aria-expanded={showMoreMobile}
+          className={`toolbar-icon lg:hidden ${showMoreMobile ? 'bg-hover text-ink' : ''}`}
+        >
+          <MoreHorizontal className="w-4 h-4" />
+        </button>
       </div>
 
-      {/* MOBILE POPUP TOOLBAR DRAWER */}
       {showMoreMobile && (
-        <div className="pointer-events-auto md:hidden mt-2 p-3 rounded-2xl bg-surface border border-line shadow-2xl backdrop-blur-2xl z-50 text-ink flex flex-col gap-3 w-72 max-w-[90vw] animate-in fade-in zoom-in-95 duration-150">
-          
-          {/* Mobile Zoom Row */}
-          <div className="flex items-center justify-between px-1">
-            <span className="text-xs text-ink-muted font-medium">{t.zoomLevel}</span>
-            <div className="flex items-center gap-2">
+        <div className="chrome-surface pointer-events-auto mt-2 flex w-[min(22rem,calc(100vw-1rem))] flex-col gap-3 rounded-2xl p-3 text-ink lg:hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="flex items-center justify-between gap-2 rounded-xl bg-hover-subtle px-2.5 py-2">
+            <span className="text-[11px] font-medium text-ink-muted">{t.zoomLevel}</span>
+            <div className="flex items-center gap-1.5">
               <button
+                type="button"
                 onClick={() => onZoomChange(Math.max(0.5, Number((zoom - 0.15).toFixed(2))))}
-                className="p-1 rounded-lg bg-hover-subtle hover:bg-hover text-ink-muted cursor-pointer"
+                className="toolbar-icon bg-surface-2"
+                aria-label={t.zoomOut}
               >
                 <ZoomOut className="w-4 h-4" />
               </button>
-              <span className="font-mono text-xs w-9 text-center text-ink">
+              <span className="w-9 text-center font-mono text-xs text-ink">
                 {Math.round(zoom * 100)}%
               </span>
               <button
+                type="button"
                 onClick={() => onZoomChange(Math.min(3.5, Number((zoom + 0.15).toFixed(2))))}
-                className="p-1 rounded-lg bg-hover-subtle hover:bg-hover text-ink-muted cursor-pointer"
+                className="toolbar-icon bg-surface-2"
+                aria-label={t.zoomIn}
               >
                 <ZoomIn className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          {/* Quick Action Toggles */}
           <div className="grid grid-cols-4 gap-1.5">
             <button
+              type="button"
               onClick={onToggleBookmark}
-              className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-[10px] transition-all cursor-pointer ${
+              className={`flex flex-col items-center gap-1.5 rounded-xl border px-1 py-2 text-[10px] transition-colors ${
                 isBookmarked
-                  ? 'bg-accent/20 text-accent border-accent/40'
-                  : 'bg-hover-subtle text-ink-muted border-line-subtle hover:bg-hover'
+                  ? 'border-accent/40 bg-accent/10 text-accent'
+                  : 'border-line-subtle bg-hover-subtle text-ink-muted'
               }`}
             >
-              <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-highlight text-highlight' : ''}`} />
-              <span>إشارة</span>
+              <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-current' : ''}`} />
+              <span>{ar ? 'إشارة' : 'Bookmark'}</span>
             </button>
 
             <button
-              onClick={toggleViewMode}
-              className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-[10px] transition-all cursor-pointer ${
-                viewMode === 'dual'
-                  ? 'bg-accent/20 text-accent border-accent/40'
-                  : 'bg-hover-subtle text-ink-muted border-line-subtle hover:bg-hover'
-              }`}
+              type="button"
+              onClick={() =>
+                onViewModeChange(
+                  viewMode === 'continuous' ? 'dual' : viewMode === 'dual' ? 'single' : 'continuous'
+                )
+              }
+              className="flex flex-col items-center gap-1.5 rounded-xl border border-line-subtle bg-hover-subtle px-1 py-2 text-[10px] text-ink-muted transition-colors"
             >
-              {viewMode === 'continuous' ? (
-                <Scroll className="w-4 h-4" />
-              ) : viewMode === 'dual' ? (
-                <BookOpen className="w-4 h-4" />
-              ) : (
-                <Columns className="w-4 h-4" />
-              )}
+              {VIEW_MODES.find((mode) => mode.id === viewMode)?.icon}
               <span>
-                {viewMode === 'continuous' ? 'مستمر' : viewMode === 'dual' ? 'صفحتين' : 'مفردة'}
+                {viewMode === 'continuous'
+                  ? ar ? 'مستمر' : 'Scroll'
+                  : viewMode === 'dual'
+                    ? ar ? 'صفحتين' : 'Spread'
+                    : ar ? 'مفردة' : 'Single'}
               </span>
             </button>
 
             <button
+              type="button"
               onClick={onToggleFullscreen}
-              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-hover-subtle border border-line-subtle hover:bg-hover text-ink-muted text-[10px] transition-all cursor-pointer"
+              className="flex flex-col items-center gap-1.5 rounded-xl border border-line-subtle bg-hover-subtle px-1 py-2 text-[10px] text-ink-muted transition-colors"
             >
               {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
               <span>{t.fullscreen.split(' ')[0]}</span>
             </button>
 
             <button
+              type="button"
               onClick={() => {
                 onToggleSettings();
                 setShowMoreMobile(false);
               }}
-              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-hover-subtle border border-line-subtle hover:bg-hover text-highlight text-[10px] transition-all cursor-pointer"
+              className="flex flex-col items-center gap-1.5 rounded-xl border border-line-subtle bg-hover-subtle px-1 py-2 text-[10px] text-accent transition-colors"
             >
               <Settings2 className="w-4 h-4" />
               <span>{t.settingsTitle.split(' ')[0]}</span>
             </button>
           </div>
 
-          {/* Themes Swatches */}
-          <div className="pt-2 border-t border-line space-y-1.5">
-            <div className="text-[10px] text-ink-muted font-mono">{t.readingThemesTitle}</div>
+          <div className="space-y-1.5 border-t border-line-subtle pt-2">
+            <div className="font-mono text-[10px] text-ink-muted">{t.readingThemesTitle}</div>
             <div className="grid grid-cols-4 gap-1.5">
-              {themes.map((th) => {
-                const isSelected = theme === th.id;
+              {themes.map((entry) => {
+                const selected = theme === entry.id;
                 return (
                   <button
-                    key={th.id}
+                    key={entry.id}
+                    type="button"
                     onClick={() => {
-                      onThemeChange(th.id);
+                      onThemeChange(entry.id);
                       setShowMoreMobile(false);
                     }}
-                    className={`flex items-center gap-1.5 p-1.5 rounded-xl border text-[10px] transition-all cursor-pointer ${
-                      isSelected
-                        ? 'border-accent bg-accent/20 text-ink font-medium'
-                        : 'border-line-subtle bg-hover-subtle hover:bg-hover text-ink-muted'
+                    className={`flex items-center gap-1.5 rounded-xl border px-1.5 py-1.5 text-[10px] transition-colors ${
+                      selected
+                        ? 'border-accent bg-accent/10 text-ink font-medium'
+                        : 'border-line-subtle bg-hover-subtle text-ink-muted'
                     }`}
                   >
                     <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0 border border-black/20"
-                      style={{ backgroundColor: th.dot }}
+                      className="h-2.5 w-2.5 shrink-0 rounded-full border border-black/20"
+                      style={{ backgroundColor: entry.dot }}
                     />
-                    <span className="truncate">{th.label}</span>
+                    <span className="truncate">{entry.label}</span>
                   </button>
                 );
               })}

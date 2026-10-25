@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 import { TextLayer } from 'pdfjs-dist';
-import { Trash2, X } from 'lucide-react';
+import { StickyNote, Trash2, X } from 'lucide-react';
 import type { ThemeMode, TextAnnotation } from '../core/types';
 import type { Language } from '../core/i18n/translations';
 import { getCanvasPixelRatio } from '../core/reader/device';
+import { scheduleIdleWork, scheduleRender } from '../core/reader/renderScheduler';
 
 interface PdfPageProps {
   doc: PDFDocumentProxy;
@@ -17,10 +18,45 @@ interface PdfPageProps {
   searchQuery?: string;
   isCurrentSearchPage?: boolean;
   lang?: Language;
-  onPageVisible?: (pageNumber: number) => void;
+  /** Lower values render first. Distant pages are deferred while scrolling. */
+  renderPriority?: number;
 }
 
-export const PdfPage: React.FC<PdfPageProps> = ({
+interface ActiveAnnotation {
+  id: string;
+  type: string;
+  note?: string;
+  text: string;
+  x: number;
+  y: number;
+}
+
+const PAGE_BACKGROUND: Record<ThemeMode, string> = {
+  amoled: '#000000',
+  midnight: '#06090f',
+  amber: '#140f0c',
+  parchment: '#fbf6ea',
+  eink: '#e5e7eb',
+  pure: '#ffffff',
+  paper: '#fdfcf8'
+};
+
+function themeFilter(theme: ThemeMode): React.CSSProperties {
+  switch (theme) {
+    case 'amoled':
+      return { filter: 'invert(1) hue-rotate(180deg) contrast(1.06) brightness(0.96)' };
+    case 'midnight':
+      return { filter: 'invert(0.92) hue-rotate(185deg) contrast(1.02) brightness(0.94)' };
+    case 'amber':
+      return { filter: 'invert(0.92) sepia(0.65) hue-rotate(-25deg) contrast(1.05)' };
+    case 'eink':
+      return { filter: 'grayscale(1) contrast(1.1)' };
+    default:
+      return { filter: 'none' };
+  }
+}
+
+const PdfPageView: React.FC<PdfPageProps> = ({
   doc,
   pageNumber,
   scale,
@@ -31,21 +67,26 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   searchQuery,
   isCurrentSearchPage,
   lang = 'ar',
-  onPageVisible
+  renderPriority = 0
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
+  const currentRenderTaskRef = useRef<{ cancel: () => void } | null>(null);
+  const renderedKeyRef = useRef('');
+  const priorityRef = useRef(renderPriority);
+
   const [isVisible, setIsVisible] = useState(false);
   const [hasRenderedOnce, setHasRenderedOnce] = useState(false);
   const [textLayerVersion, setTextLayerVersion] = useState(0);
-  const [activeAnno, setActiveAnno] = useState<{ id: string; type: string; x: number; y: number } | null>(null);
-  const currentRenderTaskRef = useRef<any>(null);
-  const lastRenderedScaleRef = useRef<number>(0);
-  const lastRenderedPageRef = useRef<number | null>(null);
+  const [activeAnno, setActiveAnno] = useState<ActiveAnnotation | null>(null);
 
-  // The PDF page's unscaled size is fixed; scale it synchronously so gesture
-  // zoom never lags behind the focal point by an async render pass.
+  useEffect(() => {
+    priorityRef.current = renderPriority;
+  }, [renderPriority]);
+
+  // The PDF page's unscaled size is fixed; scaling it synchronously keeps
+  // gesture zoom anchored to the fingers instead of waiting for a render.
   const [pageSize, setPageSize] = useState<{ width: number; height: number }>(() => ({
     width: 600,
     height: 600 / (baseAspectRatio || 0.707)
@@ -53,11 +94,14 @@ export const PdfPage: React.FC<PdfPageProps> = ({
 
   useEffect(() => {
     let active = true;
-    doc.getPage(pageNumber).then((page: PDFPageProxy) => {
-      if (!active) return;
-      const unscaledViewport = page.getViewport({ scale: 1 });
-      setPageSize({ width: unscaledViewport.width, height: unscaledViewport.height });
-    }).catch(() => {});
+    doc
+      .getPage(pageNumber)
+      .then((page: PDFPageProxy) => {
+        if (!active) return;
+        const unscaledViewport = page.getViewport({ scale: 1 });
+        setPageSize({ width: unscaledViewport.width, height: unscaledViewport.height });
+      })
+      .catch(() => {});
 
     return () => {
       active = false;
@@ -66,198 +110,203 @@ export const PdfPage: React.FC<PdfPageProps> = ({
 
   const dimensions = useMemo(
     () => ({
-      width: Math.round(pageSize.width * scale),
-      height: Math.round(pageSize.height * scale)
+      width: Math.max(1, Math.round(pageSize.width * scale)),
+      height: Math.max(1, Math.round(pageSize.height * scale))
     }),
     [pageSize, scale]
   );
 
-  // Viewport IntersectionObserver
+  // A reused component (dual mode) must never show the previous page while
+  // the next one is still rasterising.
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
+    setHasRenderedOnce(false);
+  }, [pageNumber]);
+
+  // Mount pages a little before they enter the viewport, but let the shared
+  // scheduler decide when the canvas may actually start rendering.
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        const entry = entries[0];
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          onPageVisible?.(pageNumber);
-        } else {
-          setIsVisible(false);
-        }
+        setIsVisible(entries[0]?.isIntersecting ?? false);
       },
-      {
-        rootMargin: '600px 0px 600px 0px',
-        threshold: 0.01
-      }
+      { rootMargin: '640px 0px 640px 0px', threshold: 0.01 }
     );
 
-    observer.observe(el);
+    observer.observe(element);
     return () => observer.disconnect();
-  }, [pageNumber, onPageVisible]);
+  }, []);
 
-  // Robust Canvas & Text Layer Rendering Pipeline
+  // Canvas lifecycle. Text layers deliberately live in a separate effect:
+  // finishing a render must never cancel the pending text-layer job again.
   useEffect(() => {
     if (!isVisible) return;
 
-    // Skip if already rendered at this exact page and scale
-    if (
-      hasRenderedOnce &&
-      lastRenderedPageRef.current === pageNumber &&
-      Math.abs(lastRenderedScaleRef.current - scale) < 0.01
-    ) {
-      return;
-    }
+    const renderKey = `${pageNumber}:${scale.toFixed(4)}`;
+    if (renderedKeyRef.current === renderKey) return;
 
-    let isCurrentEffect = true;
+    let cancelled = false;
 
-    const renderPage = async () => {
+    const run = async () => {
+      if (cancelled || !canvasRef.current) return;
+
       try {
-        if (currentRenderTaskRef.current) {
-          try {
-            await currentRenderTaskRef.current.cancel();
-          } catch {
-            // ignore cancellation
-          }
-          currentRenderTaskRef.current = null;
-        }
-
         const page = await doc.getPage(pageNumber);
-        if (!isCurrentEffect || !canvasRef.current) return;
+        if (cancelled || !canvasRef.current) return;
 
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d', {
-          alpha: false,
-          willReadFrequently: false
-        });
-        if (!ctx) return;
-
-        // Match the screen for razor-sharp text, capped so high-DPI phones do
-        // not allocate 9-16x the canvas memory and crash the WebView.
         const dpr = getCanvasPixelRatio();
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
         const viewport = page.getViewport({ scale: scale * dpr });
         const cssViewport = page.getViewport({ scale });
 
-        const displayWidth = Math.floor(cssViewport.width);
-        const displayHeight = Math.floor(cssViewport.height);
+        // Render into a staging canvas first. The visible canvas is updated in
+        // one synchronous copy, so zooming never flashes a blank page.
+        const staging = document.createElement('canvas');
+        staging.width = Math.max(1, Math.floor(viewport.width));
+        staging.height = Math.max(1, Math.floor(viewport.height));
+        const stagingContext = staging.getContext('2d', {
+          alpha: false,
+          willReadFrequently: false
+        });
+        if (!stagingContext) return;
 
-        canvas.width = Math.floor(viewport.width);
-        canvas.height = Math.floor(viewport.height);
-        canvas.style.width = `${displayWidth}px`;
-        canvas.style.height = `${displayHeight}px`;
+        stagingContext.imageSmoothingEnabled = true;
+        stagingContext.imageSmoothingQuality = 'high';
+        stagingContext.fillStyle = '#ffffff';
+        stagingContext.fillRect(0, 0, staging.width, staging.height);
 
-        // Paint background pure white
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        if ('direction' in ctx) {
-          ctx.direction = 'ltr';
-        }
-        if ('letterSpacing' in ctx) {
-          (ctx as any).letterSpacing = '0px';
-        }
-        if ('wordSpacing' in ctx) {
-          (ctx as any).wordSpacing = '0px';
-        }
-
-        const renderTask = page.render({
-          canvas: canvas,
-          canvasContext: ctx,
-          viewport: viewport,
+        const task = page.render({
+          canvas: staging,
+          canvasContext: stagingContext,
+          viewport,
           intent: 'display'
         });
+        currentRenderTaskRef.current = task;
 
-        currentRenderTaskRef.current = renderTask;
-        await renderTask.promise;
-
-        if (isCurrentEffect) {
-          setHasRenderedOnce(true);
-          lastRenderedScaleRef.current = scale;
-          lastRenderedPageRef.current = pageNumber;
-          currentRenderTaskRef.current = null;
+        try {
+          await task.promise;
+        } catch (error) {
+          const name = (error as { name?: string } | null)?.name;
+          if (!cancelled && name !== 'RenderingCancelledException') {
+            console.warn(`Render notice on page ${pageNumber}:`, error);
+          }
+          return;
         }
 
-        // Render Selectable Text Layer during browser idle window to avoid blocking 120Hz frame budget
-        if (isCurrentEffect && textLayerRef.current) {
-          const scheduleIdle = typeof window !== 'undefined' && 'requestIdleCallback' in window
-            ? (cb: () => void) => (window as any).requestIdleCallback(cb, { timeout: 120 })
-            : (cb: () => void) => setTimeout(cb, 30);
+        if (cancelled || !canvasRef.current) return;
 
-          scheduleIdle(async () => {
-            if (!isCurrentEffect || !textLayerRef.current) return;
-            try {
-              const container = textLayerRef.current;
-              container.innerHTML = '';
-              container.style.setProperty('--total-scale-factor', `${scale}`);
-              container.style.setProperty('--scale-round-x', '1px');
-              container.style.setProperty('--scale-round-y', '1px');
+        const canvas = canvasRef.current;
+        if (canvas.width !== staging.width) canvas.width = staging.width;
+        if (canvas.height !== staging.height) canvas.height = staging.height;
 
-              const textContent = await page.getTextContent();
-              if (!isCurrentEffect || !textLayerRef.current) return;
-              const textLayer = new TextLayer({
-                textContentSource: textContent,
-                container: container,
-                viewport: cssViewport
-              });
-              await textLayer.render();
-              if (isCurrentEffect) {
-                setTextLayerVersion((version) => version + 1);
-              }
-            } catch {
-              // Non-blocking
-            }
-          });
+        const context = canvas.getContext('2d', { alpha: false });
+        if (context) {
+          context.imageSmoothingEnabled = true;
+          context.imageSmoothingQuality = 'high';
+          context.drawImage(staging, 0, 0);
         }
-      } catch (err: any) {
-        if (err?.name !== 'RenderingCancelledException') {
-          console.warn(`Render notice on page ${pageNumber}:`, err);
+
+        currentRenderTaskRef.current = null;
+        renderedKeyRef.current = renderKey;
+        setHasRenderedOnce(true);
+
+        // Keep the CSS viewport values on record for debugging and for the
+        // text layer, which must match the raster at every scale.
+        canvas.dataset.viewportWidth = String(Math.floor(cssViewport.width));
+        canvas.dataset.viewportHeight = String(Math.floor(cssViewport.height));
+      } catch (error) {
+        const name = (error as { name?: string } | null)?.name;
+        if (!cancelled && name !== 'RenderingCancelledException') {
+          console.warn(`Render notice on page ${pageNumber}:`, error);
         }
       }
     };
 
-    renderPage();
+    const cancelQueued = scheduleRender(priorityRef.current, run);
 
     return () => {
-      isCurrentEffect = false;
-      if (currentRenderTaskRef.current) {
-        currentRenderTaskRef.current.cancel();
+      cancelled = true;
+      cancelQueued();
+      const task = currentRenderTaskRef.current;
+      if (task) {
+        try {
+          task.cancel();
+        } catch {
+          // A finished render task cannot be cancelled.
+        }
         currentRenderTaskRef.current = null;
       }
     };
-  }, [doc, pageNumber, scale, isVisible, hasRenderedOnce]);
+  }, [doc, pageNumber, scale, isVisible]);
 
-  // Apply Search Highlight Markers inside TextLayer without injecting HTML
+  // Independent text-layer lifecycle. Rebuilt only when the document, page,
+  // scale or visibility changes; it is never cancelled by canvas completion.
+  useEffect(() => {
+    if (!isVisible) return;
+    let cancelled = false;
+
+    const cancelIdle = scheduleIdleWork(async () => {
+      const container = textLayerRef.current;
+      if (!container || cancelled) return;
+
+      const page = await doc.getPage(pageNumber);
+      if (cancelled || !textLayerRef.current) return;
+
+      const cssViewport = page.getViewport({ scale });
+      const textContent = await page.getTextContent();
+      if (cancelled || !textLayerRef.current) return;
+
+      const target = textLayerRef.current;
+      target.innerHTML = '';
+      target.style.setProperty('--total-scale-factor', `${scale}`);
+      target.style.setProperty('--scale-round-x', '1px');
+      target.style.setProperty('--scale-round-y', '1px');
+
+      const textLayer = new TextLayer({
+        textContentSource: textContent,
+        container: target,
+        viewport: cssViewport
+      });
+      await textLayer.render();
+
+      if (!cancelled) {
+        target.dataset.renderedScale = String(scale);
+        setTextLayerVersion((version) => version + 1);
+      }
+    }, 600);
+
+    return () => {
+      cancelled = true;
+      cancelIdle();
+    };
+  }, [doc, pageNumber, scale, isVisible]);
+
+  // Search markers are applied after the text layer exists, then restored
+  // without touching the canvas or annotations.
   useEffect(() => {
     const container = textLayerRef.current;
-    if (!container || !hasRenderedOnce) return;
+    if (!container || textLayerVersion === 0) return;
 
-    // Restore the original text nodes before applying a new query.
-    const existingMarks = container.querySelectorAll('mark.search-highlight');
-    existingMarks.forEach((mark) => {
+    container.querySelectorAll('mark.search-highlight').forEach((mark) => {
       const parent = mark.parentNode;
       if (!parent) return;
-      while (mark.firstChild) {
-        parent.insertBefore(mark.firstChild, mark);
-      }
+      while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
       parent.removeChild(mark);
     });
     container.normalize();
 
-    if (!searchQuery || !searchQuery.trim() || searchQuery.trim().length < 2) return;
+    const term = searchQuery?.trim() ?? '';
+    if (term.length < 2) return;
 
-    const safeTerm = searchQuery.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const safeTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(safeTerm, 'gi');
     const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
     const textNodes: Text[] = [];
 
     let currentNode = walker.nextNode();
     while (currentNode) {
-      if (currentNode.nodeValue) {
-        textNodes.push(currentNode as Text);
-      }
+      if (currentNode.nodeValue) textNodes.push(currentNode as Text);
       currentNode = walker.nextNode();
     }
 
@@ -274,9 +323,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
 
       for (const match of matches) {
         const start = match.index ?? 0;
-        if (start > cursor) {
-          fragment.appendChild(document.createTextNode(text.slice(cursor, start)));
-        }
+        if (start > cursor) fragment.appendChild(document.createTextNode(text.slice(cursor, start)));
 
         const marker = document.createElement('mark');
         marker.className = isCurrentSearchPage
@@ -287,199 +334,160 @@ export const PdfPage: React.FC<PdfPageProps> = ({
         cursor = start + match[0].length;
       }
 
-      if (cursor < text.length) {
-        fragment.appendChild(document.createTextNode(text.slice(cursor)));
-      }
-
+      if (cursor < text.length) fragment.appendChild(document.createTextNode(text.slice(cursor)));
       textNode.parentNode?.replaceChild(fragment, textNode);
     }
-  }, [searchQuery, isCurrentSearchPage, hasRenderedOnce, textLayerVersion]);
+  }, [searchQuery, isCurrentSearchPage, textLayerVersion]);
 
-  const getThemeFilterStyle = (): React.CSSProperties => {
-    switch (theme) {
-      case 'amoled':
-        // Pure black OLED background with high-contrast sharp white text
-        return { filter: 'invert(1) hue-rotate(180deg) contrast(1.06) brightness(0.96)' };
-      case 'midnight':
-        // Deep obsidian background with soft luminous white text
-        return { filter: 'invert(0.92) hue-rotate(185deg) contrast(1.02) brightness(0.94)' };
-      case 'amber':
-        // Warm dark embers background with candlelit golden text
-        return { filter: 'invert(0.92) sepia(0.65) hue-rotate(-25deg) contrast(1.05)' };
-      case 'eink':
-        return { filter: 'grayscale(1) contrast(1.1)' };
-      case 'paper':
-      case 'parchment':
-      case 'pure':
-      default:
-        // Pristine original document: zero modification or distortion to the PDF
-        return { filter: 'none' };
+  const isDark = theme === 'amoled' || theme === 'midnight' || theme === 'amber';
+  const pageAnnotations = useMemo(
+    () => annotations.filter((annotation) => annotation.pageNumber === pageNumber),
+    [annotations, pageNumber]
+  );
+
+  const handlePageClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed && selection.toString().trim().length > 0) {
+      setActiveAnno(null);
+      return;
+    }
+
+    const container = containerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const xPct = (event.clientX - rect.left) / rect.width;
+    const yPct = (event.clientY - rect.top) / rect.height;
+
+    const clicked = pageAnnotations.find((annotation) =>
+      annotation.rects.some(
+        (line) =>
+          xPct >= line.xPct - 0.01 &&
+          xPct <= line.xPct + line.widthPct + 0.01 &&
+          yPct >= line.yPct - 0.012 &&
+          yPct <= line.yPct + line.heightPct + 0.024
+      )
+    );
+
+    if (clicked) {
+      setActiveAnno({
+        id: clicked.id,
+        type: clicked.type,
+        note: clicked.note,
+        text: clicked.text,
+        x: Math.max(72, Math.min(rect.width - 72, xPct * rect.width)),
+        y: Math.max(34, yPct * rect.height - 10)
+      });
+    } else {
+      setActiveAnno(null);
     }
   };
 
-    const isDark = theme === 'amoled' || theme === 'midnight' || theme === 'amber';
-    const paperBg = (() => {
-      switch (theme) {
-        case 'amoled':
-          return '#000000';
-        case 'midnight':
-          return '#06090f';
-        case 'amber':
-          return '#140f0c';
-        case 'parchment':
-          return '#fbf6ea';
-        case 'eink':
-          return '#e5e7eb';
-        case 'pure':
-          return '#ffffff';
-        case 'paper':
-        default:
-          return '#fdfcf8';
-      }
-    })();
-
-    const pageAnnotations = annotations.filter((a) => a.pageNumber === pageNumber);
-
-    const handlePageClick = (e: React.MouseEvent<HTMLDivElement>) => {
-      const sel = window.getSelection();
-      if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) {
-        setActiveAnno(null);
-        return;
-      }
-
-      const container = containerRef.current;
-      if (!container) return;
-      const rect = container.getBoundingClientRect();
-      const xPct = (e.clientX - rect.left) / rect.width;
-      const yPct = (e.clientY - rect.top) / rect.height;
-
-      const clickedAnno = pageAnnotations.find((a) =>
-        a.rects.some(
-          (r) =>
-            xPct >= r.xPct - 0.015 &&
-            xPct <= r.xPct + r.widthPct + 0.015 &&
-            yPct >= r.yPct - 0.015 &&
-            yPct <= r.yPct + r.heightPct + 0.03
-        )
-      );
-
-      if (clickedAnno) {
-        setActiveAnno({
-          id: clickedAnno.id,
-          type: clickedAnno.type,
-          x: Math.max(70, Math.min(rect.width - 70, xPct * rect.width)),
-          y: Math.max(30, yPct * rect.height - 10)
-        });
-      } else {
-        setActiveAnno(null);
-      }
-    };
-
-    return (
-      <div
-        ref={containerRef}
-        onClick={handlePageClick}
-        dir="ltr"
-        data-page-number={pageNumber}
-        data-pdf-page={pageNumber}
-        className="relative flex items-center justify-center overflow-hidden will-change-transform select-text transition-colors duration-300 shrink-0 max-w-none"
-        style={{
-          width: `${dimensions.width}px`,
-          height: `${dimensions.height}px`,
-          backgroundColor: paperBg
-        }}
-      >
-        {/* Canvas Layer */}
-        {(isVisible || hasRenderedOnce) && (
-          <canvas
-            ref={canvasRef}
-            dir="ltr"
-            className="block transition-opacity duration-200"
-            style={{
-              ...getThemeFilterStyle(),
-              direction: 'ltr',
-              letterSpacing: 'normal',
-              wordSpacing: 'normal',
-              opacity: hasRenderedOnce ? 1 : 0
-            }}
-          />
-        )}
-
-        {/* Subtle Paper Texture Overlay for tactile themes */}
-        {(theme === 'paper' || theme === 'parchment') && (
-          <div
-            className={`paper-overlay ${theme === 'parchment' ? 'paper-overlay-parchment' : 'paper-overlay-book'}`}
-            aria-hidden="true"
-          />
-        )}
-
-        {/* Real Selectable Text Layer */}
-        <div
-          ref={textLayerRef}
+  return (
+    <div
+      ref={containerRef}
+      onClick={handlePageClick}
+      onContextMenu={(event) => event.preventDefault()}
+      dir="ltr"
+      data-page-number={pageNumber}
+      data-pdf-page={pageNumber}
+      className="pdf-page-slot relative flex items-center justify-center overflow-hidden select-text shrink-0 max-w-none"
+      style={{
+        width: `${dimensions.width}px`,
+        height: `${dimensions.height}px`,
+        backgroundColor: PAGE_BACKGROUND[theme]
+      }}
+    >
+      {(isVisible || hasRenderedOnce) && (
+        <canvas
+          ref={canvasRef}
           dir="ltr"
-          data-page-number={pageNumber}
-          className="textLayer absolute inset-0 select-text pointer-events-auto z-10"
+          aria-hidden="true"
+          className="block max-w-none transition-opacity duration-200"
           style={{
+            ...themeFilter(theme),
             width: `${dimensions.width}px`,
-            height: `${dimensions.height}px`
+            height: `${dimensions.height}px`,
+            direction: 'ltr',
+            letterSpacing: 'normal',
+            wordSpacing: 'normal',
+            opacity: hasRenderedOnce ? 1 : 0
           }}
         />
+      )}
 
-        {/* Annotations Layer (Highlights & Underlines) */}
-        {pageAnnotations.length > 0 && (
-          <div className="absolute inset-0 pointer-events-none z-15 overflow-hidden">
-            {pageAnnotations.map((anno) => (
-              <div key={anno.id} className="relative w-full h-full">
-                {anno.rects.map((r, rIdx) => {
-                  if (anno.type === 'highlight') {
-                    return (
-                      <div
-                        key={rIdx}
-                        style={{
-                          left: `${r.xPct * 100}%`,
-                          top: `${r.yPct * 100}%`,
-                          width: `${r.widthPct * 100}%`,
-                          height: `${r.heightPct * 100}%`,
-                          backgroundColor: anno.color,
-                          mixBlendMode: isDark ? 'screen' : 'multiply',
-                          opacity: isDark ? 0.45 : 0.6
-                        }}
-                        className="absolute rounded-xs pointer-events-none transition-opacity"
-                      />
-                    );
-                  }
+      {(theme === 'paper' || theme === 'parchment') && (
+        <div
+          className={`paper-overlay ${theme === 'parchment' ? 'paper-overlay-parchment' : 'paper-overlay-book'}`}
+          aria-hidden="true"
+        />
+      )}
 
-                  // Underline: properly spaced below the text baseline (+ 2.5px) without sticking to letters
-                  return (
-                    <div
-                      key={rIdx}
-                      style={{
-                        left: `${r.xPct * 100}%`,
-                        top: `calc(${r.yPct * 100}% + ${r.heightPct * 100}% + 2.5px)`,
-                        width: `${r.widthPct * 100}%`,
-                        height: '2px',
-                        backgroundColor: anno.color
-                      }}
-                      className="absolute rounded-full pointer-events-none shadow-xs"
-                    />
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        )}
+      <div
+        ref={textLayerRef}
+        dir="ltr"
+        data-page-number={pageNumber}
+        className="textLayer absolute inset-0 select-text pointer-events-auto z-10"
+        style={{ width: `${dimensions.width}px`, height: `${dimensions.height}px` }}
+      />
 
-        {/* Quick Click-to-Delete Mini Popup for clicked annotations */}
-        {activeAnno && onDeleteAnnotation && (
-          <div
-            style={{
-              left: `${activeAnno.x}px`,
-              top: `${activeAnno.y}px`,
-              transform: 'translate(-50%, -100%)'
-            }}
-            className="absolute z-40 flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl bg-surface text-ink border border-line-strong shadow-2xl backdrop-blur-2xl text-xs select-none animate-in fade-in zoom-in-95 pointer-events-auto"
-          >
-            <span className="text-[11px] text-ink-muted font-sans">
+      {pageAnnotations.length > 0 && (
+        <div className="absolute inset-0 pointer-events-none z-[15] overflow-hidden" aria-hidden="true">
+          {pageAnnotations.flatMap((annotation) =>
+            annotation.rects.map((line, index) => {
+              if (annotation.type === 'highlight') {
+                return (
+                  <div
+                    key={`${annotation.id}-${index}`}
+                    className="absolute rounded-[2px] annotation-highlight"
+                    style={{
+                      left: `${line.xPct * 100}%`,
+                      top: `${line.yPct * 100}%`,
+                      width: `${line.widthPct * 100}%`,
+                      height: `${line.heightPct * 100}%`,
+                      backgroundColor: annotation.color,
+                      mixBlendMode: isDark ? 'screen' : 'multiply',
+                      opacity: isDark ? 0.42 : 0.58
+                    }}
+                  />
+                );
+              }
+
+              return (
+                <div
+                  key={`${annotation.id}-${index}`}
+                  className="absolute rounded-full annotation-underline"
+                  style={{
+                    left: `${line.xPct * 100}%`,
+                    top: `calc(${(line.yPct + line.heightPct) * 100}% - 1px)`,
+                    width: `${line.widthPct * 100}%`,
+                    height: '2px',
+                    backgroundColor: annotation.color
+                  }}
+                />
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {pageAnnotations.some((annotation) => annotation.note) && (
+        <div className="absolute top-2 right-2 z-20 flex items-center gap-1 rounded-full bg-surface/85 px-1.5 py-0.5 text-[9px] text-ink-muted shadow-sm backdrop-blur-md">
+          <StickyNote className="w-2.5 h-2.5" />
+          <span>{pageAnnotations.filter((annotation) => annotation.note).length}</span>
+        </div>
+      )}
+
+      {activeAnno && (
+        <div
+          style={{
+            left: `${activeAnno.x}px`,
+            top: `${activeAnno.y}px`,
+            transform: 'translate(-50%, -100%)'
+          }}
+          className="absolute z-40 flex max-w-[260px] flex-col gap-1.5 rounded-2xl border border-line-subtle bg-surface px-3 py-2 text-ink shadow-2xl backdrop-blur-xl select-none animate-in fade-in zoom-in-95 pointer-events-auto"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-medium text-ink-muted">
               {activeAnno.type === 'highlight'
                 ? lang === 'ar'
                   ? 'تظليل'
@@ -488,43 +496,56 @@ export const PdfPage: React.FC<PdfPageProps> = ({
                   ? 'تسطير'
                   : 'Underline'}
             </span>
+            {onDeleteAnnotation && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDeleteAnnotation(activeAnno.id);
+                  setActiveAnno(null);
+                }}
+                className="ml-auto flex items-center gap-1 rounded-lg bg-rose-500/15 px-2 py-1 text-[10px] font-medium text-danger-ink transition-colors hover:bg-rose-500/25"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>{lang === 'ar' ? 'حذف' : 'Delete'}</span>
+              </button>
+            )}
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteAnnotation(activeAnno.id);
+              onClick={(event) => {
+                event.stopPropagation();
                 setActiveAnno(null);
               }}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 text-danger-ink transition-colors text-xs cursor-pointer font-medium"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>{lang === 'ar' ? 'إلغاء' : 'Delete'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setActiveAnno(null);
-              }}
-              className="p-1 rounded-lg hover:bg-hover text-ink-muted hover:text-ink transition-colors cursor-pointer"
+              className="rounded-lg p-1 text-ink-muted transition-colors hover:bg-hover hover:text-ink"
             >
               <X className="w-3 h-3" />
             </button>
           </div>
-        )}
 
-        {/* Loading Placeholder */}
-        {!hasRenderedOnce && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-xs opacity-25 select-none font-mono z-15">
-            <div className="w-6 h-6 rounded-full border-2 border-current border-t-transparent animate-spin mb-2" />
-            <span>{lang === 'ar' ? `صفحة ${pageNumber}` : `Page ${pageNumber}`}</span>
-          </div>
-        )}
-
-        {/* Page Badge */}
-        <div className="absolute bottom-2 right-3 px-1.5 py-0.5 rounded text-[10px] font-mono opacity-25 pointer-events-none bg-line dark:bg-hover z-20">
-          {pageNumber}
+          {activeAnno.note ? (
+            <p className="max-h-24 overflow-y-auto whitespace-pre-line border-t border-line-subtle pt-1.5 text-[11px] leading-relaxed text-ink">
+              {activeAnno.note}
+            </p>
+          ) : activeAnno.text ? (
+            <p className="max-h-20 overflow-hidden border-t border-line-subtle pt-1.5 text-[11px] leading-relaxed text-ink-muted">
+              “{activeAnno.text}”
+            </p>
+          ) : null}
         </div>
+      )}
+
+      {!hasRenderedOnce && (
+        <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-widest text-ink-faint opacity-50 select-none">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          <span>{lang === 'ar' ? `صفحة ${pageNumber}` : `Page ${pageNumber}`}</span>
+        </div>
+      )}
+
+      <div className="pointer-events-none absolute bottom-2 right-3 z-20 rounded bg-line/60 px-1.5 py-0.5 font-mono text-[10px] opacity-30">
+        {pageNumber}
       </div>
-    );
+    </div>
+  );
 };
+
+export const PdfPage = React.memo(PdfPageView);

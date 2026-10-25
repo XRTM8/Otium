@@ -105,5 +105,15 @@ export function saveFont(fontId: FontFamilyId): void {
 export function applyFontFamily(fontId: FontFamilyId): void {
   if (typeof document === 'undefined') return;
   const fontDef = FONTS_LIST.find((f) => f.id === fontId) || FONTS_LIST[0];
-  document.documentElement.style.setProperty('--app-font-family', fontDef.cssFamily);
+  const root = document.documentElement;
+
+  // Both variables live on the document root so every surface (reader,
+  // toolbars, drawers, dialogs, portals) repaints immediately. `--font-sans`
+  // is mapped to `--font-ui` in index.css so Tailwind's `font-sans` utility
+  // follows the choice instead of pinning its own stack.
+  root.style.setProperty('--font-ui', fontDef.cssFamily);
+  root.style.setProperty('--font-reader', fontDef.cssFamily);
+  root.style.setProperty('--app-font-family', fontDef.cssFamily);
+  root.style.setProperty('--reader-font-family', fontDef.cssFamily);
+  root.dataset.font = fontId;
 }
