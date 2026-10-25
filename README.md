@@ -172,5 +172,5 @@ GNU General Public License v3.0 — see [`LICENSE`](LICENSE).
 
 <div align="center">
   <br/>
-  <sub><a href="https://github.com/XRTM8">XRTM8</a> · GPL-3.0 · 2024–2026</sub>
+  <sub>Built by <a href="https://github.com/XRTM8">XRTM8</a> &nbsp;·&nbsp; Instagram: <a href="https://instagram.com/ma.xrt">@MA.XRT</a> &nbsp;·&nbsp; GPL-3.0</sub>
 </div>
