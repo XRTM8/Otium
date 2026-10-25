@@ -39,6 +39,7 @@ export const MobileShell: React.FC = () => {
             isBookmarked={reader.bookmarks.some(
               (bookmark) => bookmark.pageNumber === reader.currentPage
             )}
+            showBottomBar={reader.showMobileNavBar}
             onPageChange={reader.scrollToPage}
             onThemeChange={reader.changeTheme}
             onViewModeChange={reader.changeViewMode}
@@ -55,13 +56,14 @@ export const MobileShell: React.FC = () => {
             annotations={reader.annotations}
             lang={reader.lang}
             onSearchSelectedText={reader.openSearchWithText}
+            mobile
           />
 
           <ReaderWorkspace reader={reader} compact />
         </>
       )}
 
-      <ReaderOverlays reader={reader} />
+      <ReaderOverlays reader={reader} mobile />
     </div>
   );
 };

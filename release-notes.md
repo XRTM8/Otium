@@ -1,27 +1,23 @@
-# Otium 1.4.0 — Windows + Android
+# Otium 1.4.1 — إصلاحات الهاتف
 
-One reader, two editions, one release.
+إصدار تصحيحي صغير للهاتف، مع نفس القارئ على Windows وAndroid.
 
 ## العربية
 
-- واجهة جديدة بالكامل مبنية على نواة قارئ واحدة بين Windows وAndroid: إيقاع بصري منتظم، حدود ناعمة، وأسطح زجاجية شفافة، مع شريط أدوات يتكيّف مع عرض النافذة من دون فيض أو أزرار مخفية.
-- أيقونة واضحة في كل السِّمات: لوحة داكنة صلبة على سطح المكتب، وخلفية شفافة على Android مع لون أساسي `#0B0906`، فلا قصّ ولا تشوّه بكسلي ولا أثر باقٍ بعد تبديل السمة.
-- تقليب الصفحات أصبح فوريًا: لا تمرير ثم قفزة، ولا انحراف عمودي قبل القلب. نمط الصفحة الواحدة والكتاب المفتوح يقلبان أفقيًا فقط، حتى عند التكبير اليدوي يتحرك المحتوى يمينًا ويسارًا أولًا ثم يقلب الصفحة عند الحافة.
-- التمرير المستمر أنعم: تُرسم الصفحة الأقرب إليك أولًا عبر مسار رسم واحد، وتؤجَّل الصفحات البعيدة حتى تقترب، مع الحفاظ على موضعك عند العودة من وضع الصفحات.
-- محرك تحديد وتظليل أدق: إحداثيات مأخوذة من طبقة النص نفسها، تظليل متعدد الأسطر والمواضع في الصفحة الواحدة، زوايا دائرية 2px، ومزج `multiply` على الأسطح الفاتحة و`screen` على الداكنة. التحديد المؤقت منفصل عن التظليل المحفوظ.
-- شريط إجراءات نص مخصص على الهاتف: تظليل بألوان، تسطير، نسخ، ملاحظة، بحث، واستماع. تختفي قائمة النظام الأصلية، ويحترم الشريط الحواف الآمنة وينقلب أسفل التحديد عند اقترابه من أعلى الشاشة.
-- تبديل الخطوط يعمل فورًا في القارئ والواجهة معًا، بخطوط مضمّنة تعمل دون اتصال، ومتغيّرات `--font-ui` و`--font-reader` على جذر التطبيق.
-- الحفظ الخلفي للتظليلات والملاحظات لا يعيد رسم الصفحة: تُكتب التعليقات في IndexedDB بشكل متسلسل مع ترحيل تلقائي من التخزين القديم، وتُحدَّث الطبقات فوق الصفحة وحدها.
-- على الهاتف يحجز وضع الصفحات مساحة للشريطين العائمين، فلا تختفي الصفحة تحت شريط التنقل. النسخة نفسها تشمل مثبّت Windows والنسخة المحمولة وAPK Android، برقم إصدار وتغذية تحديث واحدة.
+- **لوحة الصفحات من الأسفل.** لم تعد اللوحة تمتد من الحافة العلوية. تفتح الآن كورقة سفلية بارتفاع مريح، بمقبض سحب، وشبكة من ثلاثة أعمدة، وزر «إغلاق اللوحة» ثابت في الأسفل داخل متناول الإبهام. بقي زر الإغلاق العلوي، لكنه لم يعد الطريق الوحيد للإغلاق.
+- **إصلاح تحديد النص.** لم يعد التطبيق يلغي التحديد الأصلي فور رفع الإصبع، وهو ما كان يجعل قائمة النسخ والتظليل تختفي قبل أن تظهر. يظهر الآن شريط إجراءات ثابت أسفل الشاشة: تظليل بعدة ألوان، تسطير، نسخ، ملاحظة، بحث، واستماع. يبقى التحديد الأصلي ظاهرًا أثناء استخدام الشريط.
+- **شريط التنقل السفلي اختياري.** من «الإعدادات ← نمط القراءة» يمكن إخفاء شريط أرقام الصفحات والأزرار السريعة أو إظهاره. يُحفظ الاختيار بين الجلسات، وتبقى لوحة الصفحات متاحة من قائمة الأدوات.
+- **تمرير وتقليب أنعم.** أصبحت إزاحة السحب تُكتب مباشرة في متغيّر CSS عبر `requestAnimationFrame` بدل تحديث حالة React مع كل حركة إصبع. هذا يقلّل إعادة رسم سطح القراءة على شاشات 90/120Hz.
+- **تخفيف زخرفة الهاتف.** على الشاشات الصغيرة أصبحت أسطح الواجهة معتمة بلا ضباب خلفي مباشر، وتوقفت حركات التوهج المحيطة، مع احترام إعداد تقليل الحركة في النظام.
+- **APK أصغر بنحو 74%.** تُنشر الآن نسخ منفصلة حسب معمارية المعالج إلى جانب الحزمة الشاملة الاحتياطية. نسخة `arm64-v8a` لهاتفك تزن نحو ‎16MB بدل ‎62MB للحزمة الشاملة السابقة، وتُثبَّت أسرع. حتى الحزمة الشاملة انخفضت إلى نحو ‎46MB. نزّل `Otium_1.4.1_arm64-v8a.apk` من صفحة الإصدار. تحديث التطبيق من داخله ما زال يستخدم الحزمة الشاملة احتياطًا؛ سيختار التطبيق النسخة المناسبة تلقائيًا في 1.5.
+- **ملاحظة صريحة.** التحديد ما زال يعتمد على WebView في Android. قد تظهر قائمة Android الأصلية (نسخ/مشاركة) مع الشريط المخصص في بعض إصدارات WebView؛ الإجراءات في الشريطين تعمل، وسيُزال التكرار بعد تثبيت السلوك على جهاز فعلي.
 
 ## English
 
-- A rebuilt interface on one shared reader core for Windows and Android: a consistent 8px rhythm, soft borders, frosted glass surfaces, and a toolbar that adapts to the window width without overflow or hidden actions.
-- Crisp icons in every theme: a solid dark plate on desktop and a transparent adaptive foreground on `#0B0906` for Android, with no clipping, pixelation, or burn-in after theme changes.
-- Immediate page turns: no scroll-then-jump and no vertical drift before a flip. Single page and dual spread turn horizontally only; when manually zoomed, content pans left and right first and the page turns only at the horizontal edge.
-- Smoother continuous scrolling: the page nearest you is rendered first through a single render lane, distant pages are deferred until they approach, and your place is preserved when returning to paged mode.
-- A more precise selection and highlight engine: rects come from the real text layer, multiple lines and multiple highlights can share a page, corners are rounded to 2px, and blending uses `multiply` on light surfaces and `screen` on dark ones. The transient selection overlay is decoupled from saved highlights.
-- A custom mobile text action bar: highlight colours, underline, copy, note, search, and listen. The native context menu is suppressed, safe areas are respected, and the bar flips below the selection near the top of the screen.
-- Font switching applies instantly across both the reader and the interface, using bundled offline fonts and root-level `--font-ui` and `--font-reader` tokens.
-- Background annotation writes never redraw the page: highlights and notes persist to IndexedDB in order, migrate legacy storage automatically, and only the overlay layers update.
-- On mobile, paged mode reserves room for both floating bars so a page never hides beneath the bottom navigation. The same release covers the Windows installer, the portable build, and the Android APK under one version and one update feed.
+- **Pages panel from the bottom.** The panel no longer runs from the top edge. It is now a comfortable bottom sheet with a drag handle, a three-column page grid, and a fixed “Close panel” button within thumb reach. The top close button remains, but is no longer the only way out.
+- **Text selection fixed.** The app no longer clears the native selection immediately on pointer-up, which was hiding the copy/highlight menu before it could appear. A fixed bottom action bar now offers highlight colours, underline, copy, note, search, and listen while the native selection stays visible.
+- **Optional bottom navigation bar.** Settings → Reading can hide or show the page-number and quick-action bar. The choice persists between sessions, and the pages panel remains available from the tools menu.
+- **Smoother scrolling and page turns.** Swipe offset is written to a CSS variable through `requestAnimationFrame` instead of updating React state on every finger movement. This removes a full reading-surface re-render at 90/120Hz.
+- **Lighter phone chrome.** Small screens use opaque interface surfaces without live blur, ambient glow animations are disabled, and the system reduced-motion preference is respected.
+- **About 74% smaller APK.** Separate per-ABI packages now ship alongside a universal fallback. The `arm64-v8a` package for modern phones is about 16 MB instead of the previous 62 MB universal APK, and installs much faster. Even the universal fallback dropped to about 46 MB. Download `Otium_1.4.1_arm64-v8a.apk` from the release page. In-app updates still fetch the universal APK as a safe fallback; 1.5 will pick the matching ABI automatically.
+- **Honest note.** Selection still relies on Android’s WebView. Some WebView versions may show Android’s native copy/share menu alongside the in-app bar; both work, and the duplication will be removed once the behaviour is confirmed on a physical device.

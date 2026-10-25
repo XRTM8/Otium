@@ -1,7 +1,7 @@
 {
   "name": "otium-reader",
   "private": true,
-  "version": "1.4.0",
+  "version": "1.4.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,7 +13,8 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
-    "tauri:android": "tauri android build --apk"
+    "tauri:android": "tauri android build --apk",
+    "tauri:android:split": "tauri android build --apk --split-per-abi"
   },
   "dependencies": {
     "@fontsource-variable/cairo": "^5.3.0",

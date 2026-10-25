@@ -22,10 +22,12 @@ import { applyFontFamily, getSavedFont, saveFont } from '../core/settings/fonts'
 import {
   loadLanguage,
   loadLastPage,
+  loadMobileNavVisible,
   loadTheme,
   loadViewMode,
   saveLanguage,
   saveLastPage,
+  saveMobileNavVisible,
   saveTheme,
   saveViewMode
 } from '../core/settings/preferences';
@@ -161,6 +163,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const [viewMode, setViewMode] = useState<ViewMode>(loadViewMode);
   const [lang, setLang] = useState<Language>(loadLanguage);
   const [fontFamily, setFontFamily] = useState<FontFamilyId>(getSavedFont);
+  const [showMobileNavBar, setShowMobileNavBar] = useState<boolean>(loadMobileNavVisible);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -177,7 +180,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const [passwordModal, setPasswordModal] =
     useState<PasswordModalState>(EMPTY_PASSWORD_MODAL);
 
-  const [touchDeltaX, setTouchDeltaX] = useState(0);
   const [isDraggingTouch, setIsDraggingTouch] = useState(false);
   const [searchSeed, setSearchSeed] = useState<{ query: string; id: number } | null>(null);
 
@@ -192,6 +194,43 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const zoomAnchorRef = useRef<ZoomAnchor | null>(null);
   const zoomFocusRef = useRef<{ x: number; y: number } | null>(null);
   const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
+  const swipeFrameRef = useRef<number | null>(null);
+  const pendingSwipeXRef = useRef(0);
+
+  /**
+   * Touch pans update a CSS variable instead of React state. A page swipe can
+   * fire 60-120 move events per second; re-rendering the whole reading surface
+   * for each one is what made the flagship phone feel choppy.
+   */
+  const applySwipeOffset = useCallback((value: number) => {
+    pendingSwipeXRef.current = value;
+    if (swipeFrameRef.current !== null) return;
+    swipeFrameRef.current = window.requestAnimationFrame(() => {
+      swipeFrameRef.current = null;
+      scrollContainerRef.current?.style.setProperty(
+        '--otium-swipe-x',
+        `${pendingSwipeXRef.current}px`
+      );
+    });
+  }, []);
+
+  const resetSwipeOffset = useCallback(() => {
+    pendingSwipeXRef.current = 0;
+    if (swipeFrameRef.current !== null) {
+      window.cancelAnimationFrame(swipeFrameRef.current);
+      swipeFrameRef.current = null;
+    }
+    scrollContainerRef.current?.style.setProperty('--otium-swipe-x', '0px');
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (swipeFrameRef.current !== null) {
+        window.cancelAnimationFrame(swipeFrameRef.current);
+        swipeFrameRef.current = null;
+      }
+    };
+  }, []);
 
   const docRef = useRef<PDFDocumentProxy | null>(null);
   const loadingTaskRef = useRef<PDFDocumentLoadingTask | null>(null);
@@ -270,9 +309,9 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   );
 
   const resetPageGesture = useCallback(() => {
-    setTouchDeltaX(0);
+    resetSwipeOffset();
     touchDeltaXRef.current = 0;
-  }, []);
+  }, [resetSwipeOffset]);
 
   /** Remembers which point of which page sits under the user's fingers. */
   const captureZoomAnchor = useCallback((clientX: number, clientY: number) => {
@@ -982,7 +1021,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       touchStartX.current = null;
       touchStartY.current = null;
       setIsDraggingTouch(false);
-      setTouchDeltaX(0);
+      resetSwipeOffset();
       touchDeltaXRef.current = 0;
       return;
     }
@@ -992,7 +1031,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       touchStartX.current = touch.clientX;
       touchStartY.current = touch.clientY;
       touchStartTimeRef.current = performance.now();
-      setTouchDeltaX(0);
+      resetSwipeOffset();
       touchDeltaXRef.current = 0;
       if (viewMode === 'single' || viewMode === 'dual') {
         setIsDraggingTouch(true);
@@ -1026,7 +1065,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     if (event.touches.length >= 2) {
       touchStartX.current = null;
       setIsDraggingTouch(false);
-      setTouchDeltaX(0);
+      resetSwipeOffset();
       touchDeltaXRef.current = 0;
       return;
     }
@@ -1044,7 +1083,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     const selection = typeof window !== 'undefined' ? window.getSelection() : null;
     if (selection && !selection.isCollapsed && selection.toString().trim().length > 0) {
       if (touchDeltaXRef.current !== 0) {
-        setTouchDeltaX(0);
+        resetSwipeOffset();
         touchDeltaXRef.current = 0;
       }
       return;
@@ -1058,7 +1097,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       const scrollDirection = deltaX < 0 ? 1 : -1;
       if (canScrollHorizontally(scrollDirection)) {
         if (touchDeltaXRef.current !== 0) {
-          setTouchDeltaX(0);
+          resetSwipeOffset();
           touchDeltaXRef.current = 0;
         }
         return;
@@ -1066,7 +1105,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
       // Elastic, horizontal-only feedback. The page never drifts vertically.
       const resisted = Math.max(-72, Math.min(72, deltaX * 0.35));
-      setTouchDeltaX(resisted);
+      applySwipeOffset(resisted);
       touchDeltaXRef.current = resisted;
       return;
     }
@@ -1076,7 +1115,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     // Once the gesture is clearly vertical, discard horizontal travel so a
     // wobbly swipe cannot turn the page sideways at release.
     if (touchDeltaXRef.current !== 0) {
-      setTouchDeltaX(0);
+      resetSwipeOffset();
       touchDeltaXRef.current = 0;
     }
 
@@ -1100,7 +1139,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       touchStartX.current = null;
       touchStartY.current = null;
       setIsDraggingTouch(false);
-      setTouchDeltaX(0);
+      resetSwipeOffset();
       touchDeltaXRef.current = 0;
       return;
     }
@@ -1113,7 +1152,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     setIsDraggingTouch(false);
     touchStartX.current = null;
     touchStartY.current = null;
-    setTouchDeltaX(0);
+    resetSwipeOffset();
     touchDeltaXRef.current = 0;
 
     if (startX === null || startY === null || !touch) return;
@@ -1184,7 +1223,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     touchStartX.current = null;
     touchStartY.current = null;
     setIsDraggingTouch(false);
-    setTouchDeltaX(0);
+    resetSwipeOffset();
     touchDeltaXRef.current = 0;
   };
 
@@ -1310,10 +1349,17 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     setSearchSeed(null);
   }, []);
 
+  const changeMobileNavVisibility = useCallback((visible: boolean) => {
+    setShowMobileNavBar(visible);
+    saveMobileNavVisible(visible);
+  }, []);
+
   const resetDefaults = useCallback(() => {
     changeFont('tajawal');
     changeViewMode('continuous');
     changeTheme('paper');
+    setShowMobileNavBar(true);
+    saveMobileNavVisible(true);
   }, [changeFont, changeTheme, changeViewMode]);
 
   return {
@@ -1327,6 +1373,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     viewMode,
     lang,
     fontFamily,
+    showMobileNavBar,
     baseAspectRatio,
     basePageSize,
     isSidebarOpen,
@@ -1344,7 +1391,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     passwordModal,
     dualFlipKey,
     dualFlipDir,
-    touchDeltaX,
     isDraggingTouch,
     scrollContainerRef,
     openFile,
@@ -1360,6 +1406,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     changeLanguage,
     changeFont,
     changeViewMode,
+    changeMobileNavVisibility,
     toggleBookmark,
     addAnnotation,
     deleteAnnotation,

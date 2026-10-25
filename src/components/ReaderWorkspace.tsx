@@ -117,7 +117,6 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
     handleTouchMove,
     handleTouchEnd,
     handleTouchCancel,
-    touchDeltaX,
     isDraggingTouch,
     dualFlipKey,
     dualFlipDir
@@ -213,8 +212,9 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
 
   if (!doc) return null;
 
-  const gestureTransform =
-    isDraggingTouch && touchDeltaX !== 0 ? `translate3d(${touchDeltaX}px, 0, 0)` : undefined;
+  // The controller writes this custom property directly on the scroll
+  // container during a pan, so moving a finger never triggers a React render.
+  const gestureTransform = 'translate3d(var(--otium-swipe-x, 0px), 0, 0)';
   const gestureTransition = isDraggingTouch
     ? 'none'
     : 'transform 260ms cubic-bezier(0.22, 1, 0.36, 1)';
@@ -245,7 +245,9 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
         paddingBottom: compactLandscape
           ? 'max(3.2rem, calc(env(safe-area-inset-bottom, 0px) + 2.8rem))'
           : compact
-            ? 'max(5.5rem, calc(env(safe-area-inset-bottom, 0px) + 5rem))'
+            ? reader.showMobileNavBar
+              ? 'max(5.5rem, calc(env(safe-area-inset-bottom, 0px) + 5rem))'
+              : 'max(2.5rem, calc(env(safe-area-inset-bottom, 0px) + 2rem))'
             : undefined,
         ...(compact
           ? {

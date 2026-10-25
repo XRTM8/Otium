@@ -86,8 +86,14 @@ android {
         getByName("release") {
             // Never fall back to debug signing for a distributable APK.
             signingConfig = signingConfigs.getByName("release")
+            // Keep R8 off for this hotfix. Tauri bridges into Kotlin/WebView
+            // through JNI and JavascriptInterface reflection; a startup crash
+            // here cannot be caught without a physical device. The real size
+            // win comes from --split-per-abi (62 MB universal -> ~12 MB per
+            // phone ABI), so shrinking can wait for device verification.
             isMinifyEnabled = false
-            
+            isShrinkResources = false
+
             proguardFiles(
                 *fileTree(".") {
                   include("**/*.pro")

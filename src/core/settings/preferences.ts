@@ -10,6 +10,7 @@ const KEYS = {
   language: 'otium_lang',
   legacyLanguage: 'tirs_lang',
   viewMode: 'otium_view_mode',
+  mobileNav: 'otium_mobile_nav',
   page: (title: string) => `otium_page_${title}`,
   legacyPage: (title: string) => `tirs_page_${title}`
 };
@@ -64,6 +65,19 @@ export function loadViewMode(): ViewMode {
 
 export function saveViewMode(mode: ViewMode): void {
   write(KEYS.viewMode, mode);
+}
+
+/**
+ * The bottom navigation bar is useful for page numbers and quick jumps, but
+ * some readers prefer a completely bare page. Default to visible; only an
+ * explicit opt-out hides it.
+ */
+export function loadMobileNavVisible(): boolean {
+  return read(KEYS.mobileNav) !== '0';
+}
+
+export function saveMobileNavVisible(visible: boolean): void {
+  write(KEYS.mobileNav, visible ? '1' : '0');
 }
 
 export function loadLastPage(title: string): number {

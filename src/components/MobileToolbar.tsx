@@ -27,6 +27,8 @@ interface MobileToolbarProps {
   viewMode: ViewMode;
   currentLang: Language;
   isBookmarked: boolean;
+  /** Settings → Reading can hide the bottom bar for a bare page. */
+  showBottomBar?: boolean;
   onPageChange: (page: number) => void;
   onThemeChange: (theme: ThemeMode) => void;
   onViewModeChange: (mode: ViewMode) => void;
@@ -58,6 +60,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
   viewMode,
   currentLang,
   isBookmarked,
+  showBottomBar = true,
   onPageChange,
   onThemeChange,
   onViewModeChange,
@@ -267,6 +270,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
         </div>
       )}
 
+      {showBottomBar && (
       <div
         dir="ltr"
         style={{
@@ -328,6 +332,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
           </button>
         </div>
       </div>
+      )}
     </>
   );
 };

@@ -33,6 +33,10 @@ interface SettingsModalProps {
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
   lang?: Language;
+  /** Touch shells expose mobile-only reading preferences. */
+  mobile?: boolean;
+  mobileNavVisible?: boolean;
+  onMobileNavVisibleChange?: (visible: boolean) => void;
   onResetDefaults: () => void;
 }
 
@@ -184,6 +188,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   viewMode,
   onViewModeChange,
   lang = 'ar',
+  mobile = false,
+  mobileNavVisible = true,
+  onMobileNavVisibleChange,
   onResetDefaults
 }) => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('fonts');
@@ -343,6 +350,41 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </button>
                 </div>
               </div>
+
+              {mobile && onMobileNavVisibleChange && (
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={mobileNavVisible}
+                  onClick={() => onMobileNavVisibleChange(!mobileNavVisible)}
+                  className="flex w-full items-center gap-3 rounded-2xl border border-line-subtle bg-hover-subtle p-3 text-start transition-colors active:bg-hover"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold text-ink">
+                      {ar ? 'شريط التنقل السفلي' : 'Bottom navigation bar'}
+                    </div>
+                    <p className="mt-0.5 text-[10px] leading-relaxed text-ink-muted">
+                      {ar
+                        ? 'أرقام الصفحات والأزرار السريعة أسفل الشاشة. أخفِه لتبقى الصفحة نظيفة؛ تبقى لوحة الصفحات في قائمة الأدوات.'
+                        : 'Page numbers and quick actions at the bottom. Hide it for a bare page; the pages panel stays in the tools menu.'}
+                    </p>
+                  </div>
+                  <span
+                    aria-hidden="true"
+                    className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
+                      mobileNavVisible
+                        ? 'border-accent/50 bg-accent'
+                        : 'border-line-strong bg-hover-strong'
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all ${
+                        mobileNavVisible ? 'start-6' : 'start-0.5'
+                      }`}
+                    />
+                  </span>
+                </button>
+              )}
 
               <div className="p-3 rounded-2xl bg-hover-subtle border border-line-subtle flex items-start gap-2.5 text-xs text-ink-muted">
                 <Sparkles className="w-4 h-4 text-highlight shrink-0 mt-0.5" />

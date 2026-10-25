@@ -8,10 +8,12 @@ import { Sidebar } from './Sidebar';
 
 interface ReaderOverlaysProps {
   reader: ReaderController;
+  /** Touch shells use a bottom sheet instead of a desktop side drawer. */
+  mobile?: boolean;
 }
 
-/** Modals, drawers and status surfaces that are identical on every platform. */
-export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader }) => {
+/** Modals, drawers and status surfaces that are shared by every platform. */
+export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader, mobile = false }) => {
   return (
     <>
       <SearchBar
@@ -36,6 +38,7 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader }) => {
         onToggleBookmark={reader.toggleBookmark}
         onDeleteAnnotation={reader.deleteAnnotation}
         onClose={() => reader.setIsSidebarOpen(false)}
+        variant={mobile ? 'sheet' : 'drawer'}
       />
 
       <SettingsModal
@@ -46,6 +49,9 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader }) => {
         viewMode={reader.viewMode}
         onViewModeChange={reader.changeViewMode}
         lang={reader.lang}
+        mobile={mobile}
+        mobileNavVisible={reader.showMobileNavBar}
+        onMobileNavVisibleChange={reader.changeMobileNavVisibility}
         onResetDefaults={reader.resetDefaults}
       />
 

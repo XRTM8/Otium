@@ -22,6 +22,8 @@ interface TextSelectionMenuProps {
   onCopySuccess?: () => void;
   onSearchSelectedText?: (text: string) => void;
   lang?: Language;
+  /** Touch shells get a reachable bottom bar instead of a floating popover. */
+  mobile?: boolean;
 }
 
 interface ScreenRect {
@@ -62,7 +64,8 @@ const LABELS = {
     close: 'إلغاء',
     notePlaceholder: 'اكتب ملاحظتك على هذا الاقتباس…',
     save: 'حفظ الملاحظة',
-    cancel: 'إلغاء'
+    cancel: 'إلغاء',
+    selectedText: 'النص المحدد'
   },
   en: {
     highlight: 'Highlight',
@@ -78,7 +81,8 @@ const LABELS = {
     close: 'Close',
     notePlaceholder: 'Add a note to this quote…',
     save: 'Save note',
-    cancel: 'Cancel'
+    cancel: 'Cancel',
+    selectedText: 'Selected text'
   }
 } as const;
 
@@ -167,7 +171,8 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
   annotations = [],
   onCopySuccess,
   onSearchSelectedText,
-  lang = 'ar'
+  lang = 'ar',
+  mobile = false
 }) => {
   const [selectionState, setSelectionState] = useState<SelectionState | null>(null);
   const [selectedColor, setSelectedColor] = useState(HIGHLIGHT_COLORS[0].hex);
@@ -208,23 +213,23 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
 
   const captureSelection = useCallback(() => {
     const selection = window.getSelection();
-    if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
+    if (!selection || selection.isCollapsed || selection.rangeCount === 0) return false;
 
     const text = selection.toString().replace(/\s+/g, ' ').trim();
-    if (!text) return;
+    if (!text) return false;
 
     const range = selection.getRangeAt(0);
     const startPage = pageElementFor(range.startContainer);
     const endPage = pageElementFor(range.endContainer);
 
     // Cross-page selections would produce ambiguous page-relative rects.
-    if (!startPage || !endPage || startPage !== endPage) return;
+    if (!startPage || !endPage || startPage !== endPage) return false;
 
     const pageRect = startPage.getBoundingClientRect();
-    if (!pageRect.width || !pageRect.height) return;
+    if (!pageRect.width || !pageRect.height) return false;
 
     const lines = mergeSelectionRects(Array.from(range.getClientRects()), pageRect);
-    if (lines.length === 0) return;
+    if (lines.length === 0) return false;
 
     const rects: AnnotationRect[] = lines.map((line) => ({
       xPct: Math.max(0, Math.min(1, (line.left - pageRect.left) / pageRect.width)),
@@ -282,14 +287,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
     setNoteMode(false);
     setNoteText('');
     setIsSpeaking(false);
-
-    // Remove the native selection so Android's Copy / Share action mode is
-    // dismissed. The blue overlay above is ours and remains visible.
-    try {
-      selection.removeAllRanges();
-    } catch {
-      // Ignore.
-    }
+    return true;
   }, []);
 
   const scheduleCapture = useCallback(
@@ -297,30 +295,40 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
       if (selectionTimerRef.current !== null) window.clearTimeout(selectionTimerRef.current);
       selectionTimerRef.current = window.setTimeout(() => {
         selectionTimerRef.current = null;
-        captureSelection();
+        const captured = captureSelection();
+        // A tap that collapses the native selection should dismiss an open
+        // bar. During a handle drag the selection stays non-collapsed, so the
+        // bar keeps updating instead of vanishing.
+        if (!captured && selectionRef.current) clearSelection();
       }, delay);
     },
-    [captureSelection]
+    [captureSelection, clearSelection]
   );
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
       pointerActiveRef.current = true;
-      if (!menuRef.current?.contains(event.target as Node)) {
-        if (selectionRef.current) clearSelection();
-      }
+      if (menuRef.current?.contains(event.target as Node)) return;
+      if (!selectionRef.current) return;
+
+      // Dragging Android's native selection handles starts with a pointerdown
+      // on the page. Keep the menu alive so the selection can still be
+      // adjusted; tapping outside the page dismisses it.
+      const target = event.target as HTMLElement | null;
+      const insidePage = Boolean(target?.closest?.('[data-pdf-page]'));
+      if (!insidePage) clearSelection();
     };
 
     const handlePointerUp = (event: PointerEvent) => {
       pointerActiveRef.current = false;
       if (menuRef.current?.contains(event.target as Node)) return;
-      scheduleCapture(30);
+      scheduleCapture(mobile ? 140 : 30);
     };
 
     const handleTouchEnd = (event: TouchEvent) => {
       pointerActiveRef.current = false;
       if (menuRef.current?.contains(event.target as Node)) return;
-      scheduleCapture(40);
+      scheduleCapture(mobile ? 140 : 40);
     };
 
     // Keyboard selection (Shift + arrows) has no pointer gesture.
@@ -334,7 +342,14 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
     };
 
     const handleScroll = () => {
-      if (selectionRef.current) clearSelection();
+      // The mobile action bar is pinned to the bottom and does not need to
+      // follow the selection. Clearing here is what made the menu disappear
+      // whenever Android nudged the page for its selection handles.
+      if (!mobile && selectionRef.current) clearSelection();
+    };
+
+    const handleResize = () => {
+      if (!mobile && selectionRef.current) clearSelection();
     };
 
     document.addEventListener('pointerdown', handlePointerDown, true);
@@ -343,7 +358,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
     document.addEventListener('selectionchange', handleSelectionChange);
     document.addEventListener('keydown', handleKeyDown);
     window.addEventListener('scroll', handleScroll, true);
-    window.addEventListener('resize', handleScroll);
+    window.addEventListener('resize', handleResize);
 
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown, true);
@@ -352,13 +367,13 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
       document.removeEventListener('selectionchange', handleSelectionChange);
       document.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('scroll', handleScroll, true);
-      window.removeEventListener('resize', handleScroll);
+      window.removeEventListener('resize', handleResize);
       if (selectionTimerRef.current !== null) window.clearTimeout(selectionTimerRef.current);
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
     };
-  }, [clearSelection, scheduleCapture]);
+  }, [clearSelection, mobile, scheduleCapture]);
 
   if (!selectionState) return null;
 
@@ -437,76 +452,99 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
     transform: selectionState.coords.isTop ? 'translate(-50%, -100%)' : 'translate(-50%, 0)'
   };
 
-  return (
-    <>
-      {/* Ephemeral blue selection: drawn from captured geometry, never from
-          the live native selection, so Android cannot repaint it. */}
-      <div className="pointer-events-none fixed inset-0 z-[65]" aria-hidden="true">
-        {selectionState.screenRects.map((rect, index) => (
-          <div
-            key={`${rect.left}-${rect.top}-${index}`}
-            className="selection-overlay fixed rounded-[2px]"
-            style={{
-              left: `${rect.left}px`,
-              top: `${rect.top}px`,
-              width: `${rect.width}px`,
-              height: `${rect.height}px`
-            }}
-          />
-        ))}
-      </div>
+  const actionClass = mobile
+    ? 'flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[10px] text-ink-muted transition-colors active:bg-hover'
+    : 'action-chip';
 
-      <div
-        ref={menuRef}
-        dir={lang === 'ar' ? 'rtl' : 'ltr'}
-        style={barStyle}
-        onPointerDown={(event) => event.stopPropagation()}
-        onContextMenu={(event) => event.preventDefault()}
-        className="chrome-surface fixed z-[70] w-[min(336px,calc(100vw-16px))] select-none rounded-2xl p-1.5 text-ink shadow-2xl animate-in fade-in zoom-in-95 duration-100"
-      >
-        {noteMode ? (
-          <div className="space-y-2 p-1.5">
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-ink-muted">
-              <StickyNote className="w-3.5 h-3.5 text-highlight" />
-              <span>{labels.note}</span>
-            </div>
-            <textarea
-              value={noteText}
-              onChange={(event) => setNoteText(event.target.value)}
-              placeholder={labels.notePlaceholder}
-              rows={3}
-              autoFocus
-              className="w-full resize-none rounded-xl border border-line-subtle bg-hover-subtle px-2.5 py-2 text-[11px] leading-relaxed text-ink outline-none placeholder:text-ink-faint focus:border-accent/50"
-            />
-            <div className="flex items-center justify-end gap-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setNoteMode(false);
-                  setNoteText('');
-                }}
-                className="rounded-lg px-2.5 py-1.5 text-[11px] text-ink-muted transition-colors hover:bg-hover hover:text-ink"
-              >
-                {labels.cancel}
-              </button>
-              <button
-                type="button"
-                onClick={() => createAnnotation('highlight', selectedColor, noteText)}
-                disabled={!noteText.trim()}
-                className="btn-primary rounded-lg px-3 py-1.5 text-[11px] disabled:opacity-40"
-              >
-                <Check className="w-3 h-3" />
-                <span>{labels.save}</span>
-              </button>
-            </div>
+  return (
+    <div
+      ref={menuRef}
+      dir={lang === 'ar' ? 'rtl' : 'ltr'}
+      style={mobile ? undefined : barStyle}
+      onPointerDown={(event) => event.stopPropagation()}
+      onContextMenu={(event) => event.preventDefault()}
+      className={
+        mobile
+          ? 'chrome-surface fixed inset-x-0 bottom-0 z-[70] max-h-[78dvh] select-none overflow-y-auto rounded-t-3xl border-x-0 border-b-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2.5 text-ink shadow-2xl'
+          : 'chrome-surface fixed z-[70] w-[min(336px,calc(100vw-16px))] select-none rounded-2xl p-1.5 text-ink shadow-2xl animate-in fade-in zoom-in-95 duration-100'
+      }
+    >
+      {mobile && (
+        <>
+          <div className="mb-2 flex justify-center">
+            <div className="h-1.5 w-10 rounded-full bg-line-strong" />
           </div>
-        ) : (
+          <div className="mb-2 flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-medium uppercase tracking-wide text-ink-faint">
+                {labels.selectedText}
+              </div>
+              <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-ink-muted">
+                “{selectionState.text}”
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={clearSelection}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-ink-muted transition-colors active:bg-hover"
+              title={labels.close}
+              aria-label={labels.close}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </>
+      )}
+
+      {noteMode ? (
+        <div className={mobile ? 'space-y-3 pb-1 pt-1' : 'space-y-2 p-1.5'}>
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-ink-muted">
+            <StickyNote className="w-3.5 h-3.5 text-highlight" />
+            <span>{labels.note}</span>
+          </div>
+          <textarea
+            value={noteText}
+            onChange={(event) => setNoteText(event.target.value)}
+            placeholder={labels.notePlaceholder}
+            rows={3}
+            autoFocus
+            className={`w-full resize-none rounded-xl border border-line-subtle bg-hover-subtle px-2.5 py-2 leading-relaxed text-ink outline-none placeholder:text-ink-faint focus:border-accent/50 ${
+              mobile ? 'min-h-24 text-sm' : 'text-[11px]'
+            }`}
+          />
+          <div className="flex items-center justify-end gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setNoteMode(false);
+                setNoteText('');
+              }}
+              className={`rounded-lg text-ink-muted transition-colors hover:bg-hover hover:text-ink ${
+                mobile ? 'min-h-11 px-3 text-xs' : 'px-2.5 py-1.5 text-[11px]'
+              }`}
+            >
+              {labels.cancel}
+            </button>
+            <button
+              type="button"
+              onClick={() => createAnnotation('highlight', selectedColor, noteText)}
+              disabled={!noteText.trim()}
+              className={`btn-primary rounded-lg disabled:opacity-40 ${
+                mobile ? 'min-h-11 px-4 text-xs' : 'px-3 py-1.5 text-[11px]'
+              }`}
+            >
+              <Check className="w-3 h-3" />
+              <span>{labels.save}</span>
+            </button>
+          </div>
+        </div>
+      ) : (
           <>
             {/* Colour palette: one tap creates a persistent highlight while
                 every existing highlight on the page stays untouched. */}
-            <div className="flex items-center gap-1.5 px-1 pb-1.5">
+            <div className={`flex items-center gap-1.5 ${mobile ? 'px-0.5 pb-3' : 'px-1 pb-1.5'}`}>
               <span className="shrink-0 text-[10px] font-medium text-ink-faint" title={labels.highlightColor}>
-                <Highlighter className="w-3.5 h-3.5" />
+                <Highlighter className={mobile ? 'h-5 w-5' : 'h-3.5 w-3.5'} />
               </span>
               <div className="flex flex-1 items-center justify-between gap-1">
                 {HIGHLIGHT_COLORS.map((color) => (
@@ -519,7 +557,9 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
                     }}
                     title={`${labels.highlight} ${color.label}`}
                     aria-label={`${labels.highlight} ${color.label}`}
-                    className={`h-5 w-5 rounded-full border border-black/20 transition-transform hover:scale-110 active:scale-95 ${
+                    className={`rounded-full border border-black/20 transition-transform hover:scale-110 active:scale-95 ${
+                      mobile ? 'h-11 w-11' : 'h-5 w-5'
+                    } ${
                       selectedColor === color.hex ? 'ring-2 ring-accent ring-offset-1 ring-offset-transparent' : ''
                     }`}
                     style={{ backgroundColor: color.hex }}
@@ -531,19 +571,21 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
                 onClick={() => createAnnotation('underline', UNDERLINE_COLORS[0].hex)}
                 title={labels.underline}
                 aria-label={labels.underline}
-                className="flex h-6 w-6 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-hover hover:text-ink"
+                className={`flex items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-hover hover:text-ink ${
+                  mobile ? 'h-11 w-11' : 'h-6 w-6'
+                }`}
               >
-                <UnderlineIcon className="w-3.5 h-3.5" />
+                <UnderlineIcon className={mobile ? 'h-4 w-4' : 'h-3.5 w-3.5'} />
               </button>
             </div>
 
             <div className="h-px bg-line-subtle" />
 
-            <div className="flex items-center gap-0.5 pt-1">
+            <div className={mobile ? 'flex items-stretch gap-1 pt-2' : 'flex items-center gap-0.5 pt-1'}>
               <button
                 type="button"
                 onClick={() => void handleCopy()}
-                className="action-chip"
+                className={actionClass}
                 title={labels.copy}
               >
                 {copied ? <Check className="w-4 h-4 text-success-ink" /> : <Copy className="w-4 h-4" />}
@@ -552,13 +594,13 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
                 </span>
               </button>
 
-              <button type="button" onClick={() => setNoteMode(true)} className="action-chip" title={labels.note}>
+              <button type="button" onClick={() => setNoteMode(true)} className={actionClass} title={labels.note}>
                 <StickyNote className="w-4 h-4" />
                 <span>{labels.note}</span>
               </button>
 
               {onSearchSelectedText && (
-                <button type="button" onClick={handleSearch} className="action-chip" title={labels.search}>
+                <button type="button" onClick={handleSearch} className={actionClass} title={labels.search}>
                   <Search className="w-4 h-4" />
                   <span>{labels.search}</span>
                 </button>
@@ -567,7 +609,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
               <button
                 type="button"
                 onClick={toggleSpeech}
-                className={`action-chip ${isSpeaking ? 'text-highlight' : ''}`}
+                className={`${actionClass} ${isSpeaking ? 'text-highlight' : ''}`}
                 title={isSpeaking ? labels.stop : labels.speak}
               >
                 {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
@@ -581,7 +623,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
                     onDeleteAnnotation(overlappingAnnotation.id);
                     clearSelection();
                   }}
-                  className="action-chip text-danger-ink hover:bg-rose-500/10"
+                  className={`${actionClass} text-danger-ink hover:bg-rose-500/10`}
                   title={labels.remove}
                 >
                   <Trash2 className="w-4 h-4" />
@@ -589,19 +631,20 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
                 </button>
               )}
 
-              <button
-                type="button"
-                onClick={clearSelection}
-                className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-hover hover:text-ink"
-                title={labels.close}
-                aria-label={labels.close}
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+              {!mobile && (
+                <button
+                  type="button"
+                  onClick={clearSelection}
+                  className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-hover hover:text-ink"
+                  title={labels.close}
+                  aria-label={labels.close}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </>
         )}
-      </div>
-    </>
+    </div>
   );
 };
