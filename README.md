@@ -9,8 +9,9 @@
 # Otium
 
 <p align="center">
-  <em>otium</em> &nbsp;/ˈoː.ti.um/&nbsp; <sup>Latin</sup> — the time one reserves for reading, thought, and rest.<br/>
-  As opposed to <em>negotium</em>: business, obligation, noise.
+  <em>otium</em> &nbsp;/ˈoː.ti.um/&nbsp; <sup>n. Latin</sup><br/>
+  The time set aside for reading, thought, and rest —<br/>
+  as opposed to <em>negotium</em>: work, obligation, noise.
 </p>
 
 <br/>
@@ -31,6 +32,7 @@
 
 <p align="center">
   <a href="#downloads">Downloads</a> &nbsp;·&nbsp;
+  <a href="#screenshots">Screenshots</a> &nbsp;·&nbsp;
   <a href="#features">Features</a> &nbsp;·&nbsp;
   <a href="#shortcuts">Shortcuts</a> &nbsp;·&nbsp;
   <a href="#build">Build</a>
@@ -40,34 +42,29 @@
 
 ---
 
-A PDF reader for Windows and Android. No accounts, no telemetry, no internet required. Reading state is stored locally and persists across sessions.
+A PDF reader for Windows and Android. No accounts, no telemetry, no internet required after installation. Reading state persists locally across sessions.
+
+The interface is available in **English and Arabic** (RTL layout, full right-to-left navigation).
 
 ---
 
 ## Screenshots
 
-<table>
-  <tr>
-    <td><img src="./assets/screen-library.png" alt="Library" /></td>
-    <td><img src="./assets/screen-reader-dark.png" alt="Reader — dark theme" /></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Library</sub></td>
-    <td align="center"><sub>Dual-page spread — dark theme</sub></td>
-  </tr>
-  <tr>
-    <td colspan="2"><img src="./assets/screen-reader-light.png" alt="Reader — light theme" /></td>
-  </tr>
-  <tr>
-    <td colspan="2" align="center"><sub>Dual-page spread — light theme</sub></td>
-  </tr>
-</table>
+<div align="center">
+  <img src="./assets/screen-library.png" width="80%" alt="Library" />
+  <br/><sub>Library</sub>
+  <br/><br/>
+  <img src="./assets/screen-reader-dark.png" width="49%" alt="Dual-page — dark" />
+  &nbsp;
+  <img src="./assets/screen-reader-light.png" width="49%" alt="Dual-page — light" />
+  <br/><sub>Dual-page spread — dark theme &nbsp;·&nbsp; light theme</sub>
+</div>
 
 ---
 
 ## Downloads
 
-Latest stable release: [**GitHub Releases →**](https://github.com/XRTM8/Otium/releases/latest)
+[**GitHub Releases →**](https://github.com/XRTM8/Otium/releases/latest)
 
 | Platform | File | Notes |
 | :--- | :--- | :--- |
@@ -75,26 +72,34 @@ Latest stable release: [**GitHub Releases →**](https://github.com/XRTM8/Otium/
 | Windows — Portable | `Otium_<version>_x64-portable.exe` | No installation required |
 | Android | `Otium_<version>_universal.apk` | ARM64, ARMv7, x86\_64 |
 
-Each release includes `latest.json`, the version feed used by both updaters. The Android APK is SHA-256 verified before the system installer is invoked.
+**System requirements**
+
+| | Minimum |
+| :--- | :--- |
+| Windows | 10 (x64) |
+| Android | 7.0 (API 24) |
+
+Each release includes `latest.json`, the version feed used by both updaters. The Android APK is SHA-256 verified before the system installer is invoked — no silent sideloading.
 
 ---
 
 ## Features
 
-**Dual-page spread** — side-by-side layout with a centre spine divider. Switch between Continuous Scroll, Dual Spread, and Single Page at any time.
+**View modes** — Single page, continuous scroll, or dual-page spread with a centre spine divider. Switch modes at any time without reloading the document.
 
-**Eight reading themes** — each theme colours every surface consistently: toolbars, menus, sidebars, and the page canvas. Includes AMOLED black, paper tones, and E-Ink simulation.
+**Themes** — Eight themes (AMOLED black, Midnight Azure, Warm Amber, Pure Amethyst, Ruby Crimson, Natural Paper, Crystal Diamond, E-Ink). Each theme applies consistently to every surface: toolbars, menus, sidebars, dialogs, and the canvas.
 
-**Display sync** — detects the screen refresh rate (60–240 Hz) and renders at the full native pixel ratio. No blurry text, no throttling.
+**Display** — Detects screen refresh rate (60–240 Hz) automatically. Renders at the full native pixel ratio with sub-pixel antialiasing.
 
-**Mobile** — hardware back button navigates in steps (closes modal → closes document → exits). Safe-area insets clear the status bar and notch. Pinch-to-zoom scales the canvas; UI chrome stays fixed. `.pdf` files open directly from the file manager or messaging apps.
+**Android** — Hardware back button navigates step by step (closes modal → closes document → exits library). Safe-area insets clear the status bar and camera notch. Pinch-to-zoom scales the canvas while UI chrome stays fixed. `.pdf` files open directly from the file manager or any sharing source. Text selection, copy, highlight, and underline via long-press.
 
-**Local-first** — no telemetry, no cloud. Bookmarks, annotations, and reading position stored in IndexedDB.
+**Local-first** — No telemetry, no cloud. Bookmarks, annotations, and reading position stored in IndexedDB.
 
-**One codebase, two platforms:**
+**Architecture** — One codebase, two platform shells:
+
 ```
-src/core/       engine, search, annotations, bookmarks, i18n, settings
-src/platform/   platform transports (file I/O, updater, runtime)
+src/core/       engine · search · annotations · bookmarks · i18n · settings
+src/platform/   file I/O · updater · runtime detection
 src/app/        shared reader controller
 src/shells/     DesktopShell · MobileShell
 src-tauri/      Rust backend
@@ -120,22 +125,29 @@ src-tauri/      Rust backend
 
 ## Build
 
-**Requirements:** Node.js ≥ 18, Rust (stable). Android builds additionally require JDK 17 and Android SDK + NDK.
+**Requirements**
+
+| Tool | Version |
+| :--- | :--- |
+| Node.js | ≥ 18 |
+| Rust | latest stable |
+| JDK | 17 *(Android only)* |
+| Android SDK + NDK | latest *(Android only)* |
 
 ```bash
 git clone https://github.com/XRTM8/Otium.git
 cd Otium
 npm install
 
-# Desktop (dev)
+# Desktop — development
 npm run tauri:dev
 
 # Windows — NSIS installer + portable EXE
-# Requires TAURI_SIGNING_PRIVATE_KEY
+# Requires: TAURI_SIGNING_PRIVATE_KEY
 npm run tauri:build -- --bundles nsis
 
 # Android — universal APK
-# Requires app/keystore.properties
+# Requires: app/keystore.properties + release keystore
 npm run tauri:android
 
 # Verify version consistency across all build inputs
@@ -148,13 +160,13 @@ npm run release:feed
 node scripts/verify-release.mjs
 ```
 
-Pushing a `v<version>` tag runs `.github/workflows/release.yml`, which produces the Windows installer, portable EXE, and Android APK in a single pipeline.
+Pushing a `v<version>` tag runs `.github/workflows/release.yml` and produces the Windows installer, portable EXE, and Android APK in a single pipeline.
 
 ---
 
 ## Contributing
 
-Open an issue before submitting a significant pull request. For bugs, include the OS version, app version, and reproduction steps.
+Open an issue before submitting a significant pull request. For bugs, include OS version, app version, and steps to reproduce.
 
 ---
 
