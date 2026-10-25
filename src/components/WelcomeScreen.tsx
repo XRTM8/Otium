@@ -365,8 +365,29 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               {recents.map((r) => (
                 <div
                   key={r.id}
-                  onClick={() => onOpenRecent(r)}
-                  className="flex items-center justify-between p-3.5 rounded-2xl bg-surface/60 hover:bg-surface cursor-pointer border border-line-subtle hover:border-line-strong transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg group"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    if (!r.available) {
+                      // The fingerprint is recovered from the bytes, so picking
+                      // the original PDF reconnects its progress and notes.
+                      fileInputRef.current?.click();
+                      return;
+                    }
+                    onOpenRecent(r);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return;
+                    event.preventDefault();
+                    if (!r.available) {
+                      fileInputRef.current?.click();
+                      return;
+                    }
+                    onOpenRecent(r);
+                  }}
+                  className={`flex items-center justify-between p-3.5 rounded-2xl bg-surface/60 hover:bg-surface cursor-pointer border border-line-subtle hover:border-line-strong transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg group ${
+                    r.available ? '' : 'border-dashed'
+                  }`}
                 >
                   <div className="flex items-center gap-3 min-w-0 pr-1">
                     <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${style.fileIconBox}`}>
@@ -385,11 +406,20 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                           <Calendar className="w-3 h-3 text-ink-faint shrink-0" />
                           <span>{formatDate(r.lastOpened)}</span>
                         </span>
-                        <span className="text-ink-faint hidden sm:inline">•</span>
-                        <span className="flex items-center gap-1 font-mono text-ink-muted">
-                          <HardDrive className="w-3 h-3 text-ink-faint shrink-0" />
-                          <span>{formatSize(r.sizeBytes)}</span>
-                        </span>
+                        {r.available ? (
+                          <>
+                            <span className="text-ink-faint hidden sm:inline">•</span>
+                            <span className="flex items-center gap-1 font-mono text-ink-muted">
+                              <HardDrive className="w-3 h-3 text-ink-faint shrink-0" />
+                              <span>{formatSize(r.sizeBytes)}</span>
+                            </span>
+                          </>
+                        ) : (
+                          <span className="flex items-center gap-1 rounded-full border border-accent/25 bg-accent/10 px-1.5 py-0.5 font-sans text-[10px] text-accent">
+                            <Upload className="h-3 w-3 shrink-0" />
+                            <span>{currentLang === 'ar' ? 'أعد استيراد الملف' : 'Re-import file'}</span>
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

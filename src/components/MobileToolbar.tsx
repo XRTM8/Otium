@@ -74,6 +74,8 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
   onCloseDocument
 }) => {
   const [showMenu, setShowMenu] = useState(false);
+  const [showJump, setShowJump] = useState(false);
+  const [jumpValue, setJumpValue] = useState('');
   const [compactLandscape, setCompactLandscape] = useState(false);
   const t = getTranslations(currentLang);
   const ar = currentLang === 'ar';
@@ -90,6 +92,27 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
   useEffect(() => {
     if (immersive) setShowMenu(false);
   }, [immersive]);
+
+  useEffect(() => {
+    if (!showJump) return;
+    setJumpValue(String(currentPage));
+  }, [currentPage, showJump]);
+
+  useEffect(() => {
+    if (!showJump) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowJump(false);
+    };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [showJump]);
+
+  const submitPageJump = () => {
+    const parsed = Number.parseInt(jumpValue.replace(/[^\d]/g, ''), 10);
+    if (!Number.isFinite(parsed)) return;
+    onPageChange(Math.min(totalPages, Math.max(1, parsed)));
+    setShowJump(false);
+  };
 
   // Landscape phones have very little height: shrink the chrome and drop the
   // duplicate actions that also live in the overflow menu.
@@ -285,6 +308,77 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
         </div>
       )}
 
+      {showJump && !immersive && (
+        <div
+          dir={ar ? 'rtl' : 'ltr'}
+          role="dialog"
+          aria-modal="true"
+          aria-label={ar ? 'الانتقال إلى صفحة' : 'Go to page'}
+          className="fixed inset-0 z-[60] flex items-end justify-center p-3 sm:items-center"
+        >
+          <div
+            className="absolute inset-0 bg-scrim backdrop-blur-sm"
+            onClick={() => setShowJump(false)}
+          />
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              submitPageJump();
+            }}
+            style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+            className="chrome-surface relative z-10 w-full max-w-sm rounded-2xl p-4 text-ink"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold">
+                  {ar ? 'الانتقال إلى صفحة' : 'Go to page'}
+                </div>
+                <p className="mt-0.5 text-[10px] text-ink-muted font-mono">
+                  1 – {totalPages}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowJump(false)}
+                aria-label={ar ? 'إغلاق' : 'Close'}
+                className="rounded-full p-1.5 text-ink-muted hover:bg-hover hover:text-ink"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <input
+              autoFocus
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              enterKeyHint="go"
+              value={jumpValue}
+              onChange={(event) => setJumpValue(event.target.value)}
+              onFocus={(event) => event.currentTarget.select()}
+              aria-label={ar ? 'رقم الصفحة' : 'Page number'}
+              className="mt-3 w-full rounded-xl border border-line bg-hover-subtle px-3 py-2.5 text-center font-mono text-2xl text-ink outline-none focus:border-accent/60"
+            />
+
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowJump(false)}
+                className="flex-1 rounded-xl border border-line bg-hover-subtle py-2 text-xs font-medium text-ink"
+              >
+                {ar ? 'إلغاء' : 'Cancel'}
+              </button>
+              <button
+                type="submit"
+                className="flex-1 rounded-xl bg-accent py-2 text-xs font-semibold text-on-accent"
+              >
+                {ar ? 'انتقال' : 'Go'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {showBottomBar && (
       <div
         dir="ltr"
@@ -316,8 +410,10 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
 
           <button
             type="button"
-            onClick={onOpenSidebar}
-            className="px-3 py-1.5 rounded-xl bg-hover-subtle font-mono text-[11px] text-ink"
+            onClick={() => setShowJump(true)}
+            aria-label={ar ? `الانتقال إلى صفحة، الحالية ${currentPage} من ${totalPages}` : `Go to page, currently ${currentPage} of ${totalPages}`}
+            title={ar ? 'الانتقال إلى صفحة' : 'Go to page'}
+            className="px-3 py-1.5 rounded-xl bg-hover-subtle font-mono text-[11px] text-ink active:bg-hover-strong"
           >
             {currentPage} / {totalPages}
           </button>

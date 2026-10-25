@@ -124,6 +124,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
   } = reader;
 
   const [compactLandscape, setCompactLandscape] = useState(false);
+  const isRtl = lang === 'ar';
   const lastScrollPageRef = useRef<number>(currentPage);
   const scrollFrameRef = useRef<number | null>(null);
 
@@ -221,8 +222,22 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
     : 'transform 260ms cubic-bezier(0.22, 1, 0.36, 1)';
   const pagedAnimation =
     !isDraggingTouch && dualFlipKey > 0
-      ? `pagedTurn${dualFlipDir === 'forward' ? 'Forward' : 'Backward'} 220ms cubic-bezier(0.16, 1, 0.3, 1) both`
+      ? `pagedTurn${
+          isRtl
+            ? dualFlipDir === 'forward'
+              ? 'Backward'
+              : 'Forward'
+            : dualFlipDir === 'forward'
+              ? 'Forward'
+              : 'Backward'
+        } 220ms cubic-bezier(0.16, 1, 0.3, 1) both`
       : undefined;
+
+  // In an Arabic book odd pages sit on the right, so the first page of a
+  // spread is on the right for odd numbers and on the left for even ones.
+  // Keeping the parity correct means a page jump to page 2 still reads as a
+  // proper two-page spread instead of mirroring the wrong pair.
+  const reverseSpread = isRtl && currentPage % 2 === 1;
 
   // Anchored scrolling (page search, outline, mode switch) must land below the
   // floating toolbar instead of underneath it.
@@ -249,6 +264,8 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
     <div
       ref={scrollContainerRef}
       dir="ltr"
+      role="main"
+      aria-label={lang === 'ar' ? 'مساحة قراءة المستند' : 'Document reading area'}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -272,6 +289,11 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
       {/* Reading progress for the current document. */}
       <div
         aria-hidden={isImmersive}
+        role="progressbar"
+        aria-label={lang === 'ar' ? 'تقدّم القراءة' : 'Reading progress'}
+        aria-valuemin={1}
+        aria-valuemax={Math.max(1, numPages)}
+        aria-valuenow={currentPage}
         className={`fixed top-0 inset-x-0 h-[2px] bg-line z-40 pointer-events-none transition-opacity duration-300 ${
           isImmersive ? 'opacity-0' : 'opacity-100'
         }`}
@@ -280,6 +302,11 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
           className="h-full bg-accent transition-all duration-300"
           style={{ width: `${(currentPage / Math.max(1, numPages)) * 100}%` }}
         />
+      </div>
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {lang === 'ar'
+          ? `الصفحة ${currentPage} من ${numPages}`
+          : `Page ${currentPage} of ${numPages}`}
       </div>
 
       {viewMode !== 'continuous' && (
@@ -291,14 +318,16 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             tabIndex={isImmersive ? -1 : undefined}
             title={lang === 'ar' ? 'الصفحة السابقة' : 'Previous page'}
             aria-label={lang === 'ar' ? 'الصفحة السابقة' : 'Previous page'}
-            className="paged-arrow fixed left-2 sm:left-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full text-ink disabled:opacity-0 transition-opacity duration-300"
+            className={`paged-arrow fixed top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full text-ink disabled:opacity-0 transition-opacity duration-300 ${
+              isRtl ? 'right-2 sm:right-5' : 'left-2 sm:left-5'
+            }`}
             style={
               isImmersive
                 ? { opacity: 0, pointerEvents: 'none' }
                 : undefined
             }
           >
-            <ChevronLeft className="w-5 h-5" />
+            {isRtl ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
           </button>
           <button
             type="button"
@@ -307,14 +336,16 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             tabIndex={isImmersive ? -1 : undefined}
             title={lang === 'ar' ? 'الصفحة التالية' : 'Next page'}
             aria-label={lang === 'ar' ? 'الصفحة التالية' : 'Next page'}
-            className="paged-arrow fixed right-2 sm:right-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full text-ink disabled:opacity-0 transition-opacity duration-300"
+            className={`paged-arrow fixed top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full text-ink disabled:opacity-0 transition-opacity duration-300 ${
+              isRtl ? 'left-2 sm:left-5' : 'right-2 sm:right-5'
+            }`}
             style={
               isImmersive
                 ? { opacity: 0, pointerEvents: 'none' }
                 : undefined
             }
           >
-            <ChevronRight className="w-5 h-5" />
+            {isRtl ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
           </button>
         </>
       )}
@@ -352,8 +383,12 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
           >
             <div
               key={`dual-${dualFlipKey}`}
-              className="flex flex-row items-center justify-center gap-1 sm:gap-2 shadow-2xl"
-              style={{ animation: pagedAnimation, willChange: 'transform, opacity' }}
+              className="flex items-center justify-center gap-1 sm:gap-2 shadow-2xl"
+              style={{
+                animation: pagedAnimation,
+                willChange: 'transform, opacity',
+                flexDirection: reverseSpread ? 'row-reverse' : 'row'
+              }}
             >
               <div className="relative shrink-0">
                 <PdfPage
@@ -372,7 +407,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
               </div>
 
               {currentPage + 1 <= numPages ? (
-                <div className="relative shrink-0 border-l border-line">
+                <div className={`relative shrink-0 ${reverseSpread ? 'border-r' : 'border-l'} border-line`}>
                   <PdfPage
                     doc={doc}
                     pageNumber={currentPage + 1}

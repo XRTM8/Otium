@@ -11,12 +11,14 @@ import android.provider.OpenableColumns
 import android.util.Base64
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import org.json.JSONObject
 import java.io.File
+import java.nio.charset.StandardCharsets
 
 class MainActivity : TauriActivity() {
   private var appWebView: WebView? = null
@@ -26,6 +28,8 @@ class MainActivity : TauriActivity() {
 
   private var pendingPdfBase64: String? = null
   private var pendingPdfName: String? = null
+  private var pendingExportContent: String? = null
+  private var pendingExportMime: String? = null
   private var deliveryGeneration = 0
   private var intentGeneration = 0
 
@@ -82,6 +86,7 @@ class MainActivity : TauriActivity() {
     webView.addJavascriptInterface(AndroidUpdateBridge(this, webView), "OtiumAndroid")
     webView.addJavascriptInterface(ThemeBridge(), "OtiumTheme")
     webView.addJavascriptInterface(UiBridge(), "OtiumUi")
+    webView.addJavascriptInterface(FileBridge(), "OtiumFile")
     ttsBridge = AndroidTtsBridge(this, webView).also { bridge ->
       webView.addJavascriptInterface(bridge, "OtiumTts")
     }
@@ -106,6 +111,81 @@ class MainActivity : TauriActivity() {
         applyImmersive(enabled)
       }
     }
+  }
+
+  /**
+   * Writes backups and Markdown exports through the Storage Access Framework.
+   * The web layer hands over the full text; Android shows its own folder picker
+   * so the reader chooses where the file lands.
+   */
+  private inner class FileBridge {
+    @JavascriptInterface
+    fun saveTextFile(content: String, fileName: String, mimeType: String): Boolean {
+      runOnUiThread {
+        val safeName = fileName
+          .replace(Regex("[\\\\/:*?\"<>|\\u0000-\\u001f]"), "_")
+          .trim()
+          .take(120)
+          .ifBlank { "otium-export.txt" }
+
+        pendingExportContent = content
+        pendingExportMime = mimeType.ifBlank { "text/plain" }
+
+        try {
+          val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = pendingExportMime
+            putExtra(Intent.EXTRA_TITLE, safeName)
+          }
+          startActivityForResult(intent, REQUEST_SAVE_TEXT)
+        } catch (_: Exception) {
+          pendingExportContent = null
+          pendingExportMime = null
+          Toast.makeText(
+            this@MainActivity,
+            "No file manager is available to save this file.",
+            Toast.LENGTH_LONG
+          ).show()
+        }
+      }
+      return true
+    }
+  }
+
+  override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+    if (requestCode == REQUEST_SAVE_TEXT) {
+      val content = pendingExportContent
+      pendingExportContent = null
+      pendingExportMime = null
+
+      if (resultCode == RESULT_OK && content != null) {
+        val uri = data?.data
+        if (uri != null) {
+          Thread {
+            val saved = try {
+              contentResolver.openOutputStream(uri)?.use { stream ->
+                stream.write(content.toByteArray(StandardCharsets.UTF_8))
+                stream.flush()
+              }
+              true
+            } catch (_: Exception) {
+              false
+            }
+
+            runOnUiThread {
+              Toast.makeText(
+                this@MainActivity,
+                if (saved) "File saved" else "Could not save the file",
+                Toast.LENGTH_SHORT
+              ).show()
+            }
+          }.start()
+        }
+      }
+      return
+    }
+
+    super.onActivityResult(requestCode, resultCode, data)
   }
 
   private fun applyImmersive(enabled: Boolean) {
@@ -363,5 +443,6 @@ class MainActivity : TauriActivity() {
   companion object {
     private const val DELIVERY_RETRY_MS = 200L
     private const val MAX_DELIVERY_ATTEMPTS = 150
+    private const val REQUEST_SAVE_TEXT = 0x0751
   }
 }

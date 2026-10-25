@@ -27,6 +27,7 @@ const DB_VERSION = 1;
 const STORE = 'annotations';
 
 interface StoredRecord {
+  /** Document fingerprint (older records use the filename here). */
   docTitle: string;
   annotations: TextAnnotation[];
   updatedAt: number;
@@ -224,20 +225,35 @@ async function writeDatabase(docTitle: string, annotations: TextAnnotation[]): P
   });
 }
 
-/** Loads annotations from IndexedDB, migrating legacy localStorage records. */
-export async function loadStoredAnnotations(docTitle: string): Promise<TextAnnotation[]> {
-  if (!docTitle || typeof window === 'undefined') return [];
+/** Loads annotations from IndexedDB, migrating legacy filename-keyed records. */
+export async function loadStoredAnnotations(
+  docKey: string,
+  legacyTitle?: string
+): Promise<TextAnnotation[]> {
+  if (!docKey || typeof window === 'undefined') return [];
 
-  const fromDb = await readDatabase(docTitle);
-  if (fromDb && fromDb.length > 0) return fromDb;
+  const fromDb = await readDatabase(docKey);
+  if (fromDb !== null) return fromDb;
 
-  const legacy = readLegacy(docTitle);
+  const legacyKey = legacyTitle && legacyTitle !== docKey ? legacyTitle : '';
+  if (!legacyKey) return [];
+
+  // Pre-1.5 stored annotations in this same database under the filename. Read
+  // it before the localStorage fallback, otherwise an upgrade would look like
+  // every highlight had vanished until the file was opened from the old app.
+  const legacyDatabase = await readDatabase(legacyKey);
+  if (legacyDatabase !== null && legacyDatabase.length > 0) {
+    void writeDatabase(docKey, legacyDatabase);
+    return legacyDatabase;
+  }
+
+  const legacy = readLegacy(legacyKey);
   if (legacy.length > 0) {
-    void writeDatabase(docTitle, legacy);
+    void writeDatabase(docKey, legacy);
     return legacy;
   }
 
-  return fromDb ?? [];
+  return [];
 }
 
 const writeChains = new Map<string, Promise<void>>();
@@ -247,29 +263,29 @@ const writeChains = new Map<string, Promise<void>>();
  * serialised so a fast sequence of highlights cannot land out of order.
  */
 export function saveStoredAnnotations(
-  docTitle: string,
+  docKey: string,
   annotations: TextAnnotation[]
 ): Promise<void> {
-  if (!docTitle || typeof window === 'undefined') return Promise.resolve();
+  if (!docKey || typeof window === 'undefined') return Promise.resolve();
 
-  const previous = writeChains.get(docTitle) ?? Promise.resolve();
+  const previous = writeChains.get(docKey) ?? Promise.resolve();
   const next = previous
     .catch(() => {})
     .then(async () => {
-      const stored = await writeDatabase(docTitle, annotations);
-      writeLegacy(docTitle, annotations);
+      const stored = await writeDatabase(docKey, annotations);
+      writeLegacy(docKey, annotations);
       if (!stored) {
         console.warn('IndexedDB unavailable; annotations kept in localStorage only.');
       }
     })
     .catch((error) => {
       console.warn('Failed to persist annotations:', error);
-      writeLegacy(docTitle, annotations);
+      writeLegacy(docKey, annotations);
     });
 
-  writeChains.set(docTitle, next);
+  writeChains.set(docKey, next);
   void next.finally(() => {
-    if (writeChains.get(docTitle) === next) writeChains.delete(docTitle);
+    if (writeChains.get(docKey) === next) writeChains.delete(docKey);
   });
 
   return next;

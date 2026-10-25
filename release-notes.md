@@ -1,21 +1,29 @@
-# Otium 1.4.2 — إصلاحات القراءة على الهاتف
+# Otium 1.5.0 — كتبك وملاحظاتك أينما ذهبت
 
-إصدار تصحيحي للهاتف. يعالج المشاكل الأربع التي ظهرت بعد 1.4.1، مع لمسات سلاسة إضافية. نفس القارئ ما زال يعمل على Windows وAndroid.
+إصدار كبير يركز على ملكية بياناتك وعلى راحة القراءة العربية. أصبح لكل كتاب هوية ثابتة، ويمكن نسخ المكتبة احتياطيًا واستعادتها، مع تحسين البحث والتخطيط للعربية والتنقل السريع بين الصفحات. يعمل التحديث على Windows وAndroid.
 
 ## العربية
 
-- **شريط التحديد يظهر فورًا.** كان الشريط ينتظر رفع الإصبع أو تمرير الصفحة، لذلك بدا وكأنه لا يعمل حتى تنتقل إلى صفحة أخرى. أصبح التطبيق يراقب تغيّر التحديد مباشرة، ويعيد المحاولة بسرعة بعد ضغطة طويلة، مع فحص خفيف لا يستمر إلا ثوانٍ قليلة. يظهر شريط النسخ والتظليل والملاحظة والبحث والاستماع الآن مباشرة بعد تحديد النص، دون تمرير.
-- **إغلاق لوحة الصفحات بالسحب.** يمكن سحب المقبض العلوي للوحة إلى الأسفل لإغلاقها. يتبع المقبض إصبعك بحركة مرنة، ثم تعود اللوحة إلى مكانها إذا كانت السحبة قصيرة، وتُغلق عند تجاوز الحد أو السحب السريع. يبقى التمرير داخل قائمة الصفحات مستقلًا عن سحب المقبض.
-- **الاستماع يعمل على Android.** اعتمد التطبيق سابقًا على محرك النطق داخل WebView، وهو غير متاح أو بلا أصوات على كثير من الهواتف. أصبح للاستماع محرك Android أصلي: يقرأ النص المحدد، ويجرب العربية الفصحى ثم العربية العامة ثم المصرية، ويستخدم السرعة المناسبة. إذا لم يكن هناك صوت عربي مثبّت يعرض التطبيق رسالة واضحة وزرًا لفتح إعدادات الصوت. تبقى نسخة المتصفح وWindows على Web Speech.
-- **لمسة واحدة تخفي الواجهة.** انقر على صفحة القراءة مرة واحدة لتختفي أشرطة التطبيق وأشرطة Android العلوية والسفلية معًا، ثم انقر مرة أخرى لاستعادتها. ما زال النقر المزدوج يكبّر الصفحة، والنقر أثناء تحديد النص لا يخفي الواجهة. زر الرجوع يعيد الأشرطة أولًا.
-- **سلاسة إضافية.** انتقالات قصيرة لأشرطة الواجهة وشريط التحديد، واحترام إعداد تقليل الحركة في النظام. تحسّن أيضًا تسجيل منطقة التحديد حتى لا تتكرر إعادة الرسم أثناء تحريك مقابض التحديد.
+- **الكتاب يُعرَف بمحتواه لا باسمه.** يحصل كل ملف PDF على بصمة SHA-256 من بايتاته، لذا تبقى الاقتباسات والملاحظات والإشارات وتقدّم القراءة مرتبطة بالكتاب حتى لو غيّرت اسم الملف أو وصل إليك باسم آخر. كما يمكن أن يحمل كتابان الاسم نفسه دون أن تختلط بياناتهما.
+- **نسخة احتياطية كاملة للبيانات.** من الإعدادات ← البيانات صدّر ملف JSON صغيرًا يحتوي على تقدّم القراءة والاقتباسات والملاحظات والإشارات وتفضيلات الخط والمظهر واللغة. لا يتضمن الملف كتب PDF نفسها، لذلك يسهل حفظه ونقله. عند الاستعادة تُدمج البيانات مع الحالية؛ الاقتباسات والإشارات المتطابقة تُحدَّث ولا تتكرر.
+- **الكتب القديمة لا تختفي.** يحتفظ Otium بأحدث ١٢ كتابًا داخل مساحة ١ جيجابايت. عندما يخرج كتاب من هذه المساحة تبقى ملاحظاته وتقدّم القراءة محفوظة كسجل خفيف، وبمجرد إعادة فتح ملف PDF الأصلي تُستعاد بياناته تلقائيًا عبر البصمة. تنتقل مكتبتك من 1.4.2 تلقائيًا دون فقدان الاقتباسات أو مواضع القراءة.
+- **ملاحظاتك قابلة للتحرير والتصدير.** أضف ملاحظة إلى أي اقتباس أو عدّلها من لوحة الملاحظات، ثم صدّرها مع الاقتباسات كملف Markdown. على Android يُفتح منتقي الملفات في النظام لاختيار مكان الحفظ، وعلى Windows والمتصفح يتم التنزيل مباشرة.
+- **بحث عربي أكثر ذكاءً.** يتجاهل البحث التشكيل والتطويل ويوحّد الألف والهمزة والتاء المربوطة والألف المقصورة، ويحوّل الأرقام العربية والفارسية. لذلك يجد «محمد» النص المكتوب «مُحَمَّد»، وتعمل العبارات نفسها بصرف النظر عن طريقة كتابتها.
+- **تخطيط عربي حقيقي للصفحات المتجاورة.** في وضع الكتاب المفتوح تُعرض الصفحة الفردية على اليمين والزوجية على اليسار، وتنعكس الأسهم والتمرير والتنقل بلوحة المفاتيح مع اتجاه القراءة. كما يعمل الانتقال إلى الصفحة الزوجية بتخطيط الصفحتين الصحيح.
+- **الانتقال إلى صفحة برقمها.** انقر رقم الصفحة في شريط الهاتف السفلي، اكتب الصفحة المطلوبة، ثم اضغط «انتقال». لم تعد بحاجة إلى تمرير طويل للوصول إلى صفحة بعيدة.
+- **وصول أفضل.** منطقة القراءة صارت معلمًا واضحًا لقارئات الشاشة، وشريط التقدّم يُعلن الصفحة الحالية وإجمالي الصفحات عند تغيّرها. كما تحسّنت التسميات العربية في أدوات التحكم.
+- **اختبارات موثوقة.** أضفنا اختبارات Vitest مع قاعدة بيانات وهمية للتحقق من البصمة والتخزين والنسخ الاحتياطي والدمج والبحث العربي، إضافة إلى اختبارات ترقية بيانات الإصدارات السابقة.
 
 ## English
 
-- **Selection bar appears immediately.** The bar used to wait for pointer-up or a page scroll, which made it look broken until you moved to another page. Otium now reacts to `selectionchange` directly, retries quickly after a long press, and runs a short watchdog instead of a single delayed timer. Copy, highlight, note, search and listen are available as soon as text is selected, with no scrolling.
-- **Drag the pages sheet closed.** Pull the sheet's top handle downward to dismiss it. The sheet follows your finger with a rubber-band feel, snaps back after a short drag, and closes after a longer or faster one. Scrolling inside the page list remains independent of the handle gesture.
-- **Listening works on Android.** The old implementation relied on WebView speech synthesis, which is missing or voiceless on many phones. The listen action now uses a native Android `TextToSpeech` engine, tries Modern Standard Arabic, then generic Arabic, then Egyptian Arabic, and applies a comfortable rate. If no Arabic voice is installed, Otium shows a clear message and a button that opens the system voice settings. Browser previews and Windows keep the Web Speech path.
-- **One tap hides the interface.** Tap the reading page once to hide the app chrome together with the Android status and navigation bars, then tap again to bring everything back. Double-tap zoom still works, and a tap that adjusts a text selection never hides the interface. Back restores the bars first.
-- **Extra polish.** Short, eased transitions for the chrome and selection bar, plus support for the system reduced-motion setting. Selection geometry is deduplicated so dragging the native selection handles no longer redraws the menu unnecessarily.
+- **Books are identified by content, not filename.** Every PDF gets a SHA-256 fingerprint from its bytes, so highlights, notes, bookmarks and reading progress follow the book when a file is renamed or arrives under a different title. Two books with the same filename also stay separate.
+- **Complete metadata backup.** Settings → Data exports a small JSON file containing reading progress, highlights, notes, bookmarks, and font, theme and language preferences. PDFs are not included, which keeps the file portable. Restoring merges the backup into the current library; matching highlights and bookmarks are updated instead of duplicated.
+- **Evicted books do not lose their notes.** Otium keeps the 12 most recent PDFs within a 1 GB budget. When a book moves out of that budget, its notes and last page remain as a lightweight record. Opening the original PDF again reconnects it through the fingerprint. Existing 1.4.2 libraries migrate automatically without losing highlights or progress.
+- **Notes can be edited and exported.** Add or edit a note on any quote from the notes panel, then export the quotes and notes as Markdown. Android opens the system file picker; Windows and the browser download the file directly.
+- **Smarter Arabic search.** Search ignores vocalisation and tatweel, folds alef, hamza, taa-marbuta and alef-maqsura variants, and converts Arabic-Indic and Persian digits. A plain query such as «محمد» finds «مُحَمَّد», regardless of how the text was typed.
+- **Proper RTL spreads.** In dual-page mode odd pages sit on the right and even pages on the left. Arrows, swipe direction and paged keyboard navigation mirror with the reading direction, and jumping to an even page keeps the spread correctly aligned.
+- **Jump to a page.** Tap the page counter in the mobile bottom bar, type the page number and press Go. Distant pages no longer require a long scroll.
+- **Better accessibility.** The reading area is now a named landmark, the progress bar reports the current page, and a polite live region announces page changes. Arabic control labels were also tightened.
+- **Tested storage and backup logic.** New Vitest coverage uses a fake IndexedDB to verify fingerprints, document storage, backup merging and Arabic normalisation, plus migration of data written by previous versions.
 
-Download `Otium_1.4.2_arm64-v8a.apk` for modern Android phones.
+Download `Otium_1.5.0_arm64-v8a.apk` for modern Android phones.

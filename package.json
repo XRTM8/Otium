@@ -1,12 +1,14 @@
 {
   "name": "otium-reader",
   "private": true,
-  "version": "1.4.2",
+  "version": "1.5.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "preview": "vite preview",
     "version:check": "node scripts/check-version.mjs",
     "release:feed": "node scripts/generate-latest-json.mjs",
@@ -40,10 +42,12 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "fake-indexeddb": "^6.2.6",
     "oxlint": "^1.88.0",
     "sharp": "^0.35.5",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.3",
-    "vite": "^8.3.4"
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
   }
 }

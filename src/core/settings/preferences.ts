@@ -80,13 +80,17 @@ export function saveMobileNavVisible(visible: boolean): void {
   write(KEYS.mobileNav, visible ? '1' : '0');
 }
 
-export function loadLastPage(title: string): number {
-  const saved = read(KEYS.page(title)) ?? read(KEYS.legacyPage(title));
+export function loadLastPage(docKey: string, legacyTitle?: string): number {
+  const saved =
+    read(KEYS.page(docKey)) ??
+    (legacyTitle && legacyTitle !== docKey ? read(KEYS.page(legacyTitle)) : null) ??
+    read(KEYS.legacyPage(docKey)) ??
+    (legacyTitle && legacyTitle !== docKey ? read(KEYS.legacyPage(legacyTitle)) : null);
   const page = saved ? Number.parseInt(saved, 10) : 1;
   return Number.isFinite(page) && page > 0 ? page : 1;
 }
 
-export function saveLastPage(title: string, page: number): void {
-  if (!title) return;
-  write(KEYS.page(title), String(page));
+export function saveLastPage(docKey: string, page: number): void {
+  if (!docKey) return;
+  write(KEYS.page(docKey), String(page));
 }

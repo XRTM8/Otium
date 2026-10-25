@@ -12,10 +12,16 @@ import type { Language } from '../core/i18n/translations';
 import type { RecentDocItem } from '../core/storage/documents';
 import { openPdf } from '../core/pdf/document';
 import {
+  adoptLegacyDocumentRecord,
   getDocumentFromStorage,
   saveDocumentToStorage,
   updateDocumentPage
 } from '../core/storage/documents';
+import { fingerprintDocument } from '../core/storage/documentIdentity';
+import { applyBackupJson, createBackupJson } from '../core/storage/backupService';
+import { mergeAnnotations, type RestoreSummary } from '../core/storage/backupFormat';
+import { mergeBookmarks } from '../core/storage/bookmarks';
+import { saveTextFile, type SaveTextOutcome } from '../platform/saveFile';
 import { loadStoredAnnotations, saveStoredAnnotations } from '../core/storage/annotations';
 import { getStoredBookmarks, saveStoredBookmarks } from '../core/storage/bookmarks';
 import { applyFontFamily, getSavedFont, saveFont } from '../core/settings/fonts';
@@ -151,6 +157,8 @@ function measurePageContent(container: HTMLElement): { width: number; height: nu
 export function useReaderController(capabilities: ReaderCapabilities) {
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
   const [docTitle, setDocTitle] = useState('');
+  /** SHA-256 content identity used for every persisted reading record. */
+  const [docId, setDocId] = useState('');
   const [numPages, setNumPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [zoom, setZoom] = useState(1.15);
@@ -265,6 +273,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const loadGenerationRef = useRef(0);
   const annotationsGenerationRef = useRef(0);
   const annotationsHydratedRef = useRef(false);
+  const bookmarksHydratedRef = useRef(false);
+  const docIdRef = useRef('');
   const pendingScrollPageRef = useRef<number | null>(null);
   const lastWheelTimeRef = useRef(0);
   const wheelAccumRef = useRef(0);
@@ -411,17 +421,17 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   // Annotation writes are debounced and persisted off the interaction path;
   // highlighting never waits for IndexedDB or blocks the canvas.
   useEffect(() => {
-    if (!docTitle || !annotationsHydratedRef.current) return;
+    if (!docId || !annotationsHydratedRef.current) return;
     const timer = window.setTimeout(() => {
-      void saveStoredAnnotations(docTitle, annotations);
+      void saveStoredAnnotations(docId, annotations);
     }, 240);
     return () => window.clearTimeout(timer);
-  }, [annotations, docTitle]);
+  }, [annotations, docId]);
 
   useEffect(() => {
-    if (!docTitle) return;
-    saveStoredBookmarks(docTitle, bookmarks);
-  }, [bookmarks, docTitle]);
+    if (!docId || !bookmarksHydratedRef.current) return;
+    saveStoredBookmarks(docId, bookmarks);
+  }, [bookmarks, docId]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -452,18 +462,21 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
-  const persistVisiblePage = useCallback((title: string, pageNumber: number) => {
-    saveLastPage(title, pageNumber);
-    if (lastSavedPageRef.current?.title === title && lastSavedPageRef.current.page === pageNumber) {
+  const persistVisiblePage = useCallback((documentId: string, pageNumber: number) => {
+    saveLastPage(documentId, pageNumber);
+    if (
+      lastSavedPageRef.current?.title === documentId &&
+      lastSavedPageRef.current.page === pageNumber
+    ) {
       return;
     }
-    lastSavedPageRef.current = { title, page: pageNumber };
+    lastSavedPageRef.current = { title: documentId, page: pageNumber };
     if (pageSaveTimerRef.current !== null) {
       window.clearTimeout(pageSaveTimerRef.current);
     }
     pageSaveTimerRef.current = window.setTimeout(() => {
       pageSaveTimerRef.current = null;
-      void updateDocumentPage(title, pageNumber);
+      void updateDocumentPage(documentId, pageNumber);
     }, 600);
   }, []);
 
@@ -476,8 +489,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       }
       setCurrentPage(nextPage);
 
-      if (docTitle) {
-        persistVisiblePage(docTitle, nextPage);
+      if (docId) {
+        persistVisiblePage(docId, nextPage);
       }
 
       if (viewMode === 'continuous') {
@@ -492,7 +505,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         });
       }
     },
-    [currentPage, docTitle, numPages, persistVisiblePage, scrollToRenderedPage, viewMode]
+    [currentPage, docId, numPages, persistVisiblePage, scrollToRenderedPage, viewMode]
   );
 
   useEffect(() => {
@@ -518,11 +531,11 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const handlePageVisible = useCallback(
     (pageNumber: number) => {
       setCurrentPage((current) => (current === pageNumber ? current : pageNumber));
-      if (docTitle) {
-        persistVisiblePage(docTitle, pageNumber);
+      if (docId) {
+        persistVisiblePage(docId, pageNumber);
       }
     },
-    [docTitle, persistVisiblePage]
+    [docId, persistVisiblePage]
   );
 
   const goToNextPage = useCallback(() => {
@@ -707,10 +720,13 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     const activeDoc = docRef.current;
     clearSearchTextCache(activeDoc);
     docRef.current = null;
+    docIdRef.current = '';
     annotationsGenerationRef.current += 1;
     annotationsHydratedRef.current = false;
+    bookmarksHydratedRef.current = false;
     setDoc(null);
     setDocTitle('');
+    setDocId('');
     setNumPages(0);
     setCurrentPage(1);
     setAnnotations([]);
@@ -784,6 +800,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     const generation = ++loadGenerationRef.current;
     const annotationGeneration = ++annotationsGenerationRef.current;
     annotationsHydratedRef.current = false;
+    bookmarksHydratedRef.current = false;
     setDocumentError(null);
     setLoadProgress(null);
     setIsLoading(true);
@@ -797,6 +814,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
     // pdf.js transfers the buffer to its worker, so keep a copy for recents.
     const storageBuffer = data.slice(0);
+    const identityPromise = fingerprintDocument(storageBuffer).catch(() => '');
 
     const handle = openPdf(data, {
       onPassword: ({ callback, reason }) => {
@@ -824,15 +842,24 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         return;
       }
 
+      // Identity follows the bytes, so a renamed file keeps its highlights.
+      const documentId = (await identityPromise) || title;
+      if (generation !== loadGenerationRef.current) {
+        destroyDocumentSoon(opened.doc);
+        return;
+      }
+
       loadingTaskRef.current = null;
       const previousDoc = docRef.current;
       docRef.current = opened.doc;
+      docIdRef.current = documentId;
 
       setDoc(opened.doc);
       setDocTitle(title);
+      setDocId(documentId);
       setNumPages(opened.numPages);
       setAnnotations([]);
-      void loadStoredAnnotations(title)
+      void loadStoredAnnotations(documentId, title)
         .then((stored) => {
           if (annotationGeneration !== annotationsGenerationRef.current) return;
           annotationsHydratedRef.current = true;
@@ -843,7 +870,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
           annotationsHydratedRef.current = true;
           setAnnotations([]);
         });
-      setBookmarks(getStoredBookmarks(title));
+      setBookmarks(getStoredBookmarks(documentId, title));
+      bookmarksHydratedRef.current = true;
       setBasePageSize(opened.basePageSize);
       setBaseAspectRatio(opened.baseAspectRatio);
       setPasswordModal(EMPTY_PASSWORD_MODAL);
@@ -867,16 +895,19 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         setZoom(fit);
       }
 
-      const savedPage = loadLastPage(title);
+      const savedPage = loadLastPage(documentId, title);
       const initialPage =
         savedPage > 0 && savedPage <= opened.numPages ? savedPage : 1;
       pendingScrollPageRef.current = initialPage > 1 ? initialPage : null;
       setCurrentPage(initialPage);
 
       if (storageBuffer.byteLength > 0) {
-        void saveDocumentToStorage(title, storageBuffer, opened.numPages, initialPage);
+        void saveDocumentToStorage(documentId, title, storageBuffer, opened.numPages, initialPage);
+        // A pre-1.5 record was keyed by filename. Remove it only after its bytes
+        // prove they are the same document, so same-named books stay separate.
+        void adoptLegacyDocumentRecord(title, documentId);
       } else {
-        void updateDocumentPage(title, initialPage);
+        void updateDocumentPage(documentId, initialPage);
       }
 
       if (previousDoc && previousDoc !== opened.doc) {
@@ -965,9 +996,16 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       return;
     }
 
+    if (!recent.available) {
+      setDocumentError(
+        'This book is in your library but its PDF is not on this device. Open the PDF file again to restore it.'
+      );
+      return;
+    }
+
     setIsLoading(true);
     setDocumentError(null);
-    const data = await getDocumentFromStorage(recent.name);
+    const data = await getDocumentFromStorage(recent.id);
     if (!data) {
       setIsLoading(false);
       setDocumentError('This document is no longer stored on this device.');
@@ -999,6 +1037,64 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const deleteAnnotation = useCallback((annotationId: string) => {
     setAnnotations((current) => current.filter((annotation) => annotation.id !== annotationId));
   }, []);
+
+  const updateAnnotationNote = useCallback((annotationId: string, note: string) => {
+    const trimmed = note.trim();
+    setAnnotations((current) =>
+      current.map((annotation) =>
+        annotation.id === annotationId
+          ? {
+              ...annotation,
+              note: trimmed ? trimmed.slice(0, 4000) : undefined,
+              updatedAt: Date.now()
+            }
+          : annotation
+      )
+    );
+  }, []);
+
+  const exportBackup = useCallback(async (): Promise<SaveTextOutcome> => {
+    const json = await createBackupJson(__APP_VERSION__, {
+      id: docId,
+      annotations,
+      bookmarks,
+      lastPage: currentPage
+    });
+    const date = new Date().toISOString().slice(0, 10);
+    return saveTextFile(
+      `otium-backup-${date}.json`,
+      json,
+      'application/json;charset=utf-8'
+    );
+  }, [annotations, bookmarks, currentPage, docId]);
+
+  const importBackup = useCallback(
+    async (text: string): Promise<RestoreSummary> => {
+      const outcome = await applyBackupJson(text);
+
+      // A restore can target the book that is already open. Merge the backup
+      // into the live state so the sidebar updates without reopening the PDF.
+      if (docId) {
+        const restored = outcome.file.documents.find((document) => document.id === docId);
+        if (restored) {
+          setAnnotations((current) => mergeAnnotations(current, restored.annotations));
+          setBookmarks((current) => mergeBookmarks(current, restored.bookmarks));
+        }
+      }
+
+      const preferences = outcome.preferences;
+      if (preferences?.theme) changeTheme(preferences.theme);
+      if (preferences?.viewMode) changeViewMode(preferences.viewMode);
+      if (preferences?.fontFamily) changeFont(preferences.fontFamily);
+      if (preferences?.language) {
+        setLang(preferences.language);
+        saveLanguage(preferences.language);
+      }
+
+      return outcome.summary;
+    },
+    [changeFont, changeTheme, changeViewMode, docId]
+  );
 
   const handlePasswordSubmit = useCallback(
     (password: string) => {
@@ -1230,7 +1326,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       if (horizontal) {
         lastTapRef.current = null;
         cancelPendingSingleTap();
-        if (movedX < 0) goToNextPage();
+        const next = lang === 'ar' ? movedX > 0 : movedX < 0;
+        if (next) goToNextPage();
         else goToPrevPage();
         return;
       }
@@ -1325,7 +1422,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       switch (event.key.toLowerCase()) {
         case 'j':
         case 'arrowdown':
-        case 'arrowright':
         case 'pagedown':
         case ' ':
           event.preventDefault();
@@ -1335,9 +1431,28 @@ export function useReaderController(capabilities: ReaderCapabilities) {
             goToNextPage();
           }
           break;
+        case 'arrowright':
+          event.preventDefault();
+          if (viewMode === 'continuous') {
+            scrollContainerRef.current?.scrollBy({ top: lang === 'ar' ? -220 : 220, behavior: 'smooth' });
+          } else if (lang === 'ar') {
+            goToPrevPage();
+          } else {
+            goToNextPage();
+          }
+          break;
+        case 'arrowleft':
+          event.preventDefault();
+          if (viewMode === 'continuous') {
+            scrollContainerRef.current?.scrollBy({ top: lang === 'ar' ? 220 : -220, behavior: 'smooth' });
+          } else if (lang === 'ar') {
+            goToNextPage();
+          } else {
+            goToPrevPage();
+          }
+          break;
         case 'k':
         case 'arrowup':
-        case 'arrowleft':
         case 'pageup':
           event.preventDefault();
           if (viewMode === 'continuous') {
@@ -1397,6 +1512,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     goToNextPage,
     goToPrevPage,
     handleToggleFullscreen,
+    lang,
     theme,
     toggleBookmark,
     viewMode
@@ -1436,6 +1552,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   return {
     doc,
     docTitle,
+    docId,
     numPages,
     currentPage,
     zoom,
@@ -1482,6 +1599,9 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     toggleBookmark,
     addAnnotation,
     deleteAnnotation,
+    updateAnnotationNote,
+    exportBackup,
+    importBackup,
     handlePasswordSubmit,
     handlePasswordCancel,
     handleTouchStart,

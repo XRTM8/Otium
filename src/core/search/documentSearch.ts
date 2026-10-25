@@ -1,4 +1,5 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { normalizeSearchText } from './arabic';
 
 export class SearchCancelledError extends Error {
   constructor() {
@@ -47,25 +48,26 @@ async function getPageText(
   const textContent = await page.getTextContent();
   if (signal?.aborted) throw new SearchCancelledError();
 
-  const pageText = textContent.items
-    .map((item) => ('str' in item ? item.str : ''))
-    .join(' ')
-    .toLowerCase();
+  const pageText = normalizeSearchText(
+    textContent.items.map((item) => ('str' in item ? item.str : '')).join(' ')
+  );
   cache.set(pageNumber, pageText);
   return pageText;
 }
 
 /**
- * Searches every page for a literal, case-insensitive term.
- * The scan yields periodically so typing and scrolling stay responsive on
- * large documents, and stops as soon as the caller aborts it.
+ * Searches every page for a literal term after Arabic-aware normalisation.
+ * Vocalisation marks, alef/hamza variants and Arabic-Indic digits therefore
+ * match their plain forms. The scan yields periodically so typing and
+ * scrolling stay responsive on large documents, and stops as soon as the
+ * caller aborts it.
  */
 export async function searchDocumentPages(
   doc: PDFDocumentProxy,
   query: string,
   signal?: AbortSignal
 ): Promise<number[]> {
-  const term = query.trim().toLowerCase();
+  const term = normalizeSearchText(query);
   if (term.length < 2) return [];
 
   const matches: number[] = [];

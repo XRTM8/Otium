@@ -29,6 +29,7 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader, mobile =
       <Sidebar
         isOpen={reader.isSidebarOpen}
         doc={reader.doc}
+        docTitle={reader.docTitle}
         totalPages={reader.numPages}
         currentPage={reader.currentPage}
         lang={reader.lang}
@@ -37,6 +38,7 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader, mobile =
         onSelectPage={reader.scrollToPage}
         onToggleBookmark={reader.toggleBookmark}
         onDeleteAnnotation={reader.deleteAnnotation}
+        onUpdateAnnotationNote={reader.updateAnnotationNote}
         onClose={() => reader.setIsSidebarOpen(false)}
         variant={mobile ? 'sheet' : 'drawer'}
       />
@@ -53,6 +55,8 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader, mobile =
         mobileNavVisible={reader.showMobileNavBar}
         onMobileNavVisibleChange={reader.changeMobileNavVisibility}
         onResetDefaults={reader.resetDefaults}
+        onExportBackup={reader.exportBackup}
+        onImportBackup={reader.importBackup}
       />
 
       <PasswordModal

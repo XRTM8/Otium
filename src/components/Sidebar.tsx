@@ -9,15 +9,18 @@ import {
   Copy,
   Check,
   Download,
-  Plus
+  Plus,
+  StickyNote
 } from 'lucide-react';
 import type { TocItem, BookmarkItem, TextAnnotation } from '../core/types';
 import type { Language } from '../core/i18n/translations';
 import { getTranslations } from '../core/i18n/translations';
+import { saveTextFile } from '../platform/saveFile';
 
 interface SidebarProps {
   isOpen: boolean;
   doc: PDFDocumentProxy | null;
+  docTitle?: string;
   totalPages: number;
   currentPage: number;
   lang?: Language;
@@ -26,6 +29,7 @@ interface SidebarProps {
   onSelectPage: (page: number) => void;
   onToggleBookmark?: (pageNumber: number) => void;
   onDeleteAnnotation?: (id: string) => void;
+  onUpdateAnnotationNote?: (id: string, note: string) => void;
   onClose: () => void;
   /**
    * `drawer` is the desktop side panel. `sheet` is the touch-first bottom
@@ -37,6 +41,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   isOpen,
   doc,
+  docTitle = '',
   totalPages,
   currentPage,
   lang = 'ar',
@@ -45,6 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectPage,
   onToggleBookmark,
   onDeleteAnnotation,
+  onUpdateAnnotationNote,
   onClose,
   variant = 'drawer'
 }) => {
@@ -52,6 +58,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [tab, setTab] = useState<'pages' | 'toc' | 'notes'>('pages');
   const [toc, setToc] = useState<TocItem[]>([]);
   const [copiedAll, setCopiedAll] = useState(false);
+  const [exported, setExported] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState('');
   const t = getTranslations(lang);
   const ar = lang === 'ar';
 
@@ -65,6 +74,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   } | null>(null);
   const closeTimerRef = useRef<number | null>(null);
   const settleTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (isOpen) return;
+    setEditingNoteId(null);
+    setNoteDraft('');
+  }, [isOpen]);
 
   useEffect(() => {
     if (!doc) return;
@@ -490,7 +505,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <button
                         onClick={async () => {
                           const content = annotations
-                            .map((a, i) => `${i + 1}. [${ar ? 'صفحة' : 'page'} ${a.pageNumber}] "${a.text}"`)
+                            .map((a, i) => {
+                              const note = a.note ? `\n${ar ? 'ملاحظة' : 'Note'}: ${a.note}` : '';
+                              return `${i + 1}. [${ar ? 'صفحة' : 'page'} ${a.pageNumber}] "${a.text}"${note}`;
+                            })
                             .join('\n\n');
                           await navigator.clipboard.writeText(content);
                           setCopiedAll(true);
@@ -513,22 +531,47 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       </button>
 
                       <button
-                        onClick={() => {
-                          const content = `# مقتطفات وملاحظات القراءة\n\n` +
-                            annotations.map((a) => `> "${a.text}"\n— **صفحة ${a.pageNumber}** (${a.type === 'highlight' ? 'تظليل' : 'تسطير'})\n`).join('\n');
-                          const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
-                          const url = URL.createObjectURL(blob);
-                          const link = document.createElement('a');
-                          link.href = url;
-                          link.download = 'ملاحظات_القراءة.md';
-                          link.click();
-                          URL.revokeObjectURL(url);
+                        onClick={async () => {
+                          const heading = `# ${ar ? 'ملاحظات القراءة' : 'Reading notes'}${
+                            docTitle ? ` — ${docTitle}` : ''
+                          }`;
+                          const content =
+                            `${heading}\n\n` +
+                            annotations
+                              .map((a) => {
+                                const note = a.note
+                                  ? `\n\n**${ar ? 'ملاحظة' : 'Note'}:** ${a.note}`
+                                  : '';
+                                const kind = a.type === 'highlight'
+                                  ? ar ? 'تظليل' : 'Highlight'
+                                  : ar ? 'تسطير' : 'Underline';
+                                return `> "${a.text}"\n— **${ar ? 'صفحة' : 'page'} ${a.pageNumber}** (${kind})${note}\n`;
+                              })
+                              .join('\n');
+                          const date = new Date().toISOString().slice(0, 10);
+                          const outcome = await saveTextFile(
+                            `otium-notes-${date}.md`,
+                            content,
+                            'text/markdown;charset=utf-8'
+                          );
+                          if (outcome === 'unavailable') return;
+                          setExported(true);
+                          setTimeout(() => setExported(false), 2200);
                         }}
                         className="text-[10px] text-ink-muted hover:text-ink flex items-center gap-1 cursor-pointer font-sans"
                         title={ar ? 'تنزيل كملف Markdown (.md)' : 'Download as Markdown (.md)'}
                       >
-                        <Download className="w-3 h-3" />
-                        <span>{ar ? 'تحميل .md' : 'Download .md'}</span>
+                        {exported ? (
+                          <>
+                            <Check className="w-3 h-3 text-success-ink" />
+                            <span className="text-success-ink">{ar ? 'تم التصدير' : 'Exported'}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-3 h-3" />
+                            <span>{ar ? 'تحميل .md' : 'Download .md'}</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -573,6 +616,69 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         >
                           "{anno.text}"
                         </p>
+
+                        {editingNoteId === anno.id ? (
+                          <div className="space-y-1.5 pt-1">
+                            <textarea
+                              autoFocus
+                              value={noteDraft}
+                              onChange={(event) => setNoteDraft(event.target.value)}
+                              rows={3}
+                              maxLength={4000}
+                              placeholder={ar ? 'اكتب ملاحظتك على هذا الاقتباس…' : 'Write a note on this quote…'}
+                              className="w-full resize-none rounded-lg border border-line bg-surface px-2 py-1.5 text-[11px] leading-relaxed text-ink outline-none focus:border-accent/50"
+                            />
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingNoteId(null);
+                                  setNoteDraft('');
+                                }}
+                                className="px-2 py-1 rounded-lg text-[10px] text-ink-muted hover:bg-hover"
+                              >
+                                {ar ? 'إلغاء' : 'Cancel'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  onUpdateAnnotationNote?.(anno.id, noteDraft);
+                                  setEditingNoteId(null);
+                                  setNoteDraft('');
+                                }}
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-accent text-on-accent text-[10px] font-medium disabled:opacity-50"
+                                disabled={!onUpdateAnnotationNote}
+                              >
+                                <Check className="w-3 h-3" />
+                                <span>{ar ? 'حفظ الملاحظة' : 'Save note'}</span>
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            {anno.note && (
+                              <p className="whitespace-pre-wrap rounded-lg border-s-2 border-accent/40 bg-accent/5 px-2 py-1.5 text-[10px] leading-relaxed text-ink-muted">
+                                {anno.note}
+                              </p>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingNoteId(anno.id);
+                                setNoteDraft(anno.note ?? '');
+                              }}
+                              disabled={!onUpdateAnnotationNote}
+                              className="flex items-center gap-1 text-[10px] text-ink-faint transition-colors hover:text-highlight disabled:opacity-50"
+                            >
+                              <StickyNote className="h-3 w-3" />
+                              <span>
+                                {anno.note
+                                  ? ar ? 'تعديل الملاحظة' : 'Edit note'
+                                  : ar ? 'إضافة ملاحظة' : 'Add note'}
+                              </span>
+                            </button>
+                          </>
+                        )}
                       </div>
                     ))}
                   </div>

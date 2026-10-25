@@ -1,18 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
   BookOpen,
   Check,
   CheckCircle2,
   Columns,
+  Database,
   Download,
   ExternalLink,
+  HardDrive,
   LayoutTemplate,
   Loader2,
   RefreshCw,
   RotateCcw,
   Sparkles,
   Type,
+  Upload,
   X
 } from 'lucide-react';
 import type { FontFamilyId, ViewMode } from '../core/types';
@@ -22,6 +25,9 @@ import { getTranslations } from '../core/i18n/translations';
 import { getCurrentVersion } from '../core/updates/currentVersion';
 import { useUpdateChecker } from '../core/updates/useUpdateChecker';
 import type { UpdateSnapshot } from '../core/updates/types';
+import type { RestoreSummary } from '../core/storage/backupFormat';
+import { getStorageSummary, type StorageSummary } from '../core/storage/documents';
+import type { SaveTextOutcome } from '../platform/saveFile';
 import { getUpdateAdapter } from '../platform/updates';
 import { getPlatformLabel } from '../platform/runtime';
 
@@ -38,9 +44,11 @@ interface SettingsModalProps {
   mobileNavVisible?: boolean;
   onMobileNavVisibleChange?: (visible: boolean) => void;
   onResetDefaults: () => void;
+  onExportBackup?: () => Promise<SaveTextOutcome>;
+  onImportBackup?: (text: string) => Promise<RestoreSummary>;
 }
 
-type SettingsTab = 'fonts' | 'reading' | 'about';
+type SettingsTab = 'fonts' | 'reading' | 'data' | 'about';
 
 function UpdateStatus({
   snapshot,
@@ -191,19 +199,110 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   mobile = false,
   mobileNavVisible = true,
   onMobileNavVisibleChange,
-  onResetDefaults
+  onResetDefaults,
+  onExportBackup,
+  onImportBackup
 }) => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('fonts');
   const [updateAdapter] = useState(getUpdateAdapter);
   const updates = useUpdateChecker(updateAdapter);
+  const [storage, setStorage] = useState<StorageSummary | null>(null);
+  const [dataBusy, setDataBusy] = useState<'export' | 'import' | null>(null);
+  const [dataNotice, setDataNotice] = useState<{
+    tone: 'success' | 'error';
+    text: string;
+  } | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
   const t = getTranslations(lang);
   const ar = lang === 'ar';
 
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'data') return;
+    let alive = true;
+    void getStorageSummary().then((summary) => {
+      if (alive) setStorage(summary);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [activeTab, isOpen]);
+
   if (!isOpen) return null;
+
+  const formatBytes = (bytes: number) => {
+    if (!bytes) return '0 MB';
+    if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  };
+
+  const handleExport = async () => {
+    if (!onExportBackup || dataBusy) return;
+    setDataBusy('export');
+    setDataNotice(null);
+    try {
+      const outcome = await onExportBackup();
+      if (outcome === 'unavailable') {
+        setDataNotice({
+          tone: 'error',
+          text: ar ? 'تعذر حفظ الملف على هذا الجهاز.' : 'Could not save the file on this device.'
+        });
+      } else {
+        setDataNotice({
+          tone: 'success',
+          text:
+            outcome === 'native-picker'
+              ? ar
+                ? 'اختر مجلد الحفظ لإكمال التصدير.'
+                : 'Choose a folder to finish exporting.'
+              : ar
+                ? 'تم تنزيل نسخة احتياطية بصيغة JSON.'
+                : 'JSON backup downloaded.'
+        });
+      }
+    } catch (error) {
+      setDataNotice({
+        tone: 'error',
+        text: error instanceof Error ? error.message : String(error)
+      });
+    } finally {
+      setDataBusy(null);
+    }
+  };
+
+  const handleImport = async (file: File) => {
+    if (!onImportBackup || dataBusy) return;
+    setDataBusy('import');
+    setDataNotice(null);
+    try {
+      const text = await file.text();
+      const summary = await onImportBackup(text);
+      const nextStorage = await getStorageSummary();
+      setStorage(nextStorage);
+      setDataNotice({
+        tone: 'success',
+        text: ar
+          ? `تمت الاستعادة: ${summary.documents} مستند، ${summary.annotations} اقتباس، ${summary.bookmarks} إشارة.`
+          : `Restored ${summary.documents} documents, ${summary.annotations} highlights and ${summary.bookmarks} bookmarks.`
+      });
+    } catch (error) {
+      setDataNotice({
+        tone: 'error',
+        text: error instanceof Error ? error.message : String(error)
+      });
+    } finally {
+      setDataBusy(null);
+    }
+  };
 
   const tabs: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
     { id: 'fonts', label: t.typographyTitle, icon: <Type className="w-3.5 h-3.5" /> },
     { id: 'reading', label: t.defaultReadingMode, icon: <BookOpen className="w-3.5 h-3.5" /> },
+    {
+      id: 'data',
+      label: ar ? 'البيانات' : 'Data',
+      icon: <Database className="w-3.5 h-3.5" />
+    },
     { id: 'about', label: ar ? 'حول التطبيق' : 'About', icon: <Download className="w-3.5 h-3.5" /> }
   ];
 
@@ -394,6 +493,132 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     : 'Otium is designed to stay quiet and distraction-free. Your selected font is applied instantly across the app.'}
                 </p>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'data' && (
+            <div className="space-y-3">
+              <div className="rounded-2xl border border-line-subtle bg-hover-subtle p-3.5 space-y-2">
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <span className="flex items-center gap-1.5 font-semibold text-ink">
+                    <HardDrive className="h-4 w-4 text-accent" />
+                    {ar ? 'مساحة الكتب المحفوظة' : 'Stored books'}
+                  </span>
+                  <span className="font-mono text-[11px] text-ink-muted">
+                    {storage
+                      ? `${storage.documents} / ${storage.maxDocuments}`
+                      : '—'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-ink-muted font-mono">
+                  <span>
+                    {storage ? formatBytes(storage.bytes) : '—'} / {formatBytes(1024 * 1024 * 1024)}
+                  </span>
+                  {storage && storage.restoredOnly > 0 && (
+                    <span className="font-sans text-ink-faint">
+                      {ar
+                        ? `${storage.restoredOnly} بانتظار إعادة الاستيراد`
+                        : `${storage.restoredOnly} awaiting re-import`}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[10px] leading-relaxed text-ink-muted">
+                  {ar
+                    ? 'يبقي Otium أحدث ١٢ كتاباً ضمن مساحة ١ جيجابايت. الكتب الأقدم تحتفظ بملاحظاتها وتقدّم القراءة، ويمكن إعادة استيراد ملفاتها لاحقاً.'
+                    : 'Otium keeps the 12 most recent books within 1 GB. Older books keep their notes and progress, and their PDFs can be re-imported later.'}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-line-subtle bg-surface p-3.5 space-y-2.5">
+                <div className="flex items-start gap-2.5">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-accent/25 bg-accent/10 text-accent">
+                    <Download className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold text-ink">
+                      {ar ? 'نسخة احتياطية من البيانات' : 'Back up your data'}
+                    </div>
+                    <p className="mt-0.5 text-[10px] leading-relaxed text-ink-muted">
+                      {ar
+                        ? 'ملف JSON صغير يحتوي على تقدّم القراءة والاقتباسات والملاحظات والإشارات والإعدادات. لا يتضمن ملفات PDF.'
+                        : 'A small JSON file with reading progress, highlights, notes, bookmarks and settings. PDF files are not included.'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void handleExport()}
+                  disabled={!onExportBackup || dataBusy !== null}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs font-semibold text-on-accent transition-colors hover:bg-accent-strong disabled:opacity-60"
+                >
+                  {dataBusy === 'export' ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Download className="h-3.5 w-3.5" />
+                  )}
+                  <span>{ar ? 'تصدير نسخة احتياطية' : 'Export backup'}</span>
+                </button>
+              </div>
+
+              <div className="rounded-2xl border border-line-subtle bg-surface p-3.5 space-y-2.5">
+                <div className="flex items-start gap-2.5">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-line bg-hover-subtle text-ink-muted">
+                    <Upload className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold text-ink">
+                      {ar ? 'استعادة نسخة احتياطية' : 'Restore a backup'}
+                    </div>
+                    <p className="mt-0.5 text-[10px] leading-relaxed text-ink-muted">
+                      {ar
+                        ? 'ادمج البيانات المستعادة مع بياناتك الحالية. الاقتباسات والإشارات المتطابقة تُحدَّث دون تكرار.'
+                        : 'Merge restored data with what is already here. Matching highlights and bookmarks are updated, never duplicated.'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => importInputRef.current?.click()}
+                  disabled={!onImportBackup || dataBusy !== null}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-line bg-hover-subtle px-3 py-2 text-xs font-semibold text-ink transition-colors hover:bg-hover disabled:opacity-60"
+                >
+                  {dataBusy === 'import' ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="h-3.5 w-3.5" />
+                  )}
+                  <span>{ar ? 'اختيار ملف الاستعادة' : 'Choose backup file'}</span>
+                </button>
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept=".json,application/json"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = '';
+                    if (file) void handleImport(file);
+                  }}
+                />
+              </div>
+
+              {dataNotice && (
+                <div
+                  role="status"
+                  className={`flex items-start gap-2 rounded-2xl border p-3 text-[11px] leading-relaxed ${
+                    dataNotice.tone === 'success'
+                      ? 'border-emerald-500/25 bg-emerald-500/10 text-success-ink'
+                      : 'border-rose-500/25 bg-rose-500/10 text-danger-ink'
+                  }`}
+                >
+                  {dataNotice.tone === 'success' ? (
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                  ) : (
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  )}
+                  <span>{dataNotice.text}</span>
+                </div>
+              )}
             </div>
           )}
 
