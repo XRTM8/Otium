@@ -29,6 +29,8 @@ interface MobileToolbarProps {
   isBookmarked: boolean;
   /** Settings → Reading can hide the bottom bar for a bare page. */
   showBottomBar?: boolean;
+  /** A single tap on the page hides every chrome surface for immersive reading. */
+  immersive?: boolean;
   onPageChange: (page: number) => void;
   onThemeChange: (theme: ThemeMode) => void;
   onViewModeChange: (mode: ViewMode) => void;
@@ -61,6 +63,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
   currentLang,
   isBookmarked,
   showBottomBar = true,
+  immersive = false,
   onPageChange,
   onThemeChange,
   onViewModeChange,
@@ -83,6 +86,10 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
     const timer = window.setTimeout(() => setShowMenu(false), 8000);
     return () => window.clearTimeout(timer);
   }, [showMenu]);
+
+  useEffect(() => {
+    if (immersive) setShowMenu(false);
+  }, [immersive]);
 
   // Landscape phones have very little height: shrink the chrome and drop the
   // duplicate actions that also live in the overflow menu.
@@ -115,14 +122,22 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
     <>
       <div
         dir="ltr"
+        data-position="top"
+        data-immersive={immersive ? 'true' : 'false'}
+        aria-hidden={immersive}
+        inert={immersive || undefined}
         style={{
           top: topOffset,
           paddingLeft: 'max(0.5rem, env(safe-area-inset-left, 0px))',
           paddingRight: 'max(0.5rem, env(safe-area-inset-right, 0px))'
         }}
-        className="fixed inset-x-0 z-40 flex justify-center px-2 pointer-events-none"
+        className="mobile-chrome-shell fixed inset-x-0 z-40 flex justify-center px-2 pointer-events-none"
       >
-        <div className="chrome-surface mobile-chrome-bar pointer-events-auto flex w-full max-w-lg items-center gap-1 rounded-2xl px-1.5 py-1.5 text-ink">
+        <div
+          className={`chrome-surface mobile-chrome-bar flex w-full max-w-lg items-center gap-1 rounded-2xl px-1.5 py-1.5 text-ink ${
+            immersive ? 'pointer-events-none' : 'pointer-events-auto'
+          }`}
+        >
           <button
             type="button"
             onClick={onCloseDocument}
@@ -168,7 +183,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
         </div>
       </div>
 
-      {showMenu && (
+      {showMenu && !immersive && (
         <div
           dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
           style={{ top: compactLandscape ? 'max(2.9rem, calc(env(safe-area-inset-top, 0px) + 2.5rem))' : undefined }}
@@ -273,14 +288,22 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
       {showBottomBar && (
       <div
         dir="ltr"
+        data-position="bottom"
+        data-immersive={immersive ? 'true' : 'false'}
+        aria-hidden={immersive}
+        inert={immersive || undefined}
         style={{
           bottom: bottomOffset,
           paddingLeft: 'max(0.5rem, env(safe-area-inset-left, 0px))',
           paddingRight: 'max(0.5rem, env(safe-area-inset-right, 0px))'
         }}
-        className="fixed inset-x-0 z-40 flex justify-center px-2 pointer-events-none"
+        className="mobile-chrome-shell fixed inset-x-0 z-40 flex justify-center px-2 pointer-events-none"
       >
-        <div className="chrome-surface mobile-chrome-bar pointer-events-auto flex items-center gap-1 rounded-2xl px-1.5 py-1.5 text-ink">
+        <div
+          className={`chrome-surface mobile-chrome-bar flex items-center gap-1 rounded-2xl px-1.5 py-1.5 text-ink ${
+            immersive ? 'pointer-events-none' : 'pointer-events-auto'
+          }`}
+        >
           <button
             type="button"
             onClick={() => onPageChange(Math.max(1, currentPage - 1))}

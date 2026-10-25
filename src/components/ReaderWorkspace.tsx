@@ -109,6 +109,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
     deleteAnnotation,
     searchQuery,
     activeSearchPage,
+    isImmersive,
     handlePageVisible,
     goToNextPage,
     goToPrevPage,
@@ -230,6 +231,19 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
     : compact
       ? 'max(4.1rem, calc(env(safe-area-inset-top, 0px) + 3.6rem))'
       : 'max(4.5rem, calc(env(safe-area-inset-top, 0px) + 4.2rem))';
+  const immersiveInset = compactLandscape
+    ? 'max(0.35rem, calc(env(safe-area-inset-top, 0px) + 0.25rem))'
+    : 'max(0.5rem, env(safe-area-inset-top, 0px))';
+  const effectiveTopInset = isImmersive ? immersiveInset : topInset;
+  const bottomInset = isImmersive
+    ? 'max(0.5rem, env(safe-area-inset-bottom, 0px))'
+    : compactLandscape
+      ? 'max(3.2rem, calc(env(safe-area-inset-bottom, 0px) + 2.8rem))'
+      : compact
+        ? reader.showMobileNavBar
+          ? 'max(5.5rem, calc(env(safe-area-inset-bottom, 0px) + 5rem))'
+          : 'max(2.5rem, calc(env(safe-area-inset-bottom, 0px) + 2rem))'
+        : undefined;
 
   return (
     <div
@@ -240,15 +254,11 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchCancel}
       style={{
-        paddingTop: topInset,
-        scrollPaddingTop: topInset,
-        paddingBottom: compactLandscape
-          ? 'max(3.2rem, calc(env(safe-area-inset-bottom, 0px) + 2.8rem))'
-          : compact
-            ? reader.showMobileNavBar
-              ? 'max(5.5rem, calc(env(safe-area-inset-bottom, 0px) + 5rem))'
-              : 'max(2.5rem, calc(env(safe-area-inset-bottom, 0px) + 2rem))'
-            : undefined,
+        paddingTop: effectiveTopInset,
+        scrollPaddingTop: effectiveTopInset,
+        paddingBottom: bottomInset,
+        transition:
+          'padding-top 280ms cubic-bezier(0.22, 1, 0.36, 1), padding-bottom 280ms cubic-bezier(0.22, 1, 0.36, 1)',
         ...(compact
           ? {
               paddingLeft: 'max(0.5rem, env(safe-area-inset-left, 0px))',
@@ -260,7 +270,12 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
       className="reader-viewport flex-1 w-full h-full overflow-y-auto overflow-x-auto overscroll-contain pb-20 sm:pb-24 px-2 sm:px-4 relative"
     >
       {/* Reading progress for the current document. */}
-      <div className="fixed top-0 inset-x-0 h-[2px] bg-line z-40 pointer-events-none">
+      <div
+        aria-hidden={isImmersive}
+        className={`fixed top-0 inset-x-0 h-[2px] bg-line z-40 pointer-events-none transition-opacity duration-300 ${
+          isImmersive ? 'opacity-0' : 'opacity-100'
+        }`}
+      >
         <div
           className="h-full bg-accent transition-all duration-300"
           style={{ width: `${(currentPage / Math.max(1, numPages)) * 100}%` }}
@@ -273,9 +288,15 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             type="button"
             onClick={goToPrevPage}
             disabled={currentPage <= 1}
+            tabIndex={isImmersive ? -1 : undefined}
             title={lang === 'ar' ? 'الصفحة السابقة' : 'Previous page'}
             aria-label={lang === 'ar' ? 'الصفحة السابقة' : 'Previous page'}
-            className="paged-arrow fixed left-2 sm:left-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full text-ink disabled:opacity-0"
+            className="paged-arrow fixed left-2 sm:left-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full text-ink disabled:opacity-0 transition-opacity duration-300"
+            style={
+              isImmersive
+                ? { opacity: 0, pointerEvents: 'none' }
+                : undefined
+            }
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -283,9 +304,15 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             type="button"
             onClick={goToNextPage}
             disabled={currentPage >= numPages}
+            tabIndex={isImmersive ? -1 : undefined}
             title={lang === 'ar' ? 'الصفحة التالية' : 'Next page'}
             aria-label={lang === 'ar' ? 'الصفحة التالية' : 'Next page'}
-            className="paged-arrow fixed right-2 sm:right-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full text-ink disabled:opacity-0"
+            className="paged-arrow fixed right-2 sm:right-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full text-ink disabled:opacity-0 transition-opacity duration-300"
+            style={
+              isImmersive
+                ? { opacity: 0, pointerEvents: 'none' }
+                : undefined
+            }
           >
             <ChevronRight className="w-5 h-5" />
           </button>

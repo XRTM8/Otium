@@ -40,6 +40,7 @@ export const MobileShell: React.FC = () => {
               (bookmark) => bookmark.pageNumber === reader.currentPage
             )}
             showBottomBar={reader.showMobileNavBar}
+            immersive={reader.isImmersive}
             onPageChange={reader.scrollToPage}
             onThemeChange={reader.changeTheme}
             onViewModeChange={reader.changeViewMode}

@@ -437,6 +437,27 @@
   animation: mobileSheetIn 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Immersive reading: a page tap slides both bars fully off-screen. */
+.mobile-chrome-shell {
+  transition:
+    transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 220ms ease;
+  will-change: transform, opacity;
+}
+
+.mobile-chrome-shell[data-immersive='true'] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mobile-chrome-shell[data-position='top'][data-immersive='true'] {
+  transform: translate3d(0, -140%, 0);
+}
+
+.mobile-chrome-shell[data-position='bottom'][data-immersive='true'] {
+  transform: translate3d(0, 140%, 0);
+}
+
 /* A 900-page book must not lay out 900 thumbnails before the first paint.
    Off-screen page buttons keep their remembered size and render on approach.
    Scope to the mobile sheet: the desktop drawer uses a shorter two-column
@@ -444,6 +465,21 @@
 .mobile-sheet .page-thumb {
   content-visibility: auto;
   contain-intrinsic-size: auto 180px;
+}
+
+@keyframes selectionBarIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.selection-bar-mobile {
+  animation: selectionBarIn 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Phones pay a high GPU price for live blur, especially at 120Hz. Opaque
@@ -739,11 +775,16 @@
   .action-chip,
   .paged-arrow,
   .reader-viewport {
-    transition: none;
+    transition: none !important;
   }
 
-  .mobile-sheet {
+  .mobile-sheet,
+  .selection-bar-mobile {
     animation: none;
+  }
+
+  .mobile-chrome-shell {
+    transition: none;
   }
 }
 

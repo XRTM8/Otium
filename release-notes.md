@@ -1,23 +1,21 @@
-# Otium 1.4.1 — إصلاحات الهاتف
+# Otium 1.4.2 — إصلاحات القراءة على الهاتف
 
-إصدار تصحيحي صغير للهاتف، مع نفس القارئ على Windows وAndroid.
+إصدار تصحيحي للهاتف. يعالج المشاكل الأربع التي ظهرت بعد 1.4.1، مع لمسات سلاسة إضافية. نفس القارئ ما زال يعمل على Windows وAndroid.
 
 ## العربية
 
-- **لوحة الصفحات من الأسفل.** لم تعد اللوحة تمتد من الحافة العلوية. تفتح الآن كورقة سفلية بارتفاع مريح، بمقبض سحب، وشبكة من ثلاثة أعمدة، وزر «إغلاق اللوحة» ثابت في الأسفل داخل متناول الإبهام. بقي زر الإغلاق العلوي، لكنه لم يعد الطريق الوحيد للإغلاق.
-- **إصلاح تحديد النص.** لم يعد التطبيق يلغي التحديد الأصلي فور رفع الإصبع، وهو ما كان يجعل قائمة النسخ والتظليل تختفي قبل أن تظهر. يظهر الآن شريط إجراءات ثابت أسفل الشاشة: تظليل بعدة ألوان، تسطير، نسخ، ملاحظة، بحث، واستماع. يبقى التحديد الأصلي ظاهرًا أثناء استخدام الشريط.
-- **شريط التنقل السفلي اختياري.** من «الإعدادات ← نمط القراءة» يمكن إخفاء شريط أرقام الصفحات والأزرار السريعة أو إظهاره. يُحفظ الاختيار بين الجلسات، وتبقى لوحة الصفحات متاحة من قائمة الأدوات.
-- **تمرير وتقليب أنعم.** أصبحت إزاحة السحب تُكتب مباشرة في متغيّر CSS عبر `requestAnimationFrame` بدل تحديث حالة React مع كل حركة إصبع. هذا يقلّل إعادة رسم سطح القراءة على شاشات 90/120Hz.
-- **تخفيف زخرفة الهاتف.** على الشاشات الصغيرة أصبحت أسطح الواجهة معتمة بلا ضباب خلفي مباشر، وتوقفت حركات التوهج المحيطة، مع احترام إعداد تقليل الحركة في النظام.
-- **APK أصغر بنحو 74%.** تُنشر الآن نسخ منفصلة حسب معمارية المعالج إلى جانب الحزمة الشاملة الاحتياطية. نسخة `arm64-v8a` لهاتفك تزن نحو ‎16MB بدل ‎62MB للحزمة الشاملة السابقة، وتُثبَّت أسرع. حتى الحزمة الشاملة انخفضت إلى نحو ‎46MB. نزّل `Otium_1.4.1_arm64-v8a.apk` من صفحة الإصدار. تحديث التطبيق من داخله ما زال يستخدم الحزمة الشاملة احتياطًا؛ سيختار التطبيق النسخة المناسبة تلقائيًا في 1.5.
-- **ملاحظة صريحة.** التحديد ما زال يعتمد على WebView في Android. قد تظهر قائمة Android الأصلية (نسخ/مشاركة) مع الشريط المخصص في بعض إصدارات WebView؛ الإجراءات في الشريطين تعمل، وسيُزال التكرار بعد تثبيت السلوك على جهاز فعلي.
+- **شريط التحديد يظهر فورًا.** كان الشريط ينتظر رفع الإصبع أو تمرير الصفحة، لذلك بدا وكأنه لا يعمل حتى تنتقل إلى صفحة أخرى. أصبح التطبيق يراقب تغيّر التحديد مباشرة، ويعيد المحاولة بسرعة بعد ضغطة طويلة، مع فحص خفيف لا يستمر إلا ثوانٍ قليلة. يظهر شريط النسخ والتظليل والملاحظة والبحث والاستماع الآن مباشرة بعد تحديد النص، دون تمرير.
+- **إغلاق لوحة الصفحات بالسحب.** يمكن سحب المقبض العلوي للوحة إلى الأسفل لإغلاقها. يتبع المقبض إصبعك بحركة مرنة، ثم تعود اللوحة إلى مكانها إذا كانت السحبة قصيرة، وتُغلق عند تجاوز الحد أو السحب السريع. يبقى التمرير داخل قائمة الصفحات مستقلًا عن سحب المقبض.
+- **الاستماع يعمل على Android.** اعتمد التطبيق سابقًا على محرك النطق داخل WebView، وهو غير متاح أو بلا أصوات على كثير من الهواتف. أصبح للاستماع محرك Android أصلي: يقرأ النص المحدد، ويجرب العربية الفصحى ثم العربية العامة ثم المصرية، ويستخدم السرعة المناسبة. إذا لم يكن هناك صوت عربي مثبّت يعرض التطبيق رسالة واضحة وزرًا لفتح إعدادات الصوت. تبقى نسخة المتصفح وWindows على Web Speech.
+- **لمسة واحدة تخفي الواجهة.** انقر على صفحة القراءة مرة واحدة لتختفي أشرطة التطبيق وأشرطة Android العلوية والسفلية معًا، ثم انقر مرة أخرى لاستعادتها. ما زال النقر المزدوج يكبّر الصفحة، والنقر أثناء تحديد النص لا يخفي الواجهة. زر الرجوع يعيد الأشرطة أولًا.
+- **سلاسة إضافية.** انتقالات قصيرة لأشرطة الواجهة وشريط التحديد، واحترام إعداد تقليل الحركة في النظام. تحسّن أيضًا تسجيل منطقة التحديد حتى لا تتكرر إعادة الرسم أثناء تحريك مقابض التحديد.
 
 ## English
 
-- **Pages panel from the bottom.** The panel no longer runs from the top edge. It is now a comfortable bottom sheet with a drag handle, a three-column page grid, and a fixed “Close panel” button within thumb reach. The top close button remains, but is no longer the only way out.
-- **Text selection fixed.** The app no longer clears the native selection immediately on pointer-up, which was hiding the copy/highlight menu before it could appear. A fixed bottom action bar now offers highlight colours, underline, copy, note, search, and listen while the native selection stays visible.
-- **Optional bottom navigation bar.** Settings → Reading can hide or show the page-number and quick-action bar. The choice persists between sessions, and the pages panel remains available from the tools menu.
-- **Smoother scrolling and page turns.** Swipe offset is written to a CSS variable through `requestAnimationFrame` instead of updating React state on every finger movement. This removes a full reading-surface re-render at 90/120Hz.
-- **Lighter phone chrome.** Small screens use opaque interface surfaces without live blur, ambient glow animations are disabled, and the system reduced-motion preference is respected.
-- **About 74% smaller APK.** Separate per-ABI packages now ship alongside a universal fallback. The `arm64-v8a` package for modern phones is about 16 MB instead of the previous 62 MB universal APK, and installs much faster. Even the universal fallback dropped to about 46 MB. Download `Otium_1.4.1_arm64-v8a.apk` from the release page. In-app updates still fetch the universal APK as a safe fallback; 1.5 will pick the matching ABI automatically.
-- **Honest note.** Selection still relies on Android’s WebView. Some WebView versions may show Android’s native copy/share menu alongside the in-app bar; both work, and the duplication will be removed once the behaviour is confirmed on a physical device.
+- **Selection bar appears immediately.** The bar used to wait for pointer-up or a page scroll, which made it look broken until you moved to another page. Otium now reacts to `selectionchange` directly, retries quickly after a long press, and runs a short watchdog instead of a single delayed timer. Copy, highlight, note, search and listen are available as soon as text is selected, with no scrolling.
+- **Drag the pages sheet closed.** Pull the sheet's top handle downward to dismiss it. The sheet follows your finger with a rubber-band feel, snaps back after a short drag, and closes after a longer or faster one. Scrolling inside the page list remains independent of the handle gesture.
+- **Listening works on Android.** The old implementation relied on WebView speech synthesis, which is missing or voiceless on many phones. The listen action now uses a native Android `TextToSpeech` engine, tries Modern Standard Arabic, then generic Arabic, then Egyptian Arabic, and applies a comfortable rate. If no Arabic voice is installed, Otium shows a clear message and a button that opens the system voice settings. Browser previews and Windows keep the Web Speech path.
+- **One tap hides the interface.** Tap the reading page once to hide the app chrome together with the Android status and navigation bars, then tap again to bring everything back. Double-tap zoom still works, and a tap that adjusts a text selection never hides the interface. Back restores the bars first.
+- **Extra polish.** Short, eased transitions for the chrome and selection bar, plus support for the system reduced-motion setting. Selection geometry is deduplicated so dragging the native selection handles no longer redraws the menu unnecessarily.
+
+Download `Otium_1.4.2_arm64-v8a.apk` for modern Android phones.

@@ -35,6 +35,7 @@ import { computeOptimalPageScale, measureRefreshRate } from '../core/reader/devi
 import { clearSearchTextCache } from '../core/search/documentSearch';
 import { registerIncomingDocumentHandler } from '../platform/incomingDocument';
 import { syncNativeTheme } from '../platform/theme';
+import { syncNativeImmersive } from '../platform/ui';
 
 export interface ReaderCapabilities {
   keyboard: boolean;
@@ -164,6 +165,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const [lang, setLang] = useState<Language>(loadLanguage);
   const [fontFamily, setFontFamily] = useState<FontFamilyId>(getSavedFont);
   const [showMobileNavBar, setShowMobileNavBar] = useState<boolean>(loadMobileNavVisible);
+  const [isImmersive, setIsImmersive] = useState(false);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -194,6 +196,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const zoomAnchorRef = useRef<ZoomAnchor | null>(null);
   const zoomFocusRef = useRef<{ x: number; y: number } | null>(null);
   const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
+  const singleTapTimerRef = useRef<number | null>(null);
+  const selectionAtTouchStartRef = useRef(false);
   const swipeFrameRef = useRef<number | null>(null);
   const pendingSwipeXRef = useRef(0);
 
@@ -222,6 +226,30 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     }
     scrollContainerRef.current?.style.setProperty('--otium-swipe-x', '0px');
   }, []);
+
+  const cancelPendingSingleTap = useCallback(() => {
+    if (singleTapTimerRef.current === null) return;
+    window.clearTimeout(singleTapTimerRef.current);
+    singleTapTimerRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    syncNativeImmersive(isImmersive);
+  }, [isImmersive]);
+
+  useEffect(() => {
+    return () => {
+      cancelPendingSingleTap();
+      syncNativeImmersive(false);
+    };
+  }, [cancelPendingSingleTap]);
+
+  // Any overlay must bring the chrome back so its own controls stay reachable.
+  useEffect(() => {
+    if (isImmersive && (isSidebarOpen || isSearchOpen || isSettingsOpen)) {
+      setIsImmersive(false);
+    }
+  }, [isImmersive, isSearchOpen, isSettingsOpen, isSidebarOpen]);
 
   useEffect(() => {
     return () => {
@@ -693,15 +721,22 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     setIsSearchOpen(false);
     setIsSidebarOpen(false);
     setIsSettingsOpen(false);
+    setIsImmersive(false);
+    lastTapRef.current = null;
+    cancelPendingSingleTap();
     setPasswordModal(EMPTY_PASSWORD_MODAL);
     setDocumentError(null);
     setIsLoading(false);
     setLoadProgress(null);
     lastFitScaleRef.current = 0;
     if (activeDoc) destroyDocumentSoon(activeDoc);
-  }, []);
+  }, [cancelPendingSingleTap]);
 
   const handleBackStep = useCallback((): boolean => {
+    if (isImmersive) {
+      setIsImmersive(false);
+      return true;
+    }
     if (isSettingsOpen) {
       setIsSettingsOpen(false);
       return true;
@@ -721,7 +756,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       return true;
     }
     return false;
-  }, [closeDocument, doc, isSearchOpen, isSettingsOpen, isSidebarOpen]);
+  }, [closeDocument, doc, isImmersive, isSearchOpen, isSettingsOpen, isSidebarOpen]);
 
   useEffect(() => {
     (window as unknown as Record<string, unknown>).__OTIUM_HANDLE_BACK__ = handleBackStep;
@@ -817,6 +852,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       setSearchSeed(null);
       setIsSearchOpen(false);
       setIsSidebarOpen(false);
+      setIsImmersive(false);
       setDocumentError(null);
 
       if (opened.basePageSize.width && opened.basePageSize.height && typeof window !== 'undefined') {
@@ -1004,7 +1040,13 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   );
 
   const handleTouchStart = (event: ReactTouchEvent<HTMLDivElement>) => {
+    // A new touch may be the second half of a double tap. Hold the pending
+    // single-tap chrome toggle until the gesture resolves.
+    cancelPendingSingleTap();
+
     if (event.touches.length === 2) {
+      lastTapRef.current = null;
+      selectionAtTouchStartRef.current = false;
       const distance = Math.hypot(
         event.touches[0].clientX - event.touches[1].clientX,
         event.touches[0].clientY - event.touches[1].clientY
@@ -1028,6 +1070,10 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
     if (event.touches.length === 1 && !isPinchingRef.current) {
       const touch = event.touches[0];
+      const selection = window.getSelection();
+      selectionAtTouchStartRef.current = Boolean(
+        selection && !selection.isCollapsed && selection.toString().trim().length > 0
+      );
       touchStartX.current = touch.clientX;
       touchStartY.current = touch.clientY;
       touchStartTimeRef.current = performance.now();
@@ -1093,6 +1139,10 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     const deltaX = touch.clientX - touchStartX.current;
     const deltaY = touch.clientY - touchStartY.current;
 
+    if (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8) {
+      lastTapRef.current = null;
+    }
+
     if (Math.abs(deltaX) > Math.abs(deltaY)) {
       const scrollDirection = deltaX < 0 ? 1 : -1;
       if (canScrollHorizontally(scrollDirection)) {
@@ -1138,6 +1188,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     if (wasPinching || event.touches.length > 0) {
       touchStartX.current = null;
       touchStartY.current = null;
+      selectionAtTouchStartRef.current = false;
       setIsDraggingTouch(false);
       resetSwipeOffset();
       touchDeltaXRef.current = 0;
@@ -1161,7 +1212,14 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     const movedY = touch.clientY - startY;
 
     const selection = window.getSelection();
-    if (selection && !selection.isCollapsed && selection.toString().trim().length > 0) {
+    const selectionIsActive =
+      selectionAtTouchStartRef.current ||
+      Boolean(selection && !selection.isCollapsed && selection.toString().trim().length > 0);
+    selectionAtTouchStartRef.current = false;
+    if (selectionIsActive) {
+      // The tap dismissed or adjusted a text selection; the selection menu
+      // owns this gesture and the chrome must stay exactly as it was.
+      lastTapRef.current = null;
       return;
     }
 
@@ -1171,6 +1229,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         Math.abs(movedX) > Math.abs(movedY) * 1.2;
       if (horizontal) {
         lastTapRef.current = null;
+        cancelPendingSingleTap();
         if (movedX < 0) goToNextPage();
         else goToPrevPage();
         return;
@@ -1183,6 +1242,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         const direction = movedY < 0 ? 1 : -1;
         if (!canScrollVertically(direction)) {
           lastTapRef.current = null;
+          cancelPendingSingleTap();
           if (direction > 0) goToNextPage();
           else goToPrevPage();
           return;
@@ -1209,11 +1269,19 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       Math.hypot(touch.clientX - previous.x, touch.clientY - previous.y) < 40
     ) {
       lastTapRef.current = null;
+      cancelPendingSingleTap();
       handleDoubleTap(touch.clientX, touch.clientY);
       return;
     }
 
     lastTapRef.current = { time: now, x: touch.clientX, y: touch.clientY };
+
+    // Wait out the double-tap window, then toggle the immersive reading mode.
+    // A second tap cancels this timer in handleTouchStart and zooms instead.
+    singleTapTimerRef.current = window.setTimeout(() => {
+      singleTapTimerRef.current = null;
+      setIsImmersive((hidden) => !hidden);
+    }, DOUBLE_TAP_MS);
   };
 
   const handleTouchCancel = () => {
@@ -1222,6 +1290,9 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     clearZoomAnchor();
     touchStartX.current = null;
     touchStartY.current = null;
+    selectionAtTouchStartRef.current = false;
+    cancelPendingSingleTap();
+    lastTapRef.current = null;
     setIsDraggingTouch(false);
     resetSwipeOffset();
     touchDeltaXRef.current = 0;
@@ -1374,6 +1445,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     lang,
     fontFamily,
     showMobileNavBar,
+    isImmersive,
     baseAspectRatio,
     basePageSize,
     isSidebarOpen,

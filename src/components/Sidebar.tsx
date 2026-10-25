@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import {
   X,
@@ -55,6 +55,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const t = getTranslations(lang);
   const ar = lang === 'ar';
 
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{
+    pointerId: number;
+    startY: number;
+    startedAt: number;
+    delta: number;
+  } | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
+  const settleTimerRef = useRef<number | null>(null);
+
   useEffect(() => {
     if (!doc) return;
     const loadOutline = async () => {
@@ -90,6 +101,144 @@ export const Sidebar: React.FC<SidebarProps> = ({
     loadOutline();
   }, [doc]);
 
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
+      if (settleTimerRef.current !== null) window.clearTimeout(settleTimerRef.current);
+    };
+  }, []);
+
+  const resetSheetMotion = useCallback(() => {
+    const sheet = sheetRef.current;
+    if (sheet) {
+      sheet.style.animation = '';
+      sheet.style.transition = '';
+      sheet.style.transform = '';
+    }
+    const backdrop = backdropRef.current;
+    if (backdrop) {
+      backdrop.style.transition = '';
+      backdrop.style.opacity = '';
+    }
+  }, []);
+
+  const settleSheet = useCallback(
+    (shouldClose: boolean) => {
+      const sheet = sheetRef.current;
+      if (!sheet) return;
+
+      sheet.style.transition = 'transform 230ms cubic-bezier(0.22, 1, 0.36, 1)';
+      const backdrop = backdropRef.current;
+      if (backdrop) backdrop.style.transition = 'opacity 200ms ease';
+
+      if (shouldClose) {
+        sheet.style.transform = 'translate3d(0, 110%, 0)';
+        if (backdrop) backdrop.style.opacity = '0';
+        closeTimerRef.current = window.setTimeout(() => {
+          closeTimerRef.current = null;
+          resetSheetMotion();
+          onClose();
+        }, 200);
+        return;
+      }
+
+      sheet.style.transform = 'translate3d(0, 0, 0)';
+      if (backdrop) backdrop.style.opacity = '1';
+      settleTimerRef.current = window.setTimeout(() => {
+        settleTimerRef.current = null;
+        resetSheetMotion();
+      }, 240);
+    },
+    [onClose, resetSheetMotion]
+  );
+
+  const handleHandlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isSheet) return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    if (settleTimerRef.current !== null) {
+      window.clearTimeout(settleTimerRef.current);
+      settleTimerRef.current = null;
+    }
+
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      startedAt: performance.now(),
+      delta: 0
+    };
+
+    // The entrance animation uses the `translate` property; remove it before
+    // driving the sheet with `transform` so the two never fight.
+    sheet.style.animation = 'none';
+    sheet.style.transition = 'none';
+    if (backdropRef.current) backdropRef.current.style.transition = 'none';
+
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Pointer capture is an enhancement; the handle still receives moves.
+    }
+  };
+
+  const handleHandlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+
+    const delta = Math.max(0, event.clientY - drag.startY);
+    drag.delta = delta;
+
+    // Rubber-band after 160px so the sheet never detaches from the finger too
+    // abruptly, while keeping the first part of the drag 1:1.
+    const shown = delta <= 160 ? delta : 160 + (delta - 160) * 0.62;
+    const height = Math.max(1, sheet.offsetHeight || window.innerHeight);
+
+    sheet.style.transform = `translate3d(0, ${shown}px, 0)`;
+    if (backdropRef.current) {
+      backdropRef.current.style.opacity = `${Math.max(0, 1 - (delta / height) * 0.8)}`;
+    }
+
+    if (event.cancelable) event.preventDefault();
+  };
+
+  const handleHandlePointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // The browser may have released it already.
+    }
+
+    const sheet = sheetRef.current;
+    const height = sheet ? Math.max(1, sheet.offsetHeight || window.innerHeight) : window.innerHeight;
+    const elapsed = Math.max(1, performance.now() - drag.startedAt);
+    const velocity = drag.delta / elapsed;
+    const passedDistance = drag.delta > Math.min(150, height * 0.22);
+    const flickedDown = drag.delta > 36 && velocity > 0.55;
+
+    settleSheet(passedDistance || flickedDown);
+  };
+
+  const handleHandlePointerCancel = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    settleSheet(false);
+  };
+
   if (!isOpen) return null;
 
   const isCurrentPageBookmarked = bookmarks.some((b) => b.pageNumber === currentPage);
@@ -106,6 +255,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     >
       {/* Backdrop */}
       <div
+        ref={backdropRef}
         className={`inset-0 bg-scrim transition-opacity ${
           isSheet ? 'absolute' : 'fixed backdrop-blur-xs'
         }`}
@@ -114,6 +264,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Drawer (desktop) or bottom sheet (touch) */}
       <div
+        ref={sheetRef}
         className={
           isSheet
             ? 'chrome-surface mobile-sheet absolute inset-x-0 bottom-0 z-10 flex h-[84dvh] max-h-[92dvh] flex-col overflow-hidden rounded-t-3xl border-x-0 border-b-0 text-ink sm:left-1/2 sm:right-auto sm:w-[42rem] sm:max-w-[calc(100vw-2rem)] sm:-translate-x-1/2'
@@ -121,7 +272,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }
       >
         {isSheet && (
-          <div className="flex shrink-0 justify-center pb-1 pt-2.5">
+          <div
+            role="button"
+            tabIndex={-1}
+            aria-label={ar ? 'اسحب للأسفل لإغلاق اللوحة' : 'Drag down to close the panel'}
+            title={ar ? 'اسحب للأسفل للإغلاق' : 'Drag down to close'}
+            onPointerDown={handleHandlePointerDown}
+            onPointerMove={handleHandlePointerMove}
+            onPointerUp={handleHandlePointerEnd}
+            onPointerCancel={handleHandlePointerCancel}
+            className="flex shrink-0 cursor-grab touch-none select-none justify-center pb-1.5 pt-2.5 active:cursor-grabbing"
+          >
             <div className="h-1.5 w-10 rounded-full bg-line-strong" />
           </div>
         )}

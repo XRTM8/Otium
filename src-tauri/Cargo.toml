@@ -1,6 +1,6 @@
 [package]
 name = "otium"
-version = "1.4.1"
+version = "1.4.2"
 description = "A quiet, aesthetic, high-performance PDF reader"
 authors = ["XRTM8"]
 edition = "2024"

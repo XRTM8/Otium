@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  AlertTriangle,
   Check,
   Copy,
   Highlighter,
@@ -14,6 +15,13 @@ import {
 import type { AnnotationQuad, AnnotationRect, TextAnnotation } from '../core/types';
 import type { Language } from '../core/i18n/translations';
 import { HIGHLIGHT_COLORS, UNDERLINE_COLORS } from '../core/storage/annotations';
+import {
+  canSpeakText,
+  openTtsSettings,
+  speakText,
+  stopTts,
+  type TtsHandle
+} from '../platform/tts';
 
 interface TextSelectionMenuProps {
   onAddAnnotation: (annotation: TextAnnotation) => void;
@@ -65,7 +73,11 @@ const LABELS = {
     notePlaceholder: 'اكتب ملاحظتك على هذا الاقتباس…',
     save: 'حفظ الملاحظة',
     cancel: 'إلغاء',
-    selectedText: 'النص المحدد'
+    selectedText: 'النص المحدد',
+    speechUnsupported: 'الاستماع غير مدعوم على هذا الجهاز.',
+    speechFailed: 'تعذر تشغيل الصوت. حاول مرة أخرى.',
+    speechNoVoice: 'لا يوجد صوت عربي مثبت. ثبّت حزمة صوت عربية من إعدادات النظام.',
+    voiceSettings: 'إعدادات الصوت'
   },
   en: {
     highlight: 'Highlight',
@@ -82,7 +94,11 @@ const LABELS = {
     notePlaceholder: 'Add a note to this quote…',
     save: 'Save note',
     cancel: 'Cancel',
-    selectedText: 'Selected text'
+    selectedText: 'Selected text',
+    speechUnsupported: 'Listening is not supported on this device.',
+    speechFailed: 'Could not start speech. Please try again.',
+    speechNoVoice: 'No Arabic voice is installed. Add one from the system voice settings.',
+    voiceSettings: 'Voice settings'
   }
 } as const;
 
@@ -178,13 +194,20 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
   const [selectedColor, setSelectedColor] = useState(HIGHLIGHT_COLORS[0].hex);
   const [copied, setCopied] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speechError, setSpeechError] = useState<{
+    message: string;
+    voiceSettings: boolean;
+  } | null>(null);
   const [noteMode, setNoteMode] = useState(false);
   const [noteText, setNoteText] = useState('');
 
   const menuRef = useRef<HTMLDivElement>(null);
   const selectionRef = useRef<SelectionState | null>(null);
+  const selectionSignatureRef = useRef('');
   const pointerActiveRef = useRef(false);
-  const selectionTimerRef = useRef<number | null>(null);
+  const captureTimersRef = useRef<number[]>([]);
+  const watchdogRef = useRef<number | null>(null);
+  const speechHandleRef = useRef<TtsHandle | null>(null);
   const labels = LABELS[lang];
 
   useEffect(() => {
@@ -192,15 +215,28 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
   }, [selectionState]);
 
   const stopSpeech = useCallback(() => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
+    speechHandleRef.current?.cancel();
+    speechHandleRef.current = null;
+    stopTts();
     setIsSpeaking(false);
   }, []);
 
+  const clearCaptureTimers = useCallback(() => {
+    for (const timer of captureTimersRef.current) window.clearTimeout(timer);
+    captureTimersRef.current = [];
+  }, []);
+
   const clearSelection = useCallback(() => {
+    clearCaptureTimers();
+    if (watchdogRef.current !== null) {
+      window.clearInterval(watchdogRef.current);
+      watchdogRef.current = null;
+    }
+    selectionRef.current = null;
+    selectionSignatureRef.current = '';
     setSelectionState(null);
     setCopied(false);
+    setSpeechError(null);
     setNoteMode(false);
     setNoteText('');
     stopSpeech();
@@ -209,7 +245,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
     } catch {
       // Selection APIs are unavailable in a few embedded webviews.
     }
-  }, [stopSpeech]);
+  }, [clearCaptureTimers, stopSpeech]);
 
   const captureSelection = useCallback(() => {
     const selection = window.getSelection();
@@ -281,60 +317,146 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
       }
     };
 
+    const signature = [
+      nextState.pageNumber,
+      nextState.text,
+      ...rects.map(
+        (rect) =>
+          `${rect.xPct.toFixed(4)},${rect.yPct.toFixed(4)},${rect.widthPct.toFixed(4)},${rect.heightPct.toFixed(4)}`
+      )
+    ].join('|');
+
+    const changed =
+      !selectionRef.current || selectionSignatureRef.current !== signature;
+
     selectionRef.current = nextState;
+    selectionSignatureRef.current = signature;
+
+    // selectionchange fires repeatedly while Android finalises the selection.
+    // Re-rendering identical geometry would reset the note editor, so only a
+    // genuinely different selection replaces the visible state.
+    if (!changed) return true;
+
     setSelectionState(nextState);
     setCopied(false);
+    setSpeechError(null);
     setNoteMode(false);
     setNoteText('');
-    setIsSpeaking(false);
+    stopSpeech();
     return true;
-  }, []);
+  }, [stopSpeech]);
 
   const scheduleCapture = useCallback(
-    (delay: number) => {
-      if (selectionTimerRef.current !== null) window.clearTimeout(selectionTimerRef.current);
-      selectionTimerRef.current = window.setTimeout(() => {
-        selectionTimerRef.current = null;
-        const captured = captureSelection();
-        // A tap that collapses the native selection should dismiss an open
-        // bar. During a handle drag the selection stays non-collapsed, so the
-        // bar keeps updating instead of vanishing.
-        if (!captured && selectionRef.current) clearSelection();
-      }, delay);
+    (delays: number[], clearWhenEmpty = false) => {
+      clearCaptureTimers();
+      const attempts = delays.length > 0 ? delays : [0];
+
+      attempts.forEach((delay, index) => {
+        const timer = window.setTimeout(() => {
+          captureTimersRef.current = captureTimersRef.current.filter(
+            (candidate) => candidate !== timer
+          );
+
+          const captured = captureSelection();
+          const isLastAttempt = index === attempts.length - 1;
+          if (!isLastAttempt || captured || !clearWhenEmpty || !selectionRef.current) {
+            return;
+          }
+
+          const selection = window.getSelection();
+          const stillEmpty =
+            !selection || selection.isCollapsed || !selection.toString().trim();
+          if (stillEmpty) clearSelection();
+        }, delay);
+        captureTimersRef.current.push(timer);
+      });
     },
-    [captureSelection, clearSelection]
+    [captureSelection, clearCaptureTimers, clearSelection]
   );
+
+  const stopSelectionWatchdog = useCallback(() => {
+    if (watchdogRef.current === null) return;
+    window.clearInterval(watchdogRef.current);
+    watchdogRef.current = null;
+  }, []);
+
+  /**
+   * Android WebView can swallow pointerup after a long-press selection and
+   * delay `selectionchange` until the next layout. Poll briefly after any
+   * touch on the page so the action bar never waits for a scroll.
+   */
+  const startSelectionWatchdog = useCallback(() => {
+    stopSelectionWatchdog();
+    const startedAt = performance.now();
+
+    watchdogRef.current = window.setInterval(() => {
+      const selection = window.getSelection();
+      const hasSelection = Boolean(
+        selection && !selection.isCollapsed && selection.toString().trim()
+      );
+
+      if (hasSelection) {
+        stopSelectionWatchdog();
+        scheduleCapture(mobile ? [0, 90, 240] : [0, 60], false);
+        return;
+      }
+
+      if (performance.now() - startedAt > 5000) stopSelectionWatchdog();
+    }, 110);
+  }, [mobile, scheduleCapture, stopSelectionWatchdog]);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
       pointerActiveRef.current = true;
       if (menuRef.current?.contains(event.target as Node)) return;
-      if (!selectionRef.current) return;
 
       // Dragging Android's native selection handles starts with a pointerdown
       // on the page. Keep the menu alive so the selection can still be
       // adjusted; tapping outside the page dismisses it.
       const target = event.target as HTMLElement | null;
       const insidePage = Boolean(target?.closest?.('[data-pdf-page]'));
-      if (!insidePage) clearSelection();
+
+      if (!insidePage) {
+        if (selectionRef.current) clearSelection();
+        return;
+      }
+
+      if (!selectionRef.current) startSelectionWatchdog();
     };
 
     const handlePointerUp = (event: PointerEvent) => {
       pointerActiveRef.current = false;
       if (menuRef.current?.contains(event.target as Node)) return;
-      scheduleCapture(mobile ? 140 : 30);
+      scheduleCapture(mobile ? [0, 80, 220, 420] : [0, 50], true);
     };
 
     const handleTouchEnd = (event: TouchEvent) => {
       pointerActiveRef.current = false;
       if (menuRef.current?.contains(event.target as Node)) return;
-      scheduleCapture(mobile ? 140 : 40);
+      scheduleCapture(mobile ? [0, 80, 220, 420] : [0, 50], true);
     };
 
-    // Keyboard selection (Shift + arrows) has no pointer gesture.
+    const handlePointerCancel = () => {
+      pointerActiveRef.current = false;
+    };
+
+    // Android finalises a long-press selection after the finger is already
+    // down, and sometimes swallows pointerup entirely. selectionchange is the
+    // only reliable signal, so capture on it even while the pointer is active.
     const handleSelectionChange = () => {
-      if (pointerActiveRef.current || selectionRef.current) return;
-      scheduleCapture(340);
+      const selection = window.getSelection();
+      const hasSelection = Boolean(
+        selection && !selection.isCollapsed && selection.toString().trim()
+      );
+
+      if (hasSelection) {
+        scheduleCapture(mobile ? [0, 80, 220] : [0, 50], false);
+        return;
+      }
+
+      if (!pointerActiveRef.current && selectionRef.current) {
+        scheduleCapture([140, 300], true);
+      }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -354,7 +476,9 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
 
     document.addEventListener('pointerdown', handlePointerDown, true);
     document.addEventListener('pointerup', handlePointerUp, true);
+    document.addEventListener('pointercancel', handlePointerCancel, true);
     document.addEventListener('touchend', handleTouchEnd, true);
+    document.addEventListener('touchcancel', handlePointerCancel, true);
     document.addEventListener('selectionchange', handleSelectionChange);
     document.addEventListener('keydown', handleKeyDown);
     window.addEventListener('scroll', handleScroll, true);
@@ -363,17 +487,27 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown, true);
       document.removeEventListener('pointerup', handlePointerUp, true);
+      document.removeEventListener('pointercancel', handlePointerCancel, true);
       document.removeEventListener('touchend', handleTouchEnd, true);
+      document.removeEventListener('touchcancel', handlePointerCancel, true);
       document.removeEventListener('selectionchange', handleSelectionChange);
       document.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('scroll', handleScroll, true);
       window.removeEventListener('resize', handleResize);
-      if (selectionTimerRef.current !== null) window.clearTimeout(selectionTimerRef.current);
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
+      clearCaptureTimers();
+      stopSelectionWatchdog();
+      speechHandleRef.current?.cancel();
+      speechHandleRef.current = null;
+      stopTts();
     };
-  }, [clearSelection, mobile, scheduleCapture]);
+  }, [
+    clearCaptureTimers,
+    clearSelection,
+    mobile,
+    scheduleCapture,
+    startSelectionWatchdog,
+    stopSelectionWatchdog
+  ]);
 
   if (!selectionState) return null;
 
@@ -426,22 +560,46 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
   };
 
   const toggleSpeech = () => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-
     if (isSpeaking) {
       stopSpeech();
       return;
     }
 
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(selectionState.text);
-    utterance.lang = lang === 'ar' ? 'ar-SA' : 'en-US';
-    utterance.rate = 0.98;
-    utterance.pitch = 1;
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    setSpeechError(null);
+    if (!canSpeakText()) {
+      setSpeechError({ message: labels.speechUnsupported, voiceSettings: false });
+      return;
+    }
+
+    let settled = false;
+    const handle = speakText(selectionState.text, lang, 0.98, {
+      onStart: () => {
+        settled = true;
+        setIsSpeaking(true);
+      },
+      onEnd: () => {
+        settled = true;
+        speechHandleRef.current = null;
+        setIsSpeaking(false);
+      },
+      onError: (code) => {
+        settled = true;
+        speechHandleRef.current = null;
+        setIsSpeaking(false);
+        setSpeechError({
+          message: code === 'language' ? labels.speechNoVoice : labels.speechFailed,
+          voiceSettings: code === 'language'
+        });
+      }
+    });
+
+    if (settled) {
+      handle.cancel();
+      return;
+    }
+
+    speechHandleRef.current = handle;
     setIsSpeaking(true);
-    window.speechSynthesis.speak(utterance);
   };
 
   const barStyle: React.CSSProperties = {
@@ -465,7 +623,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
       onContextMenu={(event) => event.preventDefault()}
       className={
         mobile
-          ? 'chrome-surface fixed inset-x-0 bottom-0 z-[70] max-h-[78dvh] select-none overflow-y-auto rounded-t-3xl border-x-0 border-b-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2.5 text-ink shadow-2xl'
+          ? 'chrome-surface selection-bar-mobile fixed inset-x-0 bottom-0 z-[70] max-h-[78dvh] select-none overflow-y-auto rounded-t-3xl border-x-0 border-b-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2.5 text-ink shadow-2xl'
           : 'chrome-surface fixed z-[70] w-[min(336px,calc(100vw-16px))] select-none rounded-2xl p-1.5 text-ink shadow-2xl animate-in fade-in zoom-in-95 duration-100'
       }
     >
@@ -494,6 +652,27 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
             </button>
           </div>
         </>
+      )}
+
+      {speechError && (
+        <div
+          className={`flex items-start gap-2 rounded-xl border border-danger-ink/25 bg-danger-ink/10 px-2.5 py-2 text-[11px] leading-relaxed text-danger-ink ${
+            mobile ? 'mb-2.5' : 'mx-1 mt-1 mb-1'
+          }`}
+          role="alert"
+        >
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span className="min-w-0 flex-1">{speechError.message}</span>
+          {speechError.voiceSettings && (
+            <button
+              type="button"
+              onClick={() => openTtsSettings()}
+              className="shrink-0 self-center rounded-lg border border-danger-ink/25 px-2 py-1 text-[10px] font-semibold transition-colors hover:bg-danger-ink/10 active:bg-danger-ink/15"
+            >
+              {labels.voiceSettings}
+            </button>
+          )}
+        </div>
       )}
 
       {noteMode ? (

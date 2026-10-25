@@ -13,12 +13,15 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import org.json.JSONObject
 import java.io.File
 
 class MainActivity : TauriActivity() {
   private var appWebView: WebView? = null
+  private var ttsBridge: AndroidTtsBridge? = null
+  private var immersive = false
   private val mainHandler = Handler(Looper.getMainLooper())
 
   private var pendingPdfBase64: String? = null
@@ -78,6 +81,10 @@ class MainActivity : TauriActivity() {
     appWebView = webView
     webView.addJavascriptInterface(AndroidUpdateBridge(this, webView), "OtiumAndroid")
     webView.addJavascriptInterface(ThemeBridge(), "OtiumTheme")
+    webView.addJavascriptInterface(UiBridge(), "OtiumUi")
+    ttsBridge = AndroidTtsBridge(this, webView).also { bridge ->
+      webView.addJavascriptInterface(bridge, "OtiumTts")
+    }
     schedulePdfDelivery()
   }
 
@@ -88,6 +95,31 @@ class MainActivity : TauriActivity() {
       runOnUiThread {
         applySystemBars(background, lightTheme)
       }
+    }
+  }
+
+  /** Lets the reader hide the Android status and navigation bars on a page tap. */
+  private inner class UiBridge {
+    @JavascriptInterface
+    fun setImmersive(enabled: Boolean) {
+      runOnUiThread {
+        applyImmersive(enabled)
+      }
+    }
+  }
+
+  private fun applyImmersive(enabled: Boolean) {
+    if (isFinishing || isDestroyed) return
+    immersive = enabled
+
+    val controller = WindowInsetsControllerCompat(window, window.decorView)
+    controller.systemBarsBehavior =
+      WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+
+    if (enabled) {
+      controller.hide(WindowInsetsCompat.Type.systemBars())
+    } else {
+      controller.show(WindowInsetsCompat.Type.systemBars())
     }
   }
 
@@ -127,12 +159,21 @@ class MainActivity : TauriActivity() {
 
   override fun onResume() {
     super.onResume()
+    if (immersive) applyImmersive(true)
     schedulePdfDelivery()
+  }
+
+  override fun onWindowFocusChanged(hasFocus: Boolean) {
+    super.onWindowFocusChanged(hasFocus)
+    // Some OEM skins restore the bars when the window regains focus.
+    if (hasFocus && immersive) applyImmersive(true)
   }
 
   override fun onDestroy() {
     deliveryGeneration += 1
     mainHandler.removeCallbacksAndMessages(null)
+    ttsBridge?.shutdown()
+    ttsBridge = null
     appWebView = null
     super.onDestroy()
   }
