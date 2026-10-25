@@ -42,6 +42,8 @@
 
 ---
 
+![Demo](./assets/demo.mp4)
+
 A PDF reader for Windows and Android. No accounts, no telemetry, no internet required after installation. Reading state persists locally across sessions.
 
 The interface is available in **English and Arabic** (RTL layout, full right-to-left navigation).
