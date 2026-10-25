@@ -1,11 +1,5 @@
 <div align="center">
 
-<a href="https://github.com/XRTM8/Otium">
-  <img src="./assets/banner.png" width="100%" alt="Otium" />
-</a>
-
-<br/><br/>
-
 # Otium
 
 <p align="center">
