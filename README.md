@@ -42,7 +42,13 @@
 
 ---
 
-![Demo](./assets/demo.mp4)
+<div align="center">
+  <a href="https://github.com/XRTM8/Otium/raw/main/assets/demo.mp4">
+    <img src="./assets/demo-thumb.jpg" width="85%" alt="▶ Watch demo" />
+  </a>
+  <br/>
+  <sub>▶ Click to watch demo · <a href="https://github.com/XRTM8/Otium/raw/main/assets/demo.mp4">download MP4</a></sub>
+</div>
 
 A PDF reader for Windows and Android. No accounts, no telemetry, no internet required after installation. Reading state persists locally across sessions.
 
