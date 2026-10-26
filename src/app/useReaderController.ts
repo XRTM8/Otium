@@ -42,6 +42,7 @@ import { clearSearchTextCache } from '../core/search/documentSearch';
 import { registerIncomingDocumentHandler } from '../platform/incomingDocument';
 import { syncNativeTheme } from '../platform/theme';
 import { syncNativeImmersive } from '../platform/ui';
+import { stopTts } from '../platform/tts';
 
 export interface ReaderCapabilities {
   keyboard: boolean;
@@ -126,32 +127,6 @@ function isInteractiveTarget(target: EventTarget | null): boolean {
       'button, a, input, textarea, select, [role="button"], [contenteditable="true"]'
     )
   );
-}
-
-/**
- * In paged modes the container always overflows slightly because of its
- * breathing-room padding. Measure the rendered pages themselves so padding
- * never swallows a gesture or hides part of a zoomed page.
- */
-function measurePageContent(container: HTMLElement): { width: number; height: number } | null {
-  const pages = container.querySelectorAll<HTMLElement>('[data-pdf-page]');
-  if (!pages.length) return null;
-
-  let left = Infinity;
-  let top = Infinity;
-  let right = -Infinity;
-  let bottom = -Infinity;
-
-  pages.forEach((page) => {
-    const rect = page.getBoundingClientRect();
-    left = Math.min(left, rect.left);
-    top = Math.min(top, rect.top);
-    right = Math.max(right, rect.right);
-    bottom = Math.max(bottom, rect.bottom);
-  });
-
-  if (!Number.isFinite(left) || !Number.isFinite(top)) return null;
-  return { width: right - left, height: bottom - top };
 }
 
 export function useReaderController(capabilities: ReaderCapabilities) {
@@ -283,6 +258,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const lastFitScaleRef = useRef(0);
   const pageSaveTimerRef = useRef<number | null>(null);
   const lastSavedPageRef = useRef<{ title: string; page: number } | null>(null);
+  const currentPageRef = useRef(currentPage);
+  currentPageRef.current = currentPage;
 
   useEffect(() => {
     measureRefreshRate();
@@ -305,24 +282,30 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     );
   }, [basePageSize, chromeInset, viewMode]);
 
+  const cachedScrollMetricsRef = useRef<{
+    maxScrollX: number;
+    maxScrollY: number;
+    isOverflowingX: boolean;
+    isOverflowingY: boolean;
+  }>({
+    maxScrollX: 0,
+    maxScrollY: 0,
+    isOverflowingX: false,
+    isOverflowingY: false
+  });
+
   const canScrollVertically = useCallback(
     (direction: number) => {
       const container = scrollContainerRef.current;
       if (!container) return false;
 
-      // In paged modes the container always overflows a little because of its
-      // breathing-room padding. That padding must not swallow a gesture: only
-      // a page that is genuinely taller than the viewport scrolls first.
-      if (viewMode !== 'continuous') {
-        const content = measurePageContent(container);
-        if (content && content.height <= container.clientHeight - 48) {
-          return false;
-        }
+      const metrics = cachedScrollMetricsRef.current;
+      if (viewMode !== 'continuous' && !metrics.isOverflowingY) {
+        return false;
       }
 
-      const maxScroll = container.scrollHeight - container.clientHeight;
-      if (maxScroll <= 2) return false;
-      return direction > 0 ? container.scrollTop < maxScroll - 1 : container.scrollTop > 1;
+      if (metrics.maxScrollY <= 2) return false;
+      return direction > 0 ? container.scrollTop < metrics.maxScrollY - 1 : container.scrollTop > 1;
     },
     [viewMode]
   );
@@ -332,16 +315,13 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       const container = scrollContainerRef.current;
       if (!container) return false;
 
-      if (viewMode !== 'continuous') {
-        const content = measurePageContent(container);
-        if (content && content.width <= container.clientWidth - 48) {
-          return false;
-        }
+      const metrics = cachedScrollMetricsRef.current;
+      if (viewMode !== 'continuous' && !metrics.isOverflowingX) {
+        return false;
       }
 
-      const maxScroll = container.scrollWidth - container.clientWidth;
-      if (maxScroll <= 2) return false;
-      return direction > 0 ? container.scrollLeft < maxScroll - 1 : container.scrollLeft > 1;
+      if (metrics.maxScrollX <= 2) return false;
+      return direction > 0 ? container.scrollLeft < metrics.maxScrollX - 1 : container.scrollLeft > 1;
     },
     [viewMode]
   );
@@ -442,6 +422,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
   useEffect(() => {
     return () => {
+      stopTts();
       if (pageSaveTimerRef.current !== null) {
         window.clearTimeout(pageSaveTimerRef.current);
       }
@@ -604,35 +585,63 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   // throw away a manual zoom the reader chose.
   useEffect(() => {
     let timer: number | null = null;
+    let stabilizeTimer: number | null = null;
 
     const rescale = () => {
-      if (timer !== null) window.clearTimeout(timer);
-      timer = window.setTimeout(() => {
-        timer = null;
-        if (!doc || !basePageSize.width || !basePageSize.height) return;
-        const fit = computeOptimalPageScale(
-          basePageSize.width,
-          basePageSize.height,
-          window.innerWidth,
-          window.innerHeight - chromeInset,
-          viewMode
-        );
-        const previousFit = lastFitScaleRef.current;
-        lastFitScaleRef.current = fit;
-        setZoom((current) =>
-          current <= (previousFit || fit) * 1.08
-            ? fit
-            : Math.min(3.5, Math.max(0.5, current))
-        );
-      }, 140);
+      if (typeof window === 'undefined') return;
+      if (window.innerWidth <= 0 || window.innerHeight <= 0) return;
+      if (!doc || !basePageSize.width || !basePageSize.height) return;
+
+      const fit = computeOptimalPageScale(
+        basePageSize.width,
+        basePageSize.height,
+        window.innerWidth,
+        window.innerHeight - chromeInset,
+        viewMode
+      );
+      const previousFit = lastFitScaleRef.current;
+      lastFitScaleRef.current = fit;
+      setZoom((current) =>
+        current <= (previousFit || fit) * 1.08
+          ? fit
+          : Math.min(3.5, Math.max(0.5, current))
+      );
     };
 
-    window.addEventListener('resize', rescale);
-    window.addEventListener('orientationchange', rescale);
+    const handleResizeOrOrientation = () => {
+      if (timer !== null) window.clearTimeout(timer);
+      if (stabilizeTimer !== null) window.clearTimeout(stabilizeTimer);
+      timer = window.setTimeout(rescale, 80);
+      // Android WebView orientation changes take up to ~300ms to complete layout reflow
+      stabilizeTimer = window.setTimeout(rescale, 320);
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        rescale();
+        window.setTimeout(rescale, 220);
+      } else if (document.visibilityState === 'hidden') {
+        stopTts();
+        const activeDocId = docIdRef.current;
+        const activePage = currentPageRef.current;
+        if (pageSaveTimerRef.current !== null && activeDocId) {
+          window.clearTimeout(pageSaveTimerRef.current);
+          pageSaveTimerRef.current = null;
+          void updateDocumentPage(activeDocId, activePage);
+        }
+      }
+    };
+
+    window.addEventListener('resize', handleResizeOrOrientation);
+    window.addEventListener('orientationchange', handleResizeOrOrientation);
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
       if (timer !== null) window.clearTimeout(timer);
-      window.removeEventListener('resize', rescale);
-      window.removeEventListener('orientationchange', rescale);
+      if (stabilizeTimer !== null) window.clearTimeout(stabilizeTimer);
+      window.removeEventListener('resize', handleResizeOrOrientation);
+      window.removeEventListener('orientationchange', handleResizeOrOrientation);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [doc, basePageSize, chromeInset, viewMode]);
 
@@ -717,6 +726,12 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   ]);
 
   const closeDocument = useCallback(() => {
+    stopTts();
+    if (pageSaveTimerRef.current !== null && docIdRef.current) {
+      window.clearTimeout(pageSaveTimerRef.current);
+      pageSaveTimerRef.current = null;
+      void updateDocumentPage(docIdRef.current, currentPageRef.current);
+    }
     const activeDoc = docRef.current;
     clearSearchTextCache(activeDoc);
     docRef.current = null;
@@ -748,7 +763,28 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     if (activeDoc) destroyDocumentSoon(activeDoc);
   }, [cancelPendingSingleTap]);
 
+  const handlePasswordCancel = useCallback(() => {
+    loadGenerationRef.current += 1;
+    const task = loadingTaskRef.current;
+    loadingTaskRef.current = null;
+    if (task) {
+      void task.destroy().catch(() => {});
+    }
+    setPasswordModal(EMPTY_PASSWORD_MODAL);
+    setIsLoading(false);
+    setLoadProgress(null);
+  }, []);
+
   const handleBackStep = useCallback((): boolean => {
+    const selection = typeof window !== 'undefined' ? window.getSelection() : null;
+    if (selection && !selection.isCollapsed && selection.toString().trim().length > 0) {
+      selection.removeAllRanges();
+      return true;
+    }
+    if (passwordModal.isOpen) {
+      handlePasswordCancel();
+      return true;
+    }
     if (isImmersive) {
       setIsImmersive(false);
       return true;
@@ -772,7 +808,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       return true;
     }
     return false;
-  }, [closeDocument, doc, isImmersive, isSearchOpen, isSettingsOpen, isSidebarOpen]);
+  }, [closeDocument, doc, handlePasswordCancel, isImmersive, isSearchOpen, isSettingsOpen, isSidebarOpen, passwordModal.isOpen]);
 
   useEffect(() => {
     (window as unknown as Record<string, unknown>).__OTIUM_HANDLE_BACK__ = handleBackStep;
@@ -1105,18 +1141,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     [passwordModal]
   );
 
-  const handlePasswordCancel = useCallback(() => {
-    loadGenerationRef.current += 1;
-    const task = loadingTaskRef.current;
-    loadingTaskRef.current = null;
-    if (task) {
-      void task.destroy().catch(() => {});
-    }
-    setPasswordModal(EMPTY_PASSWORD_MODAL);
-    setIsLoading(false);
-    setLoadProgress(null);
-  }, []);
-
   const handleDoubleTap = useCallback(
     (clientX: number, clientY: number) => {
       const fit = getFitScale();
@@ -1175,6 +1199,20 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       touchStartTimeRef.current = performance.now();
       resetSwipeOffset();
       touchDeltaXRef.current = 0;
+
+      // Cache scroll metrics once at touchstart to eliminate layout thrashing during touchmove
+      const container = scrollContainerRef.current;
+      if (container) {
+        const maxScrollX = Math.max(0, container.scrollWidth - container.clientWidth);
+        const maxScrollY = Math.max(0, container.scrollHeight - container.clientHeight);
+        cachedScrollMetricsRef.current = {
+          maxScrollX,
+          maxScrollY,
+          isOverflowingX: maxScrollX > 2,
+          isOverflowingY: maxScrollY > 2
+        };
+      }
+
       if (viewMode === 'single' || viewMode === 'dual') {
         setIsDraggingTouch(true);
       }
@@ -1223,7 +1261,10 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
     // A drag that is extending a text selection must never turn a page.
     const selection = typeof window !== 'undefined' ? window.getSelection() : null;
-    if (selection && !selection.isCollapsed && selection.toString().trim().length > 0) {
+    const hasSelection =
+      selectionAtTouchStartRef.current ||
+      Boolean(selection && !selection.isCollapsed && selection.toString().trim().length > 0);
+    if (hasSelection) {
       if (touchDeltaXRef.current !== 0) {
         resetSwipeOffset();
         touchDeltaXRef.current = 0;

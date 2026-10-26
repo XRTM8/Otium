@@ -9,6 +9,7 @@ import {
   Globe,
   HardDrive,
   Palette,
+  ScanLine,
   Trash2,
   Upload,
   X,
@@ -24,6 +25,7 @@ import {
   clearAllStoredDocuments
 } from '../core/storage/documents';
 import { OtiumLogo } from './OtiumLogo';
+import { launchOtiumScan } from '../platform/ui';
 
 interface WelcomeScreenProps {
   currentTheme: ThemeMode;
@@ -97,6 +99,13 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       onOpenFile(e.target.files[0]);
+    }
+  };
+
+  const handleLaunchScanner = () => {
+    const launched = launchOtiumScan();
+    if (!launched) {
+      window.open('https://github.com/XRTM8/Otium-Scan', '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -325,8 +334,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           />
         </div>
 
-        {/* Quick Sample Document Button */}
-        <div className="flex items-center justify-center w-full">
+        {/* Quick Actions: Sample Document & Companion Scanner */}
+        <div className="flex flex-wrap items-center justify-center gap-3 w-full">
           <button
             onClick={onOpenSample}
             className="btn-primary px-5 py-2 text-xs sm:text-sm"
@@ -334,6 +343,15 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             <BookOpen className="w-4 h-4 transition-colors" />
             <span>{t.openSample}</span>
             <ArrowUpRight className={`w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition-all ${currentLang === 'ar' ? 'group-hover:-translate-x-0.5' : 'group-hover:translate-x-0.5'} group-hover:-translate-y-0.5`} />
+          </button>
+
+          <button
+            onClick={handleLaunchScanner}
+            title={currentLang === 'ar' ? 'مسح كتاب أو مستند ورقي ضوئياً باستخدام Otium Scan' : 'Scan book or document with Otium Scan'}
+            className="btn-secondary px-4 py-2 text-xs sm:text-sm cursor-pointer"
+          >
+            <ScanLine className="w-4 h-4 text-emerald-400" />
+            <span>{currentLang === 'ar' ? 'مسح بـ Otium Scan' : 'Scan with Otium Scan'}</span>
           </button>
         </div>
 

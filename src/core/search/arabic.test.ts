@@ -5,6 +5,8 @@ describe('Arabic search normalisation', () => {
   it('removes vocalisation and tatweel', () => {
     expect(normalizeSearchText('مُحَمَّد')).toBe('محمد');
     expect(normalizeSearchText('كتـــاب')).toBe('كتاب');
+    expect(normalizeSearchText('كِتَاباً مُفِيداً')).toBe('كتابا مفيدا');
+    expect(normalizeSearchText('الرَّحْمَٰنِ الرَّحِيمِ')).toBe('الرحمن الرحيم');
   });
 
   it('folds alef, hamza and taa-marbuta variants', () => {

@@ -62,13 +62,29 @@ async function pump(): Promise<void> {
 
   activeJobs = 1;
   try {
-    await item.run();
+    // Safety timeout: prevents background WebView pause / phone lock from freezing the queue forever
+    await Promise.race([
+      item.run(),
+      new Promise<void>((_, reject) => {
+        window.setTimeout(() => reject(new Error('Render task timeout')), 8000);
+      })
+    ]);
   } catch {
     // Individual PDF pages already surface their own render errors.
   } finally {
     activeJobs = 0;
     schedulePump(0);
   }
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      activeJobs = 0;
+      scrollActiveUntil = 0;
+      schedulePump(0);
+    }
+  });
 }
 
 /** Enqueue a canvas render. Lower priority values are rendered first. */

@@ -149,23 +149,50 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
 
     const measure = () => {
       scrollFrameRef.current = null;
-      const slots = container.querySelectorAll<HTMLElement>('[data-page-slot]');
-      if (slots.length === 0) return;
+      if (numPages === 0) return;
+
+      const approxSlotHeight = Math.max(100, (basePageSize?.height || 842) * zoom + 32);
+      const estimatedPage = Math.max(
+        1,
+        Math.min(numPages, Math.floor(container.scrollTop / approxSlotHeight) + 1)
+      );
 
       const containerRect = container.getBoundingClientRect();
       const readingLine = containerRect.top + containerRect.height * 0.38;
       let bestPage = lastScrollPageRef.current;
       let bestDistance = Number.POSITIVE_INFINITY;
 
-      slots.forEach((slot) => {
+      // Candidate window around estimated page to avoid querying hundreds of elements
+      const minPage = Math.max(1, estimatedPage - 3);
+      const maxPage = Math.min(numPages, estimatedPage + 4);
+      let foundInWindow = false;
+
+      for (let p = minPage; p <= maxPage; p += 1) {
+        const slot = document.getElementById(`pdf-page-${p}`);
+        if (!slot) continue;
         const rect = slot.getBoundingClientRect();
-        if (rect.bottom < containerRect.top || rect.top > containerRect.bottom) return;
+        if (rect.bottom < containerRect.top || rect.top > containerRect.bottom) continue;
+        foundInWindow = true;
         const distance = Math.abs(rect.top + Math.min(rect.height * 0.25, 96) - readingLine);
         if (distance < bestDistance) {
           bestDistance = distance;
-          bestPage = Number.parseInt(slot.dataset.pageSlot || '', 10) || bestPage;
+          bestPage = p;
         }
-      });
+      }
+
+      // Safe fallback if irregular heights caused the candidate window to miss
+      if (!foundInWindow) {
+        const slots = container.querySelectorAll<HTMLElement>('[data-page-slot]');
+        slots.forEach((slot) => {
+          const rect = slot.getBoundingClientRect();
+          if (rect.bottom < containerRect.top || rect.top > containerRect.bottom) return;
+          const distance = Math.abs(rect.top + Math.min(rect.height * 0.25, 96) - readingLine);
+          if (distance < bestDistance) {
+            bestDistance = distance;
+            bestPage = Number.parseInt(slot.dataset.pageSlot || '', 10) || bestPage;
+          }
+        });
+      }
 
       if (bestPage !== lastScrollPageRef.current) {
         lastScrollPageRef.current = bestPage;
@@ -187,7 +214,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
         scrollFrameRef.current = null;
       }
     };
-  }, [viewMode, doc, currentPage, handlePageVisible, scrollContainerRef]);
+  }, [viewMode, doc, currentPage, numPages, basePageSize, zoom, handlePageVisible, scrollContainerRef]);
 
   // When the page fits vertically, vertical touch gestures turn pages instead
   // of panning: block native vertical panning so the page stays perfectly
@@ -231,6 +258,18 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
               ? 'Forward'
               : 'Backward'
         } 220ms cubic-bezier(0.16, 1, 0.3, 1) both`
+      : undefined;
+  const dualAnimation =
+    !isDraggingTouch && dualFlipKey > 0
+      ? `dualPageFlip${
+          isRtl
+            ? dualFlipDir === 'forward'
+              ? 'Backward'
+              : 'Forward'
+            : dualFlipDir === 'forward'
+              ? 'Forward'
+              : 'Backward'
+        } 240ms cubic-bezier(0.16, 1, 0.3, 1) both`
       : undefined;
 
   // In an Arabic book odd pages sit on the right, so the first page of a
@@ -356,7 +395,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             <PageSlot
               key={pageNum}
               pageNum={pageNum}
-              isNear={Math.abs(pageNum - currentPage) <= 4}
+              isNear={Math.abs(pageNum - currentPage) <= (compact ? 2 : 3)}
               doc={doc}
               scale={zoom}
               theme={theme}
@@ -385,7 +424,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
               key={`dual-${dualFlipKey}`}
               className="flex items-center justify-center gap-1 sm:gap-2 shadow-2xl"
               style={{
-                animation: pagedAnimation,
+                animation: dualAnimation,
                 willChange: 'transform, opacity',
                 flexDirection: reverseSpread ? 'row-reverse' : 'row'
               }}

@@ -243,8 +243,17 @@ function openDB(): Promise<IDBDatabase> {
     };
 
     request.onerror = () => {
+      const err = request.error;
       dbPromise = null;
-      reject(request.error);
+      if (err?.name === 'VersionError') {
+        console.warn('IndexedDB version error. Resetting database to recover...', err);
+        try {
+          indexedDB.deleteDatabase(DB_NAME);
+        } catch {
+          // ignore
+        }
+      }
+      reject(err);
     };
     request.onblocked = () => {
       dbPromise = null;

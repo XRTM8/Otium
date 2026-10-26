@@ -8,7 +8,12 @@ export interface IncomingDocument {
 export type IncomingDocumentHandler = (document: IncomingDocument) => void;
 
 function decodeBase64(base64: string): ArrayBuffer {
-  const binary = atob(base64);
+  let cleaned = base64.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
+  const remainder = cleaned.length % 4;
+  if (remainder === 2) cleaned += '==';
+  else if (remainder === 3) cleaned += '=';
+
+  const binary = atob(cleaned);
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index += 1) {
     bytes[index] = binary.charCodeAt(index);

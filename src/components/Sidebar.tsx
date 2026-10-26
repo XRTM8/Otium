@@ -66,6 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const sheetRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
+  const sheetHeightRef = useRef<number>(0);
   const dragRef = useRef<{
     pointerId: number;
     startY: number;
@@ -126,7 +127,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const resetSheetMotion = useCallback(() => {
     const sheet = sheetRef.current;
     if (sheet) {
-      sheet.style.animation = '';
       sheet.style.transition = '';
       sheet.style.transform = '';
     }
@@ -153,7 +153,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           closeTimerRef.current = null;
           resetSheetMotion();
           onClose();
-        }, 200);
+        }, 230);
         return;
       }
 
@@ -161,7 +161,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       if (backdrop) backdrop.style.opacity = '1';
       settleTimerRef.current = window.setTimeout(() => {
         settleTimerRef.current = null;
-        resetSheetMotion();
+        if (sheetRef.current) {
+          sheetRef.current.style.transition = '';
+        }
+        if (backdropRef.current) {
+          backdropRef.current.style.transition = '';
+        }
       }, 240);
     },
     [onClose, resetSheetMotion]
@@ -182,6 +187,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
     const sheet = sheetRef.current;
     if (!sheet) return;
+
+    sheetHeightRef.current = sheet.offsetHeight || window.innerHeight;
 
     dragRef.current = {
       pointerId: event.pointerId,
@@ -216,7 +223,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     // Rubber-band after 160px so the sheet never detaches from the finger too
     // abruptly, while keeping the first part of the drag 1:1.
     const shown = delta <= 160 ? delta : 160 + (delta - 160) * 0.62;
-    const height = Math.max(1, sheet.offsetHeight || window.innerHeight);
+    const height = Math.max(1, sheetHeightRef.current || window.innerHeight);
 
     sheet.style.transform = `translate3d(0, ${shown}px, 0)`;
     if (backdropRef.current) {
@@ -237,8 +244,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       // The browser may have released it already.
     }
 
-    const sheet = sheetRef.current;
-    const height = sheet ? Math.max(1, sheet.offsetHeight || window.innerHeight) : window.innerHeight;
+    const height = Math.max(1, sheetHeightRef.current || window.innerHeight);
     const elapsed = Math.max(1, performance.now() - drag.startedAt);
     const velocity = drag.delta / elapsed;
     const passedDistance = drag.delta > Math.min(150, height * 0.22);
@@ -280,6 +286,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Drawer (desktop) or bottom sheet (touch) */}
       <div
         ref={sheetRef}
+        onAnimationEnd={(e) => {
+          if (e.currentTarget === sheetRef.current) {
+            sheetRef.current.style.animation = 'none';
+          }
+        }}
         className={
           isSheet
             ? 'chrome-surface mobile-sheet absolute inset-x-0 bottom-0 z-10 flex h-[84dvh] max-h-[92dvh] flex-col overflow-hidden rounded-t-3xl border-x-0 border-b-0 text-ink sm:left-1/2 sm:right-auto sm:w-[42rem] sm:max-w-[calc(100vw-2rem)] sm:-translate-x-1/2'

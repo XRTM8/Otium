@@ -54,12 +54,17 @@ export function measureRefreshRate(callback?: (hz: number) => void): void {
 /**
  * Canvas backing-store ratio. Mobile screens report devicePixelRatio 3 or 4,
  * which multiplies the canvas memory by 9-16x and can OOM the WebView on large
- * pages. Capping at 2 keeps glyphs sharp while bounding memory and fill rate.
+ * pages. Capping mobile at 1.85 and desktop at 2 keeps glyphs razor sharp while
+ * bounding texture memory and fill rate.
  */
-export function getCanvasPixelRatio(limit = 2): number {
+export function getCanvasPixelRatio(limit?: number): number {
   if (typeof window === 'undefined') return 1;
   const raw = Number.isFinite(window.devicePixelRatio) ? window.devicePixelRatio : 1;
-  return Math.min(limit, Math.max(1, raw));
+  const isMobile =
+    window.matchMedia('(max-width: 768px)').matches ||
+    (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
+  const maxLimit = limit ?? (isMobile ? 1.85 : 2);
+  return Math.min(maxLimit, Math.max(1, raw));
 }
 
 // Compute the optimal razor-sharp scale for a PDF page given container size and view mode
@@ -73,10 +78,10 @@ export function computeOptimalPageScale(
   if (!pageWidth || !containerWidth) return 1.15;
 
   const paddingH = containerWidth < 640 ? 16 : 48;
-  const paddingV = 80;
+  const paddingV = containerHeight < 540 ? 24 : 80;
 
-  const availW = Math.max(320, containerWidth - paddingH);
-  const availH = Math.max(400, containerHeight - paddingV);
+  const availW = Math.max(280, containerWidth - paddingH);
+  const availH = Math.max(200, containerHeight - paddingV);
 
   // A short viewport (landscape phones, small windows) cannot show a readable
   // full page. Fit the width and let the page scroll vertically instead of

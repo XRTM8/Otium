@@ -22,6 +22,7 @@ import {
   stopTts,
   type TtsHandle
 } from '../platform/tts';
+import { detectSpeechLanguage, prepareTextForSpeech } from '../core/tts/speechLanguage';
 
 interface TextSelectionMenuProps {
   onAddAnnotation: (annotation: TextAnnotation) => void;
@@ -76,7 +77,8 @@ const LABELS = {
     selectedText: 'النص المحدد',
     speechUnsupported: 'الاستماع غير مدعوم على هذا الجهاز.',
     speechFailed: 'تعذر تشغيل الصوت. حاول مرة أخرى.',
-    speechNoVoice: 'لا يوجد صوت عربي مثبت. ثبّت حزمة صوت عربية من إعدادات النظام.',
+    speechNoArabicVoice: 'لا يوجد صوت عربي مثبت. ثبّت حزمة صوت عربية من إعدادات النظام.',
+    speechNoEnglishVoice: 'لا يوجد صوت إنجليزي مثبت. ثبّت حزمة صوت إنجليزية من إعدادات النظام.',
     voiceSettings: 'إعدادات الصوت'
   },
   en: {
@@ -97,10 +99,71 @@ const LABELS = {
     selectedText: 'Selected text',
     speechUnsupported: 'Listening is not supported on this device.',
     speechFailed: 'Could not start speech. Please try again.',
-    speechNoVoice: 'No Arabic voice is installed. Add one from the system voice settings.',
+    speechNoArabicVoice: 'No Arabic voice is installed. Add one from the system voice settings.',
+    speechNoEnglishVoice: 'No English voice is installed. Add one from the system voice settings.',
     voiceSettings: 'Voice settings'
   }
 } as const;
+
+/**
+ * Extracts client rects only for non-whitespace character ranges inside the
+ * selection. PDF.js text layer often creates large empty space spans (for
+ * justified margins or line wraps) or trailing spaces after punctuation;
+ * taking raw range.getClientRects() would cause the highlighter to extend
+ * far outside the text into the margin.
+ */
+function getAccurateSelectionRects(range: Range): DOMRect[] {
+  const container = range.commonAncestorContainer;
+  const root =
+    container.nodeType === Node.ELEMENT_NODE
+      ? (container as HTMLElement)
+      : container.parentElement || document.body;
+
+  try {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        if (!range.intersectsNode(node)) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+
+    const rects: DOMRect[] = [];
+    let node = walker.nextNode() as Text | null;
+
+    while (node) {
+      const nodeText = node.nodeValue || '';
+      const start = node === range.startContainer ? range.startOffset : 0;
+      const end = node === range.endContainer ? range.endOffset : nodeText.length;
+
+      const slice = nodeText.slice(start, end);
+      const leadingSpaces = slice.match(/^\s*/)?.[0].length || 0;
+      const trailingSpaces = slice.match(/\s*$/)?.[0].length || 0;
+
+      const trimmedStart = start + leadingSpaces;
+      const trimmedEnd = end - trailingSpaces;
+
+      if (trimmedStart < trimmedEnd) {
+        const subRange = document.createRange();
+        subRange.setStart(node, trimmedStart);
+        subRange.setEnd(node, trimmedEnd);
+        const subRects = Array.from(subRange.getClientRects());
+        for (const r of subRects) {
+          if (r.width > 0.5 && r.height > 0.5) {
+            rects.push(r);
+          }
+        }
+      }
+
+      node = walker.nextNode() as Text | null;
+    }
+
+    if (rects.length > 0) return rects;
+  } catch {
+    // Fall back to native getClientRects if tree walking fails
+  }
+
+  return Array.from(range.getClientRects());
+}
 
 /**
  * Merges the per-glyph client rects produced by a PDF.js text selection into
@@ -121,17 +184,30 @@ function mergeSelectionRects(rawRects: DOMRect[], pageRect: DOMRect): MergedRect
     if (right - left < 1 || bottom - top < 1) continue;
 
     const existing = lines.find((line) => {
-      const sameRow = Math.abs((line.top + line.bottom) / 2 - (top + bottom) / 2) < (bottom - top) * 0.55;
+      const lineH = Math.max(line.bottom - line.top, bottom - top);
+      const verticalOverlap = Math.min(line.bottom, bottom) - Math.max(line.top, top);
+      const sameRow =
+        verticalOverlap > lineH * 0.25 ||
+        Math.abs((line.top + line.bottom) / 2 - (top + bottom) / 2) < lineH * 0.55;
       if (!sameRow) return false;
+
+      // Allow adjacent characters, words, and trailing punctuation to merge smoothly
       const gap = Math.max(line.left, left) - Math.min(line.right, right);
-      return gap < 6;
+      return gap < 14;
     });
 
     if (existing) {
       existing.left = Math.min(existing.left, left);
       existing.right = Math.max(existing.right, right);
-      existing.top = Math.min(existing.top, top);
-      existing.bottom = Math.max(existing.bottom, bottom);
+
+      // Punctuation like periods (.) or commas (,) often has a tiny bounding box
+      // (e.g. 4px height) or a displaced baseline in PDF.js spans. Do not allow
+      // a tiny punctuation box to shrink or distort the line's top/bottom height.
+      const isTinyPunctuation = (bottom - top) < (existing.bottom - existing.top) * 0.55;
+      if (!isTinyPunctuation) {
+        existing.top = Math.min(existing.top, top);
+        existing.bottom = Math.max(existing.bottom, bottom);
+      }
     } else {
       lines.push({ left, top, right, bottom });
     }
@@ -212,6 +288,14 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
 
   useEffect(() => {
     selectionRef.current = selectionState;
+    if (selectionState) {
+      document.body.dataset.hasSelection = 'true';
+    } else {
+      delete document.body.dataset.hasSelection;
+    }
+    return () => {
+      delete document.body.dataset.hasSelection;
+    };
   }, [selectionState]);
 
   const stopSpeech = useCallback(() => {
@@ -264,7 +348,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
     const pageRect = startPage.getBoundingClientRect();
     if (!pageRect.width || !pageRect.height) return false;
 
-    const lines = mergeSelectionRects(Array.from(range.getClientRects()), pageRect);
+    const lines = mergeSelectionRects(getAccurateSelectionRects(range), pageRect);
     if (lines.length === 0) return false;
 
     const rects: AnnotationRect[] = lines.map((line) => ({
@@ -571,8 +655,13 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
       return;
     }
 
+    const speechLang = detectSpeechLanguage(selectionState.text, lang);
+    const textToSpeak = prepareTextForSpeech(selectionState.text);
+    const noVoiceMessage =
+      speechLang === 'ar' ? labels.speechNoArabicVoice : labels.speechNoEnglishVoice;
+
     let settled = false;
-    const handle = speakText(selectionState.text, lang, 0.98, {
+    const handle = speakText(textToSpeak, speechLang, 0.98, {
       onStart: () => {
         settled = true;
         setIsSpeaking(true);
@@ -587,7 +676,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
         speechHandleRef.current = null;
         setIsSpeaking(false);
         setSpeechError({
-          message: code === 'language' ? labels.speechNoVoice : labels.speechFailed,
+          message: code === 'language' ? noVoiceMessage : labels.speechFailed,
           voiceSettings: code === 'language'
         });
       }

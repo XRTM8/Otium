@@ -111,6 +111,32 @@ class MainActivity : TauriActivity() {
         applyImmersive(enabled)
       }
     }
+
+    @JavascriptInterface
+    fun openOtiumScan(): Boolean {
+      return try {
+        val launchIntent = packageManager.getLaunchIntentForPackage("com.otium.scan")
+        if (launchIntent != null) {
+          launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+          startActivity(launchIntent)
+          true
+        } else {
+          false
+        }
+      } catch (_: Exception) {
+        false
+      }
+    }
+
+    @JavascriptInterface
+    fun isOtiumScanInstalled(): Boolean {
+      return try {
+        packageManager.getPackageInfo("com.otium.scan", 0)
+        true
+      } catch (_: Exception) {
+        false
+      }
+    }
   }
 
   /**
