@@ -1,4 +1,4 @@
-# Otium 1.5.1 — إصدار الاستقرار الفائق والتكامل مع Otium Scan
+# Otium 1.5.2 — إصدار الاستقرار الفائق والتكامل مع Otium Scan
 
 إصدار كبير يركز على ملكية بياناتك وعلى راحة القراءة العربية. أصبح لكل كتاب هوية ثابتة، ويمكن نسخ المكتبة احتياطيًا واستعادتها، مع تحسين البحث والتخطيط للعربية والتنقل السريع بين الصفحات. يعمل التحديث على Windows وAndroid.
 
@@ -36,4 +36,4 @@
 - **Better accessibility.** The reading area is now a named landmark, the progress bar reports the current page, and a polite live region announces page changes. Arabic control labels were also tightened.
 - **Tested storage and backup logic.** New Vitest coverage uses a fake IndexedDB to verify fingerprints, document storage, backup merging and Arabic normalisation, plus migration of data written by previous versions.
 
-Download `Otium_1.5.1_arm64-v8a.apk` for modern Android phones.
+Download `Otium_1.5.2_arm64-v8a.apk` for modern Android phones.
