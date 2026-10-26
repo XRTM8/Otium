@@ -172,7 +172,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   return (
     <div
       dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
-      className="relative min-h-screen w-full flex flex-col items-center justify-center p-6 pb-16 bg-[var(--app-bg)] text-ink select-none overflow-y-auto overflow-x-hidden transition-colors duration-700"
+      className="relative min-h-screen w-full flex flex-col items-center justify-start p-5 pt-16 sm:pt-14 pb-16 bg-[var(--app-bg)] text-ink select-none overflow-y-auto overflow-x-hidden transition-colors duration-700"
     >
       
       {/* Top Floating Action Bar with Safe Area Inset for mobile notches & status bars */}
@@ -284,7 +284,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
       <div className={`absolute top-1/6 left-1/2 -translate-x-1/2 w-[34rem] h-[20rem] ${style.glow1} rounded-full blur-[110px] pointer-events-none transition-all duration-700 animate-glow-amber`} />
       <div className={`absolute bottom-1/5 right-1/4 w-[26rem] h-[18rem] ${style.glow2} rounded-full blur-[100px] pointer-events-none transition-all duration-700 animate-glow-indigo`} />
 
-      <div className="relative max-w-xl w-full flex flex-col items-center text-center space-y-6 z-10 pt-8 sm:pt-4">
+      <div className="relative max-w-xl w-full flex flex-col items-center text-center space-y-5 z-10 pt-2 sm:pt-4">
         
         {/* Brand Header with Theme-morphing Logo and Gradient Name */}
         <div className="flex flex-col items-center space-y-3">
@@ -379,7 +379,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               </button>
             </div>
 
-            <div className="space-y-2">
+            {/* Smooth Scrollable Slider for Recent Files (shows ~3 items cleanly, scrolls the rest) */}
+            <div className="space-y-2 max-h-[220px] sm:max-h-[260px] overflow-y-auto overflow-x-hidden p-1 scrollbar-thin scrollbar-thumb-line-strong scrollbar-track-transparent overscroll-contain transition-all">
               {recents.map((r) => (
                 <div
                   key={r.id}
@@ -427,9 +428,9 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                         {r.available ? (
                           <>
                             <span className="text-ink-faint hidden sm:inline">•</span>
-                            <span className="flex items-center gap-1 font-mono text-ink-muted">
+                            <span dir="ltr" className="inline-flex items-center gap-1 font-mono text-ink-muted">
                               <HardDrive className="w-3 h-3 text-ink-faint shrink-0" />
-                              <span dir="ltr" className="inline-block">{formatSize(r.sizeBytes)}</span>
+                              <span>{formatSize(r.sizeBytes)}</span>
                             </span>
                           </>
                         ) : (
