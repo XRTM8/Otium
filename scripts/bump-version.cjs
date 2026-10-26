@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const targetVersion = '1.5.2';
+const targetVersion = process.argv[2] || '1.5.3';
+const numericCode = targetVersion.replace(/\D/g, '');
 
 // 1. package.json
 const pkgPath = 'package.json';
@@ -43,7 +44,7 @@ const propsPath = 'src-tauri/gen/android/app/tauri.properties';
 if (fs.existsSync(propsPath)) {
   let props = fs.readFileSync(propsPath, 'utf8');
   props = props.replace(/^tauri\.android\.versionName=.+$/m, `tauri.android.versionName=${targetVersion}`);
-  props = props.replace(/^tauri\.android\.versionCode=.+$/m, `tauri.android.versionCode=152`);
+  props = props.replace(/^tauri\.android\.versionCode=.+$/m, `tauri.android.versionCode=${numericCode || '153'}`);
   fs.writeFileSync(propsPath, props, 'utf8');
 }
 
