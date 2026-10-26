@@ -26,6 +26,9 @@
 
 <p align="center">
   <a href="#downloads">Downloads</a> &nbsp;·&nbsp;
+  <a href="#about-the-name--فلسفة-الاسم">About the Name</a> &nbsp;·&nbsp;
+  <a href="#companion-app-otium-scan--التطبيق-المرافق">Companion App</a> &nbsp;·&nbsp;
+  <a href="#project-status--حالة-المشروع">Project Status</a> &nbsp;·&nbsp;
   <a href="#screenshots">Screenshots</a> &nbsp;·&nbsp;
   <a href="#features">Features</a> &nbsp;·&nbsp;
   <a href="#shortcuts">Shortcuts</a> &nbsp;·&nbsp;
@@ -41,6 +44,48 @@ https://github.com/user-attachments/assets/1e179513-55d3-469c-a7c8-b31ee67e65fd
 A PDF reader for Windows and Android. No accounts, no telemetry, no internet required after installation. Reading state persists locally across sessions.
 
 The interface is available in **English and Arabic** (RTL layout, full right-to-left navigation).
+
+---
+
+## About the Name · فلسفة الاسم
+
+> **Otium** /ˈoː.ti.um/ *(noun, Latin)*: In Roman philosophy, *otium* was the deliberate time dedicated to study, reading, reflection, and quiet intellectual contemplation — the state of tranquil freedom from worldly obligations. Its direct opposite was **negotium** (*nec-otium*), meaning commerce, business, noise, and constant daily bustle.
+
+Most modern document software has become *negotium*: subscription barriers, intrusive analytics, cloud sync accounts, and visual clutter. Otium is built to reclaim that quiet, undisturbed space. Everything runs locally on your machine, your reading habits stay yours, and the interface stays out of your way.
+
+**باللغة العربية:**  
+اسم **أوتيوم (Otium)** مستوحى من المفهوم الفلسفي اللاتيني القديم الذي يعبر عن الوقت المخصص للقراءة المتأنية، التفكير الهادئ، والبحث المعرفي بعيداً عن صخب الحياة والالتزامات اليومية (*Negotium*). جاء التطبيق ليعيد تجربة القراءة إلى بساطتها وجوهرها الأصلي: تطبيق محلي بالكامل، بدون إعلانات، وبدون تتبع أو خوادم وسيطة.
+
+---
+
+## Companion App: Otium Scan · التطبيق المرافق
+
+Otium Reader has a dedicated sister application: [**Otium Scan**](https://github.com/XRTM8/Otium-Scan) — an offline, privacy-first mobile document scanner.
+
+```
+  [ Physical Book / Notes ] 
+             │
+             ▼
+      Otium Scan          ─── (Direct Export) ───►      Otium Reader
+  • Edge detection & crop                           • Dual-page spread mode
+  • Document clean filters                          • Annotations & highlights
+  • Offline PDF generation                          • Distraction-free reading
+```
+
+If you study from physical textbooks or lecture handouts, use **Otium Scan** to photograph and clean your pages into high-contrast PDFs, then open them immediately inside **Otium Reader** with a single tap.
+
+---
+
+## Project Status & Honesty · حالة المشروع
+
+> [!NOTE]
+> **Active Development / المشروع قيد التطوير النشط:**  
+> This project is a personal, independent open-source endeavor. While it is stable enough for daily reading and academic presentations, **it is still under active development**.  
+>  
+> You might encounter visual quirks, unhandled PDF formatting edge cases, or platform-specific glitches depending on your hardware, screen aspect ratio, or Android ROM. We do not pretend this is a finished corporate product. If you find a bug, please [open an issue on GitHub](https://github.com/XRTM8/Otium/issues) with your device details and steps to reproduce — your feedback directly shapes the next release.
+>  
+> **ملاحظة للمستخدمين باللغة العربية:**  
+> هذا المشروع عمل شخصي ومفتوح المصدر (FOSS) نابع من الحاجة لقارئ كتب هادئ ومحترم لخصوصية القارئ، وهو قيد التطوير والتحسين المستمر. نظراً لتنوع أجهزة أندرويد واختلاف دقة الشاشات وتفاوت ملفات الـ PDF، قد تواجه بعض الأخطاء أو عدم التناسق في بعض الواجهات. لا ندّعي الكمال التجاري؛ بدلاً من ذلك نرحب بكل ملاحظة أو بلاغ خطأ على صفحة الـ Issues للمساعدة في سد الثغرات وتحسين التجربة للجميع.
 
 ---
 
