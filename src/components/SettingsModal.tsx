@@ -296,8 +296,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const tabs: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'fonts', label: t.typographyTitle, icon: <Type className="w-3.5 h-3.5" /> },
-    { id: 'reading', label: t.defaultReadingMode, icon: <BookOpen className="w-3.5 h-3.5" /> },
+    { id: 'fonts', label: ar ? 'الخطوط' : 'Fonts', icon: <Type className="w-3.5 h-3.5" /> },
+    { id: 'reading', label: ar ? 'العرض' : 'Reading', icon: <BookOpen className="w-3.5 h-3.5" /> },
     {
       id: 'data',
       label: ar ? 'البيانات' : 'Data',
@@ -337,13 +337,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
 
-        <div className="segmented my-3 flex w-full shrink-0">
+        <div className="segmented my-3 flex w-full shrink-0 overflow-x-auto scrollbar-none gap-1 p-1">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               data-active={activeTab === tab.id}
-              className="flex-1 justify-center py-1.5 text-[11px] sm:text-xs"
+              className="flex-1 min-w-[70px] justify-center py-2 px-2 text-xs font-semibold whitespace-nowrap active:scale-95 transition-all cursor-pointer"
             >
               {tab.icon}
               <span>{tab.label}</span>
@@ -511,7 +511,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-ink-muted font-mono">
-                  <span>
+                  <span dir="ltr" className="inline-block">
                     {storage ? formatBytes(storage.bytes) : '—'} / {formatBytes(1024 * 1024 * 1024)}
                   </span>
                   {storage && storage.restoredOnly > 0 && (

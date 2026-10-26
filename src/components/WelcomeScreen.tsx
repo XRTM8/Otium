@@ -334,24 +334,24 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           />
         </div>
 
-        {/* Quick Actions: Sample Document & Companion Scanner */}
-        <div className="flex flex-wrap items-center justify-center gap-3 w-full">
-          <button
-            onClick={onOpenSample}
-            className="btn-primary px-5 py-2 text-xs sm:text-sm"
-          >
-            <BookOpen className="w-4 h-4 transition-colors" />
-            <span>{t.openSample}</span>
-            <ArrowUpRight className={`w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition-all ${currentLang === 'ar' ? 'group-hover:-translate-x-0.5' : 'group-hover:translate-x-0.5'} group-hover:-translate-y-0.5`} />
-          </button>
-
+        {/* Quick Actions: Companion Scanner & Sample Document */}
+        <div className="flex flex-wrap items-center justify-center gap-2.5 w-full">
           <button
             onClick={handleLaunchScanner}
             title={currentLang === 'ar' ? 'مسح كتاب أو مستند ورقي ضوئياً باستخدام Otium Scan' : 'Scan book or document with Otium Scan'}
-            className="btn-secondary px-4 py-2 text-xs sm:text-sm cursor-pointer"
+            className="btn-secondary px-4 py-2 text-xs sm:text-sm cursor-pointer shadow-sm active:scale-95 transition-all"
           >
             <ScanLine className="w-4 h-4 text-emerald-400" />
             <span>{currentLang === 'ar' ? 'مسح بـ Otium Scan' : 'Scan with Otium Scan'}</span>
+          </button>
+
+          <button
+            onClick={onOpenSample}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-line bg-surface/60 hover:bg-surface text-ink-muted hover:text-ink text-xs sm:text-sm font-medium transition-all active:scale-95 shadow-sm cursor-pointer group"
+          >
+            <BookOpen className="w-4 h-4 text-accent" />
+            <span>{t.openSample}</span>
+            <ArrowUpRight className={`w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition-all ${currentLang === 'ar' ? 'group-hover:-translate-x-0.5' : 'group-hover:translate-x-0.5'} group-hover:-translate-y-0.5`} />
           </button>
         </div>
 
@@ -429,7 +429,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                             <span className="text-ink-faint hidden sm:inline">•</span>
                             <span className="flex items-center gap-1 font-mono text-ink-muted">
                               <HardDrive className="w-3 h-3 text-ink-faint shrink-0" />
-                              <span>{formatSize(r.sizeBytes)}</span>
+                              <span dir="ltr" className="inline-block">{formatSize(r.sizeBytes)}</span>
                             </span>
                           </>
                         ) : (
@@ -442,7 +442,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 shrink-0 pl-1">
+                  <div className="flex items-center gap-1 shrink-0 px-1">
                     <button
                       onClick={async (e) => {
                         e.stopPropagation();
@@ -450,7 +450,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                         loadRecents();
                       }}
                       title={t.deleteTooltip}
-                      className="p-1.5 rounded-lg opacity-70 sm:opacity-0 group-hover:opacity-100 hover:bg-rose-500/20 text-ink-muted hover:text-danger-ink transition-all"
+                      className="p-2 rounded-xl opacity-75 sm:opacity-0 group-hover:opacity-100 text-ink-faint hover:text-rose-400 hover:bg-rose-500/10 active:bg-rose-500/20 active:scale-90 transition-all cursor-pointer"
                     >
                       <X className="w-4 h-4" />
                     </button>
