@@ -783,6 +783,15 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   }, []);
 
   const handleBackStep = useCallback((): boolean => {
+    // 1. Give topmost menus/sheets a chance to handle the back action
+    if (typeof window !== 'undefined') {
+      const backEvent = new CustomEvent('otium:back', { cancelable: true });
+      window.dispatchEvent(backEvent);
+      if (backEvent.defaultPrevented) {
+        return true;
+      }
+    }
+
     const selection = typeof window !== 'undefined' ? window.getSelection() : null;
     if (selection && !selection.isCollapsed && selection.toString().trim().length > 0) {
       selection.removeAllRanges();
@@ -828,9 +837,27 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     };
     window.addEventListener('keydown', handleEscape);
 
+    // Support Android hardware back button and gesture navigation via popstate
+    let isPopping = false;
+    const handlePopState = () => {
+      if (isPopping) return;
+      isPopping = true;
+      const stepped = handleBackStep();
+      if (stepped) {
+        window.history.pushState(null, '', window.location.href);
+      }
+      setTimeout(() => {
+        isPopping = false;
+      }, 50);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    window.history.pushState(null, '', window.location.href);
+
     return () => {
       delete (window as unknown as Record<string, unknown>).__OTIUM_HANDLE_BACK__;
       window.removeEventListener('keydown', handleEscape);
+      window.removeEventListener('popstate', handlePopState);
     };
   }, [handleBackStep]);
 

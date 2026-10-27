@@ -86,7 +86,15 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
   useEffect(() => {
     if (!showMenu) return;
     const timer = window.setTimeout(() => setShowMenu(false), 8000);
-    return () => window.clearTimeout(timer);
+    const handleBack = (e: Event) => {
+      e.preventDefault();
+      setShowMenu(false);
+    };
+    window.addEventListener('otium:back', handleBack);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('otium:back', handleBack);
+    };
   }, [showMenu]);
 
   useEffect(() => {
@@ -103,8 +111,16 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
     const close = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setShowJump(false);
     };
+    const handleBack = (e: Event) => {
+      e.preventDefault();
+      setShowJump(false);
+    };
     window.addEventListener('keydown', close);
-    return () => window.removeEventListener('keydown', close);
+    window.addEventListener('otium:back', handleBack);
+    return () => {
+      window.removeEventListener('keydown', close);
+      window.removeEventListener('otium:back', handleBack);
+    };
   }, [showJump]);
 
   const submitPageJump = () => {
