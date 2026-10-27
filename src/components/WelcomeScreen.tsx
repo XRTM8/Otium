@@ -357,7 +357,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
         {/* Stored Recent Files with Theme-aware styling */}
         {recents.length > 0 && (
-          <div className="w-full text-right pt-4 border-t border-line space-y-2.5">
+          <div className="w-full text-start pt-4 border-t border-line space-y-2.5">
             <div className="flex items-center justify-between text-xs text-ink-muted px-1">
               <span className="flex items-center gap-1.5 font-medium">
                 <Clock className="w-3.5 h-3.5 opacity-80" />
@@ -412,7 +412,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                     <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${style.fileIconBox}`}>
                       <OtiumLogo theme={currentTheme} size={22} />
                     </div>
-                    <div className="flex flex-col min-w-0 gap-1 text-right">
+                    <div className="flex flex-col min-w-0 gap-1 text-start">
                       <span className={`truncate font-medium text-xs sm:text-sm text-ink ${style.fileHoverText} transition-colors`}>
                         {r.name}
                       </span>

@@ -433,7 +433,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       onSelectPage(item.pageNumber);
                       onClose();
                     }}
-                    className="w-full text-right px-3 py-2.5 rounded-xl text-xs hover:bg-hover transition-colors flex items-center justify-between group cursor-pointer"
+                    className="w-full text-start px-3 py-2.5 rounded-xl text-xs hover:bg-hover transition-colors flex items-center justify-between group cursor-pointer"
                   >
                     <span className="truncate flex-1 group-hover:text-highlight transition-colors font-sans">
                       {item.title}
@@ -485,7 +485,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           onSelectPage(bm.pageNumber);
                           onClose();
                         }}
-                        className="flex items-center gap-2 text-right flex-1 truncate cursor-pointer hover:text-highlight transition-colors"
+                        className="flex items-center gap-2 text-start flex-1 truncate cursor-pointer hover:text-highlight transition-colors"
                       >
                         <Bookmark className="w-3.5 h-3.5 text-highlight fill-highlight shrink-0" />
                         <span className="font-sans font-medium">
@@ -591,7 +591,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {annotations.map((anno) => (
                       <div
                         key={anno.id}
-                        className="p-2.5 rounded-xl bg-hover-subtle border border-line-subtle hover:border-line transition-all text-right space-y-1 group"
+                        className="p-2.5 rounded-xl bg-hover-subtle border border-line-subtle hover:border-line transition-all text-start space-y-1 group"
                       >
                         <div className="flex items-center justify-between text-[10px] text-ink-muted font-mono">
                           <button

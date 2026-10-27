@@ -100,14 +100,21 @@ function destroyDocumentSoon(doc: PDFDocumentProxy | null): void {
   }, 250);
 }
 
-function describeDocumentError(error: unknown): string {
+function describeDocumentError(error: unknown, lang?: Language): string {
+  const ar = lang === 'ar';
   if (error instanceof Error) {
-    if (error.name === 'InvalidPDFException') return 'This file is not a valid PDF document.';
-    if (error.name === 'PasswordException') return 'This document is password protected.';
-    if (error.name === 'MissingPDFException') return 'The selected file could not be found.';
-    return error.message || 'Could not open this document.';
+    if (error.name === 'InvalidPDFException') {
+      return ar ? 'هذا الملف ليس مستند PDF صالحاً.' : 'This file is not a valid PDF document.';
+    }
+    if (error.name === 'PasswordException') {
+      return ar ? 'هذا المستند محمي بكلمة مرور.' : 'This document is password protected.';
+    }
+    if (error.name === 'MissingPDFException') {
+      return ar ? 'تعذر العثور على الملف المحدد.' : 'The selected file could not be found.';
+    }
+    return error.message || (ar ? 'تعذر فتح هذا المستند.' : 'Could not open this document.');
   }
-  return 'Could not open this document.';
+  return ar ? 'تعذر فتح هذا المستند.' : 'Could not open this document.';
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -829,7 +836,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
   const loadPdfData = async (data: ArrayBuffer, title: string) => {
     if (!data || data.byteLength === 0) {
-      setDocumentError('The selected file is empty.');
+      setDocumentError(lang === 'ar' ? 'الملف المحدد فارغ.' : 'The selected file is empty.');
       return;
     }
 
@@ -954,7 +961,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       if (generation !== loadGenerationRef.current) return;
       loadingTaskRef.current = null;
       setPasswordModal(EMPTY_PASSWORD_MODAL);
-      setDocumentError(describeDocumentError(error));
+      setDocumentError(describeDocumentError(error, lang));
       console.error('Error loading PDF:', error);
     } finally {
       if (generation === loadGenerationRef.current) {
@@ -980,7 +987,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       const buffer = await file.arrayBuffer();
       await loadDocumentRef.current(buffer, file.name);
     } catch (error) {
-      setDocumentError(describeDocumentError(error));
+      setDocumentError(describeDocumentError(error, lang));
       console.error('Error reading file:', error);
     }
   }, []);
@@ -1020,7 +1027,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       const buffer = await response.arrayBuffer();
       await loadDocumentRef.current(buffer, SAMPLE_DOCUMENT_NAME);
     } catch (error) {
-      setDocumentError(describeDocumentError(error));
+      setDocumentError(describeDocumentError(error, lang));
       setIsLoading(false);
       console.error('Error loading sample:', error);
     }
@@ -1034,7 +1041,9 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
     if (!recent.available) {
       setDocumentError(
-        'This book is in your library but its PDF is not on this device. Open the PDF file again to restore it.'
+        lang === 'ar'
+          ? 'هذا المستند في مكتبتك لكن ملفه غير موجود على هذا الجهاز. أعد فتح ملف الـ PDF لاستعادته.'
+          : 'This book is in your library but its PDF is not on this device. Open the PDF file again to restore it.'
       );
       return;
     }
@@ -1044,7 +1053,11 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     const data = await getDocumentFromStorage(recent.id);
     if (!data) {
       setIsLoading(false);
-      setDocumentError('This document is no longer stored on this device.');
+      setDocumentError(
+        lang === 'ar'
+          ? 'هذا المستند لم يعد محفوظاً على هذا الجهاز.'
+          : 'This document is no longer stored on this device.'
+      );
       return;
     }
     await loadDocumentRef.current(data, recent.name);
