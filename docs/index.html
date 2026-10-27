@@ -16,7 +16,7 @@
 
   <style>
     /* ==========================================================================
-       OTIUM 2026/2027 INDUSTRIAL MONOLITH — COMPLETE SUITE ARCHITECTURE
+       OTIUM 2026/2027 INDUSTRIAL MONOLITH — THE DUAL SUITE SPECIFICATION
        Strict 2-Color Architecture: Obsidian Carbon (#08090c) + Signal Phosphor (#00e599)
        ========================================================================== */
     *, *::before, *::after {
@@ -310,13 +310,13 @@
     /* Main Cockpit Layout: Responsive Grid */
     .cockpit-grid {
       display: grid;
-      grid-template-columns: 240px 1fr 340px;
+      grid-template-columns: 280px 1fr 340px;
       min-height: 480px;
     }
 
     @media (max-width: 1024px) {
       .cockpit-grid {
-        grid-template-columns: 220px 1fr;
+        grid-template-columns: 260px 1fr;
       }
       .cockpit-preview-col {
         display: none !important;
@@ -335,14 +335,14 @@
       }
     }
 
-    /* Column 1: Squircles Dock */
+    /* Column 1: Dual Suite Dock */
     .cockpit-dock-col {
       padding: 20px;
       background: rgba(0, 0, 0, 0.2);
       border-left: 1px solid var(--border-hairline);
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
     }
 
     html[dir="ltr"] .cockpit-dock-col {
@@ -375,10 +375,10 @@
       background: var(--bg-card);
       border: 1px solid var(--border-hairline);
       border-radius: var(--radius-squircle);
-      padding: 14px 12px;
+      padding: 16px 14px;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
       cursor: pointer;
       user-select: none;
       transition: all var(--snappy);
@@ -389,7 +389,7 @@
       .squircle-card {
         flex: 1;
         flex-direction: column;
-        padding: 10px 6px;
+        padding: 12px 8px;
         border-radius: var(--radius-md);
         gap: 6px;
         text-align: center;
@@ -431,8 +431,8 @@
     }
 
     .squircle-img {
-      width: 48px;
-      height: 48px;
+      width: 52px;
+      height: 52px;
       border-radius: var(--radius-md);
       background: #000000;
       border: 1px solid var(--border-hairline);
@@ -443,8 +443,8 @@
 
     @media (max-width: 768px) {
       .squircle-img {
-        width: 42px;
-        height: 42px;
+        width: 44px;
+        height: 44px;
       }
     }
 
@@ -466,11 +466,11 @@
     }
 
     .squircle-name {
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 800;
       color: var(--text-white);
       line-height: 1.2;
-      margin-bottom: 2px;
+      margin-bottom: 3px;
       white-space: nowrap;
       text-overflow: ellipsis;
       overflow: hidden;
@@ -478,7 +478,7 @@
 
     @media (max-width: 768px) {
       .squircle-name {
-        font-size: 11px;
+        font-size: 12px;
       }
     }
 
@@ -539,7 +539,7 @@
     }
 
     .insp-role-text {
-      font-size: 14px;
+      font-size: 14.5px;
       color: var(--signal);
       font-weight: 700;
       margin-bottom: 14px;
@@ -553,7 +553,7 @@
       max-width: 580px;
     }
 
-    /* Specs Pills (Strict Tajawal font in Arabic, JetBrains in English) */
+    /* Specs Pills */
     .insp-pills-wrap {
       display: flex;
       flex-wrap: wrap;
@@ -628,7 +628,6 @@
       padding: 10px 14px;
     }
 
-    /* Terminal mode */
     .deploy-terminal {
       display: flex;
       align-items: center;
@@ -677,36 +676,7 @@
       background: var(--signal-dim);
     }
 
-    /* QR Code mode */
-    .deploy-qr-wrap {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .qr-thumb-box {
-      width: 58px;
-      height: 58px;
-      border-radius: var(--radius-sm);
-      background: #000;
-      border: 1px solid var(--signal-border);
-      padding: 4px;
-      flex-shrink: 0;
-    }
-
-    .qr-thumb-box img {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-
-    .qr-tip-text {
-      font-size: 12.5px;
-      color: var(--text-muted);
-      line-height: 1.5;
-    }
-
-    /* Column 3: Live UI Preview Frame */
+    /* Column 3: Live UI Window Mockup Frame */
     .cockpit-preview-col {
       padding: 20px;
       border-right: 1px solid var(--border-hairline);
@@ -771,7 +741,7 @@
       display: block;
     }
 
-    /* Vector UI Mockup for Scan and Link */
+    /* Vector UI Mockup for Link */
     .vector-ui-screen {
       width: 100%;
       height: 100%;
@@ -930,7 +900,7 @@
       <ul class="nav-center">
         <li><a href="#cockpit" id="i18n-nav-suite">المنظومة</a></li>
         <li><a href="#specs" id="i18n-nav-specs">المبادئ الهندسية</a></li>
-        <li><a href="https://github.com/XRTM8/Otium/releases" target="_blank" rel="noopener" id="i18n-nav-releases">الإصدارات</a></li>
+        <li><a href="https://github.com/XRTM8" target="_blank" rel="noopener" id="i18n-nav-releases">المستودعات</a></li>
       </ul>
 
       <div class="nav-right-controls">
@@ -958,12 +928,12 @@
       </div>
 
       <h1 id="i18n-hero-title">
-        ثلاثة تطبيقات.<br />
-        <span class="highlight">سيادة رقمية واحدة.</span>
+        تطبيقان مركزِيّان.<br />
+        <span class="highlight">سيادة رقمية كاملة.</span>
       </h1>
 
       <p id="i18n-hero-desc">
-        أدوات خفيفة ومستقلة للقراءة، والمسح الضوئي، ومزامنة الملفات لنظامي Windows و Android — بأقصى سرعة عتادية وبدون خوادم طرف ثالث.
+        منظومة متكاملة لنظامي Windows و Android تجمع قراءة ومسح المستندات في أداة واحدة، ونقل الملفات والشبكات في أداة واحدة — بأقصى سرعة عتادية وبدون خوادم طرف ثالث.
       </p>
     </section>
 
@@ -975,7 +945,7 @@
         <div class="cockpit-telemetry">
           <div class="telemetry-left">
             <span class="dot" style="width:6px;height:6px;border-radius:50%;background:var(--signal);box-shadow:0 0 6px var(--signal);"></span>
-            <span id="insp-telemetry-status">OFFLINE CORE ACTIVE • ZERO TELEMETRY</span>
+            <span id="insp-telemetry-status">DUAL SUITE ACTIVE • ZERO TELEMETRY</span>
           </div>
           <div class="telemetry-right">
             <span>SPEC 2026.10 • GNU GPL-3.0</span>
@@ -987,38 +957,27 @@
 
           <!-- Column 1: Squircles Dock -->
           <aside class="cockpit-dock-col">
-            <div class="dock-label" id="i18n-dock-label">اختر الأداة للمعاينة</div>
+            <div class="dock-label" id="i18n-dock-label">اختر التطبيق للمعاينة</div>
 
-            <!-- Card 1: Reader -->
-            <div class="squircle-card active" id="tile-reader" onclick="selectApp('reader')">
+            <!-- Card 1: Otium Docs -->
+            <div class="squircle-card active" id="tile-docs" onclick="selectApp('docs')">
               <div class="squircle-img">
-                <img src="assets/reader.png" alt="Otium Reader" />
+                <img src="assets/reader.png" alt="Otium Docs" />
               </div>
               <div class="squircle-meta-wrap">
-                <div class="squircle-name">Otium Reader</div>
-                <div class="squircle-tag" id="tag-reader">قارئ المستندات</div>
+                <div class="squircle-name">Otium Docs</div>
+                <div class="squircle-tag" id="tag-docs">المستندات والمسح الضوئي</div>
               </div>
             </div>
 
-            <!-- Card 2: Scan -->
-            <div class="squircle-card" id="tile-scan" onclick="selectApp('scan')">
-              <div class="squircle-img">
-                <img src="assets/scan.png" alt="Otium Scan" />
-              </div>
-              <div class="squircle-meta-wrap">
-                <div class="squircle-name">Otium Scan</div>
-                <div class="squircle-tag" id="tag-scan">الماسح الذكي</div>
-              </div>
-            </div>
-
-            <!-- Card 3: Link -->
+            <!-- Card 2: Otium Link -->
             <div class="squircle-card" id="tile-link" onclick="selectApp('link')">
               <div class="squircle-img">
                 <img src="assets/link.png" alt="Otium Link" />
               </div>
               <div class="squircle-meta-wrap">
                 <div class="squircle-name">Otium Link</div>
-                <div class="squircle-tag" id="tag-link">جسر الحافظة والملفات</div>
+                <div class="squircle-tag" id="tag-link">الشبكة ونقل الملفات</div>
               </div>
             </div>
           </aside>
@@ -1027,16 +986,16 @@
           <section class="cockpit-inspector-col" id="inspector-col">
             <div>
               <div class="insp-header">
-                <h2 class="insp-title" id="insp-title">Otium Reader</h2>
-                <span class="insp-version-chip" id="insp-ver">v1.5.0</span>
+                <h2 class="insp-title" id="insp-title">Otium Docs</h2>
+                <span class="insp-version-chip" id="insp-ver">v1.0.0</span>
               </div>
 
               <div class="insp-role-text" id="insp-role">
-                قارئ مستندات PDF فائق السرعة
+                قارئ وماسح المستندات الشامل
               </div>
 
               <p class="insp-desc-p" id="insp-desc">
-                محرك قراءة فوري مصمم للتعامل مع أضخم مستندات الـ PDF والكتب دون استهلاك لموارد النظام، مع دعم كامل لعرض الصفحات المزدوجة، أدوات التظليل، وبحث النصوص دون اتصال بالإنترنت.
+                المنظومة الموحدة لقراءة ومسح المستندات؛ تجمع محرك قراءة PDF فائق السرعة مع ماسح كاميرا ذكي يصحح الحواف آلياً ويفتح المستند الممسوح فوراً للتظليل والبحث بدون إنترنت.
               </p>
 
               <!-- Specs Pills with Fixed Ligatures -->
@@ -1049,7 +1008,7 @@
               <!-- Actions Deck -->
               <div class="insp-actions-deck">
                 <a href="#" id="insp-download-btn" target="_blank" rel="noopener" class="btn-insp-download">
-                  <span id="insp-download-label">تنزيل الإصدار v1.5.0</span>
+                  <span id="insp-download-label">تنزيل الإصدار v1.0.0</span>
                   <span>↗</span>
                 </a>
                 <a href="#" id="insp-repo-btn" target="_blank" rel="noopener" class="btn-insp-source">
@@ -1057,7 +1016,7 @@
                 </a>
               </div>
 
-              <!-- Dual Mode Deploy Box (Terminal vs QR) -->
+              <!-- Dual Mode Deploy Box (Terminal) -->
               <div class="insp-deploy-box" id="insp-deploy-box">
                 <!-- Dynamically populated -->
               </div>
@@ -1117,8 +1076,7 @@
         © 2026 Otium Software Studio • مرخصة برخصة GNU General Public License v3.0
       </div>
       <ul class="footer-links-list">
-        <li><a href="https://github.com/XRTM8/Otium" target="_blank" rel="noopener">Otium Reader</a></li>
-        <li><a href="https://github.com/XRTM8/Otium-Scan" target="_blank" rel="noopener">Otium Scan</a></li>
+        <li><a href="https://github.com/XRTM8/Otium-Docs" target="_blank" rel="noopener">Otium Docs</a></li>
         <li><a href="https://github.com/XRTM8/Otium-Link" target="_blank" rel="noopener">Otium Link</a></li>
         <li><a href="https://github.com/XRTM8" target="_blank" rel="noopener">GitHub Profile</a></li>
       </ul>
@@ -1132,14 +1090,13 @@
         brandSub: "استوديو محلي بالكامل",
         navSuite: "المنظومة",
         navSpecs: "المبادئ الهندسية",
-        navReleases: "الإصدارات",
+        navReleases: "المستودعات",
         heroTag: "برمجيات حرة • محلية 100%",
-        heroTitle: 'ثلاثة تطبيقات.<br /><span class="highlight">سيادة رقمية واحدة.</span>',
-        heroDesc: "أدوات خفيفة ومستقلة للقراءة، والمسح الضوئي، ومزامنة الملفات لنظامي Windows و Android — بأقصى سرعة عتادية وبدون خوادم طرف ثالث.",
-        dockLabel: "اختر الأداة للمعاينة",
-        tagReader: "قارئ المستندات",
-        tagScan: "الماسح الذكي",
-        tagLink: "جسر الحافظة والملفات",
+        heroTitle: 'تطبيقان مركزِيّان.<br /><span class="highlight">سيادة رقمية كاملة.</span>',
+        heroDesc: "منظومة متكاملة لنظامي Windows و Android تجمع قراءة ومسح المستندات في أداة واحدة، ونقل الملفات والشبكات في أداة واحدة — بأقصى سرعة عتادية وبدون خوادم طرف ثالث.",
+        dockLabel: "اختر التطبيق للمعاينة",
+        tagDocs: "المستندات والمسح الضوئي",
+        tagLink: "الشبكة ونقل الملفات",
         codeLabel: "المستودع المصدري",
         copyBtn: "نسخ الأمر",
         copiedBtn: "تم النسخ ✓",
@@ -1154,28 +1111,15 @@
         spec3Desc: "محركات مدمجة بالكامل بلغة Rust و Webview الأصلي توفر استهلاك الذاكرة وتعمل فورياً بسرعة استجابة 0.02 ثانية.",
         footerCopy: "© 2026 Otium Software Studio • مرخصة برخصة GNU General Public License v3.0",
         apps: {
-          reader: {
-            title: "Otium Reader",
-            role: "قارئ مستندات PDF فائق السرعة",
-            ver: "v1.5.0",
-            status: "OFFLINE CORE ACTIVE",
-            desc: "محرك قراءة فوري مصمم للتعامل مع أضخم مستندات الـ PDF والكتب دون استهلاك لموارد النظام، مع دعم كامل لعرض الصفحات المزدوجة، أدوات التظليل، وبحث النصوص دون اتصال بالإنترنت.",
-            specs: ["محرك Rust + Tauri v2", "تشغيل فوري 0.02s", "وضع القراءة المزدوجة", "Windows & Android", "ترخيص GPL-3.0"],
-            downloadLabel: "تنزيل الإصدار v1.5.0",
-            mode: "terminal",
-            termCmd: "winget install XRTM8.OtiumReader"
-          },
-          scan: {
-            title: "Otium Scan",
-            role: "ماسح مستندات ذكي بلا إنترنت",
+          docs: {
+            title: "Otium Docs",
+            role: "قارئ وماسح المستندات الشامل",
             ver: "v1.0.0",
-            status: "ON-DEVICE SCANNER ACTIVE",
-            desc: "ماسح ضوئي ذكي يعمل بالكامل على معالج الهاتف، يقوم باكتشاف وتصحيح حواف المستندات تلقائياً وتحسين وضوح النصوص وتصدير ملفات PDF نقية دون رفع أي صورة إلى أي سحابة.",
-            specs: ["معالجة على الجهاز On-Device", "تصدير PDF عالي النقاء", "خصوصية تامة 100%", "حزمة مستقلة APK", "ترخيص GPL-3.0"],
-            downloadLabel: "تنزيل حزمة APK (v1.0.0)",
-            mode: "qr",
-            qrSrc: "assets/qr-scan.svg",
-            qrTip: "امسح الرمز بكاميرا هاتفك لتحميل الـ APK مباشرة"
+            status: "DOCS SUITE ACTIVE",
+            desc: "المنظومة الموحدة لقراءة ومسح المستندات والكتب؛ تجمع محرك قراءة PDF فائق السرعة مع ماسح كاميرا ذكي يصحح الحواف آلياً ويفتح المستند الممسوح فوراً للتظليل والبحث بدون إنترنت.",
+            specs: ["دمج Reader + Scanner", "تشغيل فوري 0.02s", "معالجة On-Device", "Windows & Android", "ترخيص GPL-3.0"],
+            downloadLabel: "تنزيل Otium Docs v1.0.0",
+            termCmd: "winget install XRTM8.OtiumDocs"
           },
           link: {
             title: "Otium Link",
@@ -1184,8 +1128,7 @@
             status: "P2P LAN ENGINE ACTIVE",
             desc: "مزامنة فورية لنصوص الحافظة ونقل الملفات الضخمة بين أجهزة ويندوز وأندرويد عبر شبكتك المحلية المباشرة (P2P LAN) دون وسيط، بدون حدود للحجم، وبسرعة قصوى تتجاوز 40MB/s.",
             specs: ["اتصال P2P مباشر", "سرعة نقل 40+ MB/s", "بدون حدود للحجم", "Windows & Android", "ترخيص GPL-3.0"],
-            downloadLabel: "تنزيل الإصدار v1.5.1",
-            mode: "terminal",
+            downloadLabel: "تنزيل Otium Link v1.5.1",
             termCmd: "winget install XRTM8.OtiumLink"
           }
         }
@@ -1194,14 +1137,13 @@
         brandSub: "LOCAL-FIRST STUDIO",
         navSuite: "Suite",
         navSpecs: "Principles",
-        navReleases: "Releases",
+        navReleases: "Repositories",
         heroTag: "FREE SOFTWARE • 100% LOCAL",
-        heroTitle: 'Three applications.<br /><span class="highlight">One digital sovereignty.</span>',
-        heroDesc: "Lightweight, sovereign tools for document reading, edge scanning, and instant local-network syncing — engineered for raw speed with zero cloud reliance.",
-        dockLabel: "SELECT MODULE TO INSPECT",
-        tagReader: "Document Reader",
-        tagScan: "Intelligent Scanner",
-        tagLink: "P2P File & Clipboard Bridge",
+        heroTitle: 'Two sovereign apps.<br /><span class="highlight">Total digital freedom.</span>',
+        heroDesc: "A focused dual suite for Windows and Android unifying document reading & scanning into one tool, and local P2P networking into one tool — built in Rust with zero cloud reliance.",
+        dockLabel: "SELECT APPLICATION",
+        tagDocs: "Reading & Edge Scanning",
+        tagLink: "P2P Mesh & Transfer",
         codeLabel: "Source Code",
         copyBtn: "Copy Command",
         copiedBtn: "Copied ✓",
@@ -1216,28 +1158,15 @@
         spec3Desc: "Built entirely in native Rust and Webview runtimes to minimize RAM usage and achieve instantaneous 0.02s cold-start responsiveness.",
         footerCopy: "© 2026 Otium Software Studio • Licensed under GNU General Public License v3.0",
         apps: {
-          reader: {
-            title: "Otium Reader",
-            role: "High-Performance Offline PDF Reader",
-            ver: "v1.5.0",
-            status: "OFFLINE CORE ACTIVE",
-            desc: "Instant cold-start document engine engineered for massive textbooks and technical PDFs with dual-page rendering, real-time search, and zero network calls.",
-            specs: ["Rust + Tauri v2 Engine", "0.02s Cold Start", "Dual-Page Spread", "Windows & Android", "GPL-3.0 License"],
-            downloadLabel: "Download Release v1.5.0",
-            mode: "terminal",
-            termCmd: "winget install XRTM8.OtiumReader"
-          },
-          scan: {
-            title: "Otium Scan",
-            role: "Edge-Computing Intelligent Scanner",
+          docs: {
+            title: "Otium Docs",
+            role: "Unified Document Reader & Edge Scanner",
             ver: "v1.0.0",
-            status: "ON-DEVICE SCANNER ACTIVE",
-            desc: "Smart on-device document scanner utilizing mobile camera sensors to automatically correct perspective distortion and produce crisp PDF exports without cloud OCR.",
-            specs: ["On-Device Edge Processing", "Crisp Vectorized PDF", "100% Offline Privacy", "Standalone APK", "GPL-3.0 License"],
-            downloadLabel: "Download APK (v1.0.0)",
-            mode: "qr",
-            qrSrc: "assets/qr-scan.svg",
-            qrTip: "Scan with mobile camera to download APK directly"
+            status: "DOCS SUITE ACTIVE",
+            desc: "The unified document workspace combining an ultra-fast PDF reading engine with an on-device smart camera scanner that crops, enhances, and opens documents instantly for annotations.",
+            specs: ["Reader + Scanner Unified", "0.02s Cold Start", "On-Device Edge Camera", "Windows & Android", "GPL-3.0 License"],
+            downloadLabel: "Download Otium Docs v1.0.0",
+            termCmd: "winget install XRTM8.OtiumDocs"
           },
           link: {
             title: "Otium Link",
@@ -1246,8 +1175,7 @@
             status: "P2P LAN ENGINE ACTIVE",
             desc: "Instant peer-to-peer clipboard synchronization and high-throughput file transfer across Windows and Android devices over local Wi-Fi with speeds exceeding 40MB/s.",
             specs: ["Direct P2P LAN Connection", "40+ MB/s Transfer Speed", "No File Size Limit", "Windows & Android", "GPL-3.0 License"],
-            downloadLabel: "Download Release v1.5.1",
-            mode: "terminal",
+            downloadLabel: "Download Otium Link v1.5.1",
             termCmd: "winget install XRTM8.OtiumLink"
           }
         }
@@ -1255,14 +1183,7 @@
     };
 
     const previewMockups = {
-      reader: `<img src="assets/screen-reader.png" alt="Otium Reader UI Preview" />`,
-      scan: `<div class="vector-ui-screen">
-        <div style="display:flex;justify-content:space-between;color:var(--signal);"><span>CAM_FEED: 1080p</span><span>300 DPI</span></div>
-        <div style="border:1px dashed var(--signal);height:120px;border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);background:rgba(0,229,153,0.04);">
-          <span>[ AUTO-BOUNDING 99.4% ]</span>
-        </div>
-        <div style="text-align:center;color:var(--text-dim);font-size:10px;">PROCESSED ON-DEVICE</div>
-      </div>`,
+      docs: `<img src="assets/screen-reader.png" alt="Otium Docs UI Preview" />`,
       link: `<div class="vector-ui-screen">
         <div style="display:flex;justify-content:space-between;color:var(--signal);"><span>LAN MESH: 5GHz</span><span>P2P READY</span></div>
         <div class="vector-radar-pulse">
@@ -1281,13 +1202,9 @@
     };
 
     const appUrls = {
-      reader: {
-        download: "https://github.com/XRTM8/Otium/releases/latest",
-        repo: "https://github.com/XRTM8/Otium"
-      },
-      scan: {
-        download: "https://github.com/XRTM8/Otium-Scan/releases/latest",
-        repo: "https://github.com/XRTM8/Otium-Scan"
+      docs: {
+        download: "https://github.com/XRTM8/Otium-Docs/releases/latest",
+        repo: "https://github.com/XRTM8/Otium-Docs"
       },
       link: {
         download: "https://github.com/XRTM8/Otium-Link/releases/latest",
@@ -1296,7 +1213,7 @@
     };
 
     let currentLang = localStorage.getItem('otium_lang') || 'ar';
-    let currentAppKey = 'reader';
+    let currentAppKey = 'docs';
 
     function setLanguage(lang) {
       currentLang = lang;
@@ -1321,8 +1238,7 @@
       document.getElementById('i18n-hero-title').innerHTML = t.heroTitle;
       document.getElementById('i18n-hero-desc').innerText = t.heroDesc;
       document.getElementById('i18n-dock-label').innerText = t.dockLabel;
-      document.getElementById('tag-reader').innerText = t.tagReader;
-      document.getElementById('tag-scan').innerText = t.tagScan;
+      document.getElementById('tag-docs').innerText = t.tagDocs;
       document.getElementById('tag-link').innerText = t.tagLink;
       document.getElementById('i18n-code-label').innerText = t.codeLabel;
       document.getElementById('i18n-spec1-meta').innerText = t.spec1Meta;
@@ -1385,32 +1301,19 @@
       document.getElementById('insp-download-label').innerText = app.downloadLabel;
       document.getElementById('insp-repo-btn').href = urls.repo;
 
-      // Deploy Box: Terminal vs QR
-      const deployBox = document.getElementById('insp-deploy-box');
-      if (app.mode === 'terminal') {
-        const copyBtnText = i18nData[currentLang].copyBtn;
-        deployBox.innerHTML = `
-          <div class="deploy-terminal">
-            <div class="term-code-span">
-              <span class="cmd">winget</span> install <span class="pkg">XRTM8.${key === 'reader' ? 'OtiumReader' : 'OtiumLink'}</span>
-            </div>
-            <button class="btn-term-copy" onclick="copyTerminalCommand('${app.termCmd}')">
-              <span id="copy-btn-label">${copyBtnText}</span>
-            </button>
+      // Deploy Box
+      const copyBtnText = i18nData[currentLang].copyBtn;
+      const pkgName = key === 'docs' ? 'XRTM8.OtiumDocs' : 'XRTM8.OtiumLink';
+      document.getElementById('insp-deploy-box').innerHTML = `
+        <div class="deploy-terminal">
+          <div class="term-code-span">
+            <span class="cmd">winget</span> install <span class="pkg">${pkgName}</span>
           </div>
-        `;
-      } else {
-        deployBox.innerHTML = `
-          <div class="deploy-qr-wrap">
-            <div class="qr-thumb-box">
-              <img src="${app.qrSrc}" alt="QR Code" />
-            </div>
-            <div class="qr-tip-text">
-              ${app.qrTip}
-            </div>
-          </div>
-        `;
-      }
+          <button class="btn-term-copy" onclick="copyTerminalCommand('${app.termCmd}')">
+            <span id="copy-btn-label">${copyBtnText}</span>
+          </button>
+        </div>
+      `;
 
       // Mockup Preview
       document.getElementById('mockup-body').innerHTML = previewMockups[key];
