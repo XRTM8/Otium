@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Otium Software — استوديو البرمجيات الحرة والمحلية بالكامل</title>
-  <meta name="description" content="منظومة برمجيات هندسية حرة ومحلية 100% لنظامي Windows و Android. خصوصية تامة، بدون خوادم، وترخيص GNU GPL v3." />
+  <title>Otium Software — منظومة البرمجيات الحرة والمحلية المستقلة والموحدة</title>
+  <meta name="description" content="منظومة برمجيات هندسية حرة ومحلية 100% لنظامي Windows و Android: أدوات مستقلة متخصصة وحزم موحدة شاملة. خصوصية تامة، وترخيص GNU GPL v3." />
   <meta name="color-scheme" content="dark" />
   <meta name="theme-color" content="#08090c" />
   <link rel="icon" type="image/png" href="favicon.png" />
@@ -16,7 +16,7 @@
 
   <style>
     /* ==========================================================================
-       OTIUM 2026/2027 INDUSTRIAL MONOLITH — THE DUAL SUITE SPECIFICATION
+       OTIUM 2026/2027 INDUSTRIAL MONOLITH — MODULAR EQUATION ARCHITECTURE
        Strict 2-Color Architecture: Obsidian Carbon (#08090c) + Signal Phosphor (#00e599)
        ========================================================================== */
     *, *::before, *::after {
@@ -47,7 +47,7 @@
       --radius-sm: 6px;
       --radius-md: 10px;
       --radius-lg: 16px;
-      --radius-squircle: 20px;
+      --radius-squircle: 18px;
       --snappy: 90ms cubic-bezier(0.16, 1, 0.3, 1);
       --fade-duration: 120ms;
     }
@@ -82,7 +82,7 @@
     }
 
     .container {
-      max-width: 1140px;
+      max-width: 1180px;
       margin: 0 auto;
       padding: 0 20px;
     }
@@ -92,11 +92,11 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      background: rgba(8, 9, 12, 0.92);
+      background: rgba(8, 9, 12, 0.94);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       border-bottom: 1px solid var(--border-hairline);
-      height: 60px;
+      height: 62px;
       display: flex;
       align-items: center;
     }
@@ -117,8 +117,8 @@
     }
 
     .brand-mark img {
-      width: 32px;
-      height: 32px;
+      width: 34px;
+      height: 34px;
       border-radius: var(--radius-sm);
       border: 1px solid var(--border-hairline);
       display: block;
@@ -147,7 +147,7 @@
     .nav-center {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 22px;
       list-style: none;
     }
 
@@ -173,7 +173,6 @@
       gap: 10px;
     }
 
-    /* Bilingual Toggle Button */
     .btn-lang-toggle {
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--border-hairline);
@@ -222,7 +221,7 @@
 
     /* ---------------- Hero Section ---------------- */
     .hero {
-      padding: 56px 0 32px;
+      padding: 52px 0 32px;
       text-align: center;
     }
 
@@ -249,7 +248,7 @@
     }
 
     .hero h1 {
-      font-size: clamp(30px, 5.2vw, 48px);
+      font-size: clamp(28px, 4.8vw, 46px);
       font-weight: 900;
       line-height: 1.25;
       letter-spacing: -0.5px;
@@ -264,7 +263,7 @@
     .hero p {
       font-size: 16px;
       color: var(--text-muted);
-      max-width: 640px;
+      max-width: 680px;
       margin: 0 auto;
       line-height: 1.7;
     }
@@ -310,20 +309,20 @@
     /* Main Cockpit Layout: Responsive Grid */
     .cockpit-grid {
       display: grid;
-      grid-template-columns: 280px 1fr 340px;
-      min-height: 480px;
+      grid-template-columns: 360px 1fr 340px;
+      min-height: 520px;
     }
 
-    @media (max-width: 1024px) {
+    @media (max-width: 1100px) {
       .cockpit-grid {
-        grid-template-columns: 260px 1fr;
+        grid-template-columns: 340px 1fr;
       }
       .cockpit-preview-col {
         display: none !important;
       }
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 820px) {
       .cockpit-grid {
         display: flex;
         flex-direction: column;
@@ -335,14 +334,14 @@
       }
     }
 
-    /* Column 1: Dual Suite Dock */
+    /* Column 1: Modular Equation Suites Dock */
     .cockpit-dock-col {
       padding: 20px;
-      background: rgba(0, 0, 0, 0.2);
+      background: rgba(0, 0, 0, 0.25);
       border-left: 1px solid var(--border-hairline);
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 20px;
     }
 
     html[dir="ltr"] .cockpit-dock-col {
@@ -350,90 +349,94 @@
       border-right: 1px solid var(--border-hairline);
     }
 
-    @media (max-width: 768px) {
-      .cockpit-dock-col {
-        flex-direction: row;
-        padding: 12px;
-        gap: 8px;
-      }
+    .suite-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
-    .dock-label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10.5px;
-      color: var(--text-dim);
-      letter-spacing: 0.6px;
-      margin-bottom: 4px;
-      text-transform: uppercase;
-    }
-
-    @media (max-width: 768px) {
-      .dock-label { display: none; }
-    }
-
-    .squircle-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-hairline);
-      border-radius: var(--radius-squircle);
-      padding: 16px 14px;
+    .suite-header-wrap {
       display: flex;
       align-items: center;
-      gap: 14px;
+      justify-content: space-between;
+    }
+
+    .suite-title {
+      font-size: 12.5px;
+      font-weight: 800;
+      color: var(--text-white);
+      letter-spacing: 0.2px;
+    }
+
+    .suite-chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5px;
+      font-weight: 700;
+      color: var(--signal);
+      background: var(--signal-dim);
+      border: 1px solid var(--signal-border);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      letter-spacing: 0.5px;
+    }
+
+    /* Equation Row & Interactive Tiles */
+    .equation-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 10px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-hairline);
+    }
+
+    .eq-tile {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 4px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-sm);
       cursor: pointer;
       user-select: none;
       transition: all var(--snappy);
+      text-decoration: none;
+      color: inherit;
       position: relative;
     }
 
-    @media (max-width: 768px) {
-      .squircle-card {
-        flex: 1;
-        flex-direction: column;
-        padding: 12px 8px;
-        border-radius: var(--radius-md);
-        gap: 6px;
-        text-align: center;
-      }
-    }
-
-    .squircle-card:hover {
+    .eq-tile:hover {
       background: var(--bg-card-hover);
       border-color: var(--border-focus);
       transform: translateY(-1px);
     }
 
-    .squircle-card.active {
+    .eq-tile.active {
       background: #141822;
       border-color: var(--signal);
-      box-shadow: 0 0 20px var(--signal-glow);
+      box-shadow: 0 0 16px var(--signal-glow);
     }
 
-    .squircle-card.active::before {
+    .eq-tile.active::after {
       content: "";
       position: absolute;
-      left: 10px;
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
+      top: -3px;
+      width: 14px;
+      height: 3px;
+      border-radius: 999px;
       background: var(--signal);
       box-shadow: 0 0 6px var(--signal);
     }
 
-    html[dir="ltr"] .squircle-card.active::before {
-      left: auto;
-      right: 10px;
-    }
-
-    @media (max-width: 768px) {
-      .squircle-card.active::before {
-        display: none;
-      }
-    }
-
-    .squircle-img {
-      width: 52px;
-      height: 52px;
-      border-radius: var(--radius-md);
+    .eq-tile-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
       background: #000000;
       border: 1px solid var(--border-hairline);
       overflow: hidden;
@@ -441,63 +444,78 @@
       transition: transform var(--snappy);
     }
 
-    @media (max-width: 768px) {
-      .squircle-img {
-        width: 44px;
-        height: 44px;
-      }
-    }
-
-    .squircle-card.active .squircle-img {
-      transform: scale(1.05);
+    .eq-tile.active .eq-tile-icon {
+      transform: scale(1.06);
       border-color: var(--signal);
     }
 
-    .squircle-img img {
+    .eq-tile-icon img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
     }
 
-    .squircle-meta-wrap {
-      flex: 1;
-      overflow: hidden;
-    }
-
-    .squircle-name {
-      font-size: 15px;
-      font-weight: 800;
+    .eq-tile-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
       color: var(--text-white);
+      white-space: nowrap;
+      line-height: 1.1;
+    }
+
+    .eq-tile-badge {
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      white-space: nowrap;
       line-height: 1.2;
-      margin-bottom: 3px;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
     }
 
-    @media (max-width: 768px) {
-      .squircle-name {
-        font-size: 12px;
-      }
-    }
-
-    .squircle-tag {
-      font-size: 11.5px;
+    .badge-standalone {
+      background: rgba(255, 255, 255, 0.06);
       color: var(--text-muted);
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
     }
 
-    @media (max-width: 768px) {
-      .squircle-tag {
-        display: none;
-      }
-    }
-
-    .squircle-card.active .squircle-tag {
+    .eq-tile.active .badge-standalone {
+      background: var(--signal-dim);
       color: var(--signal);
+    }
+
+    .badge-flagship {
+      background: var(--signal-dim);
+      color: var(--signal);
+      border: 1px solid var(--signal-border);
+    }
+
+    .badge-upcoming {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-dim);
+      border: 1px dashed var(--border-focus);
+    }
+
+    .eq-tile.active .badge-upcoming {
+      color: var(--signal);
+      border-color: var(--signal);
+    }
+
+    .eq-operator {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--signal);
+      opacity: 0.8;
+      user-select: none;
+      padding: 0 1px;
+      line-height: 1;
+    }
+
+    .suite-divider {
+      height: 1px;
+      background: var(--border-hairline);
+      margin: 4px 0;
     }
 
     /* Column 2: Dynamic Inspector */
@@ -519,10 +537,11 @@
       align-items: center;
       gap: 12px;
       margin-bottom: 6px;
+      flex-wrap: wrap;
     }
 
     .insp-title {
-      font-size: clamp(24px, 3.2vw, 32px);
+      font-size: clamp(22px, 3vw, 30px);
       font-weight: 900;
       letter-spacing: -0.3px;
     }
@@ -538,18 +557,29 @@
       border-radius: var(--radius-sm);
     }
 
+    .insp-type-pill {
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-muted);
+      border: 1px solid var(--border-hairline);
+    }
+
     .insp-role-text {
       font-size: 14.5px;
       color: var(--signal);
       font-weight: 700;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
 
     .insp-desc-p {
       font-size: 14.5px;
       color: var(--text-muted);
       line-height: 1.7;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
       max-width: 580px;
     }
 
@@ -558,7 +588,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-bottom: 24px;
+      margin-bottom: 22px;
     }
 
     .insp-pill-item {
@@ -579,7 +609,7 @@
       align-items: center;
       gap: 12px;
       flex-wrap: wrap;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
     }
 
     .btn-insp-download {
@@ -620,7 +650,7 @@
       background: var(--bg-card-hover);
     }
 
-    /* Dual-Mode Action Box: Terminal vs QR Code */
+    /* Dual-Mode Action Box: Terminal */
     .insp-deploy-box {
       background: #040507;
       border: 1px solid var(--border-hairline);
@@ -728,7 +758,7 @@
 
     .mockup-body {
       width: 100%;
-      height: 210px;
+      height: 220px;
       position: relative;
       background: #07080a;
       overflow: hidden;
@@ -741,70 +771,17 @@
       display: block;
     }
 
-    /* Vector UI Mockup for Link */
-    .vector-ui-screen {
+    /* Vector Mockup Styles */
+    .vector-screen {
       width: 100%;
       height: 100%;
-      padding: 16px;
+      padding: 14px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
       direction: ltr;
-    }
-
-    .vector-radar-pulse {
-      display: flex;
-      align-items: center;
-      justify-content: space-around;
-      margin: auto 0;
-    }
-
-    .radar-node {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .radar-node-circle {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      border: 1px solid var(--signal-border);
-      background: var(--signal-dim);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--signal);
-      font-weight: 700;
-      font-size: 11px;
-    }
-
-    .radar-node-label {
-      font-size: 10px;
-      color: var(--text-muted);
-    }
-
-    .radar-beam {
-      flex: 1;
-      height: 1px;
-      background: linear-gradient(90deg, var(--signal) 0%, rgba(0, 229, 153, 0.2) 50%, var(--signal) 100%);
-      margin: 0 10px;
-      position: relative;
-    }
-
-    .radar-beam::after {
-      content: "";
-      position: absolute;
-      top: -2px;
-      left: 50%;
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: var(--signal);
-      box-shadow: 0 0 6px var(--signal);
     }
 
     /* ---------------- Principles Matrix ---------------- */
@@ -869,8 +846,9 @@
 
     .footer-links-list {
       display: flex;
-      gap: 20px;
+      gap: 16px;
       list-style: none;
+      flex-wrap: wrap;
     }
 
     .footer-links-list a {
@@ -898,7 +876,7 @@
       </a>
 
       <ul class="nav-center">
-        <li><a href="#cockpit" id="i18n-nav-suite">المنظومة</a></li>
+        <li><a href="#cockpit" id="i18n-nav-suite">المنظومة والمعادلات</a></li>
         <li><a href="#specs" id="i18n-nav-specs">المبادئ الهندسية</a></li>
         <li><a href="https://github.com/XRTM8" target="_blank" rel="noopener" id="i18n-nav-releases">المستودعات</a></li>
       </ul>
@@ -928,12 +906,12 @@
       </div>
 
       <h1 id="i18n-hero-title">
-        تطبيقان مركزِيّان.<br />
-        <span class="highlight">سيادة رقمية كاملة.</span>
+        أدوات متخصصة مستقلة.<br />
+        <span class="highlight">أو حزم موحدة شاملة.</span>
       </h1>
 
       <p id="i18n-hero-desc">
-        منظومة متكاملة لنظامي Windows و Android تجمع قراءة ومسح المستندات في أداة واحدة، ونقل الملفات والشبكات في أداة واحدة — بأقصى سرعة عتادية وبدون خوادم طرف ثالث.
+        معمارية هندسية مرنة لنظامي Windows و Android؛ إن أردت ميزة واحدة بحد ذاتها نزّل الأداة المستقلة بالغة الخفة، وإن أردت سير عمل متكامل نزّل المنظومة الموحدة — سيادة محلية كاملة وترخيص GNU GPL v3.
       </p>
     </section>
 
@@ -945,7 +923,7 @@
         <div class="cockpit-telemetry">
           <div class="telemetry-left">
             <span class="dot" style="width:6px;height:6px;border-radius:50%;background:var(--signal);box-shadow:0 0 6px var(--signal);"></span>
-            <span id="insp-telemetry-status">DUAL SUITE ACTIVE • ZERO TELEMETRY</span>
+            <span id="insp-telemetry-status">MODULAR SUITE ACTIVE • ZERO TELEMETRY</span>
           </div>
           <div class="telemetry-right">
             <span>SPEC 2026.10 • GNU GPL-3.0</span>
@@ -955,31 +933,91 @@
         <!-- 3-Column Cockpit Grid -->
         <div class="cockpit-grid">
 
-          <!-- Column 1: Squircles Dock -->
+          <!-- Column 1: Modular Equations Dock -->
           <aside class="cockpit-dock-col">
-            <div class="dock-label" id="i18n-dock-label">اختر التطبيق للمعاينة</div>
-
-            <!-- Card 1: Otium Docs -->
-            <div class="squircle-card active" id="tile-docs" onclick="selectApp('docs')">
-              <div class="squircle-img">
-                <img src="assets/docs.png" alt="Otium Docs" />
+            
+            <!-- Suite 1: Documents & Camera Vision -->
+            <div class="suite-section">
+              <div class="suite-header-wrap">
+                <span class="suite-title" id="i18n-suite1-title">حزمة المستندات والمسح</span>
+                <span class="suite-chip">DOCS SUITE</span>
               </div>
-              <div class="squircle-meta-wrap">
-                <div class="squircle-name">Otium Docs</div>
-                <div class="squircle-tag" id="tag-docs">المستندات والمسح الضوئي</div>
+              <div class="equation-row">
+                <!-- Reader -->
+                <div class="eq-tile" id="tile-reader" onclick="selectApp('reader')">
+                  <div class="eq-tile-icon">
+                    <img src="assets/reader.png" alt="Otium Reader" />
+                  </div>
+                  <span class="eq-tile-name">Reader</span>
+                  <span class="eq-tile-badge badge-standalone" id="eq-badge-reader">مستقل</span>
+                </div>
+
+                <span class="eq-operator">+</span>
+
+                <!-- Scan -->
+                <div class="eq-tile" id="tile-scan" onclick="selectApp('scan')">
+                  <div class="eq-tile-icon">
+                    <img src="assets/scan.png" alt="Otium Scan" />
+                  </div>
+                  <span class="eq-tile-name">Scan</span>
+                  <span class="eq-tile-badge badge-standalone" id="eq-badge-scan">مستقل</span>
+                </div>
+
+                <span class="eq-operator">=</span>
+
+                <!-- Docs Flagship -->
+                <div class="eq-tile active" id="tile-docs" onclick="selectApp('docs')">
+                  <div class="eq-tile-icon">
+                    <img src="assets/docs.png" alt="Otium Docs" />
+                  </div>
+                  <span class="eq-tile-name">Docs</span>
+                  <span class="eq-tile-badge badge-flagship" id="eq-badge-docs">الموحد ★</span>
+                </div>
               </div>
             </div>
 
-            <!-- Card 2: Otium Link -->
-            <div class="squircle-card" id="tile-link" onclick="selectApp('link')">
-              <div class="squircle-img">
-                <img src="assets/link.png" alt="Otium Link" />
+            <div class="suite-divider"></div>
+
+            <!-- Suite 2: Local Network & Transfer -->
+            <div class="suite-section">
+              <div class="suite-header-wrap">
+                <span class="suite-title" id="i18n-suite2-title">حزمة الشبكة والبيانات</span>
+                <span class="suite-chip">TRANSFER SUITE</span>
               </div>
-              <div class="squircle-meta-wrap">
-                <div class="squircle-name">Otium Link</div>
-                <div class="squircle-tag" id="tag-link">الشبكة ونقل الملفات</div>
+              <div class="equation-row">
+                <!-- Link -->
+                <div class="eq-tile" id="tile-link" onclick="selectApp('link')">
+                  <div class="eq-tile-icon">
+                    <img src="assets/link.png" alt="Otium Link" />
+                  </div>
+                  <span class="eq-tile-name">Link</span>
+                  <span class="eq-tile-badge badge-standalone" id="eq-badge-link">مستقل</span>
+                </div>
+
+                <span class="eq-operator">+</span>
+
+                <!-- Downloader -->
+                <div class="eq-tile" id="tile-downloader" onclick="selectApp('downloader')">
+                  <div class="eq-tile-icon">
+                    <img src="assets/downloader.png" alt="Otium Downloader" />
+                  </div>
+                  <span class="eq-tile-name">Downloader</span>
+                  <span class="eq-tile-badge badge-standalone" id="eq-badge-downloader">مستقل</span>
+                </div>
+
+                <span class="eq-operator">=</span>
+
+                <!-- Hub Unified -->
+                <div class="eq-tile" id="tile-hub" onclick="selectApp('hub')">
+                  <div class="eq-tile-icon">
+                    <img src="assets/brand-logo.png" alt="Otium Transfer Hub" />
+                  </div>
+                  <span class="eq-tile-name">Hub</span>
+                  <span class="eq-tile-badge badge-upcoming" id="eq-badge-hub">الموحد ⚡</span>
+                </div>
               </div>
             </div>
+
           </aside>
 
           <!-- Column 2: Dynamic Inspector -->
@@ -988,6 +1026,7 @@
               <div class="insp-header">
                 <h2 class="insp-title" id="insp-title">Otium Docs</h2>
                 <span class="insp-version-chip" id="insp-ver">v1.0.0</span>
+                <span class="insp-type-pill" id="insp-type-pill">المنظومة الموحدة</span>
               </div>
 
               <div class="insp-role-text" id="insp-role">
@@ -1008,7 +1047,7 @@
               <!-- Actions Deck -->
               <div class="insp-actions-deck">
                 <a href="#" id="insp-download-btn" target="_blank" rel="noopener" class="btn-insp-download">
-                  <span id="insp-download-label">تنزيل الإصدار v1.0.0</span>
+                  <span id="insp-download-label">تنزيل Otium Docs v1.0.0</span>
                   <span>↗</span>
                 </a>
                 <a href="#" id="insp-repo-btn" target="_blank" rel="noopener" class="btn-insp-source">
@@ -1044,10 +1083,10 @@
     <!-- Engineering Principles Matrix -->
     <section class="principles-matrix" id="specs">
       <div class="matrix-card">
-        <div class="matrix-meta" id="i18n-spec1-meta">01 // LOCAL ARCHITECTURE</div>
-        <h3 class="matrix-title" id="i18n-spec1-title">سيادة محلية مطلقة</h3>
+        <div class="matrix-meta" id="i18n-spec1-meta">01 // MODULAR EQUATION PHILOSOPHY</div>
+        <h3 class="matrix-title" id="i18n-spec1-title">معمارية الخيار والسيادة</h3>
         <p class="matrix-desc" id="i18n-spec1-desc">
-          بياناتك ومستنداتك لا تغادر أسلاك جهازك إطلاقاً؛ لا خوادم خارجية، لا استعلامات DNS تتبعية، ولا حسابات مستخدم.
+          حرية كاملة دون فرض؛ إن أردت تطبيقاً خفيفاً بحجم 5MB لمهمة واحدة فقط فلك ذلك، وإن أردت المنظومة الموحدة التي تدمج كل شيء في مكان واحد فلك ذلك.
         </p>
       </div>
 
@@ -1055,7 +1094,7 @@
         <div class="matrix-meta" id="i18n-spec2-meta">02 // PERPETUAL FREEDOM</div>
         <h3 class="matrix-title" id="i18n-spec2-title">حرية برمجية أبدية</h3>
         <p class="matrix-desc" id="i18n-spec2-desc">
-          مرخصة تحت رخصة GNU GPL v3.0؛ الشفرة متاحة بالكامل للتدقيق الأمني والمساهمة والبناء الحر للأبد دون قيود.
+          جميع التطبيقات مرخصة برخصة GNU GPL v3.0؛ الشفرة متاحة للتدقيق الأمني والمساهمة والبناء المستقل للأبد دون قيود تجارية أو تتبع.
         </p>
       </div>
 
@@ -1063,7 +1102,7 @@
         <div class="matrix-meta" id="i18n-spec3-meta">03 // HARDWARE EFFICIENCY</div>
         <h3 class="matrix-title" id="i18n-spec3-title">كفاءة وسرعة عتادية</h3>
         <p class="matrix-desc" id="i18n-spec3-desc">
-          محركات مدمجة بالكامل بلغة Rust و Webview الأصلي توفر استهلاك الذاكرة وتعمل فورياً بسرعة استجابة 0.02 ثانية.
+          محركات مدمجة بالكامل بلغة Rust و Webview الأصلي توفر استهلاك الذاكرة وتعمل فورياً بسرعة استجابة 0.02 ثانية بدون خوادم خارجية.
         </p>
       </div>
     </section>
@@ -1076,8 +1115,11 @@
         © 2026 Otium Software Studio • مرخصة برخصة GNU General Public License v3.0
       </div>
       <ul class="footer-links-list">
+        <li><a href="https://github.com/XRTM8/Otium" target="_blank" rel="noopener">Otium Reader</a></li>
+        <li><a href="https://github.com/XRTM8/Otium-Scan" target="_blank" rel="noopener">Otium Scan</a></li>
         <li><a href="https://github.com/XRTM8/Otium-Docs" target="_blank" rel="noopener">Otium Docs</a></li>
         <li><a href="https://github.com/XRTM8/Otium-Link" target="_blank" rel="noopener">Otium Link</a></li>
+        <li><a href="https://github.com/XRTM8/Otium-Downloader" target="_blank" rel="noopener">Otium Downloader</a></li>
         <li><a href="https://github.com/XRTM8" target="_blank" rel="noopener">GitHub Profile</a></li>
       </ul>
     </div>
@@ -1088,82 +1130,155 @@
     const i18nData = {
       ar: {
         brandSub: "استوديو محلي بالكامل",
-        navSuite: "المنظومة",
+        navSuite: "المنظومة والمعادلات",
         navSpecs: "المبادئ الهندسية",
         navReleases: "المستودعات",
         heroTag: "برمجيات حرة • محلية 100%",
-        heroTitle: 'تطبيقان مركزِيّان.<br /><span class="highlight">سيادة رقمية كاملة.</span>',
-        heroDesc: "منظومة متكاملة لنظامي Windows و Android تجمع قراءة ومسح المستندات في أداة واحدة، ونقل الملفات والشبكات في أداة واحدة — بأقصى سرعة عتادية وبدون خوادم طرف ثالث.",
-        dockLabel: "اختر التطبيق للمعاينة",
-        tagDocs: "المستندات والمسح الضوئي",
-        tagLink: "الشبكة ونقل الملفات",
+        heroTitle: 'أدوات متخصصة مستقلة.<br /><span class="highlight">أو حزم موحدة شاملة.</span>',
+        heroDesc: "معمارية هندسية مرنة لنظامي Windows و Android؛ إن أردت ميزة واحدة بحد ذاتها نزّل الأداة المستقلة بالغة الخفة، وإن أردت سير عمل متكامل نزّل المنظومة الموحدة — سيادة محلية كاملة وترخيص GNU GPL v3.",
+        suite1Title: "حزمة المستندات والمسح",
+        suite2Title: "حزمة الشبكة والبيانات",
+        badgeStandalone: "مستقل",
+        badgeFlagship: "الموحد ★",
+        badgeUpcoming: "الموحد ⚡",
         codeLabel: "المستودع المصدري",
         copyBtn: "نسخ الأمر",
         copiedBtn: "تم النسخ ✓",
-        spec1Meta: "01 // LOCAL ARCHITECTURE",
-        spec1Title: "سيادة محلية مطلقة",
-        spec1Desc: "بياناتك ومستنداتك لا تغادر أسلاك جهازك إطلاقاً؛ لا خوادم خارجية، لا استعلامات DNS تتبعية، ولا حسابات مستخدم.",
+        spec1Meta: "01 // MODULAR EQUATION PHILOSOPHY",
+        spec1Title: "معمارية الخيار والسيادة",
+        spec1Desc: "حرية كاملة دون فرض؛ إن أردت تطبيقاً خفيفاً بحجم 5MB لمهمة واحدة فقط فلك ذلك، وإن أردت المنظومة الموحدة التي تدمج كل شيء في مكان واحد فلك ذلك.",
         spec2Meta: "02 // PERPETUAL FREEDOM",
         spec2Title: "حرية برمجية أبدية",
-        spec2Desc: "مرخصة تحت رخصة GNU GPL v3.0؛ الشفرة متاحة بالكامل للتدقيق الأمني والمساهمة والبناء الحر للأبد دون قيود.",
+        spec2Desc: "جميع التطبيقات مرخصة برخصة GNU GPL v3.0؛ الشفرة متاحة للتدقيق الأمني والمساهمة والبناء المستقل للأبد دون قيود تجارية أو تتبع.",
         spec3Meta: "03 // HARDWARE EFFICIENCY",
         spec3Title: "كفاءة وسرعة عتادية",
-        spec3Desc: "محركات مدمجة بالكامل بلغة Rust و Webview الأصلي توفر استهلاك الذاكرة وتعمل فورياً بسرعة استجابة 0.02 ثانية.",
+        spec3Desc: "محركات مدمجة بالكامل بلغة Rust و Webview الأصلي توفر استهلاك الذاكرة وتعمل فورياً بسرعة استجابة 0.02 ثانية بدون خوادم خارجية.",
         footerCopy: "© 2026 Otium Software Studio • مرخصة برخصة GNU General Public License v3.0",
         apps: {
+          reader: {
+            title: "Otium Reader",
+            role: "قارئ المستندات المستقل والخفيف",
+            ver: "v1.0.0",
+            typePill: "أداة مستقلة",
+            status: "STANDALONE PDF ENGINE",
+            desc: "قارئ PDF فائق الخفة والسرعة مصمم لمن يريد قراءة الكتب والمستندات بتركيز تام، باستهلاك ذاكرة شبه معدوم وبدون أي أدوات غير ضرورية؛ سلاسة عتادية مع دعم القراءة المظلمة.",
+            specs: ["محرك PDF فائق الخفة", "استهلاك RAM شبه معدوم", "وضع قراءة مظلم عالي التباين", "Windows & Android", "ترخيص GPL-3.0"],
+            downloadLabel: "تنزيل Otium Reader v1.0.0",
+            termCmd: "winget install XRTM8.OtiumReader"
+          },
+          scan: {
+            title: "Otium Scan",
+            role: "ماسح المستندات الذكي بالكاميرا",
+            ver: "v1.0.0",
+            typePill: "أداة مستقلة",
+            status: "STANDALONE CAMERA ENGINE",
+            desc: "ماسح ضوئي ذكي يعمل محلياً 100%؛ يحدد حواف الأوراق ويصحح الانحرافات آلياً عبر الكاميرا مع فلاتر تباين هندسية وتصدير فوري لملفات PDF دون رفع أي مستند للسحابة.",
+            specs: ["تحديد تلقائي للحواف", "معالجة On-Device كاملة", "فلاتر تباين هندسية", "Windows & Android", "ترخيص GPL-3.0"],
+            downloadLabel: "تنزيل Otium Scan v1.0.0",
+            termCmd: "winget install XRTM8.OtiumScan"
+          },
           docs: {
             title: "Otium Docs",
-            role: "قارئ وماسح المستندات الشامل",
+            role: "المنظومة الموحدة الشاملة للمستندات (Reader + Scan)",
             ver: "v1.0.0",
+            typePill: "المنظومة الموحدة ★",
             status: "DOCS SUITE ACTIVE",
-            desc: "المنظومة الموحدة لقراءة ومسح المستندات والكتب؛ تجمع محرك قراءة PDF فائق السرعة مع ماسح كاميرا ذكي يصحح الحواف آلياً ويفتح المستند الممسوح فوراً للتظليل والبحث بدون إنترنت.",
+            desc: "المنظومة الرائدة التي تدمج قوة (Otium Reader + Otium Scan) في منصة موحدة؛ امسح مستنداتك بالكاميرا وافتحها فورياً للقراءة والتظليل وإدارتها داخل مكان واحد بأعلى أداء وسرعة.",
             specs: ["دمج Reader + Scanner", "تشغيل فوري 0.02s", "معالجة On-Device", "Windows & Android", "ترخيص GPL-3.0"],
             downloadLabel: "تنزيل Otium Docs v1.0.0",
             termCmd: "winget install XRTM8.OtiumDocs"
           },
           link: {
             title: "Otium Link",
-            role: "جسر الحافظة ونقل الملفات المحلي",
+            role: "جسر الحافظة ونقل الملفات المحلي (P2P)",
             ver: "v1.5.1",
+            typePill: "أداة مستقلة",
             status: "P2P LAN ENGINE ACTIVE",
-            desc: "مزامنة فورية لنصوص الحافظة ونقل الملفات الضخمة بين أجهزة ويندوز وأندرويد عبر شبكتك المحلية المباشرة (P2P LAN) دون وسيط، بدون حدود للحجم، وبسرعة قصوى تتجاوز 40MB/s.",
+            desc: "أداة متخصصة لنقل الملفات الضخمة ومزامنة نصوص الحافظة بين ويندوز وأندرويد عبر شبكتك المحلية المباشرة (P2P) بدون خوادم، بدون حدود للحجم، وبسرعة تتجاوز 40MB/s.",
             specs: ["اتصال P2P مباشر", "سرعة نقل 40+ MB/s", "بدون حدود للحجم", "Windows & Android", "ترخيص GPL-3.0"],
             downloadLabel: "تنزيل Otium Link v1.5.1",
             termCmd: "winget install XRTM8.OtiumLink"
+          },
+          downloader: {
+            title: "Otium Downloader",
+            role: "مسرع التنزيل متعدد المسارات",
+            ver: "v1.0.0",
+            typePill: "أداة مستقلة",
+            status: "MULTI-STREAM CORE ACTIVE",
+            desc: "مسرع تنزيل مستقل يضاعف سرعة تحميل الملفات من الإنترنت بتقسيم الرابط إلى 4 إلى 16 مساراً متزامناً مع استئناف التحميل عند انقطاع الاتصال وفحص تجزئة SHA-256 محلياً.",
+            specs: ["تسريع متزامن 4-16 مسار", "استئناف ذكي عند الانقطاع", "تحقق تجزئة SHA-256", "Windows & Android", "ترخيص GPL-3.0"],
+            downloadLabel: "تنزيل Otium Downloader v1.0.0",
+            termCmd: "winget install XRTM8.OtiumDownloader"
+          },
+          hub: {
+            title: "Otium Transfer Hub",
+            role: "المنظومة الموحدة المستقبلية (Link + Downloader)",
+            ver: "v2.0 قريباً",
+            typePill: "المنظومة الموحدة ⚡",
+            status: "ROADMAP • IN CONVERGENCE",
+            desc: "الرؤية المستقبلية لدمج (Otium Link + Otium Downloader) في مركز شبكات موحد يجمع نقل الملفات محلياً (P2P LAN) وتنزيل الملفات خارجياً بأقصى سرعة عتادية متكاملة.",
+            specs: ["مركز شبكات وبيانات موحد", "تحكم متكامل P2P وتنزيل", "جدولة ذكية للنطاق", "Windows & Android", "قيد التكامل والتطوير"],
+            downloadLabel: "استكشف خارطة الطريق v2.0",
+            termCmd: "git clone https://github.com/XRTM8/Otium-Downloader"
           }
         }
       },
       en: {
         brandSub: "LOCAL-FIRST STUDIO",
-        navSuite: "Suite",
+        navSuite: "Suite & Equations",
         navSpecs: "Principles",
         navReleases: "Repositories",
         heroTag: "FREE SOFTWARE • 100% LOCAL",
-        heroTitle: 'Two sovereign apps.<br /><span class="highlight">Total digital freedom.</span>',
-        heroDesc: "A focused dual suite for Windows and Android unifying document reading & scanning into one tool, and local P2P networking into one tool — built in Rust with zero cloud reliance.",
-        dockLabel: "SELECT APPLICATION",
-        tagDocs: "Reading & Edge Scanning",
-        tagLink: "P2P Mesh & Transfer",
+        heroTitle: 'Modular standalone tools.<br /><span class="highlight">Or unified flagship suites.</span>',
+        heroDesc: "A sovereign engineering ecosystem for Windows and Android. Need one single capability? Grab the ultra-light standalone tool. Want the complete workflow? Download the converged flagship suite — 100% local with GNU GPL v3.",
+        suite1Title: "DOCUMENTS & CAMERA VISION",
+        suite2Title: "LOCAL NETWORK & TRANSFER",
+        badgeStandalone: "Standalone",
+        badgeFlagship: "Unified ★",
+        badgeUpcoming: "Unified ⚡",
         codeLabel: "Source Code",
         copyBtn: "Copy Command",
         copiedBtn: "Copied ✓",
-        spec1Meta: "01 // LOCAL ARCHITECTURE",
-        spec1Title: "Absolute Local Sovereignty",
-        spec1Desc: "Your data and documents never leave your physical machine. No third-party servers, no telemetry DNS queries, and zero user accounts.",
+        spec1Meta: "01 // MODULAR EQUATION PHILOSOPHY",
+        spec1Title: "Sovereignty of Choice",
+        spec1Desc: "Total freedom without compromises. If you want a 5MB featherweight app for reading only, you get it. If you want a unified suite with everything combined, you get it.",
         spec2Meta: "02 // PERPETUAL FREEDOM",
         spec2Title: "Perpetual Software Freedom",
-        spec2Desc: "Licensed under GNU GPL v3.0. The code is unconditionally open for security audits, peer review, and independent builds forever.",
+        spec2Desc: "Licensed under GNU GPL v3.0. The code is unconditionally open for security audits, peer review, and independent builds forever with zero tracking.",
         spec3Meta: "03 // HARDWARE EFFICIENCY",
         spec3Title: "Bare-Metal Speed & Efficiency",
-        spec3Desc: "Built entirely in native Rust and Webview runtimes to minimize RAM usage and achieve instantaneous 0.02s cold-start responsiveness.",
+        spec3Desc: "Built entirely in native Rust and Webview runtimes to minimize RAM usage and achieve instantaneous 0.02s cold-start responsiveness without third-party servers.",
         footerCopy: "© 2026 Otium Software Studio • Licensed under GNU General Public License v3.0",
         apps: {
+          reader: {
+            title: "Otium Reader",
+            role: "Standalone Ultra-Light PDF Reader",
+            ver: "v1.0.0",
+            typePill: "Standalone Tool",
+            status: "STANDALONE PDF ENGINE",
+            desc: "An ultra-fast, minimal PDF reader crafted for distraction-free reading with near-zero memory footprint, high-contrast dark reading mode, and instant page rendering.",
+            specs: ["Ultra-Lightweight Engine", "Near-Zero RAM Overhead", "High-Contrast Dark Mode", "Windows & Android", "GPL-3.0 License"],
+            downloadLabel: "Download Otium Reader v1.0.0",
+            termCmd: "winget install XRTM8.OtiumReader"
+          },
+          scan: {
+            title: "Otium Scan",
+            role: "On-Device Intelligent Camera Scanner",
+            ver: "v1.0.0",
+            typePill: "Standalone Tool",
+            status: "STANDALONE CAMERA ENGINE",
+            desc: "An on-device smart camera scanner that detects paper boundaries, straightens perspective distortion, applies geometric contrast filters, and exports crisp PDFs with zero cloud uploads.",
+            specs: ["Smart Boundary Detection", "100% On-Device Processing", "Contrast Enhancement", "Windows & Android", "GPL-3.0 License"],
+            downloadLabel: "Download Otium Scan v1.0.0",
+            termCmd: "winget install XRTM8.OtiumScan"
+          },
           docs: {
             title: "Otium Docs",
             role: "Unified Document Reader & Edge Scanner",
             ver: "v1.0.0",
+            typePill: "Unified Flagship ★",
             status: "DOCS SUITE ACTIVE",
-            desc: "The unified document workspace combining an ultra-fast PDF reading engine with an on-device smart camera scanner that crops, enhances, and opens documents instantly for annotations.",
+            desc: "The flagship document workspace combining an ultra-fast PDF reading engine with an on-device camera scanner that crops, enhances, and opens documents instantly for annotations.",
             specs: ["Reader + Scanner Unified", "0.02s Cold Start", "On-Device Edge Camera", "Windows & Android", "GPL-3.0 License"],
             downloadLabel: "Download Otium Docs v1.0.0",
             termCmd: "winget install XRTM8.OtiumDocs"
@@ -1172,43 +1287,178 @@
             title: "Otium Link",
             role: "Peer-to-Peer LAN File & Clipboard Bridge",
             ver: "v1.5.1",
+            typePill: "Standalone Tool",
             status: "P2P LAN ENGINE ACTIVE",
             desc: "Instant peer-to-peer clipboard synchronization and high-throughput file transfer across Windows and Android devices over local Wi-Fi with speeds exceeding 40MB/s.",
             specs: ["Direct P2P LAN Connection", "40+ MB/s Transfer Speed", "No File Size Limit", "Windows & Android", "GPL-3.0 License"],
             downloadLabel: "Download Otium Link v1.5.1",
             termCmd: "winget install XRTM8.OtiumLink"
+          },
+          downloader: {
+            title: "Otium Downloader",
+            role: "Multi-Stream Download Accelerator",
+            ver: "v1.0.0",
+            typePill: "Standalone Tool",
+            status: "MULTI-STREAM CORE ACTIVE",
+            desc: "A dedicated multi-segment download accelerator splitting downloads across 4 to 16 concurrent HTTP range streams, with automatic pause/resume recovery and local SHA-256 hashing.",
+            specs: ["4-16 Concurrent Streams", "Resilient Pause/Resume", "Local SHA-256 Verification", "Windows & Android", "GPL-3.0 License"],
+            downloadLabel: "Download Otium Downloader v1.0.0",
+            termCmd: "winget install XRTM8.OtiumDownloader"
+          },
+          hub: {
+            title: "Otium Transfer Hub",
+            role: "Future Unified Transfer & Net Hub",
+            ver: "v2.0 Roadmap",
+            typePill: "Unified Flagship ⚡",
+            status: "ROADMAP • IN CONVERGENCE",
+            desc: "The roadmap vision uniting (Otium Link + Otium Downloader) into a single command center managing all internal LAN transfers alongside external multi-segment web downloads.",
+            specs: ["Unified Network Dashboard", "Integrated P2P & Streams", "Smart Bandwidth Throttling", "Windows & Android", "Under Convergence"],
+            downloadLabel: "Explore Roadmap v2.0",
+            termCmd: "git clone https://github.com/XRTM8/Otium-Downloader"
           }
         }
       }
     };
 
     const previewMockups = {
+      reader: `<div class="vector-screen">
+        <div style="display:flex;justify-content:space-between;color:var(--signal);font-size:10px;">
+          <span>OTIUM READER</span>
+          <span>PAGE 14 / 320</span>
+        </div>
+        <div style="background:#0e1117;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:12px;margin:auto 0;box-shadow:inset 0 0 12px rgba(0,0,0,0.5);">
+          <div style="height:6px;width:70%;background:rgba(255,255,255,0.2);border-radius:3px;margin-bottom:8px;"></div>
+          <div style="height:4px;width:100%;background:rgba(255,255,255,0.08);border-radius:2px;margin-bottom:6px;"></div>
+          <div style="height:4px;width:95%;background:rgba(255,255,255,0.08);border-radius:2px;margin-bottom:6px;"></div>
+          <div style="height:4px;width:85%;background:rgba(255,255,255,0.08);border-radius:2px;margin-bottom:10px;"></div>
+          <div style="height:4px;width:60%;background:var(--signal);border-radius:2px;opacity:0.8;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;color:var(--text-dim);font-size:9.5px;">
+          <span>100% ZOOM</span>
+          <span style="color:var(--signal);">FEATHERWEIGHT RAM</span>
+        </div>
+      </div>`,
+
+      scan: `<div class="vector-screen">
+        <div style="display:flex;justify-content:space-between;color:var(--signal);font-size:10px;">
+          <span>ON-DEVICE CAMERA</span>
+          <span>AUTO-EDGE: LOCKED</span>
+        </div>
+        <div style="position:relative;background:#090b10;border:1px dashed var(--signal-border);border-radius:6px;margin:auto 0;height:120px;display:flex;align-items:center;justify-content:center;">
+          <!-- Reticles -->
+          <div style="position:absolute;top:6px;left:6px;width:12px;height:12px;border-top:2px solid var(--signal);border-left:2px solid var(--signal);"></div>
+          <div style="position:absolute;top:6px;right:6px;width:12px;height:12px;border-top:2px solid var(--signal);border-right:2px solid var(--signal);"></div>
+          <div style="position:absolute;bottom:6px;left:6px;width:12px;height:12px;border-bottom:2px solid var(--signal);border-left:2px solid var(--signal);"></div>
+          <div style="position:absolute;bottom:6px;right:6px;width:12px;height:12px;border-bottom:2px solid var(--signal);border-right:2px solid var(--signal);"></div>
+          <div style="color:var(--signal);font-size:10px;font-weight:700;">DOCUMENT DETECTED</div>
+        </div>
+        <div style="text-align:center;color:var(--text-muted);font-size:9.5px;">
+          FILTER: HIGH-CONTRAST MONO
+        </div>
+      </div>`,
+
       docs: `<img src="assets/screen-reader.png" alt="Otium Docs UI Preview" />`,
-      link: `<div class="vector-ui-screen">
-        <div style="display:flex;justify-content:space-between;color:var(--signal);"><span>LAN MESH: 5GHz</span><span>P2P READY</span></div>
-        <div class="vector-radar-pulse">
-          <div class="radar-node">
-            <div class="radar-node-circle">PC</div>
-            <span class="radar-node-label">Win 11</span>
+
+      link: `<div class="vector-screen">
+        <div style="display:flex;justify-content:space-between;color:var(--signal);font-size:10px;">
+          <span>LAN MESH: 5GHz</span>
+          <span>P2P READY</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-around;margin:auto 0;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+            <div style="width:34px;height:34px;border-radius:50%;border:1px solid var(--signal-border);background:var(--signal-dim);display:flex;align-items:center;justify-content:center;color:var(--signal);font-weight:700;font-size:10px;">PC</div>
+            <span style="font-size:9.5px;color:var(--text-muted);">Win 11</span>
           </div>
-          <div class="radar-beam"></div>
-          <div class="radar-node">
-            <div class="radar-node-circle">PH</div>
-            <span class="radar-node-label">Android</span>
+          <div style="flex:1;height:1px;background:linear-gradient(90deg, var(--signal) 0%, rgba(0, 229, 153, 0.2) 50%, var(--signal) 100%);margin:0 8px;position:relative;">
+            <div style="position:absolute;top:-2px;left:50%;width:5px;height:5px;border-radius:50%;background:var(--signal);box-shadow:0 0 6px var(--signal);"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+            <div style="width:34px;height:34px;border-radius:50%;border:1px solid var(--signal-border);background:var(--signal-dim);display:flex;align-items:center;justify-content:center;color:var(--signal);font-weight:700;font-size:10px;">PH</div>
+            <span style="font-size:9.5px;color:var(--text-muted);">Android</span>
           </div>
         </div>
-        <div style="text-align:center;color:var(--signal);font-size:10.5px;">SPEED: 42.8 MB/s • CLIPBOARD SYNC</div>
+        <div style="text-align:center;color:var(--signal);font-size:10px;">
+          SPEED: 42.8 MB/s • CLIPBOARD SYNC
+        </div>
+      </div>`,
+
+      downloader: `<div class="vector-screen">
+        <div style="display:flex;justify-content:space-between;color:var(--signal);font-size:10px;">
+          <span>STREAMS: 8x PARALLEL</span>
+          <span>38.4 MB/s</span>
+        </div>
+        <div style="background:#090b10;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:10px;margin:auto 0;">
+          <div style="display:flex;justify-content:space-between;font-size:9.5px;margin-bottom:6px;">
+            <span style="color:var(--text-white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;">archive_release.iso</span>
+            <span style="color:var(--signal);font-weight:700;">68%</span>
+          </div>
+          <div style="height:6px;width:100%;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;margin-bottom:8px;">
+            <div style="height:100%;width:68%;background:var(--signal);box-shadow:0 0 8px var(--signal-glow);"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:4px;">
+            <div style="height:12px;background:var(--signal-dim);border:1px solid var(--signal-border);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:7.5px;color:var(--signal);">S1:94%</div>
+            <div style="height:12px;background:var(--signal-dim);border:1px solid var(--signal-border);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:7.5px;color:var(--signal);">S2:88%</div>
+            <div style="height:12px;background:var(--signal-dim);border:1px solid var(--signal-border);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:7.5px;color:var(--signal);">S3:75%</div>
+            <div style="height:12px;background:var(--signal-dim);border:1px solid var(--signal-border);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:7.5px;color:var(--signal);">S4:61%</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;color:var(--text-muted);font-size:9.5px;">
+          <span>ETA: 00:42</span>
+          <span style="color:var(--signal);">SHA-256 VERIFIED</span>
+        </div>
+      </div>`,
+
+      hub: `<div class="vector-screen">
+        <div style="display:flex;justify-content:space-between;color:var(--signal);font-size:10px;">
+          <span>OTIUM TRANSFER HUB</span>
+          <span style="color:#00e599;">V2 ROADMAP</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin:auto 0;">
+          <div style="padding:6px 8px;background:rgba(0, 229, 153, 0.05);border:1px solid var(--signal-border);border-radius:4px;display:flex;justify-content:space-between;font-size:9px;">
+            <span style="color:var(--text-white);">[P2P MESH ENGINE]</span>
+            <span style="color:var(--signal);">OTIUM LINK</span>
+          </div>
+          <div style="padding:6px 8px;background:rgba(0, 229, 153, 0.05);border:1px solid var(--signal-border);border-radius:4px;display:flex;justify-content:space-between;font-size:9px;">
+            <span style="color:var(--text-white);">[16x MULTI-STREAM]</span>
+            <span style="color:var(--signal);">DOWNLOADER</span>
+          </div>
+        </div>
+        <div style="text-align:center;color:var(--signal);font-size:9.5px;">
+          CONVERGED DATA RUNTIME
+        </div>
       </div>`
     };
 
     const appUrls = {
+      reader: {
+        download: "https://github.com/XRTM8/Otium/releases/latest",
+        repo: "https://github.com/XRTM8/Otium",
+        pkg: "XRTM8.OtiumReader"
+      },
+      scan: {
+        download: "https://github.com/XRTM8/Otium-Scan/releases/latest",
+        repo: "https://github.com/XRTM8/Otium-Scan",
+        pkg: "XRTM8.OtiumScan"
+      },
       docs: {
         download: "https://github.com/XRTM8/Otium-Docs/releases/latest",
-        repo: "https://github.com/XRTM8/Otium-Docs"
+        repo: "https://github.com/XRTM8/Otium-Docs",
+        pkg: "XRTM8.OtiumDocs"
       },
       link: {
         download: "https://github.com/XRTM8/Otium-Link/releases/latest",
-        repo: "https://github.com/XRTM8/Otium-Link"
+        repo: "https://github.com/XRTM8/Otium-Link",
+        pkg: "XRTM8.OtiumLink"
+      },
+      downloader: {
+        download: "https://github.com/XRTM8/Otium-Downloader/releases/latest",
+        repo: "https://github.com/XRTM8/Otium-Downloader",
+        pkg: "XRTM8.OtiumDownloader"
+      },
+      hub: {
+        download: "https://github.com/XRTM8/Otium-Downloader",
+        repo: "https://github.com/XRTM8/Otium-Downloader",
+        pkg: "XRTM8.OtiumHub"
       }
     };
 
@@ -1237,9 +1487,14 @@
       document.getElementById('i18n-hero-tag').innerText = t.heroTag;
       document.getElementById('i18n-hero-title').innerHTML = t.heroTitle;
       document.getElementById('i18n-hero-desc').innerText = t.heroDesc;
-      document.getElementById('i18n-dock-label').innerText = t.dockLabel;
-      document.getElementById('tag-docs').innerText = t.tagDocs;
-      document.getElementById('tag-link').innerText = t.tagLink;
+      document.getElementById('i18n-suite1-title').innerText = t.suite1Title;
+      document.getElementById('i18n-suite2-title').innerText = t.suite2Title;
+      document.getElementById('eq-badge-reader').innerText = t.badgeStandalone;
+      document.getElementById('eq-badge-scan').innerText = t.badgeStandalone;
+      document.getElementById('eq-badge-docs').innerText = t.badgeFlagship;
+      document.getElementById('eq-badge-link').innerText = t.badgeStandalone;
+      document.getElementById('eq-badge-downloader').innerText = t.badgeStandalone;
+      document.getElementById('eq-badge-hub').innerText = t.badgeUpcoming;
       document.getElementById('i18n-code-label').innerText = t.codeLabel;
       document.getElementById('i18n-spec1-meta').innerText = t.spec1Meta;
       document.getElementById('i18n-spec1-title').innerText = t.spec1Title;
@@ -1270,8 +1525,8 @@
       inspCol.classList.add('is-fading');
       prevCol.style.opacity = '0.2';
 
-      // Update Dock Selection
-      document.querySelectorAll('.squircle-card').forEach(c => c.classList.remove('active'));
+      // Update Dock Selection across all tiles
+      document.querySelectorAll('.eq-tile').forEach(c => c.classList.remove('active'));
       const activeCard = document.getElementById(`tile-${key}`);
       if (activeCard) activeCard.classList.add('active');
 
@@ -1290,6 +1545,7 @@
       document.getElementById('insp-ver').innerText = app.ver;
       document.getElementById('insp-role').innerText = app.role;
       document.getElementById('insp-desc').innerText = app.desc;
+      document.getElementById('insp-type-pill').innerText = app.typePill;
       document.getElementById('insp-telemetry-status').innerText = `${app.status} • ZERO TELEMETRY`;
 
       // Pills
@@ -1303,11 +1559,15 @@
 
       // Deploy Box
       const copyBtnText = i18nData[currentLang].copyBtn;
-      const pkgName = key === 'docs' ? 'XRTM8.OtiumDocs' : 'XRTM8.OtiumLink';
+      const isGitCmd = app.termCmd.startsWith('git clone');
+      const cmdHtml = isGitCmd 
+        ? `<span class="cmd">git</span> clone <span class="pkg">${app.termCmd.replace('git clone ', '')}</span>`
+        : `<span class="cmd">winget</span> install <span class="pkg">${urls.pkg}</span>`;
+
       document.getElementById('insp-deploy-box').innerHTML = `
         <div class="deploy-terminal">
           <div class="term-code-span">
-            <span class="cmd">winget</span> install <span class="pkg">${pkgName}</span>
+            ${cmdHtml}
           </div>
           <button class="btn-term-copy" onclick="copyTerminalCommand('${app.termCmd}')">
             <span id="copy-btn-label">${copyBtnText}</span>
