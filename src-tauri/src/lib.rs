@@ -1,5 +1,6 @@
 use std::env;
 use std::fs;
+use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
 use tauri::ipc::Response;
@@ -32,8 +33,8 @@ fn get_initial_pdf() -> Option<InitialPdf> {
 
 /// Return raw bytes instead of a JSON number array. Large PDFs would otherwise
 /// be serialized into millions of numbers before reaching the WebView.
-/// Hardened with extension validation and %PDF- magic byte verification to
-/// prevent reading non-PDF files from disk.
+/// Hardened with extension validation, size bounds, and upfront header verification
+/// before buffer allocation to prevent out-of-memory crashes on large files.
 #[tauri::command]
 fn read_pdf_bytes(path: String) -> Result<Response, String> {
   let p = Path::new(&path);
@@ -51,13 +52,32 @@ fn read_pdf_bytes(path: String) -> Result<Response, String> {
     return Err("Only .pdf files can be read".into());
   }
 
-  let bytes = fs::read(p).map_err(|error| error.to_string())?;
+  let metadata = fs::metadata(p).map_err(|e| e.to_string())?;
+  let file_size = metadata.len();
 
-  // ISO 32000-1: A valid PDF file begins with or contains "%PDF-" in its header
-  let header_limit = 1024.min(bytes.len());
-  if bytes.len() < 5 || !bytes[..header_limit].windows(5).any(|w| w == b"%PDF-") {
-    return Err("File is not a valid PDF document".into());
+  if file_size == 0 {
+    return Err("File is empty (0 bytes)".into());
   }
+
+  const MAX_SUPPORTED_SIZE: u64 = 1500 * 1024 * 1024; // 1.5 GB limit
+  if file_size > MAX_SUPPORTED_SIZE {
+    return Err("File exceeds 1.5 GB maximum supported document size".into());
+  }
+
+  let mut file = fs::File::open(p).map_err(|e| e.to_string())?;
+
+  // ISO 32000-1: A valid PDF begins with or contains "%PDF-" in its first 1024 bytes.
+  // Validate the magic bytes before allocating memory for the full file body.
+  let mut header = [0u8; 1024];
+  let n = file.read(&mut header).map_err(|e| e.to_string())?;
+  if n < 5 || !header[..n].windows(5).any(|w| w == b"%PDF-") {
+    return Err("File is not a valid PDF document (missing %PDF- header)".into());
+  }
+
+  // Rewind to beginning and read exact bytes with pre-allocated capacity
+  file.seek(SeekFrom::Start(0)).map_err(|e| e.to_string())?;
+  let mut bytes = Vec::with_capacity(file_size as usize);
+  file.read_to_end(&mut bytes).map_err(|e| e.to_string())?;
 
   Ok(Response::new(bytes))
 }
