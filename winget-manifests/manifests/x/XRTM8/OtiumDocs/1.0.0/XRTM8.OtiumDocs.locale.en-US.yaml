@@ -1,0 +1,31 @@
+PackageIdentifier: XRTM8.OtiumDocs
+PackageVersion: 1.0.0
+PackageLocale: en-US
+Publisher: XRTM8
+PublisherUrl: https://github.com/XRTM8
+PublisherSupportUrl: https://github.com/XRTM8/Otium-Docs/issues
+Author: XRTM8
+PackageName: Otium Docs
+PackageUrl: https://xrtm8.github.io/Otium/
+License: GPL-3.0-or-later
+LicenseUrl: https://raw.githubusercontent.com/XRTM8/Otium-Docs/main/LICENSE
+Copyright: Copyright (c) XRTM8
+CopyrightUrl: https://raw.githubusercontent.com/XRTM8/Otium-Docs/main/LICENSE
+ShortDescription: High-performance local-first document reader & intelligent edge scanner.
+Description: |-
+  Otium Docs is a sovereign, unified workspace that brings together high-speed local PDF reading and on-device smart camera document scanning.
+  Features include offline annotations, highlights, full Arabic and English typography, automatic page boundary detection, and immediate document reading without cloud dependencies.
+Moniker: otiumdocs
+Tags:
+  - pdf
+  - reader
+  - scanner
+  - camera-scan
+  - edge-detection
+  - local-first
+  - offline
+  - privacy
+  - arabic
+  - gpl
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

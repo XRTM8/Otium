@@ -1,0 +1,28 @@
+PackageIdentifier: XRTM8.OtiumDocs
+PackageVersion: 1.0.0
+PackageLocale: ar-SA
+Publisher: XRTM8
+PublisherUrl: https://github.com/XRTM8
+PublisherSupportUrl: https://github.com/XRTM8/Otium-Docs/issues
+Author: XRTM8
+PackageName: Otium Docs
+PackageUrl: https://xrtm8.github.io/Otium/
+License: GPL-3.0-or-later
+LicenseUrl: https://raw.githubusercontent.com/XRTM8/Otium-Docs/main/LICENSE
+Copyright: Copyright (c) XRTM8
+CopyrightUrl: https://raw.githubusercontent.com/XRTM8/Otium-Docs/main/LICENSE
+ShortDescription: منظومة متكاملة لقراءة ومسح المستندات محلياً بدون خوادم خارجية وبأقصى سرعة عتادية.
+Description: |-
+  أوتيوم دوكس (Otium Docs) هو التطبيق الموحد الشامل لقراءة ومسح المستندات؛ يدمج محرك قراءة PDF فائق السرعة مع ماسح كاميرا ذكي يصحح الحواف آلياً ويفتح المستند فورياً للملاحظات والبحث بدون إنترنت.
+Tags:
+  - pdf
+  - بي-دي-إف
+  - قارئ-كتب
+  - ماسح-ضوئي
+  - سكانر
+  - محلي
+  - خصوصية
+  - عربي
+  - مفتوح-المصدر
+ManifestType: locale
+ManifestVersion: 1.6.0
