@@ -1,0 +1,17 @@
+PackageIdentifier: XRTM8.OtiumReader
+PackageVersion: 1.5.0
+Platform:
+  - Windows.Desktop
+MinimumOSVersion: 10.0.17763.0
+InstallerType: portable
+InstallModes:
+  - silent
+  - interactive
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/XRTM8/Otium/releases/download/v1.5.0/Otium-Windows.exe
+    InstallerSha256: 3EA77E37A1080910988746AD3204BE11B7A5FF07DEDD84EB58124A6BFB4147B8
+    Commands:
+      - otium
+ManifestType: installer
+ManifestVersion: 1.6.0

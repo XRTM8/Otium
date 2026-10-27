@@ -1,0 +1,23 @@
+Categories:
+  - Reading
+  - Office
+License: GPL-3.0-or-later
+AuthorName: XRTM8
+AuthorWebSite: https://github.com/XRTM8
+WebSite: https://xrtm8.github.io/Otium/
+SourceCode: https://github.com/XRTM8/Otium
+IssueTracker: https://github.com/XRTM8/Otium/issues
+Changelog: https://github.com/XRTM8/Otium/releases
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: 1.5.0
+CurrentVersionCode: 10500
+
+Builds:
+  - versionName: 1.5.0
+    versionCode: 10500
+    commit: v1.5.0
+    subdir: src-tauri/gen/android
+    gradle:
+      - assembleRelease

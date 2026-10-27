@@ -1,0 +1,9 @@
+Otium Reader is a distraction-free, 100% offline, privacy-first PDF and ebook reader designed for maximum visual comfort and blazing-fast performance.
+
+Key Highlights:
+• 120 FPS Motion Physics: Ultra-smooth scrolling, touch-optimized gestures, and zero layout thrashing.
+• True Dual-Page Mode: Authentic book reading experience with symmetric rendering.
+• Offline Text-to-Speech (TTS): Listen to your books and documents with high-quality localized voice synthesis.
+• Pixel-Perfect Highlighting & Annotation: Non-destructive local text highlights and persistent notes stored in crash-proof IndexedDB.
+• Smart Arabic Text Search: Diacritics and hamza normalization for accurate Arabic queries.
+• Zero Telemetry: No background network requests, no analytics, no accounts required. Free and open source under GNU GPL v3.

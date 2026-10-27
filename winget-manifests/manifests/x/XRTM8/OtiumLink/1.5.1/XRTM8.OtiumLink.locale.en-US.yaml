@@ -1,0 +1,29 @@
+PackageIdentifier: XRTM8.OtiumLink
+PackageVersion: 1.5.1
+PackageLocale: en-US
+Publisher: XRTM8
+PublisherUrl: https://github.com/XRTM8
+PublisherSupportUrl: https://github.com/XRTM8/Otium-Link/issues
+Author: XRTM8
+PackageName: Otium Link
+PackageUrl: https://xrtm8.github.io/Otium/
+License: GPL-3.0-or-later
+LicenseUrl: https://raw.githubusercontent.com/XRTM8/Otium-Link/main/LICENSE
+Copyright: Copyright (c) XRTM8
+CopyrightUrl: https://raw.githubusercontent.com/XRTM8/Otium-Link/main/LICENSE
+ShortDescription: Zero-cloud, instant cross-device P2P clipboard and file transfer over local Wi-Fi.
+Description: |-
+  Otium Link is a secure, peer-to-peer (P2P) bridge connecting your Windows PC and Android phone over your local network.
+  Features include real-time clipboard sync, high-speed file streaming with CRC32 verification, URL tracking parameter stripping, and a strict private subnet firewall.
+Moniker: otiumlink
+Tags:
+  - clipboard
+  - file-transfer
+  - p2p
+  - sync
+  - share
+  - offline
+  - lan
+  - gpl
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

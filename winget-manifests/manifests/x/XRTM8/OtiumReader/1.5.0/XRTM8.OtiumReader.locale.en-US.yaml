@@ -1,0 +1,29 @@
+PackageIdentifier: XRTM8.OtiumReader
+PackageVersion: 1.5.0
+PackageLocale: en-US
+Publisher: XRTM8
+PublisherUrl: https://github.com/XRTM8
+PublisherSupportUrl: https://github.com/XRTM8/Otium/issues
+Author: XRTM8
+PackageName: Otium Reader
+PackageUrl: https://xrtm8.github.io/Otium/
+License: GPL-3.0-or-later
+LicenseUrl: https://raw.githubusercontent.com/XRTM8/Otium/main/LICENSE
+Copyright: Copyright (c) XRTM8
+CopyrightUrl: https://raw.githubusercontent.com/XRTM8/Otium/main/LICENSE
+ShortDescription: Zero-cloud, 120 FPS high-performance PDF and ebook reader with offline TTS.
+Description: |-
+  Otium Reader is a distraction-free, 100% offline, privacy-first PDF and ebook reader designed for maximum visual comfort and blazing-fast performance.
+  Features include 120 FPS motion physics, dual-page mode, smart Arabic text search, and offline TTS voice synthesis.
+Moniker: otiumreader
+Tags:
+  - pdf
+  - reader
+  - ebook
+  - viewer
+  - offline
+  - tts
+  - arabic
+  - gpl
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>منظومة أو تيوم | Otium Ecosystem — الحرية التقنية والأداء الصامت</title>
+  <meta name="description" content="المنظومة الإنتاجية الخالية تماماً من السحابة لويندوز وأندرويد. تطبيقات فائقة السرعة، خصوصية 100%، وترخيص GNU GPL v3." />
+  <meta name="theme-color" content="#07090e" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="منظومة أو تيوم | Otium Ecosystem" />
+  <meta property="og:description" content="تطبيقات القراءة والمسح الضوئي ونقل الملفات فائقة السرعة والخصوصية لنظامي Windows و Android." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://xrtm8.github.io/Otium/" />
+
+  <!-- Fonts: Tajawal & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            tajawal: ['Tajawal', 'sans-serif'],
+            sans: ['"Plus Jakarta Sans"', 'Tajawal', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            obsidian: '#07090e',
+            'obsidian-card': '#0d111a',
+            emerald: {
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+            },
+            gold: {
+              400: '#fbbf24',
+              500: '#f59e0b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #07090e;
+      color: #f1f5f9;
+      font-family: 'Tajawal', sans-serif;
+      overflow-x: hidden;
+      selection-background-color: #10b981;
+      selection-color: #000;
+    }
+    ::selection {
+      background: #10b981;
+      color: #07090e;
+    }
+    .glow-emerald {
+      box-shadow: 0 0 60px -15px rgba(16, 185, 129, 0.25);
+    }
+    .glow-gold {
+      box-shadow: 0 0 60px -15px rgba(245, 158, 11, 0.2);
+    }
+    .glass-card {
+      background: rgba(13, 17, 26, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card:hover {
+      border-color: rgba(16, 185, 129, 0.35);
+      transform: translateY(-2px);
+      transition: all 0.25s ease-out;
+    }
+    .grid-bg {
+      background-size: 32px 32px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    }
+    .radial-glow {
+      background: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.12) 0%, rgba(7, 9, 14, 0) 65%);
+    }
+  </style>
+</head>
+
+<body class="radial-glow grid-bg min-h-screen text-slate-100 flex flex-col justify-between">
+
+  <!-- Header / Navigation -->
+  <header class="sticky top-0 z-50 backdrop-blur-md bg-obsidian/85 border-b border-white/[0.07]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400/20 to-emerald-600/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-lg shadow-lg shadow-emerald-500/10">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+          </svg>
+        </div>
+        <div>
+          <span class="text-base font-extrabold tracking-tight text-white block leading-none">OTIUM</span>
+          <span class="text-[10px] text-emerald-400/80 font-medium tracking-widest block uppercase mt-0.5">Ecosystem</span>
+        </div>
+      </div>
+
+      <nav class="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-300">
+        <a href="#apps" class="hover:text-emerald-400 transition-colors">التطبيقات الثلاثة</a>
+        <a href="#winget" class="hover:text-emerald-400 transition-colors">حزم Winget</a>
+        <a href="#fdroid" class="hover:text-emerald-400 transition-colors">متجر F-Droid</a>
+        <a href="#manifesto" class="hover:text-emerald-400 transition-colors">ميثاق الخصوصية</a>
+      </nav>
+
+      <div class="flex items-center gap-2.5">
+        <a href="https://github.com/XRTM8" target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-xs font-semibold border border-white/10 transition-all flex items-center gap-1.5">
+          <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          <span>مستودعات XRTM8</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main class="flex-1">
+    <section class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center space-y-6">
+      
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <span>منظومة برمجية حرة 100% — مرخصة تحت GNU GPL v3</span>
+      </div>
+
+      <h1 class="text-4xl sm:text-6xl font-black tracking-tight leading-[1.15] text-white">
+        الإنتاجية الصامتة والحرية الرقمية.<br />
+        <span class="bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 bg-clip-text text-transparent">
+          صفر سحابة. صفر تتبع. أداء 120 FPS.
+        </span>
+      </h1>
+
+      <p class="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
+        أدواتك اليومية لقراءة المستندات، والمسح الضوئي، وتبادل الحافظة والملفات بين الحاسوب والهاتف.
+        مبنية بمحرك Rust فائق الأمان، ولا ترسل بايت واحداً لخوادم خارجية أبداً.
+      </p>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-wrap items-center justify-center gap-3 pt-4">
+        <a href="#apps" class="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm shadow-xl shadow-emerald-500/20 transition-all flex items-center gap-2">
+          <span>استعراض التطبيقات الثلاثة</span>
+          <svg class="w-4 h-4 rtl:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="#winget" class="px-5 py-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-slate-200 font-semibold text-sm border border-white/10 transition-all flex items-center gap-2">
+          <svg class="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-6-6-6M12 19h8"/></svg>
+          <span>تثبيت بنقرة عبر Winget</span>
+        </a>
+      </div>
+
+      <!-- Live Core Metrics -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto pt-10">
+        <div class="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+          <span class="text-2xl font-black text-emerald-400 block font-mono">0%</span>
+          <span class="text-xs text-slate-400 mt-1 block">تخزين سحابي أو تتبع</span>
+        </div>
+        <div class="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+          <span class="text-2xl font-black text-white block font-mono">120 FPS</span>
+          <span class="text-xs text-slate-400 mt-1 block">سلاسة وفيزياء حركة تامة</span>
+        </div>
+        <div class="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+          <span class="text-2xl font-black text-emerald-400 block font-mono">Rust + Tauri</span>
+          <span class="text-xs text-slate-400 mt-1 block">استهلاك أدنى للذاكرة والبطارية</span>
+        </div>
+        <div class="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+          <span class="text-2xl font-black text-gold-400 block font-mono">GPL v3</span>
+          <span class="text-xs text-slate-400 mt-1 block">برمجيات حرة للأبد</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- THE THREE APPS SECTION -->
+    <section id="apps" class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">
+      <div class="text-center space-y-2">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-emerald-400">ركائز منظومة أو تيوم</h2>
+        <p class="text-2xl sm:text-3xl font-extrabold text-white">ثلاثة تطبيقات تكمل بعضها بانسجام مطلق</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        <!-- APP 1: Otium Reader -->
+        <div class="glass-card rounded-3xl p-6 flex flex-col justify-between space-y-6 relative overflow-hidden group">
+          <div class="space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400/20 to-amber-600/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-lg">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            <div>
+              <div class="flex items-center justify-between">
+                <h3 class="text-lg font-bold text-white">Otium Reader</h3>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-white/5 text-amber-300 border border-white/10">v1.5.0</span>
+              </div>
+              <p class="text-xs text-amber-400 font-semibold mt-0.5">قارئ الكتب والمستندات فائق السلاسة</p>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              محرك عرض متقدم لا ينهار، سلاسة فيزياء 120 FPS بدون أي Layout Thrashing، وضع الصفحتين المتطابق، قراءة صوتية ذكية (TTS) دون إنترنت، وحفظ لحظي مشفر محلياً.
+            </p>
+            <ul class="text-[11px] text-slate-400 space-y-1.5 pt-2 border-t border-white/5">
+              <li class="flex items-center gap-1.5"><span class="text-emerald-400">✓</span> استجابة فورية بدون استهلاك الذاكرة</li>
+              <li class="flex items-center gap-1.5"><span class="text-emerald-400">✓</span> بحث عربي ذكي مجرد من التشكيل والزوائد</li>
+              <li class="flex items-center gap-1.5"><span class="text-emerald-400">✓</span> دعم ويندوز وأندرويد بتوافقية تامة</li>
+            </ul>
+          </div>
+
+          <div class="space-y-2 pt-4">
+            <a href="https://github.com/XRTM8/Otium/releases/latest" target="_blank" rel="noopener noreferrer" class="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition-all">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              <span>تحميل Otium Reader (Win / APK)</span>
+            </a>
+            <a href="https://github.com/XRTM8/Otium" target="_blank" rel="noopener noreferrer" class="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-[11px] font-semibold flex items-center justify-center gap-1.5 border border-white/10 transition-colors">
+              <span>كود المصدر على GitHub</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- APP 2: Otium Scan -->
+        <div class="glass-card rounded-3xl p-6 flex flex-col justify-between space-y-6 relative overflow-hidden group">
+          <div class="space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400/20 to-emerald-600/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 12h10"/></svg>
+            </div>
+            <div>
+              <div class="flex items-center justify-between">
+                <h3 class="text-lg font-bold text-white">Otium Scan</h3>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-white/5 text-emerald-300 border border-white/10">v1.0.3</span>
+              </div>
+              <p class="text-xs text-emerald-400 font-semibold mt-0.5">ماسح المستندات والبطاقات الذكي المحصّن</p>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              التقاط ذكي وقص آلي لأطراف الورقة، مرشحات تنقية احترافية للطباعة، استخراج نصوص عربي وإنجليزي دون إنترنت (Offline OCR)، وخزنة مستندات مشفرة برمز PIN.
+            </p>
+            <ul class="text-[11px] text-slate-400 space-y-1.5 pt-2 border-t border-white/5">
+              <li class="flex items-center gap-1.5"><span class="text-emerald-400">✓</span> تصدير مستندات PDF نصية قابلة للبحث</li>
+              <li class="flex items-center gap-1.5"><span class="text-emerald-400">✓</span> وضع بطاقات الهوية المزدوج (وجه وخلف)</li>
+              <li class="flex items-center gap-1.5"><span class="text-emerald-400">✓</span> صفر اشتراكات وصفر إعلانات وصفر علامات مائية</li>
+            </ul>
+          </div>
+
+          <div class="space-y-2 pt-4">
+            <a href="https://github.com/XRTM8/Otium-Scan/releases/latest" target="_blank" rel="noopener noreferrer" class="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition-all">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              <span>تحميل Otium Scan (APK أندرويد)</span>
+            </a>
+            <a href="https://github.com/XRTM8/Otium-Scan" target="_blank" rel="noopener noreferrer" class="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-[11px] font-semibold flex items-center justify-center gap-1.5 border border-white/10 transition-colors">
+              <span>كود المصدر على GitHub</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- APP 3: Otium Link -->
+        <div class="glass-card rounded-3xl p-6 flex flex-col justify-between space-y-6 relative overflow-hidden group">
+          <div class="space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-400/20 to-cyan-600/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-lg">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            </div>
+            <div>
+              <div class="flex items-center justify-between">
+                <h3 class="text-lg font-bold text-white">Otium Link</h3>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-white/5 text-cyan-300 border border-white/10">v1.5.1</span>
+              </div>
+              <p class="text-xs text-cyan-400 font-semibold mt-0.5">الجسر اللحظي للحافظة والملفات P2P</p>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              تبادل فوري ومباشر للنصوص والملفات بين حاسوبك وهاتفك عبر Wi-Fi المحلي دون خوادم. تدفق فائق السرعة مع فحص CRC32، وتطهير بارامترات التتبع، ودعم الاتصال المباشر IP.
+            </p>
+            <ul class="text-[11px] text-slate-400 space-y-1.5 pt-2 border-t border-white/5">
+              <li class="flex items-center gap-1.5"><span class="text-cyan-400">✓</span> استكشاف تلقائي مشفر للأجهزة المحلية</li>
+              <li class="flex items-center gap-1.5"><span class="text-cyan-400">✓</span> درع حماية البيانات الحساسة والبطاقات</li>
+              <li class="flex items-center gap-1.5"><span class="text-cyan-400">✓</span> نظام تحديثات ثلاثي الطبقات عند الطلب</li>
+            </ul>
+          </div>
+
+          <div class="space-y-2 pt-4">
+            <a href="https://github.com/XRTM8/Otium-Link/releases/latest" target="_blank" rel="noopener noreferrer" class="w-full py-2.5 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition-all">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              <span>تحميل Otium Link (Win / APK)</span>
+            </a>
+            <a href="https://github.com/XRTM8/Otium-Link" target="_blank" rel="noopener noreferrer" class="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-[11px] font-semibold flex items-center justify-center gap-1.5 border border-white/10 transition-colors">
+              <span>كود المصدر على GitHub</span>
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION: WINGET ONE-COMMAND INSTALLATION -->
+    <section id="winget" class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="glass-card rounded-3xl p-6 sm:p-8 space-y-6 border border-emerald-500/20 glow-emerald">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <span class="text-[11px] font-mono text-emerald-400 tracking-wider uppercase font-bold">Windows Package Manager</span>
+            <h2 class="text-xl sm:text-2xl font-black text-white">تثبيت وتحديث فوري عبر سطر أوامر ويندوز</h2>
+          </div>
+          <span class="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-mono border border-emerald-500/30 w-fit">
+            winget v1.29+
+          </span>
+        </div>
+
+        <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+          يمكنك الآن تثبيت برامج المنظومة الرسمية على أي حاسوب ويندوز بنقرة واحدة عبر الـ Terminal، دون الحاجة لفتح المتصفح أو المرور بمعالجات التثبيت:
+        </p>
+
+        <!-- Terminal Box -->
+        <div class="bg-black/80 rounded-2xl border border-white/10 p-4 font-mono text-xs text-left dir-ltr space-y-3 relative overflow-hidden">
+          <div class="flex items-center justify-between border-b border-white/10 pb-2.5">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-rose-500/80 inline-block"></span>
+              <span class="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
+              <span class="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
+              <span class="text-[11px] text-slate-400 ml-2">PowerShell / Command Prompt</span>
+            </div>
+            <button onclick="copyCommands()" id="copy-btn" class="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-sans transition-all flex items-center gap-1.5 active:scale-95">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              <span id="copy-label">نسخ الأوامر</span>
+            </button>
+          </div>
+
+          <div class="space-y-1.5 text-slate-200 pt-1">
+            <p class="text-slate-500"># 1. تثبيت قارئ المستندات Otium Reader</p>
+            <p class="text-emerald-400"><span class="text-slate-500">&gt;</span> winget install XRTM8.OtiumReader</p>
+            <p class="text-slate-500 pt-1"># 2. تثبيت جسر الحافظة والملفات Otium Link</p>
+            <p class="text-cyan-400"><span class="text-slate-500">&gt;</span> winget install XRTM8.OtiumLink</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: F-DROID & ANDROID STORE -->
+    <section id="fdroid" class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div class="glass-card rounded-3xl p-6 sm:p-8 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <span class="text-[11px] font-mono text-emerald-400 tracking-wider uppercase font-bold">F-Droid Repository Standard</span>
+            <h2 class="text-xl sm:text-2xl font-black text-white">متجر البرمجيات الحرة (F-Droid) لنظام Android</h2>
+          </div>
+          <span class="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-mono border border-blue-500/30 w-fit">
+            F-Droid Fastlane Ready
+          </span>
+        </div>
+
+        <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+          كافة تطبيقات أندرويد في المنظومة مجهزة بهيكلية بيانات <code class="text-emerald-400 font-mono">Fastlane Metadata</code> وتوصيفات <code class="text-emerald-400 font-mono">.fdroid.yml</code> الكاملة للاندماج السلس مع مستودع F-Droid الرئيسي، وتنزيل حزم APK المستقلة مع التحقق من توقيع المطور الأصلي.
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+          <a href="https://github.com/XRTM8/Otium/releases" target="_blank" rel="noopener noreferrer" class="p-3.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 transition-all text-center space-y-1">
+            <span class="text-xs font-bold text-white block">Otium Reader APK</span>
+            <span class="text-[10px] text-slate-400 font-mono block">com.xrtm8.otium</span>
+          </a>
+          <a href="https://github.com/XRTM8/Otium-Scan/releases" target="_blank" rel="noopener noreferrer" class="p-3.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 transition-all text-center space-y-1">
+            <span class="text-xs font-bold text-white block">Otium Scan APK</span>
+            <span class="text-[10px] text-slate-400 font-mono block">com.xrtm8.otiumscan</span>
+          </a>
+          <a href="https://github.com/XRTM8/Otium-Link/releases" target="_blank" rel="noopener noreferrer" class="p-3.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 transition-all text-center space-y-1">
+            <span class="text-xs font-bold text-white block">Otium Link APK</span>
+            <span class="text-[10px] text-slate-400 font-mono block">com.xrtm8.otiumlink</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: THE MANIFESTO -->
+    <section id="manifesto" class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-8">
+      <div class="text-center space-y-2">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-emerald-400">ميثاق المنظومة</h2>
+        <p class="text-2xl font-extrabold text-white">لماذا اخترنا فلسفة "صفر سحابة"؟</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">1</div>
+          <h3 class="text-sm font-bold text-white">ملكية البيانات حق مطلق</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            كتبك، مستنداتك الشخصية، بطاقاتك، ونصوص حافظتك لا تخرج أبداً من نطاق شبكتك المنزلية أو جهازك الخاص.
+          </p>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">2</div>
+          <h3 class="text-sm font-bold text-white">برمجيات حرة لا تموت</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            ترخيص GNU GPL v3 يضمن لك أن التطبيقات ستبقى مجانية، مفتوحة بالكامل، وغير خاضعة لأي اشتراك أو قيود احتكارية.
+          </p>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">3</div>
+          <h3 class="text-sm font-bold text-white">هندسة فائقة النقاء</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            تطوير مبني بلغة Rust وأحدث معايير الويب الخفيف، لتمنحك سرعة إقلاع لحظية وأدنى استهلاك للموارد والبطارية.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/[0.08] bg-obsidian/95 py-8 text-center text-xs text-slate-500 space-y-3">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-slate-300">منظومة أو تيوم (Otium Ecosystem)</span>
+        <span>•</span>
+        <span>برمجيات حرة برخصة GNU GPL v3</span>
+      </div>
+      <div class="flex items-center gap-4 text-slate-400">
+        <a href="https://github.com/XRTM8/Otium" target="_blank" class="hover:text-emerald-400 transition-colors">Otium Reader</a>
+        <a href="https://github.com/XRTM8/Otium-Scan" target="_blank" class="hover:text-emerald-400 transition-colors">Otium Scan</a>
+        <a href="https://github.com/XRTM8/Otium-Link" target="_blank" class="hover:text-emerald-400 transition-colors">Otium Link</a>
+        <a href="https://github.com/XRTM8" target="_blank" class="hover:text-white transition-colors">GitHub XRTM8</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function copyCommands() {
+      const text = `winget install XRTM8.OtiumReader\nwinget install XRTM8.OtiumLink`;
+      navigator.clipboard.writeText(text).then(() => {
+        const label = document.getElementById('copy-label');
+        const btn = document.getElementById('copy-btn');
+        label.innerText = 'تم النسخ بنجاح!';
+        btn.classList.add('bg-emerald-500', 'text-slate-950');
+        setTimeout(() => {
+          label.innerText = 'نسخ الأوامر';
+          btn.classList.remove('bg-emerald-500', 'text-slate-950');
+        }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+PackageIdentifier: XRTM8.OtiumReader
+PackageVersion: 1.5.0
+PackageLocale: ar-SA
+Publisher: XRTM8
+PublisherUrl: https://github.com/XRTM8
+PublisherSupportUrl: https://github.com/XRTM8/Otium/issues
+Author: XRTM8
+PackageName: أوتيوم ريدر (Otium Reader)
+PackageUrl: https://xrtm8.github.io/Otium/
+License: GPL-3.0-or-later
+LicenseUrl: https://raw.githubusercontent.com/XRTM8/Otium/main/LICENSE
+Copyright: Copyright (c) XRTM8
+CopyrightUrl: https://raw.githubusercontent.com/XRTM8/Otium/main/LICENSE
+ShortDescription: قارئ مستندات وكتب إلكترونية فاخر وسريع، 120 FPS بدون إعلانات أو تتبع وبدون إنترنت.
+Description: |-
+  أوتيوم ريدر (Otium Reader) هو قارئ المستندات والكتب الإلكترونية المصمم خصيصاً للقراءة المتواصلة بأعلى درجات الهدوء والسكينة والخصوصية التامة.
+  يتميز بمحرك عرض فائق السلاسة 120 FPS، وضع الصفحتين المتطابق، قراءة صوتية دون إنترنت (TTS)، ومحرك بحث عربي ذكي.
+Tags:
+  - بي-دي-إف
+  - قارئ-كتب
+  - مستندات
+  - كتب
+  - خصوصية
+ManifestType: locale
+ManifestVersion: 1.6.0

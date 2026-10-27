@@ -1,0 +1,25 @@
+PackageIdentifier: XRTM8.OtiumLink
+PackageVersion: 1.5.1
+PackageLocale: ar-SA
+Publisher: XRTM8
+PublisherUrl: https://github.com/XRTM8
+PublisherSupportUrl: https://github.com/XRTM8/Otium-Link/issues
+Author: XRTM8
+PackageName: أوتيوم لينك (Otium Link)
+PackageUrl: https://xrtm8.github.io/Otium/
+License: GPL-3.0-or-later
+LicenseUrl: https://raw.githubusercontent.com/XRTM8/Otium-Link/main/LICENSE
+Copyright: Copyright (c) XRTM8
+CopyrightUrl: https://raw.githubusercontent.com/XRTM8/Otium-Link/main/LICENSE
+ShortDescription: الجسر اللحظي للحافظة ونقل الملفات بين حاسوبك وهاتفك عبر الشبكة المحلية دون خوادم.
+Description: |-
+  أوتيوم لينك (Otium Link) هو الجسر اللحظي المباشر (P2P) بين حاسوبك الشخصي وهاتفك الذكي عبر شبكة Wi-Fi المحلية وبدون أي خوادم سحابية وسيطة.
+  يتميز بمزامنة الحافظة الفورية، نقل الملفات عالي السرعة عبر TCP مع فحص CRC32، تطهير روابط التتبع، واتصال مباشر IP.
+Tags:
+  - حافظة
+  - نقل-ملفات
+  - مشاركة
+  - شبكة-محلية
+  - خصوصية
+ManifestType: locale
+ManifestVersion: 1.6.0
