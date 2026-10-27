@@ -1,0 +1,26 @@
+PackageIdentifier: XRTM8.OtiumDownloader
+PackageVersion: 1.0.0
+PackageLocale: ar-SA
+Publisher: XRTM8
+PublisherUrl: https://github.com/XRTM8
+PublisherSupportUrl: https://github.com/XRTM8/Otium-Downloader/issues
+Author: XRTM8
+PackageName: Otium Downloader
+PackageUrl: https://xrtm8.github.io/Otium/
+License: GPL-3.0-or-later
+LicenseUrl: https://raw.githubusercontent.com/XRTM8/Otium-Downloader/main/LICENSE
+Copyright: Copyright (c) XRTM8
+CopyrightUrl: https://raw.githubusercontent.com/XRTM8/Otium-Downloader/main/LICENSE
+ShortDescription: مسرع تنزيل مستقل فائق السرعة متعدد المسارات محلي بالكامل.
+Description: |-
+  أداة تنزيل مستقلة فائقة السرعة؛ تقسم الروابط إلى 4 حتى 16 مساراً متزامناً لاستغلال أقصى سرعة اتصال، مع تتبع حالة كل مسار ومصفوفة تدفق حية، واستئناف ذكي عند انقطاع الاتصال وفحص تجزئة SHA-256 محلياً بدون أي تتبع أو خوادم وسيطة.
+Tags:
+  - تنزيل
+  - تسريع
+  - متعدد-المسارات
+  - محلي
+  - خصوصية
+  - عربي
+  - مفتوح-المصدر
+ManifestType: locale
+ManifestVersion: 1.6.0

@@ -1,0 +1,31 @@
+PackageIdentifier: XRTM8.OtiumDownloader
+PackageVersion: 1.0.0
+PackageLocale: en-US
+Publisher: XRTM8
+PublisherUrl: https://github.com/XRTM8
+PublisherSupportUrl: https://github.com/XRTM8/Otium-Downloader/issues
+Author: XRTM8
+PackageName: Otium Downloader
+PackageUrl: https://xrtm8.github.io/Otium/
+License: GPL-3.0-or-later
+LicenseUrl: https://raw.githubusercontent.com/XRTM8/Otium-Downloader/main/LICENSE
+Copyright: Copyright (c) XRTM8
+CopyrightUrl: https://raw.githubusercontent.com/XRTM8/Otium-Downloader/main/LICENSE
+ShortDescription: High-performance sovereign multi-segment download accelerator.
+Description: |-
+  Otium Downloader is a sovereign, high-throughput, multi-segment download accelerator for Windows.
+  It splits large downloads into parallel HTTP byte-range streams, tracks telemetry chunk-by-chunk in a real-time matrix, verifies SHA-256 integrity locally, and recovers gracefully from network disconnects — with zero telemetry, zero cloud proxy servers, and zero accounts.
+Moniker: otiumdownloader
+Tags:
+  - download
+  - accelerator
+  - multi-threaded
+  - range-requests
+  - parallel-streams
+  - local-first
+  - offline
+  - privacy
+  - arabic
+  - gpl
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0
