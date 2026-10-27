@@ -1,0 +1,32 @@
+PackageIdentifier: XRTM8.OtiumLink
+PackageVersion: 1.6.0
+PackageLocale: en-US
+Publisher: XRTM8
+PublisherUrl: https://github.com/XRTM8
+PublisherSupportUrl: https://github.com/XRTM8/Otium-Link/issues
+Author: XRTM8
+PackageName: Otium Link
+PackageUrl: https://xrtm8.github.io/Otium/
+License: GPL-3.0-or-later
+LicenseUrl: https://raw.githubusercontent.com/XRTM8/Otium-Link/main/LICENSE
+Copyright: Copyright (c) XRTM8
+CopyrightUrl: https://raw.githubusercontent.com/XRTM8/Otium-Link/main/LICENSE
+ShortDescription: Sovereign local-first universal bridge between desktop and mobile with instant clipboard sync, P2P file transfers, and pairing hub.
+Description: |-
+  Otium Link is a sovereign, local-first universal bridge designed for friction-free communication between desktop and mobile devices.
+  It enables real-time clipboard synchronization, ultra-fast peer-to-peer file streaming, manual IP direct connection, and instant folder navigation across your local Wi-Fi network without relying on cloud intermediaries, accounts, or telemetry.
+Moniker: otiumlink
+Tags:
+  - clipboard
+  - file-transfer
+  - p2p
+  - cross-platform
+  - local-first
+  - lan
+  - offline
+  - privacy
+  - arabic
+  - gpl
+ReleaseNotesUrl: https://github.com/XRTM8/Otium-Link/releases/tag/v1.6.0
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

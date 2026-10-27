@@ -11,7 +11,7 @@ InstallModes:
 Installers:
   - Architecture: x64
     InstallerUrl: https://github.com/XRTM8/Otium-Link/releases/download/v1.5.1/OtiumLink_1.5.1_x64-setup.exe
-    InstallerSha256: 7A1080910988746AD3204BE11B7A5FF07DEDD84EB58124A6BFB4147B83EA77E3
+    InstallerSha256: C8F1773E12BA5638E16517C694EB72F5FF3405F348D8F670BE756EF5B835C49A
     InstallerLocale: en-US
     UpgradeBehavior: install
 ManifestType: installer

@@ -1,0 +1,27 @@
+PackageIdentifier: XRTM8.OtiumLink
+PackageVersion: 1.6.0
+PackageLocale: ar-SA
+Publisher: XRTM8
+PublisherUrl: https://github.com/XRTM8
+PublisherSupportUrl: https://github.com/XRTM8/Otium-Link/issues
+Author: XRTM8
+PackageName: Otium Link
+PackageUrl: https://xrtm8.github.io/Otium/
+License: GPL-3.0-or-later
+LicenseUrl: https://raw.githubusercontent.com/XRTM8/Otium-Link/main/LICENSE
+Copyright: Copyright (c) XRTM8
+CopyrightUrl: https://raw.githubusercontent.com/XRTM8/Otium-Link/main/LICENSE
+ShortDescription: جسر محلي مستقل وشامل بين الحاسوب والهاتف لمزامنة الحافظة الفورية وتبادل الملفات السريع بدون خوادم سحابية.
+Description: |-
+  جسر محلي متكامل يربط الهاتف بالحاسوب عبر شبكة Wi-Fi المحلية؛ يتيح مزامنة الحافظة والنصوص فورياً، ونقل الملفات بأقصى سرعة عتادية بدون ضغط الجودة، مع اقتران مباشر عبر IP وتصفح مجلد الاستلام محلياً بالكامل بدون وسيط سحابي أو أي تتبع.
+Tags:
+  - حافظة
+  - نقل-ملفات
+  - اتصال-مباشر
+  - محلي
+  - خصوصية
+  - عربي
+  - مفتوح-المصدر
+ReleaseNotesUrl: https://github.com/XRTM8/Otium-Link/releases/tag/v1.6.0
+ManifestType: locale
+ManifestVersion: 1.6.0
