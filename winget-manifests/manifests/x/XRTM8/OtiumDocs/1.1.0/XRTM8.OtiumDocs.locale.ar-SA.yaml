@@ -1,0 +1,27 @@
+PackageIdentifier: XRTM8.OtiumDocs
+PackageVersion: 1.1.0
+PackageLocale: ar-SA
+Publisher: XRTM8
+PublisherUrl: https://github.com/XRTM8
+PublisherSupportUrl: https://github.com/XRTM8/Otium-Docs/issues
+Author: XRTM8
+PackageName: Otium Docs
+PackageUrl: https://xrtm8.github.io/Otium/
+License: GPL-3.0-or-later
+LicenseUrl: https://raw.githubusercontent.com/XRTM8/Otium-Docs/main/LICENSE
+Copyright: Copyright (c) XRTM8
+CopyrightUrl: https://raw.githubusercontent.com/XRTM8/Otium-Docs/main/LICENSE
+ShortDescription: قارئ وماسح المستندات الذكي الموحد محلي بالكامل.
+Description: |-
+  المنظومة الموحدة لقراءة ومسح المستندات؛ تجمع محرك قراءة PDF فائق السرعة مع ماسح كاميرا ذكي يصحح الحواف آلياً مع وصول مباشر للماسح من شريط القراءة وتقسيم ديناميكي للحزم.
+Tags:
+  - قارئ
+  - مستندات
+  - ماسح-ضوئي
+  - كاميرا
+  - محلي
+  - خصوصية
+  - عربي
+  - مفتوح-المصدر
+ManifestType: locale
+ManifestVersion: 1.6.0
