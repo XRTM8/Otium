@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Otium Software — برمجيات حرة ومحلية بالكامل</title>
+  <title>Otium Software — استوديو البرمجيات الحرة والمحلية بالكامل</title>
   <meta name="description" content="منظومة برمجيات هندسية حرة ومحلية 100% لنظامي Windows و Android. خصوصية تامة، بدون خوادم، وترخيص GNU GPL v3." />
   <meta name="color-scheme" content="dark" />
   <meta name="theme-color" content="#08090c" />
   <link rel="icon" type="image/png" href="favicon.png" />
 
-  <!-- Fonts: Tajawal + JetBrains Mono -->
+  <!-- Typography: Tajawal + JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <style>
     /* ==========================================================================
-       OTIUM 2026/2027 INDUSTRIAL MONOLITH SPECIFICATION
+       OTIUM INTERACTIVE CONSOLE — 2026/2027 BESPOKE INDUSTRIAL CRAFT
        Strict 2-Color Architecture: Obsidian Carbon (#08090c) + Signal Phosphor (#00e599)
        ========================================================================== */
     *, *::before, *::after {
@@ -26,27 +26,30 @@
     }
 
     :root {
-      /* Color 1: Monochromatic Carbon & Steel */
+      /* Base & Surfaces */
       --bg-root: #08090c;
-      --bg-surface: #0e1014;
-      --bg-surface-elevated: #14171d;
+      --bg-panel: #0d0f14;
+      --bg-card: #12151c;
+      --bg-card-hover: #171b24;
+      --bg-card-active: #151a22;
       --border-hairline: rgba(255, 255, 255, 0.08);
-      --border-focus: rgba(255, 255, 255, 0.18);
+      --border-focus: rgba(255, 255, 255, 0.2);
       --text-white: #f5f7fa;
       --text-muted: #8b949e;
-      --text-dim: #545d68;
+      --text-dim: #525a66;
 
-      /* Color 2: Signal Phosphor Emerald (Status / Accent / Action) */
+      /* Single Signal Accent (Phosphor Emerald) */
       --signal: #00e599;
-      --signal-glow: rgba(0, 229, 153, 0.22);
+      --signal-glow: rgba(0, 229, 153, 0.25);
       --signal-dim: rgba(0, 229, 153, 0.08);
-      --signal-border: rgba(0, 229, 153, 0.28);
+      --signal-border: rgba(0, 229, 153, 0.35);
 
-      /* Mechanical Radii & Transitions */
+      /* Mechanical Radii & Snappy Transitions */
       --radius-sm: 4px;
       --radius-md: 8px;
-      --radius-lg: 12px;
-      --fast: 80ms cubic-bezier(0.16, 1, 0.3, 1);
+      --radius-lg: 14px;
+      --radius-squircle: 18px;
+      --snappy: 90ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     html {
@@ -66,7 +69,7 @@
       background-image: 
         linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
         linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-      background-size: 48px 48px;
+      background-size: 40px 40px;
     }
 
     ::selection {
@@ -75,97 +78,110 @@
     }
 
     .container {
-      max-width: 1040px;
+      max-width: 1100px;
       margin: 0 auto;
       padding: 0 20px;
     }
 
-    /* ---------------- Navbar: Tactical Topbar ---------------- */
-    .topbar {
+    /* ---------------- Tactical Instrument Bar (Nav) ---------------- */
+    .instrument-nav {
       position: sticky;
       top: 0;
       z-index: 100;
-      background: rgba(8, 9, 12, 0.88);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      background: rgba(8, 9, 12, 0.9);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       border-bottom: 1px solid var(--border-hairline);
-      height: 56px;
+      height: 58px;
       display: flex;
       align-items: center;
     }
 
-    .topbar-inner {
+    .nav-inner {
       display: flex;
       align-items: center;
       justify-content: space-between;
       width: 100%;
     }
 
-    .brand-mark {
+    .brand-cluster {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       text-decoration: none;
       color: var(--text-white);
     }
 
-    .brand-mark img {
-      width: 28px;
-      height: 28px;
+    .brand-cluster img {
+      width: 30px;
+      height: 30px;
       border-radius: var(--radius-sm);
       border: 1px solid var(--border-hairline);
       display: block;
     }
 
-    .brand-name {
+    .brand-meta {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-title {
       font-family: 'JetBrains Mono', monospace;
       font-weight: 700;
       font-size: 14px;
       letter-spacing: 0.5px;
+      line-height: 1.2;
     }
 
-    .nav-links {
+    .brand-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--signal);
+      letter-spacing: 0.8px;
+    }
+
+    .nav-menu {
       display: flex;
       align-items: center;
       gap: 20px;
       list-style: none;
     }
 
-    .nav-links a {
+    .nav-menu a {
       color: var(--text-muted);
       text-decoration: none;
       font-size: 13px;
-      font-weight: 500;
-      transition: color var(--fast);
+      font-weight: 600;
+      transition: color var(--snappy);
     }
 
-    .nav-links a:hover {
+    .nav-menu a:hover {
       color: var(--text-white);
     }
 
-    .github-btn {
+    .nav-github {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 5px 12px;
-      background: var(--bg-surface);
+      gap: 8px;
+      padding: 6px 12px;
+      background: var(--bg-card);
       border: 1px solid var(--border-hairline);
       border-radius: var(--radius-sm);
       color: var(--text-white);
       text-decoration: none;
       font-family: 'JetBrains Mono', monospace;
       font-size: 12px;
-      font-weight: 500;
-      transition: all var(--fast);
+      font-weight: 600;
+      transition: all var(--snappy);
     }
 
-    .github-btn:hover {
+    .nav-github:hover {
       border-color: var(--signal);
       color: var(--signal);
     }
 
-    /* ---------------- LED Signal Indicator ---------------- */
-    .led {
+    /* ---------------- Status LED ---------------- */
+    .led-dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
@@ -175,17 +191,210 @@
       flex-shrink: 0;
     }
 
-    /* ---------------- Hero: Pure Restraint ---------------- */
-    .hero {
-      padding: 72px 0 36px;
-      text-align: center;
+    /* ---------------- Main Console Frame ---------------- */
+    .console-section {
+      padding: 44px 0 60px;
     }
 
-    .spec-badge {
+    .console-frame {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-lg);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Registration Crosses at corners */
+    .console-frame::before {
+      content: "+";
+      position: absolute;
+      top: 6px;
+      right: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      pointer-events: none;
+    }
+
+    .console-frame::after {
+      content: "+";
+      position: absolute;
+      top: 6px;
+      left: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      pointer-events: none;
+    }
+
+    /* Console Telemetry Header */
+    .telemetry-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 18px;
+      background: rgba(0, 0, 0, 0.4);
+      border-bottom: 1px solid var(--border-hairline);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      direction: ltr;
+    }
+
+    .telemetry-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--signal);
+      font-weight: 600;
+    }
+
+    .telemetry-right {
+      color: var(--text-dim);
+    }
+
+    /* Main Console Grid */
+    .console-body {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      min-height: 480px;
+    }
+
+    @media (max-width: 900px) {
+      .console-body {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ---------------- Right Panel: Interactive Dock (Selector) ---------------- */
+    .dock-panel {
+      padding: 24px;
+      border-left: 1px solid var(--border-hairline);
+      background: rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .dock-panel {
+        border-left: none;
+        border-bottom: 1px solid var(--border-hairline);
+      }
+    }
+
+    .dock-header {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .app-tile {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-squircle);
+      cursor: pointer;
+      text-align: right;
+      transition: all var(--snappy);
+      position: relative;
+      user-select: none;
+    }
+
+    .app-tile:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-focus);
+      transform: translateY(-1px);
+    }
+
+    .app-tile.active {
+      background: var(--bg-card-active);
+      border-color: var(--signal);
+      box-shadow: 0 0 20px var(--signal-glow);
+    }
+
+    .app-tile.active::after {
+      content: "";
+      position: absolute;
+      left: 14px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--signal);
+      box-shadow: 0 0 8px var(--signal);
+    }
+
+    .tile-icon-box {
+      width: 52px;
+      height: 52px;
+      border-radius: var(--radius-md);
+      background: #000000;
+      border: 1px solid var(--border-hairline);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .tile-icon-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .tile-text {
+      flex: 1;
+    }
+
+    .tile-name {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text-white);
+      line-height: 1.2;
+      margin-bottom: 3px;
+    }
+
+    .tile-role {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .app-tile.active .tile-role {
+      color: var(--signal);
+    }
+
+    /* ---------------- Left Panel: Dynamic Inspector ---------------- */
+    .inspector-panel {
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .inspector-top {
+      margin-bottom: 24px;
+    }
+
+    .inspector-badges {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .badge-status {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 4px 12px;
+      gap: 6px;
+      padding: 3px 10px;
       background: var(--signal-dim);
       border: 1px solid var(--signal-border);
       border-radius: var(--radius-sm);
@@ -193,371 +402,190 @@
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
       font-weight: 600;
-      letter-spacing: 0.5px;
-      margin-bottom: 24px;
-      text-transform: uppercase;
     }
 
-    .hero h1 {
-      font-size: clamp(30px, 4.8vw, 48px);
-      font-weight: 800;
-      line-height: 1.25;
+    .badge-ver {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+
+    .inspector-title {
+      font-size: clamp(26px, 3.8vw, 36px);
+      font-weight: 900;
+      line-height: 1.2;
+      margin-bottom: 6px;
       letter-spacing: -0.5px;
-      color: var(--text-white);
+    }
+
+    .inspector-role {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--signal);
       margin-bottom: 14px;
     }
 
-    .hero h1 .highlight {
-      color: var(--signal);
-    }
-
-    .hero p {
-      font-size: 16px;
+    .inspector-desc {
+      font-size: 15px;
       color: var(--text-muted);
-      max-width: 580px;
-      margin: 0 auto 32px;
       line-height: 1.7;
+      max-width: 580px;
+      margin-bottom: 22px;
     }
 
-    .hero-actions {
+    /* Technical Specs Strip */
+    .specs-pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 26px;
+    }
+
+    .spec-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      padding: 4px 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-sm);
+      color: var(--text-white);
+    }
+
+    /* Action Deck */
+    .action-deck {
       display: flex;
       align-items: center;
-      justify-content: center;
       gap: 12px;
-      margin-bottom: 44px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
     }
 
-    .btn-action-primary {
+    .btn-main-action {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 9px 20px;
+      gap: 10px;
+      padding: 11px 22px;
       background: var(--signal);
       color: #000000;
-      font-size: 13px;
-      font-weight: 700;
+      font-size: 14px;
+      font-weight: 800;
       border-radius: var(--radius-sm);
       text-decoration: none;
-      transition: opacity var(--fast);
+      transition: opacity var(--snappy);
     }
 
-    .btn-action-primary:hover {
+    .btn-main-action:hover {
       opacity: 0.9;
     }
 
-    .btn-action-secondary {
+    .btn-code-action {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 9px 18px;
-      background: var(--bg-surface);
+      padding: 11px 18px;
+      background: var(--bg-card);
       border: 1px solid var(--border-hairline);
       color: var(--text-white);
+      font-family: 'JetBrains Mono', monospace;
       font-size: 13px;
       font-weight: 600;
       border-radius: var(--radius-sm);
       text-decoration: none;
-      transition: all var(--fast);
+      transition: all var(--snappy);
     }
 
-    .btn-action-secondary:hover {
+    .btn-code-action:hover {
       border-color: var(--border-focus);
-      background: var(--bg-surface-elevated);
+      background: var(--bg-card-hover);
     }
 
-    /* ---------------- Terminal Hardware Screen ---------------- */
-    .terminal-unit {
-      max-width: 640px;
-      margin: 0 auto 64px;
+    /* Quick Terminal in Inspector */
+    .inspector-terminal {
       background: #040507;
       border: 1px solid var(--border-hairline);
-      border-radius: var(--radius-md);
-      overflow: hidden;
-      font-family: 'JetBrains Mono', monospace;
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
-    }
-
-    .terminal-header {
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 14px;
-      background: var(--bg-surface);
-      border-bottom: 1px solid var(--border-hairline);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
       direction: ltr;
     }
 
-    .terminal-switch {
-      display: flex;
-      gap: 6px;
+    .term-code {
+      color: var(--text-muted);
+      overflow-x: auto;
+      white-space: nowrap;
     }
 
-    .term-btn {
-      background: transparent;
-      border: none;
-      color: var(--text-dim);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
+    .term-code span.cmd {
+      color: var(--signal);
       font-weight: 600;
-      padding: 3px 8px;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      transition: all var(--fast);
     }
 
-    .term-btn.active {
-      background: rgba(255, 255, 255, 0.08);
+    .term-code span.pkg {
       color: var(--text-white);
     }
 
-    .copy-chip {
+    .btn-copy-term {
       background: transparent;
       border: 1px solid var(--border-hairline);
       color: var(--text-muted);
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
-      padding: 3px 8px;
+      padding: 4px 8px;
       border-radius: var(--radius-sm);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      transition: all var(--fast);
+      gap: 4px;
+      transition: all var(--snappy);
+      margin-left: 12px;
+      flex-shrink: 0;
     }
 
-    .copy-chip:hover {
+    .btn-copy-term:hover {
       border-color: var(--signal);
       color: var(--signal);
     }
 
-    .terminal-screen {
-      padding: 16px 18px;
-      direction: ltr;
-      font-size: 12.5px;
-      line-height: 1.8;
-      overflow-x: auto;
-      white-space: pre;
-    }
-
-    .c-comment { color: var(--text-dim); }
-    .c-cmd { color: var(--signal); font-weight: 600; }
-    .c-arg { color: var(--text-white); }
-
-    /* ---------------- Apps Modular Grid ---------------- */
-    .module-heading {
-      margin-bottom: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border-hairline);
-      padding-bottom: 12px;
-    }
-
-    .module-heading h2 {
-      font-size: 18px;
-      font-weight: 800;
-      letter-spacing: -0.2px;
-    }
-
-    .module-heading span {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
-      color: var(--text-dim);
-    }
-
-    .apps-modules {
+    /* ---------------- Architecture Principles Strip ---------------- */
+    .principles-strip {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 16px;
-      margin-bottom: 64px;
-    }
-
-    @media (max-width: 860px) {
-      .apps-modules {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .app-module {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-hairline);
-      border-radius: var(--radius-md);
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      transition: border-color var(--fast), background var(--fast);
-    }
-
-    .app-module:hover {
-      border-color: var(--signal-border);
-      background: var(--bg-surface-elevated);
-    }
-
-    .module-top-status {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 18px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-    }
-
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--signal);
-      font-weight: 500;
-    }
-
-    .version-tag {
-      color: var(--text-dim);
-      font-weight: 600;
-    }
-
-    .app-icon-frame {
-      width: 52px;
-      height: 52px;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border-hairline);
-      background: #000000;
-      overflow: hidden;
-      margin-bottom: 14px;
-    }
-
-    .app-icon-frame img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .module-info h3 {
-      font-size: 17px;
-      font-weight: 800;
-      color: var(--text-white);
-      margin-bottom: 4px;
-    }
-
-    .module-role {
-      font-size: 12px;
-      color: var(--signal);
-      font-weight: 600;
-      margin-bottom: 10px;
-    }
-
-    .module-desc {
-      font-size: 13.5px;
-      color: var(--text-muted);
-      line-height: 1.6;
-      margin-bottom: 18px;
-    }
-
-    /* Specs & Single Unified Action */
-    .module-footer {
+      margin-top: 36px;
       border-top: 1px solid var(--border-hairline);
-      padding-top: 14px;
-    }
-
-    .platform-specs {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      color: var(--text-dim);
-      margin-bottom: 12px;
-    }
-
-    .platform-specs span.dot {
-      color: var(--border-hairline);
-    }
-
-    .action-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .btn-download-unified {
-      flex: 1;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 9px 12px;
-      background: var(--signal);
-      color: #000000;
-      font-size: 13px;
-      font-weight: 700;
-      border-radius: var(--radius-sm);
-      text-decoration: none;
-      transition: opacity var(--fast);
-    }
-
-    .btn-download-unified:hover {
-      opacity: 0.9;
-    }
-
-    .btn-source {
-      padding: 9px 12px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid var(--border-hairline);
-      border-radius: var(--radius-sm);
-      color: var(--text-muted);
-      text-decoration: none;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: all var(--fast);
-    }
-
-    .btn-source:hover {
-      border-color: var(--border-focus);
-      color: var(--text-white);
-    }
-
-    /* ---------------- Engineering Specifications Strip ---------------- */
-    .specs-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      margin-bottom: 64px;
-      padding: 24px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-hairline);
-      border-radius: var(--radius-md);
+      padding-top: 36px;
     }
 
     @media (max-width: 768px) {
-      .specs-grid {
+      .principles-strip {
         grid-template-columns: 1fr;
       }
     }
 
-    .spec-cell h4 {
+    .principle-cell h4 {
       font-family: 'JetBrains Mono', monospace;
       font-size: 12px;
-      font-weight: 700;
       color: var(--signal);
       margin-bottom: 6px;
       letter-spacing: 0.5px;
     }
 
-    .spec-cell p {
+    .principle-cell p {
       font-size: 13px;
       color: var(--text-muted);
       line-height: 1.6;
     }
 
-    /* ---------------- Understated Footer ---------------- */
+    /* ---------------- Minimal Clean Footer ---------------- */
     footer {
       border-top: 1px solid var(--border-hairline);
       padding: 32px 0;
+      margin-top: 60px;
       font-size: 12px;
       color: var(--text-dim);
     }
@@ -572,14 +600,14 @@
 
     .footer-links {
       display: flex;
-      gap: 16px;
+      gap: 18px;
       list-style: none;
     }
 
     .footer-links a {
       color: var(--text-muted);
       text-decoration: none;
-      transition: color var(--fast);
+      transition: color var(--snappy);
     }
 
     .footer-links a:hover {
@@ -589,21 +617,24 @@
 </head>
 <body>
 
-  <!-- Topbar -->
-  <nav class="topbar">
-    <div class="container topbar-inner">
-      <a href="#" class="brand-mark">
-        <img src="assets/brand-logo.png" alt="Otium Studio" />
-        <span class="brand-name">Otium Software</span>
+  <!-- Top Tactical Nav -->
+  <nav class="instrument-nav">
+    <div class="container nav-inner">
+      <a href="#" class="brand-cluster">
+        <img src="assets/brand-logo.png" alt="Otium Software" />
+        <div class="brand-meta">
+          <span class="brand-title">Otium Software</span>
+          <span class="brand-tag">LOCAL-FIRST STUDIO</span>
+        </div>
       </a>
 
-      <ul class="nav-links">
-        <li><a href="#apps">التطبيقات</a></li>
-        <li><a href="#install">التثبيت</a></li>
+      <ul class="nav-menu">
+        <li><a href="#console">المنظومة</a></li>
         <li><a href="#specs">المواصفات</a></li>
+        <li><a href="https://github.com/XRTM8/Otium/releases" target="_blank" rel="noopener">الإصدارات</a></li>
       </ul>
 
-      <a href="https://github.com/XRTM8" target="_blank" rel="noopener" class="github-btn">
+      <a href="https://github.com/XRTM8" target="_blank" rel="noopener" class="nav-github">
         <span>GitHub</span>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
@@ -612,247 +643,230 @@
     </div>
   </nav>
 
-  <!-- Hero -->
-  <main class="container">
-    <section class="hero">
-      <div class="spec-badge">
-        <span class="led"></span>
-        <span>Local-First • Zero Cloud • GPL-3.0</span>
-      </div>
+  <!-- Main Interactive Console Section -->
+  <main class="container console-section" id="console">
 
-      <h1>
-        أدوات حرة لنظامي Windows و Android.<br />
-        <span class="highlight">تعمل على عتادك محلياً 100%.</span>
-      </h1>
-
-      <p>
-        منظومة برمجيات خفيفة ومفتوحة المصدر للقراءة، والمسح الضوئي، والمزامنة اللحظية عبر الشبكة المحلية — دون حسابات، دون خوادم، ودون تتبع.
-      </p>
-
-      <div class="hero-actions">
-        <a href="#apps" class="btn-action-primary">تنزيل التطبيقات</a>
-        <a href="#install" class="btn-action-secondary">أمر التثبيت السريع</a>
-      </div>
-    </section>
-
-    <!-- Terminal Hardware Screen -->
-    <section id="install" class="terminal-unit">
-      <div class="terminal-header">
-        <div class="terminal-switch">
-          <button class="term-btn active" onclick="setSnippet('winget')">winget</button>
-          <button class="term-btn" onclick="setSnippet('git')">git</button>
+    <div class="console-frame">
+      <!-- Telemetry Strip -->
+      <div class="telemetry-bar">
+        <div class="telemetry-left">
+          <span class="led-dot"></span>
+          <span>OFFLINE ENGINE ACTIVE • ZERO TELEMETRY</span>
         </div>
-        <button class="copy-chip" id="copy-chip" onclick="copySnippet()">
-          <span id="copy-text">نسخ الأمر</span>
-        </button>
-      </div>
-      <div class="terminal-screen" id="term-screen">
-<span class="c-comment"># تثبيت قارئ المستندات Otium Reader</span>
-<span class="c-cmd">winget</span> install <span class="c-arg">XRTM8.OtiumReader</span>
-
-<span class="c-comment"># تثبيت جسر نقل الحافظة والملفات Otium Link</span>
-<span class="c-cmd">winget</span> install <span class="c-arg">XRTM8.OtiumLink</span>
-      </div>
-    </section>
-
-    <!-- Modular Apps Section -->
-    <section id="apps">
-      <div class="module-heading">
-        <h2>وحدات المنظومة</h2>
-        <span>3 ACTIVE MODULES</span>
+        <div class="telemetry-right">
+          <span>SPEC // 2026.10 • GNU GPL-3.0</span>
+        </div>
       </div>
 
-      <div class="apps-modules">
+      <!-- Main Body: Selector Dock + Dynamic Inspector -->
+      <div class="console-body">
+        
+        <!-- Interactive App Dock (Right in RTL) -->
+        <aside class="dock-panel">
+          <div class="dock-header">
+            <span>اختر الأداة للمعاينة</span>
+            <span>3 APPS</span>
+          </div>
 
-        <!-- 1. Otium Reader -->
-        <article class="app-module">
-          <div>
-            <div class="module-top-status">
-              <span class="status-pill"><span class="led"></span> محلي بالكامل</span>
-              <span class="version-tag">v1.5.0</span>
-            </div>
-
-            <div class="app-icon-frame">
+          <!-- Tile 1: Reader -->
+          <div class="app-tile active" id="tile-reader" onclick="selectApp('reader')">
+            <div class="tile-icon-box">
               <img src="assets/reader.png" alt="Otium Reader" />
             </div>
-
-            <div class="module-info">
-              <h3>Otium Reader</h3>
-              <div class="module-role">قارئ مستندات PDF عالي السرعة</div>
-              <p class="module-desc">
-                محرك عرض خفيف وفوري للمستندات الكبيرة، يدعم القراءة الثنائية، أدوات التظليل الذكية، وبدون أي اتصال بالإنترنت.
-              </p>
+            <div class="tile-text">
+              <div class="tile-name">Otium Reader</div>
+              <div class="tile-role">قارئ مستندات PDF</div>
             </div>
           </div>
 
-          <div class="module-footer">
-            <div class="platform-specs">
-              <span>Windows</span>
-              <span class="dot">•</span>
-              <span>Android</span>
-              <span class="dot">•</span>
-              <span>GPL-3.0</span>
-            </div>
-
-            <div class="action-row">
-              <a href="https://github.com/XRTM8/Otium/releases/latest" target="_blank" rel="noopener" class="btn-download-unified">
-                <span>تنزيل الإصدار v1.5.0</span>
-                <span>↗</span>
-              </a>
-              <a href="https://github.com/XRTM8/Otium" target="_blank" rel="noopener" class="btn-source" title="المستودع المصدري">
-                الكود
-              </a>
-            </div>
-          </div>
-        </article>
-
-        <!-- 2. Otium Scan -->
-        <article class="app-module">
-          <div>
-            <div class="module-top-status">
-              <span class="status-pill"><span class="led"></span> محلي بالكامل</span>
-              <span class="version-tag">v1.0.0</span>
-            </div>
-
-            <div class="app-icon-frame">
+          <!-- Tile 2: Scan -->
+          <div class="app-tile" id="tile-scan" onclick="selectApp('scan')">
+            <div class="tile-icon-box">
               <img src="assets/scan.png" alt="Otium Scan" />
             </div>
-
-            <div class="module-info">
-              <h3>Otium Scan</h3>
-              <div class="module-role">ماسح مستندات ذكي بلا إنترنت</div>
-              <p class="module-desc">
-                مسح ومعالجة وتصحيح زوايا المستندات الورقية عبر الكاميرا وتحويلها لملفات PDF نظيفة مباشرة دون خوادم طرف ثالث.
-              </p>
+            <div class="tile-text">
+              <div class="tile-name">Otium Scan</div>
+              <div class="tile-role">ماسح مستندات ذكي</div>
             </div>
           </div>
 
-          <div class="module-footer">
-            <div class="platform-specs">
-              <span>Android (APK)</span>
-              <span class="dot">•</span>
-              <span>GPL-3.0</span>
-            </div>
-
-            <div class="action-row">
-              <a href="https://github.com/XRTM8/Otium-Scan/releases/latest" target="_blank" rel="noopener" class="btn-download-unified">
-                <span>تنزيل الإصدار v1.0.0</span>
-                <span>↗</span>
-              </a>
-              <a href="https://github.com/XRTM8/Otium-Scan" target="_blank" rel="noopener" class="btn-source" title="المستودع المصدري">
-                الكود
-              </a>
-            </div>
-          </div>
-        </article>
-
-        <!-- 3. Otium Link -->
-        <article class="app-module">
-          <div>
-            <div class="module-top-status">
-              <span class="status-pill"><span class="led"></span> محلي بالكامل</span>
-              <span class="version-tag">v1.5.1</span>
-            </div>
-
-            <div class="app-icon-frame">
+          <!-- Tile 3: Link -->
+          <div class="app-tile" id="tile-link" onclick="selectApp('link')">
+            <div class="tile-icon-box">
               <img src="assets/link.png" alt="Otium Link" />
             </div>
+            <div class="tile-text">
+              <div class="tile-name">Otium Link</div>
+              <div class="tile-role">جسر الحافظة والملفات</div>
+            </div>
+          </div>
+        </aside>
 
-            <div class="module-info">
-              <h3>Otium Link</h3>
-              <div class="module-role">جسر الحافظة ونقل الملفات</div>
-              <p class="module-desc">
-                مزامنة فورية للنصوص والملفات الضخمة بين ويندوز وأندرويد عبر الشبكة المحلية (P2P LAN) وبسرعة تتجاوز 40MB/s.
-              </p>
+        <!-- Dynamic Inspector (Left in RTL) -->
+        <section class="inspector-panel" id="inspector-panel">
+          <div class="inspector-top">
+            <div class="inspector-badges">
+              <span class="badge-status">
+                <span class="led-dot"></span>
+                <span id="insp-status">محلي بالكامل</span>
+              </span>
+              <span class="badge-ver" id="insp-ver">v1.5.0</span>
+            </div>
+
+            <h1 class="inspector-title" id="insp-title">Otium Reader</h1>
+            <div class="inspector-role" id="insp-role">قارئ مستندات PDF عالي السرعة</div>
+            <p class="inspector-desc" id="insp-desc">
+              محرك قراءة فائق السرعة يدعم المستندات الضخمة، عرض الشاشات المزدوجة، أدوات التظليل، وبدون أي اتصال بالإنترنت.
+            </p>
+
+            <div class="specs-pill-row" id="insp-specs">
+              <!-- Dynamically populated -->
             </div>
           </div>
 
-          <div class="module-footer">
-            <div class="platform-specs">
-              <span>Windows</span>
-              <span class="dot">•</span>
-              <span>Android</span>
-              <span class="dot">•</span>
-              <span>GPL-3.0</span>
-            </div>
-
-            <div class="action-row">
-              <a href="https://github.com/XRTM8/Otium-Link/releases/latest" target="_blank" rel="noopener" class="btn-download-unified">
-                <span>تنزيل الإصدار v1.5.1</span>
+          <div class="inspector-bottom">
+            <div class="action-deck">
+              <a href="#" id="insp-download-btn" target="_blank" rel="noopener" class="btn-main-action">
+                <span id="insp-download-label">تنزيل الإصدار الرسمي</span>
                 <span>↗</span>
               </a>
-              <a href="https://github.com/XRTM8/Otium-Link" target="_blank" rel="noopener" class="btn-source" title="المستودع المصدري">
-                الكود
+              <a href="#" id="insp-repo-btn" target="_blank" rel="noopener" class="btn-code-action">
+                الكود المصدري
               </a>
             </div>
+
+            <div class="inspector-terminal">
+              <div class="term-code" id="insp-term-code">
+                <!-- Dynamically populated -->
+              </div>
+              <button class="btn-copy-term" id="btn-copy-term" onclick="copyActiveCommand()">
+                <span id="copy-feedback-label">نسخ الأمر</span>
+              </button>
+            </div>
           </div>
-        </article>
+        </section>
 
+      </div>
+    </div>
+
+    <!-- Principles Strip -->
+    <section class="principles-strip" id="specs">
+      <div class="principle-cell">
+        <h4>01 // ZERO CLOUD DEPENDENCY</h4>
+        <p>لا تتطلب التطبيقات أي حساب، ولا تتصل بأي خوادم خارجية، ولا تجمع أي بيانات تحليلية إطلاقاً. كافة العمليات محصورة على عتاد جهازك.</p>
+      </div>
+      <div class="principle-cell">
+        <h4>02 // PERPETUAL FREEDOM (GPL-3.0)</h4>
+        <p>مرخصة تحت ترخيص GNU GPL v3.0؛ الشفرة البرمجية متاحة للجميع للتدقيق الأمني، المساهمة، والبناء المستقل إلى الأبد.</p>
+      </div>
+      <div class="principle-cell">
+        <h4>03 // NATIVE HARDWARE SPEED</h4>
+        <p>محركات مدمجة بالكامل مبنية بلغة Rust والتقنيات الأصلية لتوفير استهلاك الذاكرة وسرعة استجابة فورية دون أطر عمل ثقيلة.</p>
       </div>
     </section>
 
-    <!-- Engineering Specs Strip -->
-    <section id="specs" class="specs-grid">
-      <div class="spec-cell">
-        <h4>01 // LOCAL ARCHITECTURE</h4>
-        <p>لا تتصل البرامج بأي خوادم خارجية؛ كافة بياناتك ومستنداتك وملفاتك تخزن وتعمل داخل جهازك فقط.</p>
-      </div>
-      <div class="spec-cell">
-        <h4>02 // FREEDOM & VERIFICATION</h4>
-        <p>مرخصة تحت ترخيص GNU GPL v3.0؛ الشفرة متاحة بالكامل للتدقيق الأمني والمساهمة وإعادة البناء.</p>
-      </div>
-      <div class="spec-cell">
-        <h4>03 // HARDWARE EFFICIENCY</h4>
-        <p>محركات مدمجة عالية الأداء مبنية بتقنيات أصلية تضمن استهلاكاً ضئيلاً لموارد المعالج والذاكرة العشوائية.</p>
-      </div>
-    </section>
   </main>
 
-  <!-- Footer -->
+  <!-- Clean Understated Footer -->
   <footer>
     <div class="container footer-inner">
       <div>
-        © 2026 Otium Software Studio • مرخصة برخصة GNU General Public License v3.0
+        © 2026 Otium Software Studio • صُممت بحرية برمجية كاملة تحت ترخيص GNU GPL v3.0
       </div>
       <ul class="footer-links">
         <li><a href="https://github.com/XRTM8/Otium" target="_blank" rel="noopener">Otium Reader</a></li>
         <li><a href="https://github.com/XRTM8/Otium-Scan" target="_blank" rel="noopener">Otium Scan</a></li>
         <li><a href="https://github.com/XRTM8/Otium-Link" target="_blank" rel="noopener">Otium Link</a></li>
-        <li><a href="https://github.com/XRTM8" target="_blank" rel="noopener">GitHub Profile</a></li>
+        <li><a href="https://github.com/XRTM8" target="_blank" rel="noopener">حساب GitHub</a></li>
       </ul>
     </div>
   </footer>
 
-  <!-- Snappy Terminal Interactions -->
+  <!-- Dynamic Console Switcher Script -->
   <script>
-    const data = {
-      winget: {
-        html: `<span class="c-comment"># تثبيت قارئ المستندات Otium Reader</span>\n<span class="c-cmd">winget</span> install <span class="c-arg">XRTM8.OtiumReader</span>\n\n<span class="c-comment"># تثبيت جسر نقل الحافظة والملفات Otium Link</span>\n<span class="c-cmd">winget</span> install <span class="c-arg">XRTM8.OtiumLink</span>`,
-        raw: "winget install XRTM8.OtiumReader\nwinget install XRTM8.OtiumLink"
+    const appsDatabase = {
+      reader: {
+        title: "Otium Reader",
+        role: "قارئ مستندات PDF فائق السرعة",
+        ver: "v1.5.0",
+        status: "محلي بالكامل • Offline",
+        desc: "محرك قراءة فوري مصمم للتعامل مع أضخم مستندات الـ PDF والكتب دون استهلاك لموارد النظام، مع دعم كامل لعرض الصفحات المزدوجة، أدوات التظليل، وبحث النصوص دون اتصال بالإنترنت.",
+        specs: ["Tauri v2 + Rust", "تشغيل فوري 0.02s", "وضع القراءة المزدوجة", "Windows & Android", "GPL-3.0"],
+        downloadUrl: "https://github.com/XRTM8/Otium/releases/latest",
+        repoUrl: "https://github.com/XRTM8/Otium",
+        termHtml: '<span class="cmd">winget</span> install <span class="pkg">XRTM8.OtiumReader</span>',
+        termRaw: "winget install XRTM8.OtiumReader"
       },
-      git: {
-        html: `<span class="c-comment"># استنساخ المستودع المصدري وبناء المشروع محلياً</span>\n<span class="c-cmd">git</span> clone https://github.com/XRTM8/Otium.git\n<span class="c-cmd">cd</span> Otium && <span class="c-cmd">npm</span> install && <span class="c-cmd">npm</span> run tauri:build`,
-        raw: "git clone https://github.com/XRTM8/Otium.git\ncd Otium && npm install && npm run tauri:build"
+      scan: {
+        title: "Otium Scan",
+        role: "ماسح مستندات ذكي بلا إنترنت",
+        ver: "v1.0.0",
+        status: "معالجة داخلية • On-Device",
+        desc: "ماسح ضوئي ذكي يعمل بالكامل على معالج الهاتف، يقوم باكتشاف وتصحيح حواف المستندات تلقائياً وتحسين وضوح النصوص وتصدير ملفات PDF نقية دون رفع أي صورة إلى أي سحابة.",
+        specs: ["معالجة على الجهاز On-Device", "تصدير PDF عالي النقاء", "حزمة مستقلة APK", "GPL-3.0"],
+        downloadUrl: "https://github.com/XRTM8/Otium-Scan/releases/latest",
+        repoUrl: "https://github.com/XRTM8/Otium-Scan",
+        termHtml: '<span class="cmd">git</span> clone <span class="pkg">https://github.com/XRTM8/Otium-Scan.git</span>',
+        termRaw: "git clone https://github.com/XRTM8/Otium-Scan.git"
+      },
+      link: {
+        title: "Otium Link",
+        role: "جسر الحافظة والملفات عبر الشبكة المحلية",
+        ver: "v1.5.1",
+        status: "P2P LAN • مباشر",
+        desc: "مزامنة فورية لنصوص الحافظة ونقل الملفات الضخمة بين أجهزة ويندوز وأندرويد عبر شبكتك المحلية المباشرة (P2P LAN) دون وسيط، بدون حدود للحجم، وبسرعة قصوى تتجاوز 40MB/s.",
+        specs: ["اتصال P2P مباشر", "سرعة نقل 40+ MB/s", "بدون حدود للحجم", "Windows & Android", "GPL-3.0"],
+        downloadUrl: "https://github.com/XRTM8/Otium-Link/releases/latest",
+        repoUrl: "https://github.com/XRTM8/Otium-Link",
+        termHtml: '<span class="cmd">winget</span> install <span class="pkg">XRTM8.OtiumLink</span>',
+        termRaw: "winget install XRTM8.OtiumLink"
       }
     };
 
-    let activeTab = 'winget';
+    let currentAppKey = "reader";
 
-    function setSnippet(tab) {
-      activeTab = tab;
-      document.querySelectorAll('.term-btn').forEach((b, i) => {
-        b.classList.toggle('active', (tab === 'winget' && i === 0) || (tab === 'git' && i === 1));
-      });
-      document.getElementById('term-screen').innerHTML = data[tab].html;
+    function selectApp(appKey) {
+      currentAppKey = appKey;
+      const app = appsDatabase[appKey];
+
+      // Update active tile
+      document.querySelectorAll('.app-tile').forEach(tile => tile.classList.remove('active'));
+      const activeTile = document.getElementById(`tile-${appKey}`);
+      if (activeTile) activeTile.classList.add('active');
+
+      // Update Inspector Fields
+      document.getElementById('insp-title').innerText = app.title;
+      document.getElementById('insp-role').innerText = app.role;
+      document.getElementById('insp-ver').innerText = app.ver;
+      document.getElementById('insp-status').innerText = app.status;
+      document.getElementById('insp-desc').innerText = app.desc;
+
+      // Update Specs Pills
+      const specsContainer = document.getElementById('insp-specs');
+      specsContainer.innerHTML = app.specs.map(s => `<span class="spec-pill">${s}</span>`).join('');
+
+      // Update Action Buttons
+      document.getElementById('insp-download-btn').href = app.downloadUrl;
+      document.getElementById('insp-download-label').innerText = `تنزيل الإصدار ${app.ver}`;
+      document.getElementById('insp-repo-btn').href = app.repoUrl;
+
+      // Update Terminal
+      document.getElementById('insp-term-code').innerHTML = app.termHtml;
     }
 
-    function copySnippet() {
-      navigator.clipboard.writeText(data[activeTab].raw).then(() => {
-        const chip = document.getElementById('copy-text');
-        chip.innerText = 'تم النسخ ✓';
-        setTimeout(() => { chip.innerText = 'نسخ الأمر'; }, 1800);
+    function copyActiveCommand() {
+      const app = appsDatabase[currentAppKey];
+      navigator.clipboard.writeText(app.termRaw).then(() => {
+        const label = document.getElementById('copy-feedback-label');
+        label.innerText = 'تم النسخ ✓';
+        setTimeout(() => {
+          label.innerText = 'نسخ الأمر';
+        }, 1800);
       });
     }
+
+    // Initialize with default app
+    selectApp('reader');
   </script>
 </body>
 </html>
