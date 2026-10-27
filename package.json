@@ -44,6 +44,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "fake-indexeddb": "^6.2.6",
     "oxlint": "^1.88.0",
+    "qrcode": "^1.5.4",
     "sharp": "^0.35.5",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.3",

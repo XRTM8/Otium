@@ -9,14 +9,14 @@
   <meta name="theme-color" content="#08090c" />
   <link rel="icon" type="image/png" href="favicon.png" />
 
-  <!-- Fonts: Tajawal + JetBrains Mono -->
+  <!-- Typography: Tajawal + JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <style>
     /* ==========================================================================
-       OTIUM 2026/2027 INDUSTRIAL MONOLITH — MOBILE-PERFECT SPECIFICATION
+       OTIUM 2026/2027 INDUSTRIAL MONOLITH — COMPLETE SUITE ARCHITECTURE
        Strict 2-Color Architecture: Obsidian Carbon (#08090c) + Signal Phosphor (#00e599)
        ========================================================================== */
     *, *::before, *::after {
@@ -32,23 +32,24 @@
       --bg-card: #12151c;
       --bg-card-hover: #171b24;
       --border-hairline: rgba(255, 255, 255, 0.08);
-      --border-focus: rgba(255, 255, 255, 0.2);
+      --border-focus: rgba(255, 255, 255, 0.22);
       --text-white: #f5f7fa;
       --text-muted: #94a3b8;
       --text-dim: #64748b;
 
       /* Single Signal Accent (Phosphor Emerald) */
       --signal: #00e599;
-      --signal-glow: rgba(0, 229, 153, 0.22);
+      --signal-glow: rgba(0, 229, 153, 0.24);
       --signal-dim: rgba(0, 229, 153, 0.08);
       --signal-border: rgba(0, 229, 153, 0.35);
 
-      /* Mechanical Radii & Snappy Transitions */
+      /* Mechanical Radii & Transitions */
       --radius-sm: 6px;
       --radius-md: 10px;
       --radius-lg: 16px;
       --radius-squircle: 20px;
-      --snappy: 80ms cubic-bezier(0.16, 1, 0.3, 1);
+      --snappy: 90ms cubic-bezier(0.16, 1, 0.3, 1);
+      --fade-duration: 120ms;
     }
 
     html {
@@ -56,6 +57,10 @@
       color: var(--text-white) !important;
       font-family: 'Tajawal', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       scroll-behavior: smooth;
+    }
+
+    html[dir="ltr"] {
+      font-family: 'JetBrains Mono', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     body {
@@ -77,7 +82,7 @@
     }
 
     .container {
-      max-width: 1080px;
+      max-width: 1140px;
       margin: 0 auto;
       padding: 0 20px;
     }
@@ -87,7 +92,7 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      background: rgba(8, 9, 12, 0.9);
+      background: rgba(8, 9, 12, 0.92);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       border-bottom: 1px solid var(--border-hairline);
@@ -139,18 +144,18 @@
       letter-spacing: 0.6px;
     }
 
-    .nav-links {
+    .nav-center {
       display: flex;
       align-items: center;
       gap: 20px;
       list-style: none;
     }
 
-    @media (max-width: 640px) {
-      .nav-links { display: none; }
+    @media (max-width: 768px) {
+      .nav-center { display: none; }
     }
 
-    .nav-links a {
+    .nav-center a {
       color: var(--text-muted);
       text-decoration: none;
       font-size: 13px;
@@ -158,15 +163,47 @@
       transition: color var(--snappy);
     }
 
-    .nav-links a:hover {
+    .nav-center a:hover {
       color: var(--text-white);
+    }
+
+    .nav-right-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Bilingual Toggle Button */
+    .btn-lang-toggle {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-hairline);
+      color: var(--text-white);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all var(--snappy);
+    }
+
+    .btn-lang-toggle:hover {
+      border-color: var(--signal);
+      color: var(--signal);
+    }
+
+    .btn-lang-toggle span.active-lang {
+      color: var(--signal);
     }
 
     .btn-github {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 6px 14px;
+      gap: 6px;
+      padding: 5px 12px;
       background: var(--bg-card);
       border: 1px solid var(--border-hairline);
       border-radius: var(--radius-sm);
@@ -183,9 +220,9 @@
       color: var(--signal);
     }
 
-    /* ---------------- Hero Statement Section ---------------- */
+    /* ---------------- Hero Section ---------------- */
     .hero {
-      padding: 64px 0 36px;
+      padding: 56px 0 32px;
       text-align: center;
     }
 
@@ -200,7 +237,7 @@
       color: var(--signal);
       font-size: 12px;
       font-weight: 700;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
 
     .hero-tag span.dot {
@@ -212,7 +249,7 @@
     }
 
     .hero h1 {
-      font-size: clamp(30px, 5.5vw, 50px);
+      font-size: clamp(30px, 5.2vw, 48px);
       font-weight: 900;
       line-height: 1.25;
       letter-spacing: -0.5px;
@@ -225,176 +262,40 @@
     }
 
     .hero p {
-      font-size: 16.5px;
+      font-size: 16px;
       color: var(--text-muted);
-      max-width: 620px;
+      max-width: 640px;
       margin: 0 auto;
       line-height: 1.7;
     }
 
-    /* ---------------- Interactive Squircles Launchpad Dock ---------------- */
-    .launchpad-section {
-      margin-bottom: 32px;
+    /* ---------------- Unified Desktop Cockpit Section ---------------- */
+    .cockpit-section {
+      margin-bottom: 64px;
     }
 
-    .launchpad-label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      color: var(--text-dim);
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-      margin-bottom: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .squircles-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-    }
-
-    @media (max-width: 640px) {
-      .squircles-grid {
-        gap: 8px;
-      }
-    }
-
-    .squircle-tile {
-      background: var(--bg-card);
-      border: 1px solid var(--border-hairline);
-      border-radius: var(--radius-squircle);
-      padding: 20px 18px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      cursor: pointer;
-      user-select: none;
-      transition: all var(--snappy);
-      position: relative;
-    }
-
-    @media (max-width: 640px) {
-      .squircle-tile {
-        padding: 12px 8px;
-        border-radius: var(--radius-md);
-      }
-    }
-
-    .squircle-tile:hover {
-      background: var(--bg-card-hover);
-      border-color: var(--border-focus);
-      transform: translateY(-2px);
-    }
-
-    .squircle-tile.active {
-      background: #151a24;
-      border-color: var(--signal);
-      box-shadow: 0 0 25px var(--signal-glow);
-    }
-
-    .squircle-icon-wrap {
-      width: 64px;
-      height: 64px;
-      border-radius: var(--radius-md);
-      background: #000000;
-      border: 1px solid var(--border-hairline);
-      overflow: hidden;
-      margin-bottom: 12px;
-      transition: transform var(--snappy);
-    }
-
-    @media (max-width: 640px) {
-      .squircle-icon-wrap {
-        width: 44px;
-        height: 44px;
-        margin-bottom: 8px;
-      }
-    }
-
-    .squircle-tile.active .squircle-icon-wrap {
-      transform: scale(1.05);
-      border-color: var(--signal);
-    }
-
-    .squircle-icon-wrap img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .squircle-title {
-      font-size: 15px;
-      font-weight: 800;
-      color: var(--text-white);
-      margin-bottom: 4px;
-    }
-
-    @media (max-width: 640px) {
-      .squircle-title {
-        font-size: 12px;
-      }
-    }
-
-    .squircle-role {
-      font-size: 12px;
-      color: var(--text-muted);
-      font-weight: 500;
-    }
-
-    @media (max-width: 640px) {
-      .squircle-role {
-        display: none; /* Keep clean on small mobile viewports */
-      }
-    }
-
-    .squircle-tile.active .squircle-role {
-      color: var(--signal);
-    }
-
-    .squircle-active-indicator {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--signal);
-      box-shadow: 0 0 8px var(--signal);
-      opacity: 0;
-      transition: opacity var(--snappy);
-    }
-
-    .squircle-tile.active .squircle-active-indicator {
-      opacity: 1;
-    }
-
-    /* ---------------- Telemetry Inspector Unit ---------------- */
-    .inspector-unit {
+    .cockpit-container {
       background: var(--bg-panel);
       border: 1px solid var(--border-hairline);
       border-radius: var(--radius-lg);
       overflow: hidden;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-      margin-bottom: 48px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
     }
 
-    .telemetry-strip {
+    /* Telemetry Top Bar */
+    .cockpit-telemetry {
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 10px 18px;
-      background: rgba(0, 0, 0, 0.4);
+      background: rgba(0, 0, 0, 0.45);
       border-bottom: 1px solid var(--border-hairline);
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
       direction: ltr;
     }
 
-    .telemetry-tag-active {
+    .telemetry-left {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -402,74 +303,270 @@
       font-weight: 600;
     }
 
-    .telemetry-meta {
+    .telemetry-right {
       color: var(--text-dim);
     }
 
-    .inspector-content {
-      padding: 32px;
+    /* Main Cockpit Layout: Responsive Grid */
+    .cockpit-grid {
+      display: grid;
+      grid-template-columns: 240px 1fr 340px;
+      min-height: 480px;
     }
 
-    @media (max-width: 640px) {
-      .inspector-content {
-        padding: 20px 16px;
+    @media (max-width: 1024px) {
+      .cockpit-grid {
+        grid-template-columns: 220px 1fr;
+      }
+      .cockpit-preview-col {
+        display: none !important;
       }
     }
 
-    .inspector-header {
+    @media (max-width: 768px) {
+      .cockpit-grid {
+        display: flex;
+        flex-direction: column;
+      }
+      .cockpit-dock-col {
+        border-left: none !important;
+        border-right: none !important;
+        border-bottom: 1px solid var(--border-hairline);
+      }
+    }
+
+    /* Column 1: Squircles Dock */
+    .cockpit-dock-col {
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.2);
+      border-left: 1px solid var(--border-hairline);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    html[dir="ltr"] .cockpit-dock-col {
+      border-left: none;
+      border-right: 1px solid var(--border-hairline);
+    }
+
+    @media (max-width: 768px) {
+      .cockpit-dock-col {
+        flex-direction: row;
+        padding: 12px;
+        gap: 8px;
+      }
+    }
+
+    .dock-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      color: var(--text-dim);
+      letter-spacing: 0.6px;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 768px) {
+      .dock-label { display: none; }
+    }
+
+    .squircle-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-squircle);
+      padding: 14px 12px;
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 8px;
+      cursor: pointer;
+      user-select: none;
+      transition: all var(--snappy);
+      position: relative;
     }
 
-    .inspector-h2 {
-      font-size: clamp(24px, 4vw, 34px);
-      font-weight: 900;
+    @media (max-width: 768px) {
+      .squircle-card {
+        flex: 1;
+        flex-direction: column;
+        padding: 10px 6px;
+        border-radius: var(--radius-md);
+        gap: 6px;
+        text-align: center;
+      }
+    }
+
+    .squircle-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-focus);
+      transform: translateY(-1px);
+    }
+
+    .squircle-card.active {
+      background: #141822;
+      border-color: var(--signal);
+      box-shadow: 0 0 20px var(--signal-glow);
+    }
+
+    .squircle-card.active::before {
+      content: "";
+      position: absolute;
+      left: 10px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--signal);
+      box-shadow: 0 0 6px var(--signal);
+    }
+
+    html[dir="ltr"] .squircle-card.active::before {
+      left: auto;
+      right: 10px;
+    }
+
+    @media (max-width: 768px) {
+      .squircle-card.active::before {
+        display: none;
+      }
+    }
+
+    .squircle-img {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      background: #000000;
+      border: 1px solid var(--border-hairline);
+      overflow: hidden;
+      flex-shrink: 0;
+      transition: transform var(--snappy);
+    }
+
+    @media (max-width: 768px) {
+      .squircle-img {
+        width: 42px;
+        height: 42px;
+      }
+    }
+
+    .squircle-card.active .squircle-img {
+      transform: scale(1.05);
+      border-color: var(--signal);
+    }
+
+    .squircle-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .squircle-meta-wrap {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .squircle-name {
+      font-size: 14px;
+      font-weight: 800;
       color: var(--text-white);
+      line-height: 1.2;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    @media (max-width: 768px) {
+      .squircle-name {
+        font-size: 11px;
+      }
+    }
+
+    .squircle-tag {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    @media (max-width: 768px) {
+      .squircle-tag {
+        display: none;
+      }
+    }
+
+    .squircle-card.active .squircle-tag {
+      color: var(--signal);
+    }
+
+    /* Column 2: Dynamic Inspector */
+    .cockpit-inspector-col {
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: opacity var(--fade-duration) ease, transform var(--fade-duration) ease;
+    }
+
+    .cockpit-inspector-col.is-fading {
+      opacity: 0.15;
+      transform: translateY(3px);
+    }
+
+    .insp-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .insp-title {
+      font-size: clamp(24px, 3.2vw, 32px);
+      font-weight: 900;
       letter-spacing: -0.3px;
     }
 
-    .version-pill {
+    .insp-version-chip {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
       font-weight: 700;
       color: var(--signal);
       background: var(--signal-dim);
       border: 1px solid var(--signal-border);
-      padding: 3px 8px;
+      padding: 2px 8px;
       border-radius: var(--radius-sm);
     }
 
-    .inspector-role-line {
-      font-size: 15px;
+    .insp-role-text {
+      font-size: 14px;
       color: var(--signal);
       font-weight: 700;
       margin-bottom: 14px;
     }
 
-    .inspector-desc-text {
-      font-size: 15px;
+    .insp-desc-p {
+      font-size: 14.5px;
       color: var(--text-muted);
       line-height: 1.7;
-      max-width: 680px;
-      margin-bottom: 22px;
+      margin-bottom: 20px;
+      max-width: 580px;
     }
 
-    /* Fixed Arabic Pills (strictly Tajawal, normal letter-spacing, zero ligature breakage) */
-    .specs-pill-container {
+    /* Specs Pills (Strict Tajawal font in Arabic, JetBrains in English) */
+    .insp-pills-wrap {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
     }
 
-    .spec-item-pill {
-      font-family: 'Tajawal', sans-serif !important;
+    .insp-pill-item {
+      font-family: inherit;
       letter-spacing: normal !important;
-      font-size: 12.5px;
+      font-size: 12px;
       font-weight: 600;
-      padding: 5px 12px;
+      padding: 4px 10px;
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--border-hairline);
       border-radius: var(--radius-sm);
@@ -477,117 +574,274 @@
     }
 
     /* Actions Deck */
-    .actions-deck {
+    .insp-actions-deck {
       display: flex;
       align-items: center;
       gap: 12px;
       flex-wrap: wrap;
-      margin-bottom: 22px;
+      margin-bottom: 18px;
     }
 
-    .btn-download-hero {
+    .btn-insp-download {
       display: inline-flex;
       align-items: center;
-      gap: 10px;
-      padding: 12px 24px;
+      gap: 8px;
+      padding: 10px 20px;
       background: var(--signal);
       color: #000000;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 800;
       border-radius: var(--radius-sm);
       text-decoration: none;
       transition: opacity var(--snappy);
     }
 
-    .btn-download-hero:hover {
+    .btn-insp-download:hover {
       opacity: 0.9;
     }
 
-    .btn-source-hero {
+    .btn-insp-source {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 12px 20px;
+      gap: 6px;
+      padding: 10px 16px;
       background: var(--bg-card);
       border: 1px solid var(--border-hairline);
       color: var(--text-white);
-      font-size: 13.5px;
+      font-size: 13px;
       font-weight: 600;
       border-radius: var(--radius-sm);
       text-decoration: none;
       transition: all var(--snappy);
     }
 
-    .btn-source-hero:hover {
+    .btn-insp-source:hover {
       border-color: var(--border-focus);
       background: var(--bg-card-hover);
     }
 
-    @media (max-width: 500px) {
-      .btn-download-hero, .btn-source-hero {
-        width: 100%;
-        justify-content: center;
-      }
-    }
-
-    /* High-Contrast Interactive Terminal */
-    .terminal-sub-unit {
+    /* Dual-Mode Action Box: Terminal vs QR Code */
+    .insp-deploy-box {
       background: #040507;
       border: 1px solid var(--border-hairline);
       border-radius: var(--radius-sm);
-      padding: 12px 16px;
+      padding: 10px 14px;
+    }
+
+    /* Terminal mode */
+    .deploy-terminal {
       display: flex;
       align-items: center;
       justify-content: space-between;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 12.5px;
+      font-size: 12px;
       direction: ltr;
     }
 
-    .terminal-code-body {
+    .term-code-span {
       color: var(--text-muted);
       overflow-x: auto;
       white-space: nowrap;
     }
 
-    .terminal-code-body span.cmd {
+    .term-code-span span.cmd {
       color: var(--signal);
       font-weight: 700;
     }
 
-    .terminal-code-body span.pkg {
+    .term-code-span span.pkg {
       color: var(--text-white);
     }
 
-    .btn-copy-terminal {
+    .btn-term-copy {
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid var(--border-hairline);
       color: var(--text-white);
-      font-family: 'Tajawal', sans-serif;
-      font-size: 12px;
+      font-family: inherit;
+      font-size: 11.5px;
       font-weight: 700;
-      padding: 6px 12px;
+      padding: 5px 10px;
       border-radius: var(--radius-sm);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       transition: all var(--snappy);
       margin-left: 12px;
       flex-shrink: 0;
     }
 
-    .btn-copy-terminal:hover {
-      background: var(--signal-dim);
+    .btn-term-copy:hover {
       border-color: var(--signal);
       color: var(--signal);
+      background: var(--signal-dim);
+    }
+
+    /* QR Code mode */
+    .deploy-qr-wrap {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .qr-thumb-box {
+      width: 58px;
+      height: 58px;
+      border-radius: var(--radius-sm);
+      background: #000;
+      border: 1px solid var(--signal-border);
+      padding: 4px;
+      flex-shrink: 0;
+    }
+
+    .qr-thumb-box img {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .qr-tip-text {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Column 3: Live UI Preview Frame */
+    .cockpit-preview-col {
+      padding: 20px;
+      border-right: 1px solid var(--border-hairline);
+      background: rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      transition: opacity var(--fade-duration) ease;
+    }
+
+    html[dir="ltr"] .cockpit-preview-col {
+      border-right: none;
+      border-left: 1px solid var(--border-hairline);
+    }
+
+    .ui-mockup-frame {
+      width: 100%;
+      max-width: 290px;
+      background: #000000;
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7);
+    }
+
+    .mockup-top-bar {
+      height: 22px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-hairline);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 5px;
+      direction: ltr;
+    }
+
+    .mockup-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .mockup-dot.dot-active {
+      background: var(--signal);
+    }
+
+    .mockup-body {
+      width: 100%;
+      height: 210px;
+      position: relative;
+      background: #07080a;
+      overflow: hidden;
+    }
+
+    .mockup-body img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Vector UI Mockup for Scan and Link */
+    .vector-ui-screen {
+      width: 100%;
+      height: 100%;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      direction: ltr;
+    }
+
+    .vector-radar-pulse {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      margin: auto 0;
+    }
+
+    .radar-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .radar-node-circle {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 1px solid var(--signal-border);
+      background: var(--signal-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--signal);
+      font-weight: 700;
+      font-size: 11px;
+    }
+
+    .radar-node-label {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .radar-beam {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--signal) 0%, rgba(0, 229, 153, 0.2) 50%, var(--signal) 100%);
+      margin: 0 10px;
+      position: relative;
+    }
+
+    .radar-beam::after {
+      content: "";
+      position: absolute;
+      top: -2px;
+      left: 50%;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--signal);
+      box-shadow: 0 0 6px var(--signal);
     }
 
     /* ---------------- Principles Matrix ---------------- */
     .principles-matrix {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 18px;
+      gap: 16px;
       margin-bottom: 64px;
       padding-top: 36px;
       border-top: 1px solid var(--border-hairline);
@@ -627,11 +881,11 @@
       line-height: 1.6;
     }
 
-    /* ---------------- Footer ---------------- */
+    /* ---------------- Clean Footer ---------------- */
     footer {
       border-top: 1px solid var(--border-hairline);
-      padding: 36px 0;
-      font-size: 12.5px;
+      padding: 32px 0;
+      font-size: 12px;
       color: var(--text-dim);
     }
 
@@ -669,22 +923,29 @@
         <img src="assets/brand-logo.png" alt="Otium Software Studio" />
         <div class="brand-title-wrap">
           <span class="brand-name">Otium Software</span>
-          <span class="brand-sub">LOCAL-FIRST SUITE</span>
+          <span class="brand-sub" id="i18n-brand-sub">استوديو محلي بالكامل</span>
         </div>
       </a>
 
-      <ul class="nav-links">
-        <li><a href="#suite">المنظومة</a></li>
-        <li><a href="#specs">المبادئ الهندسية</a></li>
-        <li><a href="https://github.com/XRTM8/Otium/releases" target="_blank" rel="noopener">الإصدارات</a></li>
+      <ul class="nav-center">
+        <li><a href="#cockpit" id="i18n-nav-suite">المنظومة</a></li>
+        <li><a href="#specs" id="i18n-nav-specs">المبادئ الهندسية</a></li>
+        <li><a href="https://github.com/XRTM8/Otium/releases" target="_blank" rel="noopener" id="i18n-nav-releases">الإصدارات</a></li>
       </ul>
 
-      <a href="https://github.com/XRTM8" target="_blank" rel="noopener" class="btn-github">
-        <span>GitHub</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-        </svg>
-      </a>
+      <div class="nav-right-controls">
+        <!-- Language Switcher -->
+        <button class="btn-lang-toggle" onclick="toggleLanguage()" title="Switch Language">
+          <span id="lang-toggle-text">EN / <span class="active-lang">العربية</span></span>
+        </button>
+
+        <a href="https://github.com/XRTM8" target="_blank" rel="noopener" class="btn-github">
+          <span>GitHub</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+        </a>
+      </div>
     </div>
   </header>
 
@@ -693,109 +954,130 @@
     <section class="hero">
       <div class="hero-tag">
         <span class="dot"></span>
-        <span>برمجيات حرة • محلية بالكامل</span>
+        <span id="i18n-hero-tag">برمجيات حرة • محلية 100%</span>
       </div>
 
-      <h1>
+      <h1 id="i18n-hero-title">
         ثلاثة تطبيقات.<br />
         <span class="highlight">سيادة رقمية واحدة.</span>
       </h1>
 
-      <p>
-        أدوات خفيفة ومستقلة للقراءة، والمسح الضوئي، والمزامنة المباشرة لنظامي Windows و Android — بأقصى سرعة عتادية وبدون خوادم طرف ثالث.
+      <p id="i18n-hero-desc">
+        أدوات خفيفة ومستقلة للقراءة، والمسح الضوئي، ومزامنة الملفات لنظامي Windows و Android — بأقصى سرعة عتادية وبدون خوادم طرف ثالث.
       </p>
     </section>
 
-    <!-- The Squircles Launchpad Dock -->
-    <section class="launchpad-section" id="suite">
-      <div class="launchpad-label">
-        <span>اختر الأداة للمعاينة والتنزيل</span>
-        <span>3 ACTIVE MODULES</span>
-      </div>
-
-      <div class="squircles-grid">
-        <!-- Squircle 1: Reader -->
-        <div class="squircle-tile active" id="tile-reader" onclick="selectApp('reader')">
-          <span class="squircle-active-indicator"></span>
-          <div class="squircle-icon-wrap">
-            <img src="assets/reader.png" alt="Otium Reader" />
+    <!-- Cockpit Interactive Studio Architecture -->
+    <section class="cockpit-section" id="cockpit">
+      <div class="cockpit-container">
+        
+        <!-- Cockpit Telemetry Strip -->
+        <div class="cockpit-telemetry">
+          <div class="telemetry-left">
+            <span class="dot" style="width:6px;height:6px;border-radius:50%;background:var(--signal);box-shadow:0 0 6px var(--signal);"></span>
+            <span id="insp-telemetry-status">OFFLINE CORE ACTIVE • ZERO TELEMETRY</span>
           </div>
-          <div class="squircle-title">Otium Reader</div>
-          <div class="squircle-role">قارئ المستندات</div>
-        </div>
-
-        <!-- Squircle 2: Scan -->
-        <div class="squircle-tile" id="tile-scan" onclick="selectApp('scan')">
-          <span class="squircle-active-indicator"></span>
-          <div class="squircle-icon-wrap">
-            <img src="assets/scan.png" alt="Otium Scan" />
+          <div class="telemetry-right">
+            <span>SPEC 2026.10 • GNU GPL-3.0</span>
           </div>
-          <div class="squircle-title">Otium Scan</div>
-          <div class="squircle-role">الماسح الذكي</div>
         </div>
 
-        <!-- Squircle 3: Link -->
-        <div class="squircle-tile" id="tile-link" onclick="selectApp('link')">
-          <span class="squircle-active-indicator"></span>
-          <div class="squircle-icon-wrap">
-            <img src="assets/link.png" alt="Otium Link" />
-          </div>
-          <div class="squircle-title">Otium Link</div>
-          <div class="squircle-role">جسر الحافظة والملفات</div>
-        </div>
-      </div>
-    </section>
+        <!-- 3-Column Cockpit Grid -->
+        <div class="cockpit-grid">
 
-    <!-- Dynamic Telemetry Inspector -->
-    <section class="inspector-unit">
-      <div class="telemetry-strip">
-        <div class="telemetry-tag-active">
-          <span class="dot" style="width:6px;height:6px;border-radius:50%;background:var(--signal);box-shadow:0 0 6px var(--signal);"></span>
-          <span id="insp-status">OFFLINE CORE ACTIVE</span>
-        </div>
-        <div class="telemetry-meta">
-          <span>GNU GPL-3.0 • ZERO TELEMETRY</span>
-        </div>
-      </div>
+          <!-- Column 1: Squircles Dock -->
+          <aside class="cockpit-dock-col">
+            <div class="dock-label" id="i18n-dock-label">اختر الأداة للمعاينة</div>
 
-      <div class="inspector-content">
-        <div class="inspector-header">
-          <h2 class="inspector-h2" id="insp-title">Otium Reader</h2>
-          <span class="version-pill" id="insp-ver">v1.5.0</span>
-        </div>
+            <!-- Card 1: Reader -->
+            <div class="squircle-card active" id="tile-reader" onclick="selectApp('reader')">
+              <div class="squircle-img">
+                <img src="assets/reader.png" alt="Otium Reader" />
+              </div>
+              <div class="squircle-meta-wrap">
+                <div class="squircle-name">Otium Reader</div>
+                <div class="squircle-tag" id="tag-reader">قارئ المستندات</div>
+              </div>
+            </div>
 
-        <div class="inspector-role-line" id="insp-role">
-          قارئ مستندات PDF فائق السرعة
-        </div>
+            <!-- Card 2: Scan -->
+            <div class="squircle-card" id="tile-scan" onclick="selectApp('scan')">
+              <div class="squircle-img">
+                <img src="assets/scan.png" alt="Otium Scan" />
+              </div>
+              <div class="squircle-meta-wrap">
+                <div class="squircle-name">Otium Scan</div>
+                <div class="squircle-tag" id="tag-scan">الماسح الذكي</div>
+              </div>
+            </div>
 
-        <p class="inspector-desc-text" id="insp-desc">
-          محرك قراءة فوري مصمم للتعامل مع أضخم مستندات الـ PDF والكتب دون استهلاك لموارد النظام، مع دعم كامل لعرض الصفحات المزدوجة، أدوات التظليل، وبحث النصوص دون اتصال بالإنترنت.
-        </p>
+            <!-- Card 3: Link -->
+            <div class="squircle-card" id="tile-link" onclick="selectApp('link')">
+              <div class="squircle-img">
+                <img src="assets/link.png" alt="Otium Link" />
+              </div>
+              <div class="squircle-meta-wrap">
+                <div class="squircle-name">Otium Link</div>
+                <div class="squircle-tag" id="tag-link">جسر الحافظة والملفات</div>
+              </div>
+            </div>
+          </aside>
 
-        <!-- Specs Pills with Fixed Ligatures -->
-        <div class="specs-pill-container" id="insp-specs">
-          <!-- Populated by JS with Tajawal font -->
-        </div>
+          <!-- Column 2: Dynamic Inspector -->
+          <section class="cockpit-inspector-col" id="inspector-col">
+            <div>
+              <div class="insp-header">
+                <h2 class="insp-title" id="insp-title">Otium Reader</h2>
+                <span class="insp-version-chip" id="insp-ver">v1.5.0</span>
+              </div>
 
-        <!-- Unified Actions -->
-        <div class="actions-deck">
-          <a href="#" id="insp-download-btn" target="_blank" rel="noopener" class="btn-download-hero">
-            <span id="insp-download-label">تنزيل الإصدار v1.5.0</span>
-            <span>↗</span>
-          </a>
-          <a href="#" id="insp-repo-btn" target="_blank" rel="noopener" class="btn-source-hero">
-            المستودع المصدري
-          </a>
-        </div>
+              <div class="insp-role-text" id="insp-role">
+                قارئ مستندات PDF فائق السرعة
+              </div>
 
-        <!-- Direct Terminal -->
-        <div class="terminal-sub-unit">
-          <div class="terminal-code-body" id="insp-term-code">
-            <!-- Populated by JS -->
-          </div>
-          <button class="btn-copy-terminal" id="btn-copy-terminal" onclick="copyActiveCommand()">
-            <span id="copy-status-text">نسخ الأمر</span>
-          </button>
+              <p class="insp-desc-p" id="insp-desc">
+                محرك قراءة فوري مصمم للتعامل مع أضخم مستندات الـ PDF والكتب دون استهلاك لموارد النظام، مع دعم كامل لعرض الصفحات المزدوجة، أدوات التظليل، وبحث النصوص دون اتصال بالإنترنت.
+              </p>
+
+              <!-- Specs Pills with Fixed Ligatures -->
+              <div class="insp-pills-wrap" id="insp-pills">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+
+            <div>
+              <!-- Actions Deck -->
+              <div class="insp-actions-deck">
+                <a href="#" id="insp-download-btn" target="_blank" rel="noopener" class="btn-insp-download">
+                  <span id="insp-download-label">تنزيل الإصدار v1.5.0</span>
+                  <span>↗</span>
+                </a>
+                <a href="#" id="insp-repo-btn" target="_blank" rel="noopener" class="btn-insp-source">
+                  <span id="i18n-code-label">المستودع المصدري</span>
+                </a>
+              </div>
+
+              <!-- Dual Mode Deploy Box (Terminal vs QR) -->
+              <div class="insp-deploy-box" id="insp-deploy-box">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </section>
+
+          <!-- Column 3: Live UI Window Mockup Frame -->
+          <aside class="cockpit-preview-col" id="preview-col">
+            <div class="ui-mockup-frame">
+              <div class="mockup-top-bar">
+                <span class="mockup-dot dot-active"></span>
+                <span class="mockup-dot"></span>
+                <span class="mockup-dot"></span>
+              </div>
+              <div class="mockup-body" id="mockup-body">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </aside>
+
         </div>
       </div>
     </section>
@@ -803,25 +1085,25 @@
     <!-- Engineering Principles Matrix -->
     <section class="principles-matrix" id="specs">
       <div class="matrix-card">
-        <div class="matrix-meta">01 // LOCAL ARCHITECTURE</div>
-        <h3 class="matrix-title">سيادة محلية مطلقة</h3>
-        <p class="matrix-desc">
+        <div class="matrix-meta" id="i18n-spec1-meta">01 // LOCAL ARCHITECTURE</div>
+        <h3 class="matrix-title" id="i18n-spec1-title">سيادة محلية مطلقة</h3>
+        <p class="matrix-desc" id="i18n-spec1-desc">
           بياناتك ومستنداتك لا تغادر أسلاك جهازك إطلاقاً؛ لا خوادم خارجية، لا استعلامات DNS تتبعية، ولا حسابات مستخدم.
         </p>
       </div>
 
       <div class="matrix-card">
-        <div class="matrix-meta">02 // PERPETUAL FREEDOM</div>
-        <h3 class="matrix-title">حرية برمجية أبدية</h3>
-        <p class="matrix-desc">
+        <div class="matrix-meta" id="i18n-spec2-meta">02 // PERPETUAL FREEDOM</div>
+        <h3 class="matrix-title" id="i18n-spec2-title">حرية برمجية أبدية</h3>
+        <p class="matrix-desc" id="i18n-spec2-desc">
           مرخصة تحت رخصة GNU GPL v3.0؛ الشفرة متاحة بالكامل للتدقيق الأمني والمساهمة والبناء الحر للأبد دون قيود.
         </p>
       </div>
 
       <div class="matrix-card">
-        <div class="matrix-meta">03 // HARDWARE EFFICIENCY</div>
-        <h3 class="matrix-title">كفاءة وسرعة عتادية</h3>
-        <p class="matrix-desc">
+        <div class="matrix-meta" id="i18n-spec3-meta">03 // HARDWARE EFFICIENCY</div>
+        <h3 class="matrix-title" id="i18n-spec3-title">كفاءة وسرعة عتادية</h3>
+        <p class="matrix-desc" id="i18n-spec3-desc">
           محركات مدمجة بالكامل بلغة Rust و Webview الأصلي توفر استهلاك الذاكرة وتعمل فورياً بسرعة استجابة 0.02 ثانية.
         </p>
       </div>
@@ -831,103 +1113,322 @@
   <!-- Footer -->
   <footer>
     <div class="container footer-inner">
-      <div>
+      <div id="i18n-footer-copy">
         © 2026 Otium Software Studio • مرخصة برخصة GNU General Public License v3.0
       </div>
       <ul class="footer-links-list">
         <li><a href="https://github.com/XRTM8/Otium" target="_blank" rel="noopener">Otium Reader</a></li>
         <li><a href="https://github.com/XRTM8/Otium-Scan" target="_blank" rel="noopener">Otium Scan</a></li>
         <li><a href="https://github.com/XRTM8/Otium-Link" target="_blank" rel="noopener">Otium Link</a></li>
-        <li><a href="https://github.com/XRTM8" target="_blank" rel="noopener">حساب GitHub</a></li>
+        <li><a href="https://github.com/XRTM8" target="_blank" rel="noopener">GitHub Profile</a></li>
       </ul>
     </div>
   </footer>
 
-  <!-- Snappy Switcher Script -->
+  <!-- Complete Interactive Scripts: i18n + Micro-animations + Dual Deploy -->
   <script>
-    const appsDatabase = {
-      reader: {
-        title: "Otium Reader",
-        role: "قارئ مستندات PDF فائق السرعة",
-        ver: "v1.5.0",
-        status: "OFFLINE CORE ACTIVE",
-        desc: "محرك قراءة فوري مصمم للتعامل مع أضخم مستندات الـ PDF والكتب دون استهلاك لموارد النظام، مع دعم كامل لعرض الصفحات المزدوجة، أدوات التظليل، وبحث النصوص دون اتصال بالإنترنت.",
-        specs: ["محرك Rust + Tauri v2", "تشغيل فوري 0.02s", "وضع القراءة المزدوجة", "Windows & Android", "ترخيص GPL-3.0"],
-        downloadUrl: "https://github.com/XRTM8/Otium/releases/latest",
-        repoUrl: "https://github.com/XRTM8/Otium",
-        termHtml: '<span class="cmd">winget</span> install <span class="pkg">XRTM8.OtiumReader</span>',
-        termRaw: "winget install XRTM8.OtiumReader"
+    const i18nData = {
+      ar: {
+        brandSub: "استوديو محلي بالكامل",
+        navSuite: "المنظومة",
+        navSpecs: "المبادئ الهندسية",
+        navReleases: "الإصدارات",
+        heroTag: "برمجيات حرة • محلية 100%",
+        heroTitle: 'ثلاثة تطبيقات.<br /><span class="highlight">سيادة رقمية واحدة.</span>',
+        heroDesc: "أدوات خفيفة ومستقلة للقراءة، والمسح الضوئي، ومزامنة الملفات لنظامي Windows و Android — بأقصى سرعة عتادية وبدون خوادم طرف ثالث.",
+        dockLabel: "اختر الأداة للمعاينة",
+        tagReader: "قارئ المستندات",
+        tagScan: "الماسح الذكي",
+        tagLink: "جسر الحافظة والملفات",
+        codeLabel: "المستودع المصدري",
+        copyBtn: "نسخ الأمر",
+        copiedBtn: "تم النسخ ✓",
+        spec1Meta: "01 // LOCAL ARCHITECTURE",
+        spec1Title: "سيادة محلية مطلقة",
+        spec1Desc: "بياناتك ومستنداتك لا تغادر أسلاك جهازك إطلاقاً؛ لا خوادم خارجية، لا استعلامات DNS تتبعية، ولا حسابات مستخدم.",
+        spec2Meta: "02 // PERPETUAL FREEDOM",
+        spec2Title: "حرية برمجية أبدية",
+        spec2Desc: "مرخصة تحت رخصة GNU GPL v3.0؛ الشفرة متاحة بالكامل للتدقيق الأمني والمساهمة والبناء الحر للأبد دون قيود.",
+        spec3Meta: "03 // HARDWARE EFFICIENCY",
+        spec3Title: "كفاءة وسرعة عتادية",
+        spec3Desc: "محركات مدمجة بالكامل بلغة Rust و Webview الأصلي توفر استهلاك الذاكرة وتعمل فورياً بسرعة استجابة 0.02 ثانية.",
+        footerCopy: "© 2026 Otium Software Studio • مرخصة برخصة GNU General Public License v3.0",
+        apps: {
+          reader: {
+            title: "Otium Reader",
+            role: "قارئ مستندات PDF فائق السرعة",
+            ver: "v1.5.0",
+            status: "OFFLINE CORE ACTIVE",
+            desc: "محرك قراءة فوري مصمم للتعامل مع أضخم مستندات الـ PDF والكتب دون استهلاك لموارد النظام، مع دعم كامل لعرض الصفحات المزدوجة، أدوات التظليل، وبحث النصوص دون اتصال بالإنترنت.",
+            specs: ["محرك Rust + Tauri v2", "تشغيل فوري 0.02s", "وضع القراءة المزدوجة", "Windows & Android", "ترخيص GPL-3.0"],
+            downloadLabel: "تنزيل الإصدار v1.5.0",
+            mode: "terminal",
+            termCmd: "winget install XRTM8.OtiumReader"
+          },
+          scan: {
+            title: "Otium Scan",
+            role: "ماسح مستندات ذكي بلا إنترنت",
+            ver: "v1.0.0",
+            status: "ON-DEVICE SCANNER ACTIVE",
+            desc: "ماسح ضوئي ذكي يعمل بالكامل على معالج الهاتف، يقوم باكتشاف وتصحيح حواف المستندات تلقائياً وتحسين وضوح النصوص وتصدير ملفات PDF نقية دون رفع أي صورة إلى أي سحابة.",
+            specs: ["معالجة على الجهاز On-Device", "تصدير PDF عالي النقاء", "خصوصية تامة 100%", "حزمة مستقلة APK", "ترخيص GPL-3.0"],
+            downloadLabel: "تنزيل حزمة APK (v1.0.0)",
+            mode: "qr",
+            qrSrc: "assets/qr-scan.svg",
+            qrTip: "امسح الرمز بكاميرا هاتفك لتحميل الـ APK مباشرة"
+          },
+          link: {
+            title: "Otium Link",
+            role: "جسر الحافظة ونقل الملفات المحلي",
+            ver: "v1.5.1",
+            status: "P2P LAN ENGINE ACTIVE",
+            desc: "مزامنة فورية لنصوص الحافظة ونقل الملفات الضخمة بين أجهزة ويندوز وأندرويد عبر شبكتك المحلية المباشرة (P2P LAN) دون وسيط، بدون حدود للحجم، وبسرعة قصوى تتجاوز 40MB/s.",
+            specs: ["اتصال P2P مباشر", "سرعة نقل 40+ MB/s", "بدون حدود للحجم", "Windows & Android", "ترخيص GPL-3.0"],
+            downloadLabel: "تنزيل الإصدار v1.5.1",
+            mode: "terminal",
+            termCmd: "winget install XRTM8.OtiumLink"
+          }
+        }
       },
-      scan: {
-        title: "Otium Scan",
-        role: "ماسح مستندات ذكي بلا إنترنت",
-        ver: "v1.0.0",
-        status: "ON-DEVICE SCANNER ACTIVE",
-        desc: "ماسح ضوئي ذكي يعمل بالكامل على معالج الهاتف، يقوم باكتشاف وتصحيح حواف المستندات تلقائياً وتحسين وضوح النصوص وتصدير ملفات PDF نقية دون رفع أي صورة إلى أي سحابة.",
-        specs: ["معالجة على الجهاز On-Device", "تصدير PDF عالي النقاء", "خصوصية تامة 100%", "حزمة مستقلة APK", "ترخيص GPL-3.0"],
-        downloadUrl: "https://github.com/XRTM8/Otium-Scan/releases/latest",
-        repoUrl: "https://github.com/XRTM8/Otium-Scan",
-        termHtml: '<span class="cmd">git</span> clone <span class="pkg">https://github.com/XRTM8/Otium-Scan.git</span>',
-        termRaw: "git clone https://github.com/XRTM8/Otium-Scan.git"
-      },
-      link: {
-        title: "Otium Link",
-        role: "جسر الحافظة ونقل الملفات المحلي",
-        ver: "v1.5.1",
-        status: "P2P LAN ENGINE ACTIVE",
-        desc: "مزامنة فورية لنصوص الحافظة ونقل الملفات الضخمة بين أجهزة ويندوز وأندرويد عبر شبكتك المحلية المباشرة (P2P LAN) دون وسيط، بدون حدود للحجم، وبسرعة قصوى تتجاوز 40MB/s.",
-        specs: ["اتصال P2P مباشر", "سرعة نقل 40+ MB/s", "بدون حدود للحجم", "Windows & Android", "ترخيص GPL-3.0"],
-        downloadUrl: "https://github.com/XRTM8/Otium-Link/releases/latest",
-        repoUrl: "https://github.com/XRTM8/Otium-Link",
-        termHtml: '<span class="cmd">winget</span> install <span class="pkg">XRTM8.OtiumLink</span>',
-        termRaw: "winget install XRTM8.OtiumLink"
+      en: {
+        brandSub: "LOCAL-FIRST STUDIO",
+        navSuite: "Suite",
+        navSpecs: "Principles",
+        navReleases: "Releases",
+        heroTag: "FREE SOFTWARE • 100% LOCAL",
+        heroTitle: 'Three applications.<br /><span class="highlight">One digital sovereignty.</span>',
+        heroDesc: "Lightweight, sovereign tools for document reading, edge scanning, and instant local-network syncing — engineered for raw speed with zero cloud reliance.",
+        dockLabel: "SELECT MODULE TO INSPECT",
+        tagReader: "Document Reader",
+        tagScan: "Intelligent Scanner",
+        tagLink: "P2P File & Clipboard Bridge",
+        codeLabel: "Source Code",
+        copyBtn: "Copy Command",
+        copiedBtn: "Copied ✓",
+        spec1Meta: "01 // LOCAL ARCHITECTURE",
+        spec1Title: "Absolute Local Sovereignty",
+        spec1Desc: "Your data and documents never leave your physical machine. No third-party servers, no telemetry DNS queries, and zero user accounts.",
+        spec2Meta: "02 // PERPETUAL FREEDOM",
+        spec2Title: "Perpetual Software Freedom",
+        spec2Desc: "Licensed under GNU GPL v3.0. The code is unconditionally open for security audits, peer review, and independent builds forever.",
+        spec3Meta: "03 // HARDWARE EFFICIENCY",
+        spec3Title: "Bare-Metal Speed & Efficiency",
+        spec3Desc: "Built entirely in native Rust and Webview runtimes to minimize RAM usage and achieve instantaneous 0.02s cold-start responsiveness.",
+        footerCopy: "© 2026 Otium Software Studio • Licensed under GNU General Public License v3.0",
+        apps: {
+          reader: {
+            title: "Otium Reader",
+            role: "High-Performance Offline PDF Reader",
+            ver: "v1.5.0",
+            status: "OFFLINE CORE ACTIVE",
+            desc: "Instant cold-start document engine engineered for massive textbooks and technical PDFs with dual-page rendering, real-time search, and zero network calls.",
+            specs: ["Rust + Tauri v2 Engine", "0.02s Cold Start", "Dual-Page Spread", "Windows & Android", "GPL-3.0 License"],
+            downloadLabel: "Download Release v1.5.0",
+            mode: "terminal",
+            termCmd: "winget install XRTM8.OtiumReader"
+          },
+          scan: {
+            title: "Otium Scan",
+            role: "Edge-Computing Intelligent Scanner",
+            ver: "v1.0.0",
+            status: "ON-DEVICE SCANNER ACTIVE",
+            desc: "Smart on-device document scanner utilizing mobile camera sensors to automatically correct perspective distortion and produce crisp PDF exports without cloud OCR.",
+            specs: ["On-Device Edge Processing", "Crisp Vectorized PDF", "100% Offline Privacy", "Standalone APK", "GPL-3.0 License"],
+            downloadLabel: "Download APK (v1.0.0)",
+            mode: "qr",
+            qrSrc: "assets/qr-scan.svg",
+            qrTip: "Scan with mobile camera to download APK directly"
+          },
+          link: {
+            title: "Otium Link",
+            role: "Peer-to-Peer LAN File & Clipboard Bridge",
+            ver: "v1.5.1",
+            status: "P2P LAN ENGINE ACTIVE",
+            desc: "Instant peer-to-peer clipboard synchronization and high-throughput file transfer across Windows and Android devices over local Wi-Fi with speeds exceeding 40MB/s.",
+            specs: ["Direct P2P LAN Connection", "40+ MB/s Transfer Speed", "No File Size Limit", "Windows & Android", "GPL-3.0 License"],
+            downloadLabel: "Download Release v1.5.1",
+            mode: "terminal",
+            termCmd: "winget install XRTM8.OtiumLink"
+          }
+        }
       }
     };
 
-    let activeKey = "reader";
+    const previewMockups = {
+      reader: `<img src="assets/screen-reader.png" alt="Otium Reader UI Preview" />`,
+      scan: `<div class="vector-ui-screen">
+        <div style="display:flex;justify-content:space-between;color:var(--signal);"><span>CAM_FEED: 1080p</span><span>300 DPI</span></div>
+        <div style="border:1px dashed var(--signal);height:120px;border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);background:rgba(0,229,153,0.04);">
+          <span>[ AUTO-BOUNDING 99.4% ]</span>
+        </div>
+        <div style="text-align:center;color:var(--text-dim);font-size:10px;">PROCESSED ON-DEVICE</div>
+      </div>`,
+      link: `<div class="vector-ui-screen">
+        <div style="display:flex;justify-content:space-between;color:var(--signal);"><span>LAN MESH: 5GHz</span><span>P2P READY</span></div>
+        <div class="vector-radar-pulse">
+          <div class="radar-node">
+            <div class="radar-node-circle">PC</div>
+            <span class="radar-node-label">Win 11</span>
+          </div>
+          <div class="radar-beam"></div>
+          <div class="radar-node">
+            <div class="radar-node-circle">PH</div>
+            <span class="radar-node-label">Android</span>
+          </div>
+        </div>
+        <div style="text-align:center;color:var(--signal);font-size:10.5px;">SPEED: 42.8 MB/s • CLIPBOARD SYNC</div>
+      </div>`
+    };
 
-    function selectApp(key) {
-      activeKey = key;
-      const app = appsDatabase[key];
+    const appUrls = {
+      reader: {
+        download: "https://github.com/XRTM8/Otium/releases/latest",
+        repo: "https://github.com/XRTM8/Otium"
+      },
+      scan: {
+        download: "https://github.com/XRTM8/Otium-Scan/releases/latest",
+        repo: "https://github.com/XRTM8/Otium-Scan"
+      },
+      link: {
+        download: "https://github.com/XRTM8/Otium-Link/releases/latest",
+        repo: "https://github.com/XRTM8/Otium-Link"
+      }
+    };
 
-      // Update Tiles
-      document.querySelectorAll('.squircle-tile').forEach(t => t.classList.remove('active'));
-      const targetTile = document.getElementById(`tile-${key}`);
-      if (targetTile) targetTile.classList.add('active');
+    let currentLang = localStorage.getItem('otium_lang') || 'ar';
+    let currentAppKey = 'reader';
 
-      // Update Inspector Fields
-      document.getElementById('insp-title').innerText = app.title;
-      document.getElementById('insp-role').innerText = app.role;
-      document.getElementById('insp-ver').innerText = app.ver;
-      document.getElementById('insp-status').innerText = app.status;
-      document.getElementById('insp-desc').innerText = app.desc;
+    function setLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem('otium_lang', lang);
 
-      // Update Specs Pills (Pure Arabic Ligatures)
-      const specsContainer = document.getElementById('insp-specs');
-      specsContainer.innerHTML = app.specs.map(s => `<span class="spec-item-pill">${s}</span>`).join('');
+      const html = document.documentElement;
+      html.setAttribute('lang', lang);
+      html.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
 
-      // Update Download Links
-      document.getElementById('insp-download-btn').href = app.downloadUrl;
-      document.getElementById('insp-download-label').innerText = `تنزيل الإصدار ${app.ver}`;
-      document.getElementById('insp-repo-btn').href = app.repoUrl;
+      // Update toggle button text
+      const toggleBtn = document.getElementById('lang-toggle-text');
+      toggleBtn.innerHTML = lang === 'ar' 
+        ? 'EN / <span class="active-lang">العربية</span>' 
+        : '<span class="active-lang">EN</span> / العربية';
 
-      // Update Terminal Snippet
-      document.getElementById('insp-term-code').innerHTML = app.termHtml;
+      const t = i18nData[lang];
+      document.getElementById('i18n-brand-sub').innerText = t.brandSub;
+      document.getElementById('i18n-nav-suite').innerText = t.navSuite;
+      document.getElementById('i18n-nav-specs').innerText = t.navSpecs;
+      document.getElementById('i18n-nav-releases').innerText = t.navReleases;
+      document.getElementById('i18n-hero-tag').innerText = t.heroTag;
+      document.getElementById('i18n-hero-title').innerHTML = t.heroTitle;
+      document.getElementById('i18n-hero-desc').innerText = t.heroDesc;
+      document.getElementById('i18n-dock-label').innerText = t.dockLabel;
+      document.getElementById('tag-reader').innerText = t.tagReader;
+      document.getElementById('tag-scan').innerText = t.tagScan;
+      document.getElementById('tag-link').innerText = t.tagLink;
+      document.getElementById('i18n-code-label').innerText = t.codeLabel;
+      document.getElementById('i18n-spec1-meta').innerText = t.spec1Meta;
+      document.getElementById('i18n-spec1-title').innerText = t.spec1Title;
+      document.getElementById('i18n-spec1-desc').innerText = t.spec1Desc;
+      document.getElementById('i18n-spec2-meta').innerText = t.spec2Meta;
+      document.getElementById('i18n-spec2-title').innerText = t.spec2Title;
+      document.getElementById('i18n-spec2-desc').innerText = t.spec2Desc;
+      document.getElementById('i18n-spec3-meta').innerText = t.spec3Meta;
+      document.getElementById('i18n-spec3-title').innerText = t.spec3Title;
+      document.getElementById('i18n-spec3-desc').innerText = t.spec3Desc;
+      document.getElementById('i18n-footer-copy').innerText = t.footerCopy;
+
+      // Update Inspector
+      renderInspector(currentAppKey);
     }
 
-    function copyActiveCommand() {
-      const app = appsDatabase[activeKey];
-      navigator.clipboard.writeText(app.termRaw).then(() => {
-        const btn = document.getElementById('copy-status-text');
-        btn.innerText = 'تم النسخ ✓';
-        setTimeout(() => {
-          btn.innerText = 'نسخ الأمر';
-        }, 1800);
+    function toggleLanguage() {
+      setLanguage(currentLang === 'ar' ? 'en' : 'ar');
+    }
+
+    function selectApp(key) {
+      if (currentAppKey === key) return;
+      currentAppKey = key;
+
+      // Animate Cockpit Inspector & Preview with 120ms fade
+      const inspCol = document.getElementById('inspector-col');
+      const prevCol = document.getElementById('preview-col');
+      inspCol.classList.add('is-fading');
+      prevCol.style.opacity = '0.2';
+
+      // Update Dock Selection
+      document.querySelectorAll('.squircle-card').forEach(c => c.classList.remove('active'));
+      const activeCard = document.getElementById(`tile-${key}`);
+      if (activeCard) activeCard.classList.add('active');
+
+      setTimeout(() => {
+        renderInspector(key);
+        inspCol.classList.remove('is-fading');
+        prevCol.style.opacity = '1';
+      }, 70);
+    }
+
+    function renderInspector(key) {
+      const app = i18nData[currentLang].apps[key];
+      const urls = appUrls[key];
+
+      document.getElementById('insp-title').innerText = app.title;
+      document.getElementById('insp-ver').innerText = app.ver;
+      document.getElementById('insp-role').innerText = app.role;
+      document.getElementById('insp-desc').innerText = app.desc;
+      document.getElementById('insp-telemetry-status').innerText = `${app.status} • ZERO TELEMETRY`;
+
+      // Pills
+      const pillsContainer = document.getElementById('insp-pills');
+      pillsContainer.innerHTML = app.specs.map(s => `<span class="insp-pill-item">${s}</span>`).join('');
+
+      // Buttons
+      document.getElementById('insp-download-btn').href = urls.download;
+      document.getElementById('insp-download-label').innerText = app.downloadLabel;
+      document.getElementById('insp-repo-btn').href = urls.repo;
+
+      // Deploy Box: Terminal vs QR
+      const deployBox = document.getElementById('insp-deploy-box');
+      if (app.mode === 'terminal') {
+        const copyBtnText = i18nData[currentLang].copyBtn;
+        deployBox.innerHTML = `
+          <div class="deploy-terminal">
+            <div class="term-code-span">
+              <span class="cmd">winget</span> install <span class="pkg">XRTM8.${key === 'reader' ? 'OtiumReader' : 'OtiumLink'}</span>
+            </div>
+            <button class="btn-term-copy" onclick="copyTerminalCommand('${app.termCmd}')">
+              <span id="copy-btn-label">${copyBtnText}</span>
+            </button>
+          </div>
+        `;
+      } else {
+        deployBox.innerHTML = `
+          <div class="deploy-qr-wrap">
+            <div class="qr-thumb-box">
+              <img src="${app.qrSrc}" alt="QR Code" />
+            </div>
+            <div class="qr-tip-text">
+              ${app.qrTip}
+            </div>
+          </div>
+        `;
+      }
+
+      // Mockup Preview
+      document.getElementById('mockup-body').innerHTML = previewMockups[key];
+    }
+
+    function copyTerminalCommand(cmd) {
+      navigator.clipboard.writeText(cmd).then(() => {
+        const label = document.getElementById('copy-btn-label');
+        if (label) {
+          const original = label.innerText;
+          label.innerText = i18nData[currentLang].copiedBtn;
+          setTimeout(() => { label.innerText = original; }, 1800);
+        }
       });
     }
 
-    // Initialize Default
-    selectApp('reader');
+    // Initialize with stored or default language
+    setLanguage(currentLang);
   </script>
 </body>
 </html>
