@@ -632,7 +632,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
                 </div>
                 <div className="text-[10px] px-2 py-1 rounded-full bg-accent/15 border border-accent/25 text-highlight">
-                  {ar ? 'قارئ هادئ' : 'Quiet reader'}
+                  {ar ? 'أحدث إصدار' : 'Latest version'}
                 </div>
               </div>
 

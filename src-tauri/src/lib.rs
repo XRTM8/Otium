@@ -32,11 +32,34 @@ fn get_initial_pdf() -> Option<InitialPdf> {
 
 /// Return raw bytes instead of a JSON number array. Large PDFs would otherwise
 /// be serialized into millions of numbers before reaching the WebView.
+/// Hardened with extension validation and %PDF- magic byte verification to
+/// prevent reading non-PDF files from disk.
 #[tauri::command]
 fn read_pdf_bytes(path: String) -> Result<Response, String> {
-  fs::read(&path)
-    .map(Response::new)
-    .map_err(|error| error.to_string())
+  let p = Path::new(&path);
+  if !p.is_file() {
+    return Err("Target path is not a file".into());
+  }
+
+  let ext_matches = p
+    .extension()
+    .and_then(|e| e.to_str())
+    .map(|e| e.eq_ignore_ascii_case("pdf"))
+    .unwrap_or(false);
+
+  if !ext_matches {
+    return Err("Only .pdf files can be read".into());
+  }
+
+  let bytes = fs::read(p).map_err(|error| error.to_string())?;
+
+  // ISO 32000-1: A valid PDF file begins with or contains "%PDF-" in its header
+  let header_limit = 1024.min(bytes.len());
+  if bytes.len() < 5 || !bytes[..header_limit].windows(5).any(|w| w == b"%PDF-") {
+    return Err("File is not a valid PDF document".into());
+  }
+
+  Ok(Response::new(bytes))
 }
 
 /// True when Windows has an Otium uninstall entry, which is written by the

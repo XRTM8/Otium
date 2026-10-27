@@ -8,7 +8,7 @@ function walk(dir) {
     const stat = fs.statSync(full);
     if (stat.isDirectory()) {
       if (f !== 'node_modules' && f !== '.git' && f !== 'dist') walk(full);
-    } else if (f.endsWith('.ts') || f.endsWith('.tsx') || f.endsWith('.json') || f.endsWith('.css') || f.endsWith('.html')) {
+    } else if (f.endsWith('.ts') || f.endsWith('.tsx') || f.endsWith('.json') || f.endsWith('.css') || f.endsWith('.html') || f.endsWith('.rs')) {
       const content = fs.readFileSync(full, 'utf8');
       if (content.includes('\r\n')) {
         fs.writeFileSync(full, content.replace(/\r\n/g, '\n'), 'utf8');
@@ -18,4 +18,5 @@ function walk(dir) {
 }
 
 walk(path.join(__dirname, '..', 'src'));
-console.log('Normalized line endings in src to LF');
+walk(path.join(__dirname, '..', 'src-tauri'));
+console.log('Normalized line endings in src and src-tauri to LF');
