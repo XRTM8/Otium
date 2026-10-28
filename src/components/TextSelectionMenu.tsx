@@ -15,6 +15,7 @@ import {
 import type { AnnotationQuad, AnnotationRect, TextAnnotation } from '../core/types';
 import type { Language } from '../core/i18n/translations';
 import { HIGHLIGHT_COLORS, UNDERLINE_COLORS } from '../core/storage/annotations';
+import { normalizeCopiedArabicText } from '../core/search/arabic';
 import {
   canSpeakText,
   openTtsSettings,
@@ -227,9 +228,10 @@ function pageElementFor(node: Node | null): HTMLElement | null {
 }
 
 async function copyText(text: string): Promise<boolean> {
+  const cleanText = normalizeCopiedArabicText(text);
   try {
     if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(cleanText);
       return true;
     }
   } catch {
@@ -238,7 +240,7 @@ async function copyText(text: string): Promise<boolean> {
 
   try {
     const area = document.createElement('textarea');
-    area.value = text;
+    area.value = cleanText;
     area.setAttribute('readonly', '');
     area.style.position = 'fixed';
     area.style.opacity = '0';

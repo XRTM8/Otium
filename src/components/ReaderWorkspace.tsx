@@ -239,6 +239,21 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
     [numPages]
   );
 
+  const EMPTY_ANNOTATIONS = useMemo<TextAnnotation[]>(() => [], []);
+  const annotationsByPage = useMemo(() => {
+    if (!annotations || annotations.length === 0) return null;
+    const map = new Map<number, TextAnnotation[]>();
+    for (const a of annotations) {
+      const list = map.get(a.pageNumber);
+      if (list) {
+        list.push(a);
+      } else {
+        map.set(a.pageNumber, [a]);
+      }
+    }
+    return map;
+  }, [annotations]);
+
   if (!doc) return null;
 
   // The controller writes this custom property directly on the scroll
@@ -391,25 +406,33 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
 
       {viewMode === 'continuous' ? (
         <div className="w-max min-w-full flex flex-col items-center">
-          {continuousPages.map((pageNum) => (
-            <PageSlot
-              key={pageNum}
-              pageNum={pageNum}
-              isNear={Math.abs(pageNum - currentPage) <= (compact ? 2 : 3)}
-              doc={doc}
-              scale={zoom}
-              theme={theme}
-              annotations={annotations}
-              onDeleteAnnotation={deleteAnnotation}
-              baseAspectRatio={baseAspectRatio}
-              basePageWidth={basePageSize.width}
-              basePageHeight={basePageSize.height}
-              searchQuery={searchQuery}
-              isCurrentSearchPage={activeSearchPage === pageNum}
-              lang={lang}
-              renderPriority={Math.abs(pageNum - currentPage)}
-            />
-          ))}
+          {continuousPages.map((pageNum) => {
+            const distance = Math.abs(pageNum - currentPage);
+            const isNear = distance <= (compact ? 2 : 3);
+            const pageAnnotations = annotationsByPage
+              ? (annotationsByPage.get(pageNum) ?? EMPTY_ANNOTATIONS)
+              : EMPTY_ANNOTATIONS;
+
+            return (
+              <PageSlot
+                key={pageNum}
+                pageNum={pageNum}
+                isNear={isNear}
+                doc={doc}
+                scale={zoom}
+                theme={theme}
+                annotations={pageAnnotations}
+                onDeleteAnnotation={deleteAnnotation}
+                baseAspectRatio={baseAspectRatio}
+                basePageWidth={basePageSize.width}
+                basePageHeight={basePageSize.height}
+                searchQuery={searchQuery}
+                isCurrentSearchPage={activeSearchPage === pageNum}
+                lang={lang}
+                renderPriority={isNear ? distance : 10}
+              />
+            );
+          })}
         </div>
       ) : viewMode === 'dual' ? (
         <div className="min-h-full w-max min-w-full flex items-center justify-center py-2 sm:py-4 overflow-hidden">
@@ -435,7 +458,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
                   pageNumber={currentPage}
                   scale={zoom}
                   theme={theme}
-                  annotations={annotations}
+                  annotations={annotationsByPage ? (annotationsByPage.get(currentPage) ?? EMPTY_ANNOTATIONS) : EMPTY_ANNOTATIONS}
                   onDeleteAnnotation={deleteAnnotation}
                   baseAspectRatio={baseAspectRatio}
                   searchQuery={searchQuery}
@@ -452,7 +475,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
                     pageNumber={currentPage + 1}
                     scale={zoom}
                     theme={theme}
-                    annotations={annotations}
+                    annotations={annotationsByPage ? (annotationsByPage.get(currentPage + 1) ?? EMPTY_ANNOTATIONS) : EMPTY_ANNOTATIONS}
                     onDeleteAnnotation={deleteAnnotation}
                     baseAspectRatio={baseAspectRatio}
                     searchQuery={searchQuery}
@@ -493,7 +516,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
               pageNumber={currentPage}
               scale={zoom}
               theme={theme}
-              annotations={annotations}
+              annotations={annotationsByPage ? (annotationsByPage.get(currentPage) ?? EMPTY_ANNOTATIONS) : EMPTY_ANNOTATIONS}
               onDeleteAnnotation={deleteAnnotation}
               baseAspectRatio={baseAspectRatio}
               searchQuery={searchQuery}

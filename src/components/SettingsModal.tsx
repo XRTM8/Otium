@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
   BookOpen,
+  Camera,
   Check,
   CheckCircle2,
   Columns,
@@ -10,10 +11,13 @@ import {
   HardDrive,
   LayoutTemplate,
   Loader2,
+  Lock,
   RefreshCw,
   RotateCcw,
+  Shield,
   Sparkles,
   Type,
+  Unlock,
   Upload,
   X
 } from 'lucide-react';
@@ -29,25 +33,29 @@ import { getStorageSummary, type StorageSummary } from '../core/storage/document
 import type { SaveTextOutcome } from '../platform/saveFile';
 import { getUpdateAdapter } from '../platform/updates';
 import { getPlatformLabel } from '../platform/runtime';
+import { hasVaultPin, setVaultPin, clearVaultPin } from '../scanner/core/security';
+import { isOcrLanguageCached, preloadOcrLanguage } from '../scanner/core/ocr/ocrEngine';
+import type { CropMode } from '../scanner/core/types';
+
+export type SettingsTab = 'fonts' | 'reading' | 'scanner' | 'data' | 'about';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  currentFont: FontFamilyId;
-  onFontChange: (font: FontFamilyId) => void;
-  viewMode: ViewMode;
-  onViewModeChange: (mode: ViewMode) => void;
+  currentFont?: FontFamilyId;
+  onFontChange?: (font: FontFamilyId) => void;
+  viewMode?: ViewMode;
+  onViewModeChange?: (mode: ViewMode) => void;
   lang?: Language;
   /** Touch shells expose mobile-only reading preferences. */
   mobile?: boolean;
   mobileNavVisible?: boolean;
   onMobileNavVisibleChange?: (visible: boolean) => void;
-  onResetDefaults: () => void;
+  onResetDefaults?: () => void;
   onExportBackup?: () => Promise<SaveTextOutcome>;
   onImportBackup?: (text: string) => Promise<RestoreSummary>;
+  initialTab?: SettingsTab;
 }
-
-type SettingsTab = 'fonts' | 'reading' | 'data' | 'about';
 
 function UpdateStatus({
   snapshot,
@@ -190,19 +198,81 @@ function UpdateStatus({
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
-  currentFont,
-  onFontChange,
-  viewMode,
-  onViewModeChange,
+  currentFont = 'tajawal',
+  onFontChange = () => {},
+  viewMode = 'continuous',
+  onViewModeChange = () => {},
   lang = 'ar',
   mobile = false,
   mobileNavVisible = true,
   onMobileNavVisibleChange,
-  onResetDefaults,
+  onResetDefaults = () => {},
   onExportBackup,
-  onImportBackup
+  onImportBackup,
+  initialTab
 }) => {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('fonts');
+  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab || 'fonts');
+
+  // Scanner & Vault Preferences
+  const [cropMode, setCropMode] = useState<CropMode>(() => {
+    try {
+      return (localStorage.getItem('otium_scan_crop_mode') as CropMode) || 'full';
+    } catch {
+      return 'full';
+    }
+  });
+  const [pinEnabled, setPinEnabled] = useState(() => hasVaultPin());
+  const [isSettingPin, setIsSettingPin] = useState(false);
+  const [newPin, setNewPin] = useState('');
+  const [pinNotice, setPinNotice] = useState<string | null>(null);
+
+  const [ocrCached, setOcrCached] = useState(() => isOcrLanguageCached('ara+eng'));
+  const [isDownloadingOcr, setIsDownloadingOcr] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState(0);
+
+  const handleToggleCropMode = (mode: CropMode) => {
+    setCropMode(mode);
+    try {
+      localStorage.setItem('otium_scan_crop_mode', mode);
+    } catch {}
+  };
+
+  const handleSavePin = async () => {
+    if (newPin.length !== 4) {
+      setPinNotice(ar ? 'يجب أن يتكون رمز PIN من 4 أرقام بالضبط' : 'PIN must be exactly 4 digits');
+      return;
+    }
+    await setVaultPin(newPin);
+    setPinEnabled(true);
+    setIsSettingPin(false);
+    setNewPin('');
+    setPinNotice(ar ? '✓ تم تفعيل قفل PIN للخزانة بنجاح' : '✓ Vault PIN lock activated');
+    setTimeout(() => setPinNotice(null), 2500);
+  };
+
+  const handleRemovePin = () => {
+    clearVaultPin();
+    setPinEnabled(false);
+    setPinNotice(ar ? '✓ تم إلغاء قفل PIN' : '✓ PIN removed');
+    setTimeout(() => setPinNotice(null), 2500);
+  };
+
+  const handleDownloadOcr = async () => {
+    setIsDownloadingOcr(true);
+    setOcrProgress(0);
+    try {
+      const ok = await preloadOcrLanguage('ara+eng', (prog) => {
+        setOcrProgress(prog);
+      });
+      if (ok) {
+        setOcrCached(true);
+      }
+    } catch {
+    } finally {
+      setIsDownloadingOcr(false);
+    }
+  };
+
   const [updateAdapter] = useState(getUpdateAdapter);
   const updates = useUpdateChecker(updateAdapter);
   const [storage, setStorage] = useState<StorageSummary | null>(null);
@@ -297,6 +367,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const tabs: { id: SettingsTab; label: string }[] = [
     { id: 'fonts', label: ar ? 'الخطوط' : 'Fonts' },
     { id: 'reading', label: ar ? 'العرض' : 'Reading' },
+    { id: 'scanner', label: ar ? 'الماسح' : 'Scanner' },
     { id: 'data', label: ar ? 'البيانات' : 'Data' },
     { id: 'about', label: ar ? 'حول التطبيق' : 'About' }
   ];
@@ -489,6 +560,184 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ? 'تم تصميم قارئ Otium ليكون هادئاً بدون تشتيت، ويُطبَّق نوع الخط المختار فوراً على كافة واجهات القراءة.'
                     : 'Otium is designed to stay quiet and distraction-free. Your selected font is applied instantly across the app.'}
                 </p>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'scanner' && (
+            <div className="space-y-3.5">
+              {/* Document Crop Framing */}
+              <div className="rounded-2xl bg-hover-subtle border border-line-subtle p-3.5 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-accent" />
+                  <span className="text-xs font-bold text-ink">
+                    {ar ? 'تحديد وقص المستندات بالكاميرا' : 'Document Edge Cropping'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-ink-muted leading-relaxed">
+                  {ar
+                    ? 'اختر ما إذا كان الماسح يلتقط الإطار كاملاً يدوياً أو يكتشف حواف الأوراق ويزيل الخلفية تلقائياً.'
+                    : 'Choose whether the camera captures the full frame or detects paper boundaries automatically.'}
+                </p>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCropMode('full')}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                      cropMode === 'full'
+                        ? 'bg-accent/15 border-accent/40 text-highlight'
+                        : 'bg-white/[0.02] border-line-subtle text-ink-muted hover:text-ink'
+                    }`}
+                  >
+                    {ar ? 'كامل الإطار (يدوي)' : 'Full Frame (Manual)'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCropMode('auto')}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                      cropMode === 'auto'
+                        ? 'bg-accent/15 border-accent/40 text-highlight'
+                        : 'bg-white/[0.02] border-line-subtle text-ink-muted hover:text-ink'
+                    }`}
+                  >
+                    {ar ? 'كشف ذكي للحواف' : 'Auto Smart Crop'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Vault Security PIN */}
+              <div className="rounded-2xl bg-hover-subtle border border-line-subtle p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-accent" />
+                    <span className="text-xs font-bold text-ink">
+                      {ar ? 'قفل أمان الخزانة (PIN)' : 'Vault PIN Protection'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono border border-line-subtle">
+                    {pinEnabled ? (
+                      <span className="text-emerald-400 flex items-center gap-1 font-bold">
+                        <Lock className="w-3 h-3" />
+                        <span>{ar ? 'مفعّل' : 'Locked'}</span>
+                      </span>
+                    ) : (
+                      <span className="text-ink-muted flex items-center gap-1">
+                        <Unlock className="w-3 h-3" />
+                        <span>{ar ? 'معطّل' : 'Unlocked'}</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-ink-muted leading-relaxed">
+                  {ar
+                    ? 'حماية خزانة المستندات الممسوحة برقم سري مكوّن من 4 أرقام لمنع فتحها إلا بإذنك.'
+                    : 'Protect your scanned documents vault with a 4-digit PIN code.'}
+                </p>
+
+                {isSettingPin ? (
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      type="password"
+                      maxLength={4}
+                      pattern="[0-9]*"
+                      inputMode="numeric"
+                      placeholder="****"
+                      value={newPin}
+                      onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      className="w-24 px-3 py-2 rounded-xl bg-white/[0.05] border border-line text-center text-sm font-mono tracking-widest text-ink focus:outline-none focus:border-accent"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSavePin}
+                      className="px-4 py-2 rounded-xl bg-accent text-accent-contrast font-bold text-xs cursor-pointer active:scale-95 transition-transform"
+                    >
+                      {ar ? 'حفظ' : 'Save'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSettingPin(false);
+                        setNewPin('');
+                      }}
+                      className="px-3 py-2 rounded-xl bg-white/[0.05] text-ink-muted hover:text-ink text-xs cursor-pointer"
+                    >
+                      {ar ? 'إلغاء' : 'Cancel'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="pt-1">
+                    {pinEnabled ? (
+                      <button
+                        type="button"
+                        onClick={handleRemovePin}
+                        className="px-3.5 py-2 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-400 text-xs font-bold hover:bg-rose-500/20 cursor-pointer transition-colors"
+                      >
+                        {ar ? 'إزالة قفل PIN' : 'Remove PIN'}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setIsSettingPin(true)}
+                        className="px-3.5 py-2 rounded-xl bg-accent/15 border border-accent/30 text-highlight text-xs font-bold hover:bg-accent/25 cursor-pointer transition-colors"
+                      >
+                        {ar ? 'تعيين رمز PIN جديد' : 'Set Vault PIN'}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {pinNotice && (
+                  <div className="text-[11px] font-bold text-emerald-400 animate-in fade-in">
+                    {pinNotice}
+                  </div>
+                )}
+              </div>
+
+              {/* Offline OCR Engine */}
+              <div className="rounded-2xl bg-hover-subtle border border-line-subtle p-3.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-accent" />
+                    <span className="text-xs font-bold text-ink">
+                      {ar ? 'التعرّف الضوئي غير المتصل (OCR)' : 'Offline Text Recognition (OCR)'}
+                    </span>
+                  </div>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono border ${
+                    ocrCached
+                      ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10'
+                      : 'border-line-subtle text-ink-muted'
+                  }`}>
+                    {ocrCached ? (ar ? 'جاهز محلياً' : 'Ready') : (ar ? 'غير مخزّن' : 'Not Cached')}
+                  </span>
+                </div>
+                <p className="text-[11px] text-ink-muted leading-relaxed">
+                  {ar
+                    ? 'يستخرج النصوص العربية والإنجليزية من المستندات والصور محلياً 100% عبر Tesseract المدمج دون أي اتصال بالسحابة.'
+                    : 'Extracts Arabic & English text from documents locally via on-device Tesseract engine.'}
+                </p>
+                {!ocrCached && (
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={handleDownloadOcr}
+                      disabled={isDownloadingOcr}
+                      className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-accent/15 border border-accent/30 text-highlight hover:bg-accent/25 text-xs font-bold disabled:opacity-60 transition-colors cursor-pointer"
+                    >
+                      {isDownloadingOcr ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>{ar ? `جارٍ التجهيز (${Math.round(ocrProgress * 100)}%)…` : `Preloading (${Math.round(ocrProgress * 100)}%)…`}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          <span>{ar ? 'تجهيز حزمة التعرّف الضوئي (عربي + إنجليزي)' : 'Preload OCR Language Pack'}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -79,3 +79,32 @@ export function containsNormalized(haystack: string, needle: string): boolean {
   if (normalizedNeedle.length < 2) return false;
   return normalizeSearchText(haystack).includes(normalizedNeedle);
 }
+
+/**
+ * Normalises extracted or selected Arabic text before copying to the clipboard.
+ * Converts presentation forms (ligatures) to standard semantic Arabic Unicode,
+ * removes rogue BiDi control characters, and normalises whitespace while preserving
+ * line breaks and punctuation.
+ */
+export function normalizeCopiedArabicText(input: string): string {
+  if (!input) return '';
+
+  // NFKC decomposes Presentation Forms-A and Forms-B (ligatures) into standard Arabic letters
+  let text = input.normalize('NFKC');
+
+  // Strip invisible BiDi and zero-width markers that confuse external applications
+  text = text.replace(BIDI_CONTROLS, '');
+
+  // Normalise irregular spaces (non-breaking space, em-space, etc.) to standard space
+  text = text.replace(/[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]/g, ' ');
+
+  // Clean trailing spaces on individual lines while preserving intentional line breaks
+  text = text
+    .split('\n')
+    .map((line) => line.trim())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n');
+
+  return text.trim();
+}
+

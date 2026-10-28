@@ -3,7 +3,7 @@ import { CameraView } from './components/CameraView';
 import { CropView } from './components/CropView';
 import { EnhanceView } from './components/EnhanceView';
 import { LibraryModal } from './components/LibraryModal';
-import { SettingsModal } from './components/SettingsModal';
+import { SettingsModal } from '../components/SettingsModal';
 import type { Quad, ScannedPage, ScanStep } from './core/types';
 import { applyFilterAsync } from './core/filters';
 import {
@@ -329,15 +329,12 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
         />
       )}
 
-      {/* Settings Modal */}
+      {/* Unified Settings Modal */}
       {isSettingsOpen && (
         <SettingsModal
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
-          onOpenVault={() => {
-            setIsSettingsOpen(false);
-            setIsLibraryOpen(true);
-          }}
+          initialTab="scanner"
         />
       )}
 

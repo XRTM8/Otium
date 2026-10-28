@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { containsNormalized, normalizeSearchText } from './arabic';
+import { containsNormalized, normalizeSearchText, normalizeCopiedArabicText } from './arabic';
 
 describe('Arabic search normalisation', () => {
   it('removes vocalisation and tatweel', () => {
@@ -35,5 +35,19 @@ describe('Arabic search normalisation', () => {
   it('ignores single-letter queries and Latin case', () => {
     expect(containsNormalized('Otium Reader', 'o')).toBe(false);
     expect(containsNormalized('Otium Reader', 'READER')).toBe(true);
+  });
+
+  it('normalises copied Arabic text and removes BiDi controls', () => {
+    // Isolated/presentation form ligature for 'الله' (\uFDF2) should normalize to standard Arabic letters
+    const presentationForm = '\uFDF2';
+    expect(normalizeCopiedArabicText(presentationForm)).toBe('الله');
+
+    // Text with hidden directional controls (\u200E, \u200F)
+    const textWithBidi = '\u200Eكتاب\u200F \u202Aمفيد\u202C';
+    expect(normalizeCopiedArabicText(textWithBidi)).toBe('كتاب مفيد');
+
+    // Preserves line breaks but cleans excessive empty lines
+    const multiline = '  السطر الأول  \n\n\n\n  السطر الثاني  ';
+    expect(normalizeCopiedArabicText(multiline)).toBe('السطر الأول\n\nالسطر الثاني');
   });
 });

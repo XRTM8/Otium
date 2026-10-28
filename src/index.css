@@ -520,8 +520,8 @@
    ===================================================== */
 @keyframes dualPageFlipForward {
   0% {
-    opacity: 0.2;
-    transform: perspective(1400px) rotateY(-6deg) translateX(36px) scale(0.985);
+    opacity: 0.88;
+    transform: perspective(1400px) rotateY(-3.5deg) translateX(20px) scale(0.992);
   }
   100% {
     opacity: 1;
@@ -531,8 +531,8 @@
 
 @keyframes dualPageFlipBackward {
   0% {
-    opacity: 0.2;
-    transform: perspective(1400px) rotateY(6deg) translateX(-36px) scale(0.985);
+    opacity: 0.88;
+    transform: perspective(1400px) rotateY(3.5deg) translateX(-20px) scale(0.992);
   }
   100% {
     opacity: 1;
@@ -546,8 +546,8 @@
    ===================================================== */
 @keyframes pagedTurnForward {
   from {
-    opacity: 0.55;
-    transform: translate3d(26px, 0, 0) scale(0.996);
+    opacity: 0.85;
+    transform: translate3d(18px, 0, 0) scale(0.995);
   }
   to {
     opacity: 1;
@@ -557,8 +557,8 @@
 
 @keyframes pagedTurnBackward {
   from {
-    opacity: 0.55;
-    transform: translate3d(-26px, 0, 0) scale(0.996);
+    opacity: 0.85;
+    transform: translate3d(-18px, 0, 0) scale(0.995);
   }
   to {
     opacity: 1;
