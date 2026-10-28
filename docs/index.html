@@ -278,7 +278,46 @@
       font-size: 13.5px;
       color: var(--text-muted);
       line-height: 1.6;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
+    }
+
+    /* Functional Highlights List */
+    .app-features-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 22px;
+      padding: 0;
+    }
+
+    .app-features-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+
+    .feat-icon {
+      font-size: 14px;
+      line-height: 1.4;
+      flex-shrink: 0;
+    }
+
+    .feat-title {
+      color: var(--text-white);
+      font-weight: 700;
+      margin-left: 4px;
+    }
+
+    html[dir="ltr"] .feat-title {
+      margin-left: 0;
+      margin-right: 4px;
+    }
+
+    .feat-detail {
+      color: var(--text-dim);
     }
 
     /* Actions Deck */
@@ -486,8 +525,39 @@
             </div>
 
             <p class="app-desc" id="i18n-otium-desc">
-              قارئ ومستعرض PDF فائق الخفة والسرعة؛ استهلاك ذاكرة شبه معدوم مع وضع قراءة مظلم مريح ومحلي بالكامل.
+              قارئ كتب ومستندات PDF محلي وخالٍ من التشتيت؛ مصمم للمطالعة الهادئة والدراسة الأكاديمية بنظام تقليب الصفحات ككتاب حقيقي وحفظ موضع القراءة محلياً دون أي حسابات.
             </p>
+
+            <ul class="app-features-list" id="i18n-otium-features">
+              <li>
+                <span class="feat-icon">📖</span>
+                <div>
+                  <strong class="feat-title">عرض مزدوج ككتاب حقيقي:</strong>
+                  <span class="feat-detail">صفحتان متقابلتان مع فاصل وسطي لمحاكاة الكتاب الورقي على الشاشات العريضة.</span>
+                </div>
+              </li>
+              <li>
+                <span class="feat-icon">💾</span>
+                <div>
+                  <strong class="feat-title">حفظ تقدم القراءة تلقائياً:</strong>
+                  <span class="feat-detail">يتذكر رقم الصفحة، نسبة التقريب، والملاحظات لكل مستند محلياً.</span>
+                </div>
+              </li>
+              <li>
+                <span class="feat-icon">🌙</span>
+                <div>
+                  <strong class="feat-title">ثيمات مريحة للعين:</strong>
+                  <span class="feat-detail">أوضاع قراءة داكنة حقيقية (AMOLED، ورق دافئ، وحبر إلكتروني).</span>
+                </div>
+              </li>
+              <li>
+                <span class="feat-icon">🔒</span>
+                <div>
+                  <strong class="feat-title">محلي 100% وبدون إنترنت:</strong>
+                  <span class="feat-detail">بدون حسابات، إعلانات، أو أي خوادم وسيطة وتتبع؛ كتبك وبياناتك لك وحدك.</span>
+                </div>
+              </li>
+            </ul>
           </div>
 
           <div>
@@ -524,8 +594,39 @@
             </div>
 
             <p class="app-desc" id="i18n-link-desc">
-              نقل الملفات اللحظي ومزامنة الحافظة برادار تفاعلي دائري بأسلوب AirDrop، وعرض الشاشات Smart Cast بدون إنترنت.
+              جسر محلي فوري (P2P) لنقل الملفات الضخمة ومزامنة الحافظة بين الحاسوب والهاتف عبر شبكة الواي فاي المنزلية، مع عرض المحاضرات على الشاشات الذكية بدون إنترنت.
             </p>
+
+            <ul class="app-features-list" id="i18n-link-features">
+              <li>
+                <span class="feat-icon">📋</span>
+                <div>
+                  <strong class="feat-title">مزامنة الحافظة اللحظية:</strong>
+                  <span class="feat-detail">نسخ النصوص والأكواد على الحاسوب ولصقها فوراً على الهاتف والعكس تلقائياً.</span>
+                </div>
+              </li>
+              <li>
+                <span class="feat-icon">⚡</span>
+                <div>
+                  <strong class="feat-title">نقل ملفات فائق السرعة:</strong>
+                  <span class="feat-detail">إرسال الفيديوهات والمستندات الضخمة مباشرة بأقصى سرعة للواي فاي وبدون ضغط.</span>
+                </div>
+              </li>
+              <li>
+                <span class="feat-icon">📺</span>
+                <div>
+                  <strong class="feat-title">ريموت العرض الذكي (Smart Cast):</strong>
+                  <span class="feat-detail">عرض المستندات والشرائح على شاشات التلفاز مع ريموت ومؤشر ليزري تفاعلي من الهاتف.</span>
+                </div>
+              </li>
+              <li>
+                <span class="feat-icon">🛡️</span>
+                <div>
+                  <strong class="feat-title">تطهير الروابط وخصوصية مطلقة:</strong>
+                  <span class="feat-detail">إزالة وسوم التتبع (UTM) تلقائياً، والبيانات لا تغادر شبكتك المحلية إطلاقاً.</span>
+                </div>
+              </li>
+            </ul>
           </div>
 
           <div>
@@ -582,9 +683,69 @@
       ar: {
         heroTitle: "برمجيات حرة ومحلية 100%",
         heroDesc: "أداتان مجانيتان ومفتوحتا المصدر لنظامي Windows و Android؛ صُممتا للسرعة والخصوصية المطلقة.",
-        otiumDesc: "قارئ ومستعرض PDF فائق الخفة والسرعة؛ استهلاك ذاكرة شبه معدوم مع وضع قراءة مظلم مريح ومحلي بالكامل.",
+        otiumDesc: "قارئ كتب ومستندات PDF محلي وخالٍ من التشتيت؛ مصمم للمطالعة الهادئة والدراسة الأكاديمية بنظام تقليب الصفحات ككتاب حقيقي وحفظ موضع القراءة محلياً دون أي حسابات.",
+        otiumFeatures: `
+          <li>
+            <span class="feat-icon">📖</span>
+            <div>
+              <strong class="feat-title">عرض مزدوج ككتاب حقيقي:</strong>
+              <span class="feat-detail">صفحتان متقابلتان مع فاصل وسطي لمحاكاة الكتاب الورقي على الشاشات العريضة.</span>
+            </div>
+          </li>
+          <li>
+            <span class="feat-icon">💾</span>
+            <div>
+              <strong class="feat-title">حفظ تقدم القراءة تلقائياً:</strong>
+              <span class="feat-detail">يتذكر رقم الصفحة، نسبة التقريب، والملاحظات لكل مستند محلياً.</span>
+            </div>
+          </li>
+          <li>
+            <span class="feat-icon">🌙</span>
+            <div>
+              <strong class="feat-title">ثيمات مريحة للعين:</strong>
+              <span class="feat-detail">أوضاع قراءة داكنة حقيقية (AMOLED، ورق دافئ، وحبر إلكتروني).</span>
+            </div>
+          </li>
+          <li>
+            <span class="feat-icon">🔒</span>
+            <div>
+              <strong class="feat-title">محلي 100% وبدون إنترنت:</strong>
+              <span class="feat-detail">بدون حسابات، إعلانات، أو أي خوادم وسيطة وتتبع؛ كتبك وبياناتك لك وحدك.</span>
+            </div>
+          </li>
+        `,
         otiumDl: "تنزيل Otium",
-        linkDesc: "نقل الملفات اللحظي ومزامنة الحافظة برادار تفاعلي دائري بأسلوب AirDrop، وعرض الشاشات Smart Cast بدون إنترنت.",
+        linkDesc: "جسر محلي فوري (P2P) لنقل الملفات الضخمة ومزامنة الحافظة بين الحاسوب والهاتف عبر شبكة الواي فاي المنزلية، مع عرض المحاضرات على الشاشات الذكية بدون إنترنت.",
+        linkFeatures: `
+          <li>
+            <span class="feat-icon">📋</span>
+            <div>
+              <strong class="feat-title">مزامنة الحافظة اللحظية:</strong>
+              <span class="feat-detail">نسخ النصوص والأكواد على الحاسوب ولصقها فوراً على الهاتف والعكس تلقائياً.</span>
+            </div>
+          </li>
+          <li>
+            <span class="feat-icon">⚡</span>
+            <div>
+              <strong class="feat-title">نقل ملفات فائق السرعة:</strong>
+              <span class="feat-detail">إرسال الفيديوهات والمستندات الضخمة مباشرة بأقصى سرعة للواي فاي وبدون ضغط.</span>
+            </div>
+          </li>
+          <li>
+            <span class="feat-icon">📺</span>
+            <div>
+              <strong class="feat-title">ريموت العرض الذكي (Smart Cast):</strong>
+              <span class="feat-detail">عرض المستندات والشرائح على شاشات التلفاز مع ريموت ومؤشر ليزري تفاعلي من الهاتف.</span>
+            </div>
+          </li>
+          <li>
+            <span class="feat-icon">🛡️</span>
+            <div>
+              <strong class="feat-title">تطهير الروابط وخصوصية مطلقة:</strong>
+              <span class="feat-detail">إزالة وسوم التتبع (UTM) تلقائياً، والبيانات لا تغادر شبكتك المحلية إطلاقاً.</span>
+            </div>
+          </li>
+        `,
         linkDl: "تنزيل Otium Link",
         footerCopy: "© 2026 Otium Software • ترخيص حر GNU GPL v3.0",
         copyBtn: "نسخ",
@@ -593,9 +754,69 @@
       en: {
         heroTitle: "100% Free & Local Software",
         heroDesc: "Two free, open-source tools for Windows and Android, built for pure speed and absolute privacy.",
-        otiumDesc: "A featherweight, fast PDF reader with near-zero memory footprint and high-contrast dark reading mode.",
+        otiumDesc: "A distraction-free, local PDF and digital book reader built for deep reading and study; simulates real physical books and saves your exact progress locally without cloud accounts.",
+        otiumFeatures: `
+          <li>
+            <span class="feat-icon">📖</span>
+            <div>
+              <strong class="feat-title">Dual-Page Book Spread:</strong>
+              <span class="feat-detail">Side-by-side pages with a center spine divider simulating real physical books.</span>
+            </div>
+          </li>
+          <li>
+            <span class="feat-icon">💾</span>
+            <div>
+              <strong class="feat-title">Reading State Persistence:</strong>
+              <span class="feat-detail">Remembers exact page number, zoom level, and annotations per document locally.</span>
+            </div>
+          </li>
+          <li>
+            <span class="feat-icon">🌙</span>
+            <div>
+              <strong class="feat-title">Eye-Comfort Themes:</strong>
+              <span class="feat-detail">True dark modes including AMOLED Black, Warm Amber, Natural Paper, and E-Ink.</span>
+            </div>
+          </li>
+          <li>
+            <span class="feat-icon">🔒</span>
+            <div>
+              <strong class="feat-title">100% Offline & Private:</strong>
+              <span class="feat-detail">Zero accounts, zero tracking telemetry, and zero external cloud servers.</span>
+            </div>
+          </li>
+        `,
         otiumDl: "Download Otium",
-        linkDesc: "Direct P2P file transfers and clipboard sync with an AirDrop-style circular radar, and Smart Cast wireless presentation.",
+        linkDesc: "A local-first P2P bridge connecting PC and Android over local Wi-Fi; built for high-speed file transfers and instant clipboard sync with zero cloud servers.",
+        linkFeatures: `
+          <li>
+            <span class="feat-icon">📋</span>
+            <div>
+              <strong class="feat-title">Universal Live Clipboard:</strong>
+              <span class="feat-detail">Copy text or code on PC and paste it instantly on your phone, and vice-versa.</span>
+            </div>
+          </li>
+          <li>
+            <span class="feat-icon">⚡</span>
+            <div>
+              <strong class="feat-title">Lossless High-Speed File Drop:</strong>
+              <span class="feat-detail">Send heavy videos and documents at full Wi-Fi speed without compression.</span>
+            </div>
+          </li>
+          <li>
+            <span class="feat-icon">📺</span>
+            <div>
+              <strong class="feat-title">Smart Cast Remote:</strong>
+              <span class="feat-detail">Present PDF slides on smart TVs with interactive laser pointer from your phone.</span>
+            </div>
+          </li>
+          <li>
+            <span class="feat-icon">🛡️</span>
+            <div>
+              <strong class="feat-title">Link Privacy & Tracker Stripper:</strong>
+              <span class="feat-detail">Automatically strips UTM and tracking parameters; data never leaves your LAN.</span>
+            </div>
+          </li>
+        `,
         linkDl: "Download Otium Link",
         footerCopy: "© 2026 Otium Software • Licensed under GNU GPL v3.0",
         copyBtn: "Copy",
@@ -622,8 +843,10 @@
       document.getElementById('i18n-hero-title').innerText = t.heroTitle;
       document.getElementById('i18n-hero-desc').innerText = t.heroDesc;
       document.getElementById('i18n-otium-desc').innerText = t.otiumDesc;
+      document.getElementById('i18n-otium-features').innerHTML = t.otiumFeatures;
       document.getElementById('i18n-otium-dl').innerText = t.otiumDl;
       document.getElementById('i18n-link-desc').innerText = t.linkDesc;
+      document.getElementById('i18n-link-features').innerHTML = t.linkFeatures;
       document.getElementById('i18n-link-dl').innerText = t.linkDl;
       document.getElementById('i18n-footer-copy').innerText = t.footerCopy;
     }
