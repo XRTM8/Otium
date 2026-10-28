@@ -43,10 +43,10 @@ const PAGE_BACKGROUND: Record<ThemeMode, string> = {
 };
 
 const THEME_FILTERS: Partial<Record<ThemeMode, string>> = {
-  amoled: 'invert(1) hue-rotate(180deg) contrast(1.06) brightness(0.96)',
+  amoled: 'invert(1) hue-rotate(180deg) contrast(1.12) brightness(0.92)',
   midnight: 'invert(0.92) hue-rotate(185deg) contrast(1.02) brightness(0.94)',
-  amber: 'invert(0.92) sepia(0.65) hue-rotate(-25deg) contrast(1.05)',
-  eink: 'grayscale(1) contrast(1.1)'
+  amber: 'invert(0.90) sepia(0.55) hue-rotate(-15deg) contrast(1.03) brightness(0.94)',
+  eink: 'grayscale(1) contrast(1.18) brightness(0.97)'
 };
 
 function themeFilter(theme: ThemeMode): string | null {

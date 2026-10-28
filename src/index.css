@@ -164,6 +164,26 @@
   color: transparent !important;
 }
 
+.theme-amoled .textLayer ::selection,
+.theme-amoled .textLayer ::-moz-selection {
+  background: rgba(16, 185, 129, 0.38) !important;
+}
+
+.theme-midnight .textLayer ::selection,
+.theme-midnight .textLayer ::-moz-selection {
+  background: rgba(56, 189, 248, 0.38) !important;
+}
+
+.theme-amber .textLayer ::selection,
+.theme-amber .textLayer ::-moz-selection {
+  background: rgba(245, 158, 11, 0.38) !important;
+}
+
+.theme-eink .textLayer ::selection,
+.theme-eink .textLayer ::-moz-selection {
+  background: rgba(30, 30, 30, 0.28) !important;
+}
+
 /* In-Document Search Highlights */
 .search-highlight {
   background-color: rgba(251, 191, 36, 0.45) !important;
@@ -753,6 +773,18 @@
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.18),
     0 18px 46px -24px rgba(0, 0, 0, 0.55);
+  transition: background-color 180ms ease, box-shadow 180ms ease;
+}
+
+/* AMOLED true-black: zero ambient light bleed and zero edge shadow */
+.theme-amoled .reader-viewport {
+  background-image: none !important;
+  background-color: #000000 !important;
+}
+
+.theme-amoled .pdf-page-slot {
+  box-shadow: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 body[data-has-selection='true'] .reader-viewport {
@@ -781,12 +813,28 @@ body[data-has-selection='true'] .textLayer {
   pointer-events: none;
 }
 
-.theme-midnight .selection-overlay,
-.theme-amoled .selection-overlay,
-.theme-amber .selection-overlay {
-  background: rgba(96, 165, 250, 0.34);
-  box-shadow: 0 0 0 1px rgba(147, 197, 253, 0.32);
+.theme-midnight .selection-overlay {
+  background: rgba(56, 189, 248, 0.32);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.38);
   mix-blend-mode: screen;
+}
+
+.theme-amoled .selection-overlay {
+  background: rgba(16, 185, 129, 0.30);
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.38);
+  mix-blend-mode: screen;
+}
+
+.theme-amber .selection-overlay {
+  background: rgba(245, 158, 11, 0.32);
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.40);
+  mix-blend-mode: screen;
+}
+
+.theme-eink .selection-overlay {
+  background: rgba(30, 30, 30, 0.22);
+  box-shadow: 0 0 0 1px rgba(30, 30, 30, 0.30);
+  mix-blend-mode: multiply;
 }
 
 .annotation-highlight {
