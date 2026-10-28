@@ -73,6 +73,13 @@
     --highlight: #b45309;
     --success-ink: #047857;
     --danger-ink: #be123c;
+
+    /* Physics & spring motion tokens (Apple / Nothing OS fluid dynamics) */
+    --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-spring-snappy: cubic-bezier(0.175, 0.885, 0.32, 1.15);
+    --ease-spring-bouncy: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-out-quad: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
 
   /* Custom Smooth Scrollbar for the reader */
@@ -480,17 +487,18 @@
    lives in the footer instead of the top edge. */
 @keyframes mobileSheetIn {
   from {
-    translate: 0 28px;
-    opacity: 0.6;
+    transform: translate3d(0, 36px, 0);
+    opacity: 0.5;
   }
   to {
-    translate: 0 0;
+    transform: translate3d(0, 0, 0);
     opacity: 1;
   }
 }
 
 .mobile-sheet {
-  animation: mobileSheetIn 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: mobileSheetIn 240ms var(--ease-spring);
+  will-change: transform, opacity;
 }
 
 /* Immersive reading: a page tap slides both bars fully off-screen. */
@@ -526,7 +534,7 @@
 @keyframes selectionBarIn {
   from {
     opacity: 0;
-    transform: translate3d(0, 18px, 0);
+    transform: translate3d(0, 24px, 0);
   }
   to {
     opacity: 1;
@@ -535,7 +543,8 @@
 }
 
 .selection-bar-mobile {
-  animation: selectionBarIn 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: selectionBarIn 200ms var(--ease-spring);
+  will-change: transform, opacity;
 }
 
 /* Mobile frosted glass: hardware-accelerated 16px blur with specular borders */
@@ -571,56 +580,127 @@
 }
 
 /* =====================================================
-   Dual-Page Book Flip Animations
+   Dual-Page Book Flip Animations (3D Spring Curvature & Lighting)
    Forward  = قلب للأمام  (3D subtle page curl from right)
    Backward = قلب للخلف  (3D subtle page curl from left)
    ===================================================== */
 @keyframes dualPageFlipForward {
   0% {
-    opacity: 0.88;
-    transform: perspective(1400px) rotateY(-3.5deg) translateX(20px) scale(0.992);
+    opacity: 0.82;
+    transform: perspective(1600px) rotateY(-4deg) translateX(22px) scale(0.99);
+    filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.20)) brightness(0.97);
+  }
+  50% {
+    opacity: 0.95;
+    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.14)) brightness(1.01);
   }
   100% {
     opacity: 1;
-    transform: perspective(1400px) rotateY(0deg) translateX(0) scale(1);
+    transform: perspective(1600px) rotateY(0deg) translateX(0) scale(1);
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.08)) brightness(1);
   }
 }
 
 @keyframes dualPageFlipBackward {
   0% {
-    opacity: 0.88;
-    transform: perspective(1400px) rotateY(3.5deg) translateX(-20px) scale(0.992);
+    opacity: 0.82;
+    transform: perspective(1600px) rotateY(4deg) translateX(-22px) scale(0.99);
+    filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.20)) brightness(0.97);
+  }
+  50% {
+    opacity: 0.95;
+    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.14)) brightness(1.01);
   }
   100% {
     opacity: 1;
-    transform: perspective(1400px) rotateY(0deg) translateX(0) scale(1);
+    transform: perspective(1600px) rotateY(0deg) translateX(0) scale(1);
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.08)) brightness(1);
   }
 }
 
 /* =====================================================
-   Paged reading transitions — horizontal only. A page turn
-   must never move the spread vertically before it flips.
+   Paged reading transitions — horizontal spring slide.
    ===================================================== */
 @keyframes pagedTurnForward {
-  from {
-    opacity: 0.85;
-    transform: translate3d(18px, 0, 0) scale(0.995);
+  0% {
+    opacity: 0.78;
+    transform: translate3d(22px, 0, 0) scale(0.988);
   }
-  to {
+  100% {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
 @keyframes pagedTurnBackward {
-  from {
-    opacity: 0.85;
-    transform: translate3d(-18px, 0, 0) scale(0.995);
+  0% {
+    opacity: 0.78;
+    transform: translate3d(-22px, 0, 0) scale(0.988);
   }
-  to {
+  100% {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1);
   }
+}
+
+/* Fluid spring interactive primitives (Apple / Nothing OS physics) */
+@keyframes fluidPopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.94) translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes fluidSheetIn {
+  0% {
+    opacity: 0.5;
+    transform: translate3d(0, 32px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes fluidFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+
+.fluid-pop {
+  animation: fluidPopIn 220ms var(--ease-spring) both;
+  will-change: transform, opacity;
+}
+
+.fluid-sheet {
+  animation: fluidSheetIn 240ms var(--ease-spring) both;
+  will-change: transform, opacity;
+}
+
+.fluid-fade {
+  animation: fluidFadeIn 200ms ease both;
+}
+
+.fluid-press {
+  transition: transform 140ms var(--ease-spring), filter 140ms ease, background-color 140ms ease;
+  will-change: transform;
+}
+
+.fluid-press:active {
+  transform: scale(0.95);
+  filter: brightness(0.96);
 }
 
 /* =====================================================
@@ -673,8 +753,10 @@
   color: var(--on-accent);
   font-weight: 600;
   transition:
-    filter 160ms ease,
-    transform 160ms ease;
+    filter 140ms ease,
+    transform 140ms var(--ease-spring),
+    box-shadow 140ms ease;
+  will-change: transform;
 }
 
 .btn-primary:hover {
@@ -682,7 +764,8 @@
 }
 
 .btn-primary:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
+  filter: brightness(0.96);
 }
 
 .btn-secondary {
@@ -696,9 +779,10 @@
   color: var(--ink);
   font-weight: 500;
   transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    transform 160ms ease;
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 140ms var(--ease-spring);
+  will-change: transform;
 }
 
 .btn-secondary:hover {
@@ -707,7 +791,7 @@
 }
 
 .btn-secondary:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
 }
 
 .segmented {
@@ -732,7 +816,8 @@
     background-color 140ms ease,
     color 140ms ease,
     box-shadow 140ms ease,
-    transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform 140ms var(--ease-spring);
+  will-change: transform;
 }
 
 .segmented > button:hover {
@@ -741,7 +826,7 @@
 }
 
 .segmented > button:active {
-  transform: scale(0.95);
+  transform: scale(0.94);
 }
 
 .segmented > button[data-active='true'] {
@@ -763,8 +848,10 @@
   line-height: 1;
   color: var(--ink-muted);
   transition:
-    background-color 150ms ease,
-    color 150ms ease;
+    background-color 140ms ease,
+    color 140ms ease,
+    transform 140ms var(--ease-spring);
+  will-change: transform;
 }
 
 .action-chip:hover {
@@ -774,6 +861,7 @@
 
 .action-chip:active {
   background: var(--surface-hover-strong);
+  transform: scale(0.95);
 }
 
 .toolbar-icon {
@@ -788,7 +876,8 @@
   transition:
     background-color 140ms ease,
     color 140ms ease,
-    transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform 140ms var(--ease-spring);
+  will-change: transform;
 }
 
 .toolbar-icon:hover {
@@ -847,19 +936,24 @@
 .paged-arrow {
   background: var(--surface-1);
   border: 1px solid var(--line);
-  opacity: 0.32;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  opacity: 0.38;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   box-shadow: 0 8px 24px -10px rgba(0, 0, 0, 0.4);
   transition:
     opacity 160ms ease,
     background-color 160ms ease,
-    transform 160ms ease;
+    transform 140ms var(--ease-spring);
+  will-change: transform;
 }
 
 .paged-arrow:hover {
   opacity: 1;
   background: var(--surface-2);
+}
+
+.paged-arrow:active {
+  transform: translateY(-50%) scale(0.90);
 }
 
 .pdf-page-frame {
@@ -896,7 +990,10 @@ body[data-has-selection='true'] .textLayer {
 }
 
 .reader-viewport {
-  scroll-behavior: auto;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  transform: translateZ(0);
   background-image: radial-gradient(
     120% 90% at 50% 0%,
     color-mix(in srgb, var(--accent) 5%, transparent) 0%,

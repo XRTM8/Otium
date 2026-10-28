@@ -375,11 +375,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   return (
     <div
       dir={ar ? 'rtl' : 'ltr'}
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 select-none animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 select-none"
     >
-      <div className="fixed inset-0 bg-scrim backdrop-blur-sm transition-opacity" onClick={onClose} />
+      <div className="fixed inset-0 bg-scrim fluid-fade" onClick={onClose} />
 
-      <div className="otium-panel relative z-10 flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden p-5 text-ink sm:p-6">
+      <div className="otium-panel relative z-10 flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden p-5 text-ink sm:p-6 fluid-pop shadow-2xl">
         <div className="flex items-center justify-between pb-4 border-b border-line shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-accent/15 border border-accent/25 flex items-center justify-center text-accent">
@@ -397,21 +397,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-hover text-ink-muted hover:text-ink transition-colors cursor-pointer"
+            className="fluid-press p-1.5 rounded-full hover:bg-hover text-ink-muted hover:text-ink cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="my-3 flex w-full shrink-0 gap-1.5 p-1 rounded-2xl bg-white/[0.04] border border-white/[0.08]">
+        <div className="my-3 flex w-full shrink-0 gap-1.5 p-1 rounded-2xl bg-hover-subtle border border-line-subtle">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 py-2 px-2 text-xs font-bold rounded-xl transition-all cursor-pointer text-center ${
+              className={`fluid-press flex-1 py-2 px-2 text-xs font-bold rounded-xl cursor-pointer text-center ${
                 activeTab === tab.id
-                  ? 'bg-emerald-500 text-black shadow-md shadow-emerald-500/20'
-                  : 'text-ink-muted hover:text-ink hover:bg-white/[0.04]'
+                  ? 'bg-accent text-on-accent shadow-md shadow-accent/20'
+                  : 'text-ink-muted hover:text-ink hover:bg-hover'
               }`}
             >
               <span>{tab.label}</span>
@@ -616,7 +616,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
                   <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono border border-line-subtle">
                     {pinEnabled ? (
-                      <span className="text-emerald-400 flex items-center gap-1 font-bold">
+                      <span className="text-success-ink flex items-center gap-1 font-bold">
                         <Lock className="w-3 h-3" />
                         <span>{ar ? 'مفعّل' : 'Locked'}</span>
                       </span>
@@ -688,7 +688,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 )}
 
                 {pinNotice && (
-                  <div className="text-[11px] font-bold text-emerald-400 animate-in fade-in">
+                  <div className="text-[11px] font-bold text-success-ink fluid-pop">
                     {pinNotice}
                   </div>
                 )}
@@ -705,7 +705,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono border ${
                     ocrCached
-                      ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10'
+                      ? 'border-emerald-500/30 text-success-ink bg-emerald-500/10'
                       : 'border-line-subtle text-ink-muted'
                   }`}>
                     {ocrCached ? (ar ? 'جاهز محلياً' : 'Ready') : (ar ? 'غير مخزّن' : 'Not Cached')}

@@ -1,10 +1,12 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { X, Check, RotateCcw, PenTool } from 'lucide-react';
+import type { ThemeMode } from '../../core/types';
 
 interface SignatureModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaveSignature: (signatureDataUrl: string) => void;
+  theme?: ThemeMode;
 }
 
 export const SignatureModal: React.FC<SignatureModalProps> = ({
@@ -118,21 +120,21 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col justify-end sm:justify-center items-center p-4 select-none" dir="rtl">
-      <div className="w-full max-w-lg bg-[#121212] border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col gap-4">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col justify-end sm:justify-center items-center p-4 select-none fluid-fade" dir="rtl">
+      <div className="w-full max-w-lg bg-[#121212] border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 fluid-pop">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <PenTool className="w-5 h-5 text-emerald-400" />
+            <PenTool className="w-5 h-5 text-accent" />
             <span className="text-base font-bold text-white">التوقيع الرقمي</span>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full glass-button text-gray-400 hover:text-white" title="إغلاق">
+          <button onClick={onClose} className="fluid-press p-2 rounded-full glass-button text-gray-400 hover:text-white cursor-pointer" title="إغلاق">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Signature Canvas Stage */}
-        <div className="relative w-full h-56 bg-white rounded-2xl overflow-hidden shadow-inner flex items-center justify-center border-2 border-emerald-500/20">
+        <div className="relative w-full h-56 bg-white rounded-2xl overflow-hidden shadow-inner flex items-center justify-center border-2 border-accent/25">
           <canvas
             ref={canvasRef}
             onPointerDown={handlePointerDown}
@@ -165,7 +167,7 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
                   onClick={() => setPenColor(color.id)}
                   style={{ backgroundColor: color.id }}
                   title={color.label}
-                  className={`w-6 h-6 rounded-full border-2 transition-transform cursor-pointer ${
+                  className={`fluid-press w-6 h-6 rounded-full border-2 cursor-pointer ${
                     penColor === color.id ? 'border-white scale-110 shadow-lg' : 'border-transparent'
                   }`}
                 />
@@ -181,8 +183,8 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
                 <button
                   key={w}
                   onClick={() => setLineWidth(w)}
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
-                    lineWidth === w ? 'bg-emerald-500 text-black' : 'text-gray-400 glass-button'
+                  className={`fluid-press px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer ${
+                    lineWidth === w ? 'bg-accent text-on-accent shadow-sm' : 'text-gray-400 glass-button'
                   }`}
                 >
                   {label}
@@ -193,7 +195,7 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
 
           <button
             onClick={handleClear}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-300 glass-button active:scale-95 cursor-pointer"
+            className="fluid-press flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-300 glass-button cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>مسح</span>
@@ -204,7 +206,7 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
         <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
           <button
             onClick={onClose}
-            className="px-5 py-2.5 rounded-full text-xs font-bold text-gray-400 glass-button cursor-pointer"
+            className="fluid-press px-5 py-2.5 rounded-full text-xs font-bold text-gray-400 glass-button cursor-pointer"
           >
             إلغاء
           </button>
@@ -212,7 +214,7 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
           <button
             onClick={handleConfirm}
             disabled={!hasDrawn}
-            className="flex items-center gap-1.5 px-6 py-2.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs emerald-glow disabled:opacity-40 transition-transform active:scale-95 cursor-pointer"
+            className="fluid-press flex items-center gap-1.5 px-6 py-2.5 rounded-full bg-accent hover:opacity-90 text-on-accent font-black text-xs shadow-lg shadow-accent/20 disabled:opacity-40 cursor-pointer"
           >
             <Check className="w-4 h-4 stroke-[3]" />
             <span>إدراج التوقيع</span>

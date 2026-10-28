@@ -331,6 +331,8 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
         <LibraryModal
           isOpen={isLibraryOpen}
           onClose={() => setIsLibraryOpen(false)}
+          theme={theme}
+          lang={lang}
           onOpenSettings={() => {
             setIsLibraryOpen(false);
             setIsSettingsOpen(true);
@@ -352,14 +354,15 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
         <SettingsModal
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
+          lang={lang}
           initialTab="scanner"
         />
       )}
 
       {/* Close Confirmation Modal when unsaved pages exist */}
       {showCloseConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in select-none" dir="rtl">
-          <div className="bg-[#12151d] border border-white/10 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md select-none fluid-fade" dir="rtl">
+          <div className="bg-[#12151d] border border-white/10 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl fluid-pop">
             <div className="w-12 h-12 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center justify-center mx-auto">
               <AlertTriangle className="w-6 h-6" />
             </div>

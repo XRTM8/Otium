@@ -37,11 +37,11 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
   return (
     <div
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none"
     >
-      <div className="fixed inset-0 bg-scrim backdrop-blur-md" onClick={onCancel} />
+      <div className="fixed inset-0 bg-scrim fluid-fade" onClick={onCancel} />
 
-      <div className="otium-panel relative z-10 flex w-full max-w-sm flex-col items-center p-6 text-center text-ink">
+      <div className="otium-panel relative z-10 flex w-full max-w-sm flex-col items-center p-6 text-center text-ink fluid-pop shadow-2xl">
         <button
           onClick={onCancel}
           aria-label={lang === 'ar' ? 'إغلاق' : 'Close'}

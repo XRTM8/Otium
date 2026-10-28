@@ -620,7 +620,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
             } active:scale-90`}
             title="فلاش الكاميرا"
           >
-            {torchOn ? <Zap className="w-4 h-4 fill-emerald-400" /> : <ZapOff className="w-4 h-4" />}
+            {torchOn ? <Zap className="w-4 h-4 fill-accent text-accent" /> : <ZapOff className="w-4 h-4" />}
           </button>
 
           <button

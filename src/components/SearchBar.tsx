@@ -145,9 +145,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   return (
     <div
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
-      className="fixed top-16 inset-x-4 sm:inset-x-auto sm:right-6 z-40 flex justify-center animate-in fade-in slide-in-from-top-2 duration-150"
+      className="fixed top-16 inset-x-4 sm:inset-x-auto sm:right-6 z-40 flex justify-center fluid-pop"
     >
-      <div className="chrome-surface flex w-full max-w-sm items-center gap-1.5 rounded-2xl p-1.5 text-xs text-ink sm:w-auto">
+      <div className="chrome-surface flex w-full max-w-sm items-center gap-1.5 rounded-2xl p-1.5 text-xs text-ink sm:w-auto shadow-2xl">
         <Search className="ml-1 w-3.5 h-3.5 text-ink-muted shrink-0" />
         <input
           ref={inputRef}

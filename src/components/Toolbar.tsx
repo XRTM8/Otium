@@ -207,16 +207,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     <div
       dir="ltr"
       style={{ top: 'max(0.75rem, calc(env(safe-area-inset-top, 0px) + 0.6rem))' }}
-      className={`fixed inset-x-0 z-40 flex flex-col items-center px-2 pointer-events-none transition-all duration-300 ${
+      className={`fixed inset-x-0 z-40 flex flex-col items-center px-2 pointer-events-none transition-all duration-200 ease-out ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'
       }`}
     >
-      <div className={`chrome-surface ${isVisible ? 'pointer-events-auto' : 'pointer-events-none'} flex max-w-[calc(100vw-1rem)] items-center gap-1 rounded-2xl px-1.5 py-1.5 sm:gap-1.5 sm:px-2`}>
+      <div className={`chrome-surface ${isVisible ? 'pointer-events-auto' : 'pointer-events-none'} flex max-w-[calc(100vw-1rem)] items-center gap-1 rounded-2xl px-1.5 py-1.5 sm:gap-1.5 sm:px-2 shadow-2xl`}>
         <button
           type="button"
           onClick={onCloseDocument}
           title={t.closeDoc}
-          className="flex shrink-0 items-center gap-1.5 rounded-xl border border-line-subtle bg-hover-subtle px-2 py-1.5 text-ink-muted transition-colors hover:bg-hover hover:text-ink active:scale-[0.97]"
+          className="fluid-press flex shrink-0 items-center gap-1.5 rounded-xl border border-line-subtle bg-hover-subtle px-2 py-1.5 text-ink-muted hover:bg-hover hover:text-ink"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span className="text-[11px] font-semibold hidden lg:inline">
@@ -261,7 +261,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               />
               <div
                 dir={ar ? 'rtl' : 'ltr'}
-                className="chrome-surface absolute start-0 top-full z-50 mt-2 w-64 rounded-2xl p-3.5 text-ink shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none text-start"
+                className="chrome-surface absolute start-0 top-full z-50 mt-2 w-64 rounded-2xl p-3.5 text-ink shadow-2xl fluid-pop select-none text-start"
               >
                 <div className="flex items-start justify-between gap-2 border-b border-line pb-2.5">
                   <div className="min-w-0 flex-1">
@@ -479,7 +479,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </button>
 
             {showThemeMenu && (
-              <div className="chrome-surface absolute right-0 top-full z-50 mt-2 w-52 rounded-2xl p-1.5 text-ink animate-in fade-in zoom-in-95 duration-150">
+              <div className="chrome-surface absolute right-0 top-full z-50 mt-2 w-52 rounded-2xl p-1.5 text-ink fluid-pop shadow-2xl">
                 <div className="px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
                   {t.readingThemesTitle}
                 </div>

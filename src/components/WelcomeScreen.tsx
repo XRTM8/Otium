@@ -190,7 +190,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           <button
             onClick={onToggleLanguage}
             title={currentLang === 'ar' ? 'Switch to English' : 'التحويل إلى العربية'}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full chrome-surface text-xs text-ink transition-all duration-200 active:scale-95"
+            className="fluid-press flex items-center gap-1.5 px-3 py-1.5 rounded-full chrome-surface text-xs text-ink cursor-pointer"
           >
             <Globe className="w-3.5 h-3.5 text-ink-muted" />
             <span className="font-mono text-[11px] font-semibold tracking-wider">
@@ -202,7 +202,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             <button
               onClick={onOpenSettings}
               title={t.settingsTitle}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full chrome-surface text-xs text-ink transition-all duration-200 active:scale-95"
+              className="fluid-press flex items-center gap-1.5 px-3 py-1.5 rounded-full chrome-surface text-xs text-ink cursor-pointer"
             >
               <Settings2 className="w-3.5 h-3.5 text-ink-muted" />
               <span className="text-[11px] font-medium hidden sm:inline">
@@ -219,7 +219,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             <button
               onClick={() => setShowThemeMenu(!showThemeMenu)}
               title={t.themeLabel}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full chrome-surface text-xs transition-all duration-200 active:scale-95 cursor-pointer"
+              className="fluid-press flex items-center gap-2 px-3 py-1.5 rounded-full chrome-surface text-xs cursor-pointer"
             >
               <span
                 className="w-2.5 h-2.5 rounded-full ring-2 ring-line-strong transition-colors"
@@ -241,7 +241,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 />
                 <div
                   dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
-                  className="chrome-surface absolute right-0 top-full mt-2 w-52 rounded-2xl p-1.5 z-50 text-ink animate-in fade-in zoom-in-95 duration-150"
+                  className="chrome-surface absolute right-0 top-full mt-2 w-52 rounded-2xl p-1.5 z-50 text-ink fluid-pop shadow-2xl"
                 >
                   <div className="text-[10px] uppercase font-mono px-2.5 py-1 text-ink-faint font-semibold tracking-wider">
                     {t.readingThemesTitle}
@@ -340,7 +340,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           <button
             onClick={handleLaunchScanner}
             title={currentLang === 'ar' ? 'مسح كتاب أو مستند ورقي ضوئياً إلى ملف PDF' : 'Scan document with camera to PDF'}
-            className="btn-secondary px-4 py-2 text-xs sm:text-sm cursor-pointer shadow-sm active:scale-95 transition-all"
+            className="btn-secondary px-4 py-2 text-xs sm:text-sm cursor-pointer shadow-sm"
           >
             <ScanLine className="w-4 h-4 text-accent" />
             <span>{currentLang === 'ar' ? 'مسح مستند بالكاميرا' : 'Scan with Camera'}</span>
@@ -348,7 +348,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
           <button
             onClick={onOpenSample}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-line bg-surface/60 hover:bg-surface text-ink-muted hover:text-ink text-xs sm:text-sm font-medium transition-all active:scale-95 shadow-sm cursor-pointer group"
+            className="fluid-press flex items-center gap-2 px-4 py-2 rounded-xl border border-line bg-surface/60 hover:bg-surface text-ink-muted hover:text-ink text-xs sm:text-sm font-medium shadow-sm cursor-pointer group"
           >
             <BookOpen className="w-4 h-4 text-accent" />
             <span>{t.openSample}</span>
@@ -405,7 +405,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                     }
                     onOpenRecent(r);
                   }}
-                  className={`relative overflow-hidden flex items-center justify-between p-3.5 ps-4 rounded-2xl bg-surface/60 hover:bg-surface cursor-pointer border border-line-subtle hover:border-line-strong transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg group ${
+                  className={`fluid-press relative overflow-hidden flex items-center justify-between p-3.5 ps-4 rounded-2xl bg-surface/60 hover:bg-surface cursor-pointer border border-line-subtle hover:border-line-strong hover:-translate-y-0.5 hover:shadow-lg group ${
                     r.available ? '' : 'border-dashed'
                   }`}
                 >
@@ -470,7 +470,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                         loadRecents();
                       }}
                       title={t.deleteTooltip}
-                      className="p-2 rounded-xl opacity-75 sm:opacity-0 group-hover:opacity-100 text-ink-faint hover:text-rose-400 hover:bg-rose-500/10 active:bg-rose-500/20 active:scale-90 transition-all cursor-pointer"
+                      className="fluid-press p-2 rounded-xl opacity-75 sm:opacity-0 group-hover:opacity-100 text-ink-faint hover:text-rose-400 hover:bg-rose-500/10 active:bg-rose-500/20 cursor-pointer"
                     >
                       <X className="w-4 h-4" />
                     </button>

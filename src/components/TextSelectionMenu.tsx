@@ -715,7 +715,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
       className={
         mobile
           ? 'chrome-surface selection-bar-mobile fixed inset-x-0 bottom-0 z-[70] max-h-[78dvh] select-none overflow-y-auto rounded-t-3xl border-x-0 border-b-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2.5 text-ink shadow-2xl'
-          : 'chrome-surface fixed z-[70] w-[min(336px,calc(100vw-16px))] select-none rounded-2xl p-1.5 text-ink shadow-2xl animate-in fade-in zoom-in-95 duration-100'
+          : 'chrome-surface fixed z-[70] w-[min(336px,calc(100vw-16px))] select-none rounded-2xl p-1.5 text-ink shadow-2xl fluid-pop'
       }
     >
       {mobile && (

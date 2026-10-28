@@ -192,7 +192,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             onClick={onCloseDocument}
             title={t.closeDoc}
             aria-label={t.closeDoc}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line-subtle bg-hover-subtle text-ink-muted transition-colors active:scale-95 active:bg-hover"
+            className="fluid-press flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line-subtle bg-hover-subtle text-ink-muted active:bg-hover"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -206,7 +206,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             onClick={() => setShowMenu((open) => !open)}
             title={ar ? 'أدوات ومعلومات المستند' : 'Document Info & Tools'}
             dir="auto"
-            className="flex-1 min-w-0 truncate text-start px-1.5 py-1 rounded-lg text-[11px] font-medium text-ink-muted hover:text-ink hover:bg-hover-subtle active:scale-[0.98] transition-all cursor-pointer"
+            className="fluid-press flex-1 min-w-0 truncate text-start px-2 py-1 rounded-lg text-[11px] font-medium text-ink-muted hover:text-ink hover:bg-hover-subtle cursor-pointer"
           >
             {title}
           </button>
@@ -216,7 +216,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             onClick={onToggleSearch}
             title={t.searchTooltip}
             aria-label={t.searchTooltip}
-            className="p-2 rounded-xl text-ink-muted hover:bg-hover active:bg-hover-strong transition-colors shrink-0"
+            className="fluid-press p-2 rounded-xl text-ink-muted hover:bg-hover active:bg-hover-strong shrink-0"
           >
             <Search className="w-4 h-4" />
           </button>
@@ -226,7 +226,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             onClick={() => setShowMenu((open) => !open)}
             title={t.moreTools}
             aria-label={t.moreTools}
-            className={`p-2 rounded-xl transition-colors shrink-0 ${
+            className={`fluid-press p-2 rounded-xl shrink-0 ${
               showMenu ? 'bg-hover-strong text-ink' : 'text-ink-muted hover:bg-hover'
             }`}
           >
@@ -239,7 +239,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
         <div
           dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
           style={{ top: compactLandscape ? 'max(2.9rem, calc(env(safe-area-inset-top, 0px) + 2.5rem))' : undefined }}
-          className="fixed inset-x-2 top-16 z-50 mx-auto max-w-lg rounded-2xl chrome-surface p-3 text-ink space-y-3 animate-in fade-in zoom-in-95 duration-150"
+          className="fixed inset-x-2 top-16 z-50 mx-auto max-w-lg rounded-2xl chrome-surface p-3 text-ink space-y-3 fluid-pop shadow-2xl"
         >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono uppercase tracking-wider text-ink-faint">
@@ -358,7 +358,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
           className="fixed inset-0 z-[60] flex items-end justify-center p-3 sm:items-center"
         >
           <div
-            className="absolute inset-0 bg-scrim backdrop-blur-sm"
+            className="absolute inset-0 bg-scrim fluid-fade"
             onClick={() => setShowJump(false)}
           />
           <form
@@ -367,7 +367,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
               submitPageJump();
             }}
             style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
-            className="chrome-surface relative z-10 w-full max-w-sm rounded-2xl p-4 text-ink"
+            className="chrome-surface relative z-10 w-full max-w-sm rounded-2xl p-4 text-ink fluid-sheet sm:fluid-pop shadow-2xl"
           >
             <div className="flex items-center justify-between">
               <div>
@@ -454,7 +454,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             disabled={ar ? currentPage >= totalPages : currentPage <= 1}
             aria-label={ar ? t.nextPage : t.prevPage}
             title={ar ? t.nextPage : t.prevPage}
-            className="p-2 rounded-xl text-ink-muted disabled:opacity-30 active:bg-hover-strong active:scale-90 transition-all cursor-pointer"
+            className="fluid-press p-2 rounded-xl text-ink-muted disabled:opacity-30 active:bg-hover-strong cursor-pointer"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -464,7 +464,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             onClick={() => setShowJump(true)}
             aria-label={ar ? `الانتقال إلى صفحة، الحالية ${currentPage} من ${totalPages}` : `Go to page, currently ${currentPage} of ${totalPages}`}
             title={ar ? 'الانتقال إلى صفحة' : 'Go to page'}
-            className="px-3 py-1.5 rounded-xl bg-hover-subtle font-mono text-[11px] text-ink active:bg-hover-strong active:scale-95 transition-all cursor-pointer"
+            className="fluid-press px-3 py-1.5 rounded-xl bg-hover-subtle font-mono text-[11px] text-ink active:bg-hover-strong cursor-pointer"
           >
             {currentPage} / {totalPages}
           </button>
@@ -484,7 +484,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             disabled={ar ? currentPage <= 1 : currentPage >= totalPages}
             aria-label={ar ? t.prevPage : t.nextPage}
             title={ar ? t.prevPage : t.nextPage}
-            className="p-2 rounded-xl text-ink-muted disabled:opacity-30 active:bg-hover-strong active:scale-90 transition-all cursor-pointer"
+            className="fluid-press p-2 rounded-xl text-ink-muted disabled:opacity-30 active:bg-hover-strong cursor-pointer"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -495,7 +495,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             type="button"
             onClick={onToggleBookmark}
             aria-label={isBookmarked ? t.removeBookmark : t.addBookmark}
-            className={`mobile-chrome-extra p-2 rounded-xl active:bg-hover-strong active:scale-90 transition-all cursor-pointer ${
+            className={`fluid-press mobile-chrome-extra p-2 rounded-xl active:bg-hover-strong cursor-pointer ${
               isBookmarked ? 'text-highlight' : 'text-ink-muted'
             }`}
           >
@@ -506,7 +506,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             type="button"
             onClick={onToggleSearch}
             aria-label={t.searchTooltip}
-            className="mobile-chrome-extra p-2 rounded-xl text-ink-muted active:bg-hover-strong active:scale-90 transition-all cursor-pointer"
+            className="fluid-press mobile-chrome-extra p-2 rounded-xl text-ink-muted active:bg-hover-strong cursor-pointer"
           >
             <Search className="w-4 h-4" />
           </button>

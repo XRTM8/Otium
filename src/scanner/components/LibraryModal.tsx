@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
+import type { ThemeMode } from '../../core/types';
+import type { Language } from '../../core/i18n/translations';
 import type { LibraryDocument } from '../core/storage/documentLibrary';
 import {
   getAllLibraryDocuments,
@@ -44,6 +46,8 @@ interface LibraryModalProps {
   onClose: () => void;
   onOpenSettings?: () => void;
   onOpenDocument?: (doc: LibraryDocument) => void;
+  theme?: ThemeMode;
+  lang?: Language;
 }
 
 export const LibraryModal: React.FC<LibraryModalProps> = ({
@@ -51,6 +55,8 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   onClose,
   onOpenSettings,
   onOpenDocument,
+  theme = 'paper',
+  lang = 'ar',
 }) => {
   const [documents, setDocuments] = useState<LibraryDocument[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -263,11 +269,11 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
 
         {/* PIN Center Display */}
         <div className="flex flex-col items-center justify-center text-center my-auto font-arabic">
-          <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-4 shadow-xl">
+          <div className="w-16 h-16 rounded-3xl bg-accent/10 border border-accent/30 flex items-center justify-center mb-4 shadow-xl">
             {isSettingPin ? (
-              <ShieldCheck className="w-8 h-8 text-emerald-400" />
+              <ShieldCheck className="w-8 h-8 text-accent" />
             ) : (
-              <Lock className="w-8 h-8 text-emerald-400" />
+              <Lock className="w-8 h-8 text-accent" />
             )}
           </div>
 
@@ -291,7 +297,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                     pinError
                       ? 'border-red-500 bg-red-500/50'
                       : isFilled
-                      ? 'border-emerald-400 bg-emerald-400 shadow-md shadow-emerald-400/50 scale-110'
+                      ? 'border-accent bg-accent shadow-md shadow-accent/50 scale-110'
                       : 'border-white/20 bg-transparent'
                   }`}
                 />
@@ -369,12 +375,12 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
       >
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/[0.08]">
-            <OtiumLogo size={20} className="text-emerald-400" />
+            <OtiumLogo size={20} theme={theme} />
             <span className="text-xs font-black tracking-widest text-white">OTIUM</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-sm font-bold text-gray-200">خزنة المستندات</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-black border border-emerald-500/25">
+            <span className="text-sm font-bold text-gray-200">{lang === 'ar' ? 'خزنة المستندات' : 'Document Vault'}</span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent/15 text-accent font-black border border-accent/25">
               {documents.length}
             </span>
           </div>
@@ -385,8 +391,8 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
           {documents.length > 0 && (
             <button
               onClick={handleExportBackup}
-              className="p-2 rounded-full glass-button text-gray-300 active:text-emerald-400"
-              title="نسخ احتياطي للخزنة (.otiumvault)"
+              className="fluid-press p-2 rounded-full glass-button text-gray-300 active:text-accent cursor-pointer"
+              title={lang === 'ar' ? 'نسخ احتياطي للخزنة (.otiumvault)' : 'Backup vault (.otiumvault)'}
             >
               <DownloadCloud className="w-4 h-4" />
             </button>
@@ -395,8 +401,8 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
           {/* Restore Vault Archive */}
           <button
             onClick={() => backupInputRef.current?.click()}
-            className="p-2 rounded-full glass-button text-gray-300 active:text-emerald-400"
-            title="استرجاع من نسخة احتياطية (.otiumvault)"
+            className="fluid-press p-2 rounded-full glass-button text-gray-300 active:text-accent cursor-pointer"
+            title={lang === 'ar' ? 'استرجاع من نسخة احتياطية (.otiumvault)' : 'Restore from backup (.otiumvault)'}
           >
             <UploadCloud className="w-4 h-4" />
           </button>
@@ -405,8 +411,8 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
           {pinEnabled ? (
             <button
               onClick={handleRemovePin}
-              className="p-2 rounded-full glass-button text-emerald-400 active:scale-90"
-              title="القفل برمز PIN مفعّل (انقر للتعطيل)"
+              className="fluid-press p-2 rounded-full glass-button text-accent cursor-pointer"
+              title={lang === 'ar' ? 'القفل برمز PIN مفعّل (انقر للتعطيل)' : 'PIN lock enabled (click to remove)'}
             >
               <Lock className="w-4 h-4" />
             </button>
@@ -417,8 +423,8 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                 setIsSettingPin(true);
                 setNewPinDraft('');
               }}
-              className="p-2 rounded-full glass-button text-gray-400 active:text-emerald-400"
-              title="تعيين رمز حماية PIN"
+              className="fluid-press p-2 rounded-full glass-button text-gray-400 active:text-accent cursor-pointer"
+              title={lang === 'ar' ? 'قفل الخزنة برمز PIN' : 'Lock vault with PIN'}
             >
               <Unlock className="w-4 h-4" />
             </button>
@@ -434,16 +440,16 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                 setShowAboutModal(true);
               }
             }}
-            className="p-2 rounded-full glass-button text-gray-300 active:text-emerald-400"
-            title="الإعدادات والتحقق من التحديثات"
+            className="fluid-press p-2 rounded-full glass-button text-gray-300 active:text-accent cursor-pointer"
+            title={lang === 'ar' ? 'الإعدادات والتحقق من التحديثات' : 'Settings & Updates'}
           >
             <Info className="w-4 h-4" />
           </button>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-full glass-button text-gray-300 active:text-white"
-            title="إغلاق"
+            className="fluid-press p-2 rounded-full glass-button text-gray-300 active:text-white cursor-pointer"
+            title={lang === 'ar' ? 'إغلاق' : 'Close'}
           >
             <X className="w-5 h-5" />
           </button>
@@ -452,8 +458,8 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
 
       {/* Floating Status Notification */}
       {toastMsg && (
-        <div className="absolute top-24 inset-x-0 flex justify-center z-50 pointer-events-none animate-in fade-in duration-200">
-          <span className="px-4 py-1.5 rounded-full bg-emerald-500 text-black font-semibold text-xs shadow-2xl flex items-center gap-1.5 border border-white/20">
+        <div className="absolute top-24 inset-x-0 flex justify-center z-50 pointer-events-none fluid-pop">
+          <span className="px-4 py-1.5 rounded-full bg-accent text-on-accent font-semibold text-xs shadow-2xl flex items-center gap-1.5 border border-white/20">
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>{toastMsg}</span>
           </span>
@@ -467,15 +473,15 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
             <Search className="w-4 h-4 text-gray-400 absolute left-3.5 pointer-events-none" />
             <input
               type="text"
-              placeholder="البحث في المستندات بالاسم أو التاريخ..."
+              placeholder={lang === 'ar' ? 'البحث في المستندات بالاسم أو التاريخ...' : 'Search documents...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl py-2 pl-10 pr-8 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
+              className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl py-2 pl-10 pr-8 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-accent/50 transition-colors"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 text-gray-400 text-xs hover:text-white"
+                className="absolute right-3 text-gray-400 text-xs hover:text-white cursor-pointer"
               >
                 ✕
               </button>
@@ -485,24 +491,33 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
           {/* Category Filter Tabs */}
           <div className="flex items-center gap-1.5 pt-2.5 overflow-x-auto scrollbar-none">
             {(
-              [
-                { id: 'all', label: 'الكل' },
-                { id: 'bills', label: 'فواتير' },
-                { id: 'work', label: 'عقود' },
-                { id: 'ids', label: 'هويات' },
-                { id: 'personal', label: 'شخصي' },
-                { id: 'study', label: 'دراسة' },
-              ] as const
+              lang === 'ar'
+                ? [
+                    { id: 'all', label: 'الكل' },
+                    { id: 'bills', label: 'فواتير' },
+                    { id: 'work', label: 'عقود' },
+                    { id: 'ids', label: 'هويات' },
+                    { id: 'personal', label: 'شخصي' },
+                    { id: 'study', label: 'دراسة' },
+                  ]
+                : [
+                    { id: 'all', label: 'All' },
+                    { id: 'bills', label: 'Bills' },
+                    { id: 'work', label: 'Contracts' },
+                    { id: 'ids', label: 'IDs' },
+                    { id: 'personal', label: 'Personal' },
+                    { id: 'study', label: 'Study' },
+                  ]
             ).map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => {
                   triggerHaptic(10);
-                  setSelectedCategory(cat.id);
+                  setSelectedCategory(cat.id as DocumentCategory);
                 }}
-                className={`px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition-all ${
+                className={`fluid-press px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap cursor-pointer ${
                   selectedCategory === cat.id
-                    ? 'bg-emerald-500 text-black shadow-md'
+                    ? 'bg-accent text-on-accent shadow-md shadow-accent/20'
                     : 'bg-white/5 text-gray-400 hover:text-white border border-white/5'
                 }`}
               >
@@ -517,17 +532,17 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
         {filteredDocs.length === 0 ? (
           <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-center px-4">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-4">
-              <OtiumLogo size={32} className="text-emerald-400" />
+            <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-4">
+              <OtiumLogo size={32} theme={theme} />
             </div>
 
             <h3 className="text-base font-bold text-white font-arabic">
-              {searchQuery ? 'لا توجد نتائج مطابقة' : 'لا توجد مستندات محفوظة بعد'}
+              {searchQuery ? (lang === 'ar' ? 'لا توجد نتائج مطابقة' : 'No matching documents') : (lang === 'ar' ? 'لا توجد مستندات محفوظة بعد' : 'No documents saved yet')}
             </h3>
             <p className="text-xs text-gray-400 mt-1.5 max-w-xs leading-relaxed font-arabic">
               {searchQuery
-                ? 'جرب البحث بكلمة أخرى أو اسم مختلف.'
-                : 'عند مسح المستندات وتصديرها كملف PDF، سيتم حفظها تلقائياً هنا في الخزنة للوصول السريع والمشاركة.'}
+                ? (lang === 'ar' ? 'جرب البحث بكلمة أخرى أو اسم مختلف.' : 'Try a different search keyword.')
+                : (lang === 'ar' ? 'عند مسح المستندات وتصديرها كملف PDF، سيتم حفظها تلقائياً هنا في الخزنة للوصول السريع والمشاركة.' : 'Scanned documents exported as PDF will be safely saved in this vault for quick access.')}
             </p>
 
             <button
@@ -535,17 +550,17 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                 triggerHaptic(20);
                 onClose();
               }}
-              className="mt-5 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-black font-bold text-xs active:scale-95 transition-transform emerald-glow shadow-lg font-arabic"
+              className="fluid-press mt-5 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-on-accent font-bold text-xs shadow-lg shadow-accent/20 font-arabic cursor-pointer"
             >
               <Camera className="w-4 h-4" />
-              <span>مسح مستند جديد</span>
+              <span>{lang === 'ar' ? 'مسح مستند جديد' : 'Scan New Document'}</span>
             </button>
           </div>
         ) : (
           filteredDocs.map((doc) => (
             <div
               key={doc.id}
-              className="otium-card p-3.5 rounded-2xl flex items-center justify-between gap-3 border border-white/[0.08] hover:border-emerald-500/30 transition-all shadow-md group"
+              className="fluid-press otium-card p-3.5 rounded-2xl flex items-center justify-between gap-3 border border-white/[0.08] hover:border-accent/35 shadow-md group cursor-pointer"
             >
               {/* Thumbnail */}
               <div className="w-14 h-18 rounded-xl bg-black/60 border border-white/10 overflow-hidden flex-shrink-0 relative shadow-inner">
@@ -556,14 +571,14 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
               </div>
 
               {/* Meta */}
-              <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-bold text-gray-100 truncate group-hover:text-emerald-300 transition-colors">
+              <div className="flex-1 min-w-0 text-start">
+                <h4 className="text-sm font-bold text-gray-100 truncate group-hover:text-accent transition-colors">
                   {doc.title}
                 </h4>
                 <div className="flex items-center gap-3 mt-1.5 text-[11px] text-gray-400">
                   <span className="flex items-center gap-1">
-                    <BookOpen className="w-3 h-3 text-emerald-400" />
-                    <span>{doc.pageCount} {doc.pageCount === 1 ? 'صفحة' : 'صفحات'}</span>
+                    <BookOpen className="w-3 h-3 text-accent" />
+                    <span>{doc.pageCount} {lang === 'ar' ? (doc.pageCount === 1 ? 'صفحة' : 'صفحات') : 'pages'}</span>
                   </span>
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3 text-gray-500" />
@@ -581,16 +596,16 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 <button
                   onClick={() => handleOpenInOtium(doc)}
-                  className="p-2 rounded-xl glass-button text-emerald-400 active:scale-95 hover:border-emerald-500/40"
-                  title="فتح في قارئ أو تيوم / Open in Otium Reader"
+                  className="fluid-press p-2 rounded-xl glass-button text-accent hover:border-accent/40 cursor-pointer"
+                  title={lang === 'ar' ? 'فتح في قارئ أو تيوم' : 'Open in Otium Reader'}
                 >
                   <BookOpen className="w-4 h-4" />
                 </button>
 
                 <button
                   onClick={() => handleSaveToDownloads(doc)}
-                  className="p-2 rounded-xl glass-button text-gray-300 active:text-emerald-400 hover:border-emerald-500/40"
-                  title="حفظ في التنزيلات / Save to Downloads"
+                  className="fluid-press p-2 rounded-xl glass-button text-gray-300 active:text-accent hover:border-accent/40 cursor-pointer"
+                  title={lang === 'ar' ? 'حفظ في التنزيلات' : 'Save to Downloads'}
                 >
                   <Download className="w-4 h-4" />
                 </button>
@@ -623,21 +638,21 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
             triggerHaptic(15);
             setShowAboutModal(true);
           }}
-          className="flex items-center gap-2 hover:text-white transition-colors text-right"
+          className="fluid-press flex items-center gap-2 hover:text-white text-right cursor-pointer"
         >
-          <OtiumLogo size={14} className="text-emerald-400" />
-          <span className="text-[11px] text-gray-300 font-medium">رفيق قارئ أو تيوم • Otium Ecosystem</span>
+          <OtiumLogo size={14} theme={theme} />
+          <span className="text-[11px] text-gray-300 font-medium">{lang === 'ar' ? 'رفيق قارئ أو تيوم • Otium Ecosystem' : 'Otium Companion • Ecosystem'}</span>
         </button>
         <button
           onClick={() => {
             triggerHaptic(15);
             setShowAboutModal(true);
           }}
-          className="text-[11px] text-emerald-400 font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 active:scale-95 transition-all hover:bg-emerald-500/20 flex items-center gap-1.5"
-          title="معلومات التطبيق والتحقق من التحديثات"
+          className="fluid-press text-[11px] text-accent font-bold px-2.5 py-0.5 rounded-full bg-accent/10 border border-accent/20 hover:bg-accent/20 flex items-center gap-1.5 cursor-pointer"
+          title={lang === 'ar' ? 'معلومات التطبيق والتحقق من التحديثات' : 'App info & updates'}
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>أحدث إصدار: v{APP_CURRENT_VERSION}</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"></span>
+          <span>{lang === 'ar' ? `أحدث إصدار: v${APP_CURRENT_VERSION}` : `Latest: v${APP_CURRENT_VERSION}`}</span>
         </button>
       </div>
 
@@ -651,17 +666,17 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
 
       {/* About & Updates Modal Overlay */}
       {showAboutModal && (
-        <div className="fixed inset-0 z-[60] bg-black/85 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-sm max-h-[90vh] bg-[#0c1017]/95 border border-white/[0.12] rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[60] bg-black/85 backdrop-blur-xl flex items-center justify-center p-4 fluid-fade">
+          <div className="w-full max-w-sm max-h-[90vh] bg-[#0c1017]/95 border border-white/[0.12] rounded-3xl shadow-2xl flex flex-col overflow-hidden fluid-pop">
             {/* Modal Header */}
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-white/[0.08]">
               <div className="flex items-center gap-2">
-                <Info className="w-4 h-4 text-emerald-400" />
-                <span className="text-sm font-bold text-white">حول التطبيق والتحديثات</span>
+                <Info className="w-4 h-4 text-accent" />
+                <span className="text-sm font-bold text-white">{lang === 'ar' ? 'حول التطبيق والتحديثات' : 'About & Updates'}</span>
               </div>
               <button
                 onClick={() => setShowAboutModal(false)}
-                className="p-1.5 rounded-full glass-button text-gray-400 active:text-white"
+                className="fluid-press p-1.5 rounded-full glass-button text-gray-400 active:text-white cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -671,16 +686,16 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
             <div className="p-5 overflow-y-auto space-y-4 text-center">
               {/* Logo & Identity */}
               <div className="flex flex-col items-center">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/5 border border-emerald-500/30 flex items-center justify-center shadow-lg shadow-emerald-950/40 mb-3">
-                  <OtiumLogo size={34} className="text-emerald-400" />
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent/20 to-teal-500/5 border border-accent/30 flex items-center justify-center shadow-lg mb-3">
+                  <OtiumLogo size={34} theme={theme} />
                 </div>
                 <h3 className="text-lg font-black tracking-wide text-white">Otium</h3>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  الماسح الضوئي الذكي • بيئة عمل أوتيوم المتكاملة
+                  {lang === 'ar' ? 'الماسح الضوئي الذكي • بيئة عمل أوتيوم المتكاملة' : 'Companion Scanner • Otium Ecosystem'}
                 </p>
                 <div className="flex items-center gap-2 mt-2">
-                  <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold">
-                    أحدث إصدار: v{APP_CURRENT_VERSION}
+                  <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/30 font-semibold">
+                    v{APP_CURRENT_VERSION}
                   </span>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.06] text-gray-400 border border-white/[0.08]">
                     {detectDeviceArchitecture()}
@@ -694,14 +709,14 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                 {!updateResult && !isCheckingUpdate && !updateError && (
                   <div className="text-center space-y-3">
                     <p className="text-xs text-gray-300 leading-relaxed">
-                      احتراماً لخصوصيتك المطلقة، لا يتصل التطبيق بالإنترنت في الخلفية نهائياً. يتم فحص الإصدارات فقط عند طلبك.
+                      {lang === 'ar' ? 'احتراماً لخصوصيتك المطلقة، لا يتصل التطبيق بالإنترنت في الخلفية نهائياً. يتم فحص الإصدارات فقط عند طلبك.' : 'Complete privacy: Otium never phones home or checks the network in the background. Updates are checked strictly upon user request.'}
                     </p>
                     <button
                       onClick={handleCheckUpdate}
-                      className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+                      className="fluid-press w-full py-2.5 px-4 rounded-xl bg-accent hover:opacity-90 text-on-accent font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-accent/20 cursor-pointer"
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
-                      <span>التحقق من وجود تحديثات</span>
+                      <span>{lang === 'ar' ? 'التحقق من وجود تحديثات' : 'Check for Updates'}</span>
                     </button>
                   </div>
                 )}
@@ -709,7 +724,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                 {/* Loading State */}
                 {isCheckingUpdate && (
                   <div className="text-center py-4 space-y-2">
-                    <RefreshCw className="w-6 h-6 text-emerald-400 animate-spin mx-auto" />
+                    <RefreshCw className="w-6 h-6 text-accent animate-spin mx-auto" />
                     <p className="text-xs text-gray-300">جاري الاتصال بـ GitHub Releases...</p>
                   </div>
                 )}
@@ -723,17 +738,17 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                     </div>
                     <button
                       onClick={() => nativeOpenUrl('https://github.com/XRTM8/Otium/releases/latest')}
-                      className="w-full py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20 active:scale-95 transition-all"
+                      className="fluid-press w-full py-2.5 px-3 rounded-xl bg-accent hover:opacity-90 text-on-accent text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-accent/20 cursor-pointer"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
-                      <span>تنزيل التحديث مباشرة عبر المتصفح</span>
+                      <span>{lang === 'ar' ? 'تنزيل التحديث مباشرة عبر المتصفح' : 'Download via Browser'}</span>
                     </button>
                     <button
                       onClick={handleCheckUpdate}
-                      className="w-full py-2 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-white text-xs font-semibold flex items-center justify-center gap-2 border border-white/[0.1]"
+                      className="fluid-press w-full py-2 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-white text-xs font-semibold flex items-center justify-center gap-2 border border-white/[0.1] cursor-pointer"
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
-                      <span>إعادة المحاولة</span>
+                      <span>{lang === 'ar' ? 'إعادة المحاولة' : 'Retry'}</span>
                     </button>
                   </div>
                 )}
@@ -741,9 +756,9 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                 {/* Update Available State */}
                 {updateResult && updateResult.hasUpdate && (
                   <div className="space-y-3 text-right">
-                    <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs bg-emerald-500/15 p-2.5 rounded-xl border border-emerald-500/30">
-                      <Sparkles className="w-4 h-4 shrink-0 text-emerald-300 animate-pulse" />
-                      <span>يتوفر إصدار جديد: v{updateResult.latestVersion}</span>
+                    <div className="flex items-center gap-2 text-accent font-bold text-xs bg-accent/15 p-2.5 rounded-xl border border-accent/30">
+                      <Sparkles className="w-4 h-4 shrink-0 text-accent animate-pulse" />
+                      <span>{lang === 'ar' ? `يتوفر إصدار جديد: v${updateResult.latestVersion}` : `New update available: v${updateResult.latestVersion}`}</span>
                     </div>
 
                     {updateResult.releaseNotes && (
@@ -760,20 +775,20 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                             updateResult.matchedAsset!.name
                           );
                         }}
-                        className="w-full py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all font-arabic"
+                        className="fluid-press w-full py-2.5 px-3 rounded-xl bg-accent hover:opacity-90 text-on-accent font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-accent/20 font-arabic cursor-pointer"
                       >
                         <Download className="w-3.5 h-3.5" />
                         <span>
-                          تنزيل وتثبيت التحديث مباشرة ({updateResult.matchedAsset.name.includes('arm64') ? 'arm64' : 'APK'} • {(updateResult.matchedAsset.size / (1024 * 1024)).toFixed(1)} MB)
+                          {lang === 'ar' ? `تنزيل وتثبيت التحديث مباشرة (${updateResult.matchedAsset.name.includes('arm64') ? 'arm64' : 'APK'} • ${(updateResult.matchedAsset.size / (1024 * 1024)).toFixed(1)} MB)` : `Download & Install Update (${(updateResult.matchedAsset.size / (1024 * 1024)).toFixed(1)} MB)`}
                         </span>
                       </button>
                     ) : (
                       <button
                         onClick={() => nativeOpenUrl(updateResult.releaseUrl)}
-                        className="w-full py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs flex items-center justify-center gap-2"
+                        className="fluid-press w-full py-2.5 px-3 rounded-xl bg-accent hover:opacity-90 text-on-accent font-bold text-xs flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
-                        <span>فتح صفحة الإصدار على GitHub</span>
+                        <span>{lang === 'ar' ? 'فتح صفحة الإصدار على GitHub' : 'Open Release on GitHub'}</span>
                       </button>
                     )}
 

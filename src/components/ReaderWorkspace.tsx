@@ -291,7 +291,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
   const gestureTransform = 'translate3d(var(--otium-swipe-x, 0px), 0, 0)';
   const gestureTransition = isDraggingTouch
     ? 'none'
-    : 'transform 260ms cubic-bezier(0.22, 1, 0.36, 1)';
+    : 'transform 240ms cubic-bezier(0.16, 1, 0.3, 1)';
   const pagedAnimation =
     !isDraggingTouch && dualFlipKey > 0
       ? `pagedTurn${
@@ -302,7 +302,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             : dualFlipDir === 'forward'
               ? 'Forward'
               : 'Backward'
-        } 220ms cubic-bezier(0.16, 1, 0.3, 1) both`
+        } 240ms cubic-bezier(0.16, 1, 0.3, 1) both`
       : undefined;
   const dualAnimation =
     !isDraggingTouch && dualFlipKey > 0
@@ -314,7 +314,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             : dualFlipDir === 'forward'
               ? 'Forward'
               : 'Backward'
-        } 240ms cubic-bezier(0.16, 1, 0.3, 1) both`
+        } 260ms cubic-bezier(0.16, 1, 0.3, 1) both`
       : undefined;
 
   // In an Arabic book odd pages sit on the right, so the first page of a
@@ -563,7 +563,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
           In immersive mode, position at safe bottom. Non-immersive + mobile: push up above toolbar. */}
       <div
         dir={isRtl ? 'rtl' : 'ltr'}
-        className={`fixed z-30 pointer-events-none transition-all duration-300 ${
+        className={`fixed z-30 pointer-events-none transition-all duration-200 ease-out ${
           compact
             ? isImmersive
               ? 'bottom-6 start-4'
@@ -572,7 +572,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
         } ${
           (showScrubberPill || Boolean(numberJumpDisplay)) && (isImmersive || !compact)
             ? 'opacity-100 translate-y-0 scale-100'
-            : 'opacity-0 translate-y-2 scale-95'
+            : 'opacity-0 translate-y-2 scale-90'
         }`}
       >
         <div className="chrome-surface flex items-center gap-2 rounded-full px-3.5 py-1.5 font-mono text-[11px] text-ink shadow-xl backdrop-blur-xl border border-line-subtle select-none">
