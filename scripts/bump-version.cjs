@@ -31,7 +31,23 @@ let cargoToml = fs.readFileSync(cargoTomlPath, 'utf8');
 cargoToml = cargoToml.replace(/^version\s*=\s*"[^"]+"/m, `version = "${targetVersion}"`);
 fs.writeFileSync(cargoTomlPath, cargoToml, 'utf8');
 
-// 5. release-notes.md
+// 5. Cargo.lock
+const cargoLockPath = 'src-tauri/Cargo.lock';
+if (fs.existsSync(cargoLockPath)) {
+  let lock = fs.readFileSync(cargoLockPath, 'utf8');
+  lock = lock.replace(/(name = "otium"\r?\nversion = ")[^"]+(")/, `$1${targetVersion}$2`);
+  fs.writeFileSync(cargoLockPath, lock, 'utf8');
+}
+
+// 6. updater.ts
+const updaterPath = 'src/scanner/core/updater.ts';
+if (fs.existsSync(updaterPath)) {
+  let updater = fs.readFileSync(updaterPath, 'utf8');
+  updater = updater.replace(/APP_CURRENT_VERSION\s*=\s*'[^']+'/, `APP_CURRENT_VERSION = '${targetVersion}'`);
+  fs.writeFileSync(updaterPath, updater, 'utf8');
+}
+
+// 7. release-notes.md
 const notesPath = 'release-notes.md';
 if (fs.existsSync(notesPath)) {
   let notes = fs.readFileSync(notesPath, 'utf8');
@@ -39,7 +55,7 @@ if (fs.existsSync(notesPath)) {
   fs.writeFileSync(notesPath, notes, 'utf8');
 }
 
-// 6. tauri.properties
+// 8. tauri.properties
 const propsPath = 'src-tauri/gen/android/app/tauri.properties';
 if (fs.existsSync(propsPath)) {
   let props = fs.readFileSync(propsPath, 'utf8');
