@@ -179,7 +179,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
     return () => {
       active = false;
     };
-  }, [currentPage?.id, curvature, spinePos]);
+  }, [currentPage?.id, currentPage?.thumbnailDataUrl, curvature, spinePos]);
 
   const triggerHaptic = (duration = 15) => {
     if ('vibrate' in navigator) {

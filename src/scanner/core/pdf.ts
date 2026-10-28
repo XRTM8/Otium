@@ -67,8 +67,8 @@ export async function createPdfFromCanvases(
         };
 
         // Promptly release internal canvas backing store memory
-        optCanvas.width = 0;
-        optCanvas.height = 0;
+        optCanvas.width = 1;
+        optCanvas.height = 1;
 
         return result;
       })

@@ -51,14 +51,25 @@ export async function verifyVaultPin(pin: string): Promise<boolean> {
   const storedHash = localStorage.getItem(HASH_KEY);
   if (!storedHash) {
     const legacy = localStorage.getItem('otium_vault_pin');
-    if (legacy && legacy === pin) {
+    if (legacy && constantTimeEqual(legacy, pin)) {
       await setVaultPin(pin);
       return true;
     }
     return false;
   }
   const currentHash = await hashPin(pin);
-  return currentHash === storedHash;
+  return constantTimeEqual(currentHash, storedHash);
+}
+
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
 }
 
 export function hasVaultPin(): boolean {

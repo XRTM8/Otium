@@ -59,9 +59,17 @@ export function openPdf(data: ArrayBuffer, options: OpenPdfOptions): PdfOpenHand
 
     try {
       const firstPage = await doc.getPage(1);
-      const viewport = firstPage.getViewport({ scale: 1 });
-      if (viewport.width > 0 && viewport.height > 0) {
-        basePageSize = { width: viewport.width, height: viewport.height };
+      try {
+        const viewport = firstPage.getViewport({ scale: 1 });
+        if (viewport.width > 0 && viewport.height > 0) {
+          basePageSize = { width: viewport.width, height: viewport.height };
+        }
+      } finally {
+        try {
+          firstPage.cleanup();
+        } catch {
+          // Cleanup is best-effort
+        }
       }
     } catch {
       // Keep the A4 fallback; a document can still render without page-one metrics.

@@ -34,8 +34,6 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
       ctx.scale(dpr, dpr);
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      ctx.strokeStyle = penColor;
-      ctx.lineWidth = lineWidth;
     }
     setHasDrawn(false);
   }, [isOpen]);

@@ -29,11 +29,23 @@ async function getDB(): Promise<IDBDatabase> {
 
     request.onsuccess = () => {
       dbInstance = request.result;
+      dbInstance.onversionchange = () => {
+        try {
+          dbInstance?.close();
+        } catch {}
+        dbInstance = null;
+      };
       resolve(dbInstance);
     };
 
     request.onerror = () => {
+      dbInstance = null;
       reject(request.error);
+    };
+
+    request.onblocked = () => {
+      dbInstance = null;
+      reject(new Error('IndexedDB blocked'));
     };
   });
 }

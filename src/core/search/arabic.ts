@@ -53,7 +53,9 @@ const ARABIC_DIGITS: Record<string, string> = {
 export function normalizeSearchText(input: string): string {
   if (!input) return '';
 
-  let text = input.normalize('NFKC');
+  // Avoid pathological allocation on unboundedly large strings
+  const safeInput = input.length > 500000 ? input.slice(0, 500000) : input;
+  let text = safeInput.normalize('NFKC');
   text = text.replace(DIACRITICS, '');
   text = text.replace(TATWEEL, '');
   text = text.replace(BIDI_CONTROLS, '');
@@ -75,7 +77,9 @@ export function normalizeSearchText(input: string): string {
 }
 
 export function containsNormalized(haystack: string, needle: string): boolean {
-  const normalizedNeedle = normalizeSearchText(needle);
+  if (!needle || !haystack) return false;
+  const safeNeedle = needle.length > 500 ? needle.slice(0, 500) : needle;
+  const normalizedNeedle = normalizeSearchText(safeNeedle);
   if (normalizedNeedle.length < 2) return false;
   return normalizeSearchText(haystack).includes(normalizedNeedle);
 }

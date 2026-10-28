@@ -34,6 +34,7 @@ export function registerIncomingDocumentHandler(handler: IncomingDocumentHandler
   if (platform === 'android') {
     const bridge = (base64: string, name: string) => {
       try {
+        if (!base64 || typeof base64 !== 'string') return;
         handler({ data: decodeBase64(base64), name: name || 'document.pdf' });
       } catch (error) {
         console.error('Failed to decode an incoming Android document:', error);

@@ -67,8 +67,14 @@ function openDatabase(): Promise<IDBDatabase | null> {
       finish(db);
     };
 
-    request.onerror = () => finish(null);
-    request.onblocked = () => finish(null);
+    request.onerror = () => {
+      dbPromise = null;
+      finish(null);
+    };
+    request.onblocked = () => {
+      dbPromise = null;
+      finish(null);
+    };
   });
 
   return dbPromise;

@@ -37,10 +37,24 @@ async function getLibraryDB(): Promise<IDBDatabase> {
 
     req.onsuccess = () => {
       dbInstance = req.result;
+      dbInstance.onversionchange = () => {
+        try {
+          dbInstance?.close();
+        } catch {}
+        dbInstance = null;
+      };
       resolve(dbInstance);
     };
 
-    req.onerror = () => reject(req.error);
+    req.onerror = () => {
+      dbInstance = null;
+      reject(req.error);
+    };
+
+    req.onblocked = () => {
+      dbInstance = null;
+      reject(new Error('IndexedDB blocked'));
+    };
   });
 }
 

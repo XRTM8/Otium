@@ -43,16 +43,24 @@ async function getPageText(
   if (cached !== undefined) return cached;
 
   const page = await doc.getPage(pageNumber);
-  if (signal?.aborted) throw new SearchCancelledError();
+  try {
+    if (signal?.aborted) throw new SearchCancelledError();
 
-  const textContent = await page.getTextContent();
-  if (signal?.aborted) throw new SearchCancelledError();
+    const textContent = await page.getTextContent();
+    if (signal?.aborted) throw new SearchCancelledError();
 
-  const pageText = normalizeSearchText(
-    textContent.items.map((item) => ('str' in item ? item.str : '')).join(' ')
-  );
-  cache.set(pageNumber, pageText);
-  return pageText;
+    const pageText = normalizeSearchText(
+      textContent.items.map((item) => ('str' in item ? item.str : '')).join(' ')
+    );
+    cache.set(pageNumber, pageText);
+    return pageText;
+  } finally {
+    try {
+      page.cleanup();
+    } catch {
+      // Best-effort cleanup of PDF.js page resources
+    }
+  }
 }
 
 /**

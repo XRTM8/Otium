@@ -213,14 +213,21 @@ const PdfPageView: React.FC<PdfPageProps> = ({
 
   useEffect(() => {
     let active = true;
+    let pageRef: PDFPageProxy | null = null;
     doc
       .getPage(pageNumber)
       .then((page: PDFPageProxy) => {
+        pageRef = page;
         if (!active) return;
         const unscaledViewport = page.getViewport({ scale: 1 });
         setPageSize({ width: unscaledViewport.width, height: unscaledViewport.height });
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        try {
+          pageRef?.cleanup();
+        } catch {}
+      });
 
     return () => {
       active = false;
@@ -285,8 +292,11 @@ const PdfPageView: React.FC<PdfPageProps> = ({
     const run = async () => {
       if (cancelled || !canvasRef.current) return;
 
+      let page: PDFPageProxy | null = null;
+      let staging: HTMLCanvasElement | null = null;
+
       try {
-        const page = await doc.getPage(pageNumber);
+        page = await doc.getPage(pageNumber);
         if (cancelled || !canvasRef.current) return;
 
         const dpr = getCanvasPixelRatio();
@@ -295,7 +305,7 @@ const PdfPageView: React.FC<PdfPageProps> = ({
 
         // Render into a staging canvas first. The visible canvas is updated in
         // one synchronous copy, so zooming never flashes a blank page.
-        const staging = document.createElement('canvas');
+        staging = document.createElement('canvas');
         staging.width = Math.max(1, Math.floor(viewport.width));
         staging.height = Math.max(1, Math.floor(viewport.height));
         const stagingContext = staging.getContext('2d', {
@@ -344,6 +354,10 @@ const PdfPageView: React.FC<PdfPageProps> = ({
           if (canFilter) context.filter = 'none';
         }
 
+        // Release backing GPU memory for staging canvas immediately
+        staging.width = 1;
+        staging.height = 1;
+
         currentRenderTaskRef.current = null;
         renderedKeyRef.current = renderKey;
         setHasRenderedOnce(true);
@@ -356,6 +370,16 @@ const PdfPageView: React.FC<PdfPageProps> = ({
         const name = (error as { name?: string } | null)?.name;
         if (!cancelled && name !== 'RenderingCancelledException') {
           console.warn(`Render notice on page ${pageNumber}:`, error);
+        }
+      } finally {
+        if (staging) {
+          staging.width = 1;
+          staging.height = 1;
+        }
+        try {
+          page?.cleanup();
+        } catch {
+          // Cleanup is best-effort
         }
       }
     };
@@ -389,29 +413,40 @@ const PdfPageView: React.FC<PdfPageProps> = ({
       const container = textLayerRef.current;
       if (!container || cancelled) return;
 
-      const page = await doc.getPage(pageNumber);
-      if (cancelled || !textLayerRef.current) return;
+      let page: PDFPageProxy | null = null;
+      try {
+        page = await doc.getPage(pageNumber);
+        if (cancelled || !textLayerRef.current) return;
 
-      const baseViewport = page.getViewport({ scale: 1 });
-      const textContent = await page.getTextContent();
-      if (cancelled || !textLayerRef.current) return;
+        const baseViewport = page.getViewport({ scale: 1 });
+        const textContent = await page.getTextContent();
+        if (cancelled || !textLayerRef.current) return;
 
-      const target = textLayerRef.current;
-      target.innerHTML = '';
-      target.style.setProperty('--total-scale-factor', '1');
-      target.style.setProperty('--scale-round-x', '1px');
-      target.style.setProperty('--scale-round-y', '1px');
+        const target = textLayerRef.current;
+        target.innerHTML = '';
+        target.style.setProperty('--total-scale-factor', '1');
+        target.style.setProperty('--scale-round-x', '1px');
+        target.style.setProperty('--scale-round-y', '1px');
 
-      const textLayer = new TextLayer({
-        textContentSource: textContent,
-        container: target,
-        viewport: baseViewport
-      });
-      await textLayer.render();
+        const textLayer = new TextLayer({
+          textContentSource: textContent,
+          container: target,
+          viewport: baseViewport
+        });
+        await textLayer.render();
 
-      if (!cancelled) {
-        target.dataset.renderedScale = '1';
-        setTextLayerVersion((version) => version + 1);
+        if (!cancelled) {
+          target.dataset.renderedScale = '1';
+          setTextLayerVersion((version) => version + 1);
+        }
+      } catch {
+        // Text layer generation is non-fatal
+      } finally {
+        try {
+          page?.cleanup();
+        } catch {
+          // Cleanup is best-effort
+        }
       }
     }, 300);
 

@@ -275,7 +275,9 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const pageSaveTimerRef = useRef<number | null>(null);
   const lastSavedPageRef = useRef<{ title: string; page: number } | null>(null);
   const currentPageRef = useRef(currentPage);
-  currentPageRef.current = currentPage;
+  useEffect(() => {
+    currentPageRef.current = currentPage;
+  }, [currentPage]);
 
   useEffect(() => {
     measureRefreshRate();
@@ -1055,7 +1057,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       setDocumentError(describeDocumentError(error, lang));
       console.error('Error reading file:', error);
     }
-  }, []);
+  }, [lang]);
 
   const openFileRef = useRef(openFile);
   useEffect(() => {
@@ -1096,7 +1098,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       setIsLoading(false);
       console.error('Error loading sample:', error);
     }
-  }, []);
+  }, [lang]);
 
   const openRecent = useCallback(async (recent: RecentDocItem) => {
     if (recent.name === SAMPLE_DOCUMENT_NAME) {
@@ -1126,7 +1128,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       return;
     }
     await loadDocumentRef.current(data, recent.name);
-  }, [openSample]);
+  }, [lang, openSample]);
 
   const toggleBookmark = useCallback(
     (pageNumber: number) => {
@@ -1696,6 +1698,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     goToPrevPage,
     handleToggleFullscreen,
     lang,
+    numPages,
+    scrollToPage,
     theme,
     toggleBookmark,
     viewMode
