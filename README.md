@@ -1,36 +1,34 @@
 <div align="center">
 
+<img src="./public/favicon.svg" width="88" height="88" alt="Otium Logo" />
+
 # Otium
 
 <p align="center">
-  <em>otium</em> &nbsp;/ˈoː.ti.um/&nbsp; <sup>n. Latin</sup><br/>
-  The time set aside for reading, thought, and rest —<br/>
-  as opposed to <em>negotium</em>: work, obligation, noise.
+  <strong>The sovereign, distraction-free document reader & studio scanner.</strong><br/>
+  <em>قارئ هادئ وماسح مستندات حر بدون تتبع أو إعلانات أو سحابة</em>
 </p>
-
-<br/>
 
 <p align="center">
   <a href="https://github.com/XRTM8/Otium/releases/latest">
-    <img src="https://img.shields.io/github/v/release/XRTM8/Otium?style=flat-square&color=10B981&label=release" alt="Release" />
+    <img src="https://img.shields.io/github/v/release/XRTM8/Otium?style=flat-square&color=10B981&label=Release" alt="Release" />
   </a>
   &nbsp;
-  <img src="https://img.shields.io/badge/platform-Windows%20·%20Android-10B981?style=flat-square" alt="Platform" />
+  <img src="https://img.shields.io/badge/Platform-Windows%20·%20Android-10B981?style=flat-square" alt="Platform" />
   &nbsp;
-  <img src="https://img.shields.io/badge/stack-Rust%20·%20Tauri%20v2%20·%20React%2019-111827?style=flat-square" alt="Stack" />
+  <img src="https://img.shields.io/badge/Engine-Rust%20·%20Tauri%20v2%20·%20React%2019-111827?style=flat-square" alt="Engine" />
+  &nbsp;
+  <img src="https://img.shields.io/badge/Privacy-100%25%20Offline-10B981?style=flat-square" alt="Offline" />
   &nbsp;
   <a href="LICENSE">
-    <img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License" />
+    <img src="https://img.shields.io/badge/License-GPL--3.0-111827?style=flat-square" alt="License" />
   </a>
 </p>
 
 <p align="center">
-  <a href="#downloads">Downloads</a> &nbsp;·&nbsp;
-  <a href="#about-the-name--فلسفة-الاسم">About the Name</a> &nbsp;·&nbsp;
-  <a href="#companion-app-otium-scan--التطبيق-المرافق">Companion App</a> &nbsp;·&nbsp;
-  <a href="#project-status--حالة-المشروع">Project Status</a> &nbsp;·&nbsp;
-  <a href="#screenshots">Screenshots</a> &nbsp;·&nbsp;
+  <a href="#overview">Overview</a> &nbsp;·&nbsp;
   <a href="#features">Features</a> &nbsp;·&nbsp;
+  <a href="#downloads">Downloads</a> &nbsp;·&nbsp;
   <a href="#shortcuts">Shortcuts</a> &nbsp;·&nbsp;
   <a href="#build">Build</a>
 </p>
@@ -39,183 +37,109 @@
 
 ---
 
-https://github.com/user-attachments/assets/1e179513-55d3-469c-a7c8-b31ee67e65fd
-
-A PDF reader for Windows and Android. No accounts, no telemetry, no internet required after installation. Reading state persists locally across sessions.
-
-The interface is available in **English and Arabic** (RTL layout, full right-to-left navigation).
-
----
-
-## About the Name · فلسفة الاسم
-
-> **Otium** /ˈoː.ti.um/ *(noun, Latin)*: In Roman philosophy, *otium* was the deliberate time dedicated to study, reading, reflection, and quiet intellectual contemplation — the state of tranquil freedom from worldly obligations. Its direct opposite was **negotium** (*nec-otium*), meaning commerce, business, noise, and constant daily bustle.
-
-Most modern document software has become *negotium*: subscription barriers, intrusive analytics, cloud sync accounts, and visual clutter. Otium is built to reclaim that quiet, undisturbed space. Everything runs locally on your machine, your reading habits stay yours, and the interface stays out of your way.
-
-**باللغة العربية:**  
-اسم **أوتيوم (Otium)** مستوحى من المفهوم الفلسفي اللاتيني القديم الذي يعبر عن الوقت المخصص للقراءة المتأنية، التفكير الهادئ، والبحث المعرفي بعيداً عن صخب الحياة والالتزامات اليومية (*Negotium*). جاء التطبيق ليعيد تجربة القراءة إلى بساطتها وجوهرها الأصلي: تطبيق محلي بالكامل، بدون إعلانات، وبدون تتبع أو خوادم وسيطة.
-
----
-
-## Companion App: Otium Scan · التطبيق المرافق
-
-Otium Reader has a dedicated sister application: [**Otium Scan**](https://github.com/XRTM8/Otium-Scan) — an offline, privacy-first mobile document scanner.
-
-```
-  [ Physical Book / Notes ] 
-             │
-             ▼
-      Otium Scan          ─── (Direct Export) ───►      Otium Reader
-  • Edge detection & crop                           • Dual-page spread mode
-  • Document clean filters                          • Annotations & highlights
-  • Offline PDF generation                          • Distraction-free reading
-```
-
-If you study from physical textbooks or lecture handouts, use **Otium Scan** to photograph and clean your pages into high-contrast PDFs, then open them immediately inside **Otium Reader** with a single tap.
-
----
-
-## Project Status & Honesty · حالة المشروع
-
-> [!NOTE]
-> **Active Development / المشروع قيد التطوير النشط:**  
-> This project is a personal, independent open-source endeavor. While it is stable enough for daily reading and academic presentations, **it is still under active development**.  
->  
-> You might encounter visual quirks, unhandled PDF formatting edge cases, or platform-specific glitches depending on your hardware, screen aspect ratio, or Android ROM. We do not pretend this is a finished corporate product. If you find a bug, please [open an issue on GitHub](https://github.com/XRTM8/Otium/issues) with your device details and steps to reproduce — your feedback directly shapes the next release.
->  
-> **ملاحظة للمستخدمين باللغة العربية:**  
-> هذا المشروع عمل شخصي ومفتوح المصدر (FOSS) نابع من الحاجة لقارئ كتب هادئ ومحترم لخصوصية القارئ، وهو قيد التطوير والتحسين المستمر. نظراً لتنوع أجهزة أندرويد واختلاف دقة الشاشات وتفاوت ملفات الـ PDF، قد تواجه بعض الأخطاء أو عدم التناسق في بعض الواجهات. لا ندّعي الكمال التجاري؛ بدلاً من ذلك نرحب بكل ملاحظة أو بلاغ خطأ على صفحة الـ Issues للمساعدة في سد الثغرات وتحسين التجربة للجميع.
-
----
-
-## Screenshots
-
 <div align="center">
-  <img src="./assets/screen-library.png" width="80%" alt="Library" />
-  <br/><sub>Library</sub>
+  <img src="./assets/screen-library.png" width="82%" alt="Otium Library" />
   <br/><br/>
-  <img src="./assets/screen-reader-dark.png" width="49%" alt="Dual-page — dark" />
+  <img src="./assets/screen-reader-dark.png" width="48%" alt="Dual-page spread — Dark" />
   &nbsp;
-  <img src="./assets/screen-reader-light.png" width="49%" alt="Dual-page — light" />
-  <br/><sub>Dual-page spread — dark theme &nbsp;·&nbsp; light theme</sub>
+  <img src="./assets/screen-reader-light.png" width="48%" alt="Dual-page spread — Light" />
 </div>
 
 ---
 
-## Downloads
+## Overview
 
-[**GitHub Releases →**](https://github.com/XRTM8/Otium/releases/latest)
+> **Otium** /ˈoː.ti.um/ *(noun, Latin)*: The deliberate time set aside for reading, contemplation, and study — tranquil freedom from *negotium* (commerce, obligation, and noise).
 
-| Platform | File | Notes |
-| :--- | :--- | :--- |
-| Windows — Installer | `Otium_<version>_x64-setup.exe` | Signed; updates automatically |
-| Windows — Portable | `Otium_<version>_x64-portable.exe` | No installation required |
-| Android | `Otium_<version>_universal.apk` | ARM64, ARMv7, x86\_64 |
+Most modern document software has become *negotium*: subscription walls, intrusive telemetry, cloud lock-in, and visual clutter. **Otium** is designed to reclaim that quiet, undisturbed space.
 
-**System requirements**
-
-| | Minimum |
-| :--- | :--- |
-| Windows | 10 (x64) |
-| Android | 7.0 (API 24) |
-
-Each release includes `latest.json`, the version feed used by both updaters. The Android APK is SHA-256 verified before the system installer is invoked — no silent sideloading.
+Unified in version 1.6.0, Otium brings together a distraction-free long-form reading environment and an on-device document capture studio into a single sovereign application for Windows and Android. Everything runs strictly on your machine — zero accounts, zero analytics, zero external network requests.
 
 ---
 
 ## Features
 
-**View modes** — Single page, continuous scroll, or dual-page spread with a centre spine divider. Switch modes at any time without reloading the document.
+### 📖 Calm Reader
+- **Fluid View Modes** — Seamlessly toggle between single-page view, smooth continuous scroll, and dual-page book spread with a subtle spine divider.
+- **Bilingual Typography** — Native bidirectional RTL and LTR support with first-class Arabic (Amiri, Almarai, Cairo, Tajawal) and Latin (Plus Jakarta Sans, Lora) typefaces.
+- **8 OLED Themes** — Obsidian Black, Midnight Azure, Warm Amber, Pure Amethyst, Ruby Crimson, Natural Paper, Crystal Diamond, and high-contrast E-Ink.
+- **Local Annotations** — In-document full-text search, highlights, underlines, and bookmarks stored locally in IndexedDB.
 
-**Themes** — Eight themes (AMOLED black, Midnight Azure, Warm Amber, Pure Amethyst, Ruby Crimson, Natural Paper, Crystal Diamond, E-Ink). Each theme applies consistently to every surface: toolbars, menus, sidebars, dialogs, and the canvas.
+### 📷 Studio Scanner
+- **120 FPS Viewfinder** — Hardware-accelerated camera stream with instant tap-to-focus and flash controls.
+- **Intelligent Processing** — Real-time corner detection, 4-point perspective warp, and high-contrast document clean filters.
+- **On-Device OCR** — 100% offline text recognition powered by local Tesseract WASM — your captured documents never leave your device.
+- **Batch & ID Cards** — Multi-page batch document capture and automated dual-sided ID card merging onto standard A4 format.
 
-**Display** — Detects screen refresh rate (60–240 Hz) automatically. Renders at the full native pixel ratio with sub-pixel antialiasing.
+### 🛡️ Sovereign & Private
+- **Zero Telemetry** — No tracking scripts, no third-party APIs, no cloud sync requirements.
+- **Encrypted Local Vault** — Secure local document storage with optional PIN/password protection.
+- **State Preservation** — Automatically remembers reading progress, zoom scale, and page layout per document across sessions.
 
-**Android** — Hardware back button navigates step by step (closes modal → closes document → exits library). Safe-area insets clear the status bar and camera notch. Pinch-to-zoom scales the canvas while UI chrome stays fixed. `.pdf` files open directly from the file manager or any sharing source. Text selection, copy, highlight, and underline via long-press.
+---
 
-**Local-first** — No telemetry, no cloud. Bookmarks, annotations, and reading position stored in IndexedDB.
+## Downloads
 
-**Architecture** — One codebase, two platform shells:
+Official binary releases are available on [**GitHub Releases →**](https://github.com/XRTM8/Otium/releases/latest)
 
-```
-src/core/       engine · search · annotations · bookmarks · i18n · settings
-src/platform/   file I/O · updater · runtime detection
-src/app/        shared reader controller
-src/shells/     DesktopShell · MobileShell
-src-tauri/      Rust backend
-```
+| Platform | Format | Description |
+| :--- | :--- | :--- |
+| **Windows** | `Otium_<version>_x64-setup.exe` | Standard Windows installer with integrated auto-updater |
+| **Windows** | `Otium_<version>_x64-portable.exe` | Portable standalone executable (no installation required) |
+| **Android** | `Otium_<version>_universal.apk` | Universal APK supporting ARM64, ARMv7, and x86_64 devices |
+
+> Every release is signed and includes `SHA256SUMS.txt` for cryptographic integrity verification.
 
 ---
 
 ## Shortcuts
 
-| Key | Action |
+| Shortcut | Action |
 | :---: | :--- |
-| `J` / `↓` / `Space` | Next page |
+| `Space` / `J` / `↓` | Next page |
 | `K` / `↑` | Previous page |
-| `Ctrl+F` | Search |
-| `Ctrl+Wheel` | Zoom |
-| `T` | Cycle themes |
+| `Ctrl + F` | Search in document |
+| `Ctrl + Shift + S` | Open Studio Scanner |
+| `T` | Cycle visual themes |
 | `M` | Cycle view modes |
-| `F` | Fullscreen |
-| `S` | Sidebar |
-| `Esc` | Back / close |
+| `F` | Toggle fullscreen |
+| `S` | Toggle sidebar / bookmarks |
+| `Esc` | Back / Close modal |
 
 ---
 
 ## Build
 
-**Requirements**
-
-| Tool | Version |
-| :--- | :--- |
-| Node.js | ≥ 18 |
-| Rust | latest stable |
-| JDK | 17 *(Android only)* |
-| Android SDK + NDK | latest *(Android only)* |
+**Prerequisites:** Node.js (≥ 18) and Rust (latest stable).
 
 ```bash
+# Clone repository
 git clone https://github.com/XRTM8/Otium.git
 cd Otium
+
+# Install dependencies
 npm install
 
-# Desktop — development
+# Run Desktop in development
 npm run tauri:dev
 
-# Windows — NSIS installer + portable EXE
-# Requires: TAURI_SIGNING_PRIVATE_KEY
+# Build Windows (NSIS Installer + Portable EXE)
 npm run tauri:build -- --bundles nsis
 
-# Android — universal APK
-# Requires: app/keystore.properties + release keystore
+# Build Android (Universal APK)
 npm run tauri:android
 
-# Verify version consistency across all build inputs
+# Verify test suite & version integrity
+npm test
 npm run version:check
-
-# Generate latest.json from release-notes.md
-npm run release:feed
-
-# Verify hashes and updater signature
-node scripts/verify-release.mjs
 ```
 
-Pushing a `v<version>` tag runs `.github/workflows/release.yml` and produces the Windows installer, portable EXE, and Android APK in a single pipeline.
-
 ---
-
-## Contributing
-
-Open an issue before submitting a significant pull request. For bugs, include OS version, app version, and steps to reproduce.
-
----
-
-## License
-
-GNU General Public License v3.0 — see [`LICENSE`](LICENSE).
 
 <div align="center">
   <br/>
-  <sub>Built by <a href="https://github.com/XRTM8">XRTM8</a> &nbsp;·&nbsp; Instagram: <a href="https://instagram.com/ma.xrt">@MA.XRT</a> &nbsp;·&nbsp; GPL-3.0</sub>
+  <sub>Crafted by <a href="https://github.com/XRTM8">XRTM8</a> &nbsp;·&nbsp; Instagram: <a href="https://instagram.com/ma.xrt">@MA.XRT</a></sub>
+  <br/>
+  <sub>Licensed under <a href="LICENSE">GPL-3.0</a></sub>
+  <br/><br/>
 </div>
