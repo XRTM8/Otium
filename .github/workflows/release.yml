@@ -146,7 +146,7 @@ jobs:
           set -euo pipefail
           for attempt in 1 2 3; do
             echo "Installing SDK packages (attempt $attempt/3)..."
-            if sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973"; then
+            if sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "ndk;27.0.12077973"; then
               echo "SDK packages installed successfully."
               break
             fi
