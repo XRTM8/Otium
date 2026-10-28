@@ -121,11 +121,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
   const handlePageSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    const pageNum = Number.parseInt(inputPage, 10);
+    const pageNum = Number.parseInt(inputPage.replace(/[^\d]/g, ''), 10);
     if (!Number.isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
       onPageChange(pageNum);
+      (document.activeElement as HTMLElement)?.blur();
     } else {
       setInputPage(currentPage.toString());
+      (document.activeElement as HTMLElement)?.blur();
     }
   };
 

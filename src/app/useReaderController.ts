@@ -1503,11 +1503,19 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       switch (event.key.toLowerCase()) {
         case 'j':
         case 'arrowdown':
+          event.preventDefault();
+          if (viewMode === 'continuous') {
+            scrollContainerRef.current?.scrollBy({ top: 220, behavior: 'smooth' });
+          } else {
+            goToNextPage();
+          }
+          break;
         case 'pagedown':
         case ' ':
           event.preventDefault();
           if (viewMode === 'continuous') {
-            scrollContainerRef.current?.scrollBy({ top: 220, behavior: 'smooth' });
+            const viewportH = scrollContainerRef.current?.clientHeight ?? 600;
+            scrollContainerRef.current?.scrollBy({ top: Math.round(viewportH * 0.8), behavior: 'smooth' });
           } else {
             goToNextPage();
           }
@@ -1534,10 +1542,18 @@ export function useReaderController(capabilities: ReaderCapabilities) {
           break;
         case 'k':
         case 'arrowup':
-        case 'pageup':
           event.preventDefault();
           if (viewMode === 'continuous') {
             scrollContainerRef.current?.scrollBy({ top: -220, behavior: 'smooth' });
+          } else {
+            goToPrevPage();
+          }
+          break;
+        case 'pageup':
+          event.preventDefault();
+          if (viewMode === 'continuous') {
+            const viewportH = scrollContainerRef.current?.clientHeight ?? 600;
+            scrollContainerRef.current?.scrollBy({ top: -Math.round(viewportH * 0.8), behavior: 'smooth' });
           } else {
             goToPrevPage();
           }

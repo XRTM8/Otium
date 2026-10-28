@@ -25,7 +25,6 @@ import {
   clearAllStoredDocuments
 } from '../core/storage/documents';
 import { OtiumLogo } from './OtiumLogo';
-import { launchOtiumScan } from '../platform/ui';
 
 interface WelcomeScreenProps {
   currentTheme: ThemeMode;
@@ -107,11 +106,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   const handleLaunchScanner = () => {
     if (onOpenScanner) {
       onOpenScanner();
-      return;
-    }
-    const launched = launchOtiumScan();
-    if (!launched) {
-      window.open('https://github.com/XRTM8/Otium-Scan', '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -425,6 +419,11 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-ink-muted font-mono">
                         <span className="font-sans font-medium text-ink-muted">
                           {t.pageOf(r.lastPage, r.totalPages)}
+                          {r.totalPages > 0 && (
+                            <span className="text-[10px] text-accent font-mono ml-1 mr-1">
+                              ({Math.min(100, Math.round((r.lastPage / r.totalPages) * 100))}%)
+                            </span>
+                          )}
                         </span>
                         <span className="text-ink-faint hidden sm:inline">•</span>
                         <span className="flex items-center gap-1 font-sans text-ink-muted">
@@ -446,6 +445,17 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                           </span>
                         )}
                       </div>
+
+                      {r.totalPages > 0 && (
+                        <div className="w-full h-0.5 bg-white/[0.08] rounded-full overflow-hidden mt-1.5">
+                          <div
+                            className="h-full bg-accent transition-all duration-300 rounded-full"
+                            style={{
+                              width: `${Math.min(100, Math.round((r.lastPage / r.totalPages) * 100))}%`
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
 
