@@ -445,14 +445,14 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
           >
             <div
               key={`dual-${dualFlipKey}`}
-              className="flex items-center justify-center gap-1 sm:gap-2 shadow-2xl"
+              className="flex items-center justify-center gap-0 shadow-2xl rounded-sm overflow-hidden"
               style={{
                 animation: dualAnimation,
                 willChange: 'transform, opacity',
                 flexDirection: reverseSpread ? 'row-reverse' : 'row'
               }}
             >
-              <div className="relative shrink-0">
+              <div className={`relative shrink-0 ${reverseSpread ? 'book-gutter-inner-left' : 'book-gutter-inner-right'}`}>
                 <PdfPage
                   doc={doc}
                   pageNumber={currentPage}
@@ -469,7 +469,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
               </div>
 
               {currentPage + 1 <= numPages ? (
-                <div className={`relative shrink-0 ${reverseSpread ? 'border-r' : 'border-l'} border-line`}>
+                <div className={`relative shrink-0 ${reverseSpread ? 'border-r book-gutter-inner-right' : 'border-l book-gutter-inner-left'} border-line/40`}>
                   <PdfPage
                     doc={doc}
                     pageNumber={currentPage + 1}

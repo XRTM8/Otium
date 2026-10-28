@@ -405,10 +405,12 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                     }
                     onOpenRecent(r);
                   }}
-                  className={`flex items-center justify-between p-3.5 rounded-2xl bg-surface/60 hover:bg-surface cursor-pointer border border-line-subtle hover:border-line-strong transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg group ${
+                  className={`relative overflow-hidden flex items-center justify-between p-3.5 ps-4 rounded-2xl bg-surface/60 hover:bg-surface cursor-pointer border border-line-subtle hover:border-line-strong transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg group ${
                     r.available ? '' : 'border-dashed'
                   }`}
                 >
+                  {/* Subtle Book Spine Accent on the leading edge */}
+                  <div className="absolute inset-y-0 start-0 w-[3px] bg-accent/35 group-hover:bg-accent transition-colors duration-200" />
                   <div className="flex items-center gap-3 min-w-0 pr-1">
                     <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${style.fileIconBox}`}>
                       <OtiumLogo theme={currentTheme} size={22} />
