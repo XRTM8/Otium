@@ -1,4 +1,4 @@
-import { createWorker } from 'tesseract.js';
+
 import type { OcrWordToken } from '../pdf';
 
 const workers = new Map<string, Promise<any>>();
@@ -33,6 +33,7 @@ export async function preloadOcrLanguage(
   onProgress?: (progress: number, status: string) => void
 ): Promise<boolean> {
   try {
+    const { createWorker } = await import('tesseract.js');
     const worker = await createWorker(lang, 1, {
       ...workerOptions(),
       cacheMethod: 'write',
@@ -59,6 +60,7 @@ async function getWorker(lang: string = 'ara+eng') {
   if (!workers.has(lang)) {
     const promise = (async () => {
       // Configure local cache persistence so language weights are saved to IndexedDB
+      const { createWorker } = await import('tesseract.js');
       const worker = await createWorker(lang, 1, {
         ...workerOptions(),
         cacheMethod: 'write',

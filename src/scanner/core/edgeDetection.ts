@@ -43,6 +43,8 @@ export function detectDocumentCorners(
     ctx.drawImage(sourceImage, 0, 0, workW, workH);
     const imgData = ctx.getImageData(0, 0, workW, workH);
     const data = imgData.data;
+    canvas.width = 1;
+    canvas.height = 1;
 
     // 2. Multi-channel color & luminance maps
     const totalPixels = workW * workH;
@@ -337,6 +339,8 @@ export function calculateLaplacianSharpness(
   ctx.drawImage(sourceImage, 0, 0, workW, workH);
   const imgData = ctx.getImageData(0, 0, workW, workH);
   const data = imgData.data;
+  canvas.width = 1;
+  canvas.height = 1;
 
   const total = workW * workH;
   const gray = new Uint8Array(total);

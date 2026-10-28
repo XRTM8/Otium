@@ -246,6 +246,9 @@ const PdfPageView: React.FC<PdfPageProps> = ({
   // the next one is still rasterising.
   useEffect(() => {
     setHasRenderedOnce(false);
+    if (textLayerRef.current) {
+      delete textLayerRef.current.dataset.pageRendered;
+    }
   }, [pageNumber]);
 
   // Mount pages a little before they enter the viewport, but let the shared
@@ -300,7 +303,14 @@ const PdfPageView: React.FC<PdfPageProps> = ({
         if (cancelled || !canvasRef.current) return;
 
         const dpr = getCanvasPixelRatio();
-        const viewport = page.getViewport({ scale: scale * dpr });
+        // Safe bitmap ceiling (4.5M pixels = ~18MB buffer) prevents mobile WebView OOM
+        // crashes and GPU texture exhaustion when zooming in to 250%+ on Retina displays.
+        const MAX_CANVAS_PIXELS = 4_500_000;
+        const rawPixels = (pageSize.width * scale * dpr) * (pageSize.height * scale * dpr);
+        const dprAdjustment = rawPixels > MAX_CANVAS_PIXELS ? Math.sqrt(MAX_CANVAS_PIXELS / rawPixels) : 1;
+        const effectiveDpr = Math.max(1, dpr * dprAdjustment);
+
+        const viewport = page.getViewport({ scale: scale * effectiveDpr });
         const cssViewport = page.getViewport({ scale });
 
         // Render into a staging canvas first. The visible canvas is updated in
@@ -413,6 +423,11 @@ const PdfPageView: React.FC<PdfPageProps> = ({
       const container = textLayerRef.current;
       if (!container || cancelled) return;
 
+      // Avoid re-extracting text and re-generating DOM nodes if already rendered for this page
+      if (container.dataset.pageRendered === String(pageNumber) && container.hasChildNodes()) {
+        return;
+      }
+
       let page: PDFPageProxy | null = null;
       try {
         page = await doc.getPage(pageNumber);
@@ -437,6 +452,7 @@ const PdfPageView: React.FC<PdfPageProps> = ({
 
         if (!cancelled) {
           target.dataset.renderedScale = '1';
+          target.dataset.pageRendered = String(pageNumber);
           setTextLayerVersion((version) => version + 1);
         }
       } catch {
