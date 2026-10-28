@@ -172,14 +172,30 @@ export async function createPdfFromCanvases(
     let contentStream = `q\n${drawW} 0 0 ${drawH} ${drawX} ${drawY} cm\n/Im0 Do\nQ\n`;
 
     if (spec.words.length > 0) {
-      contentStream += 'BT\n/F1 10 Tf\n3 Tr\n';
+      let textOperators = '';
       for (const w of spec.words) {
-        const cleanText = w.text.replace(/[()\\]/g, '\\$&');
-        const wx = Math.round(drawX + w.x * drawW);
-        const wy = Math.round(drawY + drawH - w.y * drawH - 10);
-        contentStream += `1 0 0 1 ${wx} ${wy} Tm (${cleanText}) Tj\n`;
+        if (!w || typeof w.text !== 'string') continue;
+        // Sanitize control characters (\x00-\x1f, except space) and collapse newlines/tabs
+        const sanitized = w.text
+          .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '')
+          .replace(/[\r\n\t]+/g, ' ')
+          .trim();
+        if (!sanitized) continue;
+
+        // Escape backslashes, opening and closing parentheses for PDF literal strings
+        const escaped = sanitized
+          .replace(/\\/g, '\\\\')
+          .replace(/\(/g, '\\(')
+          .replace(/\)/g, '\\)');
+
+        const wx = Math.round(drawX + (w.x || 0) * drawW);
+        const wy = Math.round(drawY + drawH - (w.y || 0) * drawH - 10);
+        textOperators += `1 0 0 1 ${wx} ${wy} Tm (${escaped}) Tj\n`;
       }
-      contentStream += 'ET\n';
+
+      if (textOperators.length > 0) {
+        contentStream += `BT\n/F1 10 Tf\n3 Tr\n${textOperators}ET\n`;
+      }
     }
 
     const streamLen = textEncoder.encode(contentStream).length;
@@ -268,13 +284,13 @@ function getOptimizedCanvas(
   const h = canvas.height;
   const currentMax = Math.max(w, h);
 
-  if (currentMax <= maxDimension) {
+  if (currentMax === 0 || currentMax <= maxDimension) {
     // Clone canvas so watermark or modifications do not mutate source review page
     const copyCanvas = document.createElement('canvas');
-    copyCanvas.width = w;
-    copyCanvas.height = h;
+    copyCanvas.width = Math.max(1, w);
+    copyCanvas.height = Math.max(1, h);
     const ctx = copyCanvas.getContext('2d');
-    if (ctx) ctx.drawImage(canvas, 0, 0);
+    if (ctx && w > 0 && h > 0) ctx.drawImage(canvas, 0, 0);
     return { optCanvas: copyCanvas, quality };
   }
 

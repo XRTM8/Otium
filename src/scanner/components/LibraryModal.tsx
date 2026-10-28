@@ -43,9 +43,15 @@ interface LibraryModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenSettings?: () => void;
+  onOpenDocument?: (doc: LibraryDocument) => void;
 }
 
-export const LibraryModal: React.FC<LibraryModalProps> = ({ isOpen, onClose, onOpenSettings }) => {
+export const LibraryModal: React.FC<LibraryModalProps> = ({
+  isOpen,
+  onClose,
+  onOpenSettings,
+  onOpenDocument,
+}) => {
   const [documents, setDocuments] = useState<LibraryDocument[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<DocumentCategory>('all');
@@ -114,6 +120,10 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({ isOpen, onClose, onO
 
   const handleOpenInOtium = async (doc: LibraryDocument) => {
     triggerHaptic(20);
+    if (onOpenDocument) {
+      onOpenDocument(doc);
+      return;
+    }
     await nativeOpenInOtium(doc.pdfBlob, `${doc.title}.pdf`);
   };
 

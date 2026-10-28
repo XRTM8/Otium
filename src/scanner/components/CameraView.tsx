@@ -124,19 +124,28 @@ export const CameraView: React.FC<CameraViewProps> = ({
   const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
   const [tiltAngle, setTiltAngle] = useState<{ x: number; y: number; isLevel: boolean }>({ x: 0, y: 0, isLevel: true });
 
-  const initCamera = useCallback(async () => {
+  const initCamera = useCallback(async (targetFacingMode?: 'environment' | 'user') => {
+    const activeFacing = targetFacingMode || facingMode;
+    // Cleanly stop any existing stream tracks first
+    setStream((prev) => {
+      if (prev) {
+        prev.getTracks().forEach((track) => track.stop());
+      }
+      return null;
+    });
+
     // Ultra-compatible camera constraints for Android WebView
     const constraintList: MediaStreamConstraints[] = [
       {
         video: {
-          facingMode: { ideal: facingMode },
+          facingMode: { ideal: activeFacing },
           width: { ideal: 1920 },
           height: { ideal: 1080 },
         },
         audio: false,
       },
       {
-        video: { facingMode },
+        video: { facingMode: activeFacing },
         audio: false,
       },
       {
@@ -166,7 +175,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
       console.warn('All camera constraints failed');
       setHasPermission(false);
     }
-  }, []);
+  }, [facingMode]);
 
   useEffect(() => {
     initCamera();
@@ -758,17 +767,23 @@ export const CameraView: React.FC<CameraViewProps> = ({
   const toggleTorch = async () => {
     if (!stream) return;
     const track = stream.getVideoTracks()[0];
+    if (!track) return;
     try {
-      const capabilities = track.getCapabilities?.() as { torch?: boolean };
-      if (capabilities?.torch) {
+      const capabilities = track.getCapabilities?.() as { torch?: boolean } | undefined;
+      if (capabilities && 'torch' in capabilities && capabilities.torch) {
         await track.applyConstraints({
           advanced: [{ torch: !torchOn } as MediaTrackConstraintSet],
         });
         setTorchOn(!torchOn);
         triggerHaptic(15);
+      } else {
+        setCaptureToast('الفلاش غير مدعوم في هذه الكاميرا');
+        setTimeout(() => setCaptureToast(''), 2200);
       }
     } catch (e) {
       console.warn('Torch unsupported:', e);
+      setCaptureToast('تعذر تشغيل الفلاش');
+      setTimeout(() => setCaptureToast(''), 2200);
     }
   };
 
@@ -846,7 +861,10 @@ export const CameraView: React.FC<CameraViewProps> = ({
           <button
             onClick={() => {
               triggerHaptic(15);
-              setFacingMode((prev) => (prev === 'environment' ? 'user' : 'environment'));
+              const nextMode = facingMode === 'environment' ? 'user' : 'environment';
+              setFacingMode(nextMode);
+              setTorchOn(false);
+              initCamera(nextMode);
             }}
             className="p-2 rounded-full glass-button text-gray-300 hover:text-white active:scale-90"
             title="تبديل الكاميرا (أمامية / خلفية)"

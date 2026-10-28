@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { CameraView } from './components/CameraView';
 import { CropView } from './components/CropView';
 import { EnhanceView } from './components/EnhanceView';
+import { LibraryModal } from './components/LibraryModal';
+import { SettingsModal } from './components/SettingsModal';
 import type { Quad, ScannedPage, ScanStep } from './core/types';
 import { applyFilterAsync } from './core/filters';
 import {
@@ -10,10 +12,13 @@ import {
   rotateStoredPage,
   deleteStoredPage,
   loadOriginalDataUrlFromDisk,
+  saveActiveSessionPages,
+  getActiveSessionPages,
+  clearActiveSessionPages,
 } from './core/storage/pageStore';
 import { getFullFrameQuad } from './core/edgeDetection';
 import { warpPerspective } from './core/geometry';
-import { X } from 'lucide-react';
+import { X, AlertTriangle, Bookmark, Trash2 } from 'lucide-react';
 
 interface ScannerModalProps {
   isOpen: boolean;
@@ -32,11 +37,30 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
   const [pages, setPages] = useState<ScannedPage[]>([]);
   const [retakeTargetIndex, setRetakeTargetIndex] = useState<number | null>(null);
 
+  // Modals for Vault Archive & Settings
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showCloseConfirmModal, setShowCloseConfirmModal] = useState(false);
+
+  // Restore active draft session upon opening
   useEffect(() => {
     if (isOpen) {
-      setStep('camera');
+      const activeDraft = getActiveSessionPages();
+      if (activeDraft && activeDraft.length > 0) {
+        setPages(activeDraft);
+        setStep('review');
+      } else {
+        setStep('camera');
+      }
     }
   }, [isOpen]);
+
+  // Persist session pages on modification
+  useEffect(() => {
+    if (isOpen) {
+      saveActiveSessionPages(pages);
+    }
+  }, [pages, isOpen]);
 
   if (!isOpen) return null;
 
@@ -210,8 +234,34 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
 
   const handleResetAll = () => {
     clearScanSession();
+    clearActiveSessionPages();
     setPages([]);
     setStep('camera');
+  };
+
+  // Safe Close Request: check if unsaved pages exist
+  const handleRequestClose = () => {
+    if (pages.length === 0) {
+      clearScanSession();
+      clearActiveSessionPages();
+      onClose();
+    } else {
+      setShowCloseConfirmModal(true);
+    }
+  };
+
+  const handleSaveDraftAndClose = () => {
+    saveActiveSessionPages(pages);
+    setShowCloseConfirmModal(false);
+    onClose();
+  };
+
+  const handleDiscardAndClose = () => {
+    clearScanSession();
+    clearActiveSessionPages();
+    setPages([]);
+    setShowCloseConfirmModal(false);
+    onClose();
   };
 
   return (
@@ -219,7 +269,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
       {/* Top Close Button */}
       <div className="absolute top-4 right-4 z-50">
         <button
-          onClick={onClose}
+          onClick={handleRequestClose}
           className="p-2.5 rounded-full bg-black/60 text-white hover:bg-black/90 transition-all border border-white/10 cursor-pointer"
           title="إغلاق الماسح الضوئي"
         >
@@ -233,6 +283,8 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
           pagesCount={pages.length}
           lastThumbnail={pages[pages.length - 1]?.thumbnailDataUrl}
           onFinishBatch={() => setStep('review')}
+          onOpenLibrary={() => setIsLibraryOpen(true)}
+          onOpenSettings={() => setIsSettingsOpen(true)}
         />
       )}
 
@@ -258,11 +310,88 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
           onResetAll={handleResetAll}
           onOpenPdfInReader={(file) => {
             clearScanSession();
+            clearActiveSessionPages();
             setPages([]);
             onPdfGenerated(file);
             onClose();
           }}
         />
+      )}
+
+      {/* Library Vault Modal */}
+      {isLibraryOpen && (
+        <LibraryModal
+          isOpen={isLibraryOpen}
+          onClose={() => setIsLibraryOpen(false)}
+          onOpenSettings={() => {
+            setIsLibraryOpen(false);
+            setIsSettingsOpen(true);
+          }}
+          onOpenDocument={(doc) => {
+            setIsLibraryOpen(false);
+            clearScanSession();
+            clearActiveSessionPages();
+            setPages([]);
+            const file = new File([doc.pdfBlob], `${doc.title}.pdf`, { type: 'application/pdf' });
+            onPdfGenerated(file);
+            onClose();
+          }}
+        />
+      )}
+
+      {/* Settings Modal */}
+      {isSettingsOpen && (
+        <SettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          onOpenVault={() => {
+            setIsSettingsOpen(false);
+            setIsLibraryOpen(true);
+          }}
+        />
+      )}
+
+      {/* Close Confirmation Modal when unsaved pages exist */}
+      {showCloseConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in select-none" dir="rtl">
+          <div className="bg-[#12151d] border border-white/10 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl">
+            <div className="w-12 h-12 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-white">إغلاق جلسة المسح الضوئي؟</h3>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                لديك <span className="text-emerald-400 font-bold">{pages.length}</span> {pages.length === 1 ? 'صفحة ممسوحة' : 'صفحات ممسوحة'}. هل تود حفظها كمسودة للمتابعة لاحقاً أم حذفها؟
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                onClick={handleSaveDraftAndClose}
+                className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-emerald-500/20 active:scale-95"
+              >
+                <Bookmark className="w-4 h-4 fill-black" />
+                <span>حفظ كمسودة ومغادرة</span>
+              </button>
+
+              <button
+                onClick={handleDiscardAndClose}
+                className="w-full py-2.5 px-4 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 font-bold text-xs flex items-center justify-center gap-2 border border-rose-500/30 transition-all cursor-pointer active:scale-95"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>حذف الصفحات ومغادرة</span>
+              </button>
+
+              <button
+                onClick={() => setShowCloseConfirmModal(false)}
+                className="w-full py-2.5 px-4 rounded-xl glass-button text-gray-400 hover:text-white font-bold text-xs transition-all cursor-pointer active:scale-95"
+              >
+                متابعة المسح
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

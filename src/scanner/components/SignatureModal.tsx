@@ -120,15 +120,15 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col justify-end sm:justify-center items-center p-4 select-none">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col justify-end sm:justify-center items-center p-4 select-none" dir="rtl">
       <div className="w-full max-w-lg bg-[#121212] border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col gap-4">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <PenTool className="w-5 h-5 text-emerald-400" />
-            <span className="text-base font-semibold text-white">Digital Signature</span>
+            <span className="text-base font-bold text-white">التوقيع الرقمي</span>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full glass-button text-gray-400">
+          <button onClick={onClose} className="p-2 rounded-full glass-button text-gray-400 hover:text-white" title="إغلاق">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -144,8 +144,8 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
           />
 
           {!hasDrawn && (
-            <p className="absolute pointer-events-none text-gray-400 text-xs italic tracking-wider">
-              Sign with your finger here...
+            <p className="absolute pointer-events-none text-gray-400 text-xs font-medium tracking-wider">
+              مرر إصبعك أو القلم للتوقيع هنا...
             </p>
           )}
 
@@ -153,36 +153,41 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
         </div>
 
         {/* Ink Colors & Tools */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] text-gray-400 font-medium">Ink:</span>
+              <span className="text-[11px] text-gray-400 font-bold">الحبر:</span>
               {[
-                { id: '#1e3a8a', label: 'Blue' },
-                { id: '#000000', label: 'Black' },
-                { id: '#b91c1c', label: 'Red' },
+                { id: '#1e3a8a', label: 'أزرق' },
+                { id: '#000000', label: 'أسود' },
+                { id: '#b91c1c', label: 'أحمر' },
               ].map((color) => (
                 <button
                   key={color.id}
                   onClick={() => setPenColor(color.id)}
                   style={{ backgroundColor: color.id }}
-                  className={`w-6 h-6 rounded-full border-2 transition-transform ${
+                  title={color.label}
+                  className={`w-6 h-6 rounded-full border-2 transition-transform cursor-pointer ${
                     penColor === color.id ? 'border-white scale-110 shadow-lg' : 'border-transparent'
                   }`}
                 />
               ))}
             </div>
 
-            <div className="flex items-center gap-1 border-l border-white/10 pl-2">
-              {[2, 3.5, 5].map((w) => (
+            <div className="flex items-center gap-1 border-r border-white/10 pr-2 mr-1">
+              {[
+                { w: 2, label: 'دقيق' },
+                { w: 3.5, label: 'متوسط' },
+                { w: 5, label: 'عريض' },
+              ].map(({ w, label }) => (
                 <button
                   key={w}
                   onClick={() => setLineWidth(w)}
-                  className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all ${
-                    lineWidth === w ? 'bg-emerald-500 text-black font-bold' : 'text-gray-400 glass-button'
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                    lineWidth === w ? 'bg-emerald-500 text-black' : 'text-gray-400 glass-button'
                   }`}
                 >
-                  {w === 2 ? 'Fine' : w === 3.5 ? 'Medium' : 'Thick'}
+                  {label}
                 </button>
               ))}
             </div>
@@ -190,10 +195,10 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
 
           <button
             onClick={handleClear}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-300 glass-button active:scale-95"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-300 glass-button active:scale-95 cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>Clear</span>
+            <span>مسح</span>
           </button>
         </div>
 
@@ -201,18 +206,18 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
         <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
           <button
             onClick={onClose}
-            className="px-5 py-2.5 rounded-full text-xs font-semibold text-gray-400 glass-button"
+            className="px-5 py-2.5 rounded-full text-xs font-bold text-gray-400 glass-button cursor-pointer"
           >
-            Cancel
+            إلغاء
           </button>
 
           <button
             onClick={handleConfirm}
             disabled={!hasDrawn}
-            className="flex items-center gap-1.5 px-6 py-2.5 rounded-full bg-emerald-500 text-black font-bold text-xs emerald-glow disabled:opacity-40 transition-transform active:scale-95"
+            className="flex items-center gap-1.5 px-6 py-2.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs emerald-glow disabled:opacity-40 transition-transform active:scale-95 cursor-pointer"
           >
             <Check className="w-4 h-4 stroke-[3]" />
-            <span>Apply Signature</span>
+            <span>إدراج التوقيع</span>
           </button>
         </div>
       </div>
