@@ -14,7 +14,7 @@
  * The language models (`*.traineddata.gz`) are intentionally NOT vendored:
  * they are downloaded once on first use and cached locally in IndexedDB.
  */
-import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -39,8 +39,20 @@ if (!existsSync(workerSource) || !existsSync(coreSource)) {
   process.exit(1);
 }
 
+function shouldCopy(src, dst) {
+  if (!existsSync(dst)) return true;
+  try {
+    return statSync(src).size !== statSync(dst).size;
+  } catch {
+    return true;
+  }
+}
+
 mkdirSync(coreTarget, { recursive: true });
-copyFileSync(workerSource, path.join(target, 'worker.min.js'));
+const workerDest = path.join(target, 'worker.min.js');
+if (shouldCopy(workerSource, workerDest)) {
+  copyFileSync(workerSource, workerDest);
+}
 
 for (const file of coreFiles) {
   const source = path.join(coreSource, file);
@@ -48,7 +60,10 @@ for (const file of coreFiles) {
     console.error(`Missing OCR core file: ${file}`);
     process.exit(1);
   }
-  copyFileSync(source, path.join(coreTarget, file));
+  const dest = path.join(coreTarget, file);
+  if (shouldCopy(source, dest)) {
+    copyFileSync(source, dest);
+  }
 }
 
 console.log(

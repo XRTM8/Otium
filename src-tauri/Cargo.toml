@@ -29,9 +29,8 @@ tauri-plugin-process = "2"
 winreg = "0.55"
 
 [profile.release]
-# APK size and install time are dominated by the Rust shared library. Strip
-# symbols, keep thin LTO, and optimise for size; the PDF engine runs in JS.
+# Strip debug symbols and enable thin LTO with parallel codegen units
 strip = "symbols"
 lto = "thin"
-codegen-units = 1
+codegen-units = 16
 opt-level = "s"
