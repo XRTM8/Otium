@@ -37,6 +37,8 @@ interface ToolbarProps {
   isFullscreen: boolean;
   isBookmarked?: boolean;
   onPageChange: (page: number) => void;
+  onPrevPage?: () => void;
+  onNextPage?: () => void;
   onZoomChange: (zoom: number) => void;
   onThemeChange: (theme: ThemeMode) => void;
   onViewModeChange: (mode: ViewMode) => void;
@@ -82,6 +84,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   isFullscreen,
   isBookmarked = false,
   onPageChange,
+  onPrevPage,
+  onNextPage,
   onZoomChange,
   onThemeChange,
   onViewModeChange,
@@ -161,14 +165,34 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     dot: THEME_DOTS[id]
   }));
 
+  const isAr = currentLang === 'ar';
+  const handleLeftStep = () => {
+    if (isAr) {
+      if (onNextPage) onNextPage();
+      else onPageChange(Math.min(totalPages, currentPage + 1));
+    } else {
+      if (onPrevPage) onPrevPage();
+      else onPageChange(Math.max(1, currentPage - 1));
+    }
+  };
+  const handleRightStep = () => {
+    if (isAr) {
+      if (onPrevPage) onPrevPage();
+      else onPageChange(Math.max(1, currentPage - 1));
+    } else {
+      if (onNextPage) onNextPage();
+      else onPageChange(Math.min(totalPages, currentPage + 1));
+    }
+  };
+
   const pageControls = (
     <div className="flex shrink-0 items-center gap-0.5">
       <button
         type="button"
-        onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-        disabled={currentPage <= 1}
-        title={t.prevPage}
-        aria-label={t.prevPage}
+        onClick={handleLeftStep}
+        disabled={isAr ? currentPage >= totalPages : currentPage <= 1}
+        title={isAr ? t.nextPage : t.prevPage}
+        aria-label={isAr ? t.nextPage : t.prevPage}
         className="toolbar-icon disabled:opacity-20"
       >
         <ChevronLeft className="w-4 h-4" />
@@ -192,10 +216,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
       <button
         type="button"
-        onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-        disabled={currentPage >= totalPages}
-        title={t.nextPage}
-        aria-label={t.nextPage}
+        onClick={handleRightStep}
+        disabled={isAr ? currentPage <= 1 : currentPage >= totalPages}
+        title={isAr ? t.prevPage : t.nextPage}
+        aria-label={isAr ? t.prevPage : t.nextPage}
         className="toolbar-icon disabled:opacity-20"
       >
         <ChevronRight className="w-4 h-4" />

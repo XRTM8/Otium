@@ -26,8 +26,8 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
-  RotateCcw,
   RotateCw,
+  Camera,
   Crop,
   Edit3,
   PenTool,
@@ -1098,9 +1098,9 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
               onRetakePage(safeIndex);
             }}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl glass-button text-gray-200 text-xs font-medium active:scale-95 shrink-0"
-            title="إعادة التقاط الصفحة"
+            title="إعادة التقاط الصفحة بالكاميرا"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <Camera className="w-3.5 h-3.5 text-accent" />
             <span>إعادة التقاط</span>
           </button>
 

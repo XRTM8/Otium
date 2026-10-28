@@ -311,11 +311,11 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
     }
   };
 
-  const handleRotate = () => {
+  const handleRotateCw = () => {
     triggerHaptic(15);
     if (!imageRef.current || imageSize.width === 0 || imageSize.height === 0) return;
 
-    // Create rotated canvas
+    // Create rotated canvas (90 deg clockwise)
     const rotCanvas = document.createElement('canvas');
     rotCanvas.width = imageSize.height;
     rotCanvas.height = imageSize.width;
@@ -342,6 +342,44 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
         topRight: rotPt(quad.topLeft),
         bottomRight: rotPt(quad.topRight),
         bottomLeft: rotPt(quad.bottomRight),
+      });
+    }
+
+    setImageSize({ width: imageSize.height, height: imageSize.width });
+    setCurrentSrc(rotatedDataUrl);
+  };
+
+  const handleRotateCcw = () => {
+    triggerHaptic(15);
+    if (!imageRef.current || imageSize.width === 0 || imageSize.height === 0) return;
+
+    // Create rotated canvas (90 deg counter-clockwise)
+    const rotCanvas = document.createElement('canvas');
+    rotCanvas.width = imageSize.height;
+    rotCanvas.height = imageSize.width;
+    const ctx = rotCanvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, rotCanvas.width, rotCanvas.height);
+    ctx.translate(rotCanvas.width / 2, rotCanvas.height / 2);
+    ctx.rotate((-90 * Math.PI) / 180);
+    ctx.drawImage(imageRef.current, -imageSize.width / 2, -imageSize.height / 2);
+
+    const rotatedDataUrl = rotCanvas.toDataURL('image/jpeg', 0.95);
+
+    const oldW = imageSize.width;
+    const rotPt = (p: Point): Point => ({
+      x: Math.round(p.y),
+      y: Math.round(oldW - p.x),
+    });
+
+    if (quad) {
+      setQuad({
+        topLeft: rotPt(quad.topRight),
+        topRight: rotPt(quad.bottomRight),
+        bottomRight: rotPt(quad.bottomLeft),
+        bottomLeft: rotPt(quad.topLeft),
       });
     }
 
@@ -467,18 +505,25 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
             <Wand2 className="w-4 h-4" />
           </button>
           <button
-            onClick={handleRotate}
+            onClick={handleRotateCcw}
             className="p-2 rounded-full glass-button text-gray-300 active:scale-90"
-            title="تدوير 90° / Rotate"
+            title="تدوير يساراً 90° / Rotate Left"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleRotateCw}
+            className="p-2 rounded-full glass-button text-gray-300 active:scale-90"
+            title="تدوير يميناً 90° / Rotate Right"
           >
             <RotateCw className="w-4 h-4" />
           </button>
           <button
             onClick={handleResetQuad}
             className="p-2 rounded-full glass-button text-gray-300 active:text-accent"
-            title="إعادة ضبط / Reset"
+            title="إعادة ضبط كامل الإطار / Reset"
           >
-            <RotateCcw className="w-4 h-4" />
+            <Maximize2 className="w-4 h-4" />
           </button>
         </div>
       </div>

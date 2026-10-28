@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 import { TextLayer } from 'pdfjs-dist';
-import { StickyNote, Trash2, X } from 'lucide-react';
+import { AlertTriangle, RefreshCw, StickyNote, Trash2, X } from 'lucide-react';
 import type { ThemeMode, TextAnnotation } from '../core/types';
 import type { Language } from '../core/i18n/translations';
 import { getCanvasPixelRatio } from '../core/reader/device';
@@ -192,6 +192,8 @@ const PdfPageView: React.FC<PdfPageProps> = ({
 
   const [isVisible, setIsVisible] = useState(false);
   const [hasRenderedOnce, setHasRenderedOnce] = useState(false);
+  const [renderError, setRenderError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
   const [textLayerVersion, setTextLayerVersion] = useState(0);
   const [activeAnno, setActiveAnno] = useState<ActiveAnnotation | null>(null);
   const isDark = theme === 'amoled' || theme === 'midnight' || theme === 'amber';
@@ -246,10 +248,24 @@ const PdfPageView: React.FC<PdfPageProps> = ({
   // the next one is still rasterising.
   useEffect(() => {
     setHasRenderedOnce(false);
+    setRenderError(null);
     if (textLayerRef.current) {
       delete textLayerRef.current.dataset.pageRendered;
     }
-  }, [pageNumber]);
+  }, [pageNumber, doc]);
+
+  // Auto-heal canvas on GPU context restoration (e.g. after low-memory resume)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const handleContextRestored = () => {
+      setRetryKey((k) => k + 1);
+    };
+    canvas.addEventListener('contextrestored', handleContextRestored);
+    return () => {
+      canvas.removeEventListener('contextrestored', handleContextRestored);
+    };
+  }, []);
 
   // Mount pages a little before they enter the viewport, but let the shared
   // scheduler decide when the canvas may actually start rendering.
@@ -371,6 +387,7 @@ const PdfPageView: React.FC<PdfPageProps> = ({
         currentRenderTaskRef.current = null;
         renderedKeyRef.current = renderKey;
         setHasRenderedOnce(true);
+        setRenderError(null);
 
         // Keep the CSS viewport values on record for debugging and for the
         // text layer, which must match the raster at every scale.
@@ -380,6 +397,7 @@ const PdfPageView: React.FC<PdfPageProps> = ({
         const name = (error as { name?: string } | null)?.name;
         if (!cancelled && name !== 'RenderingCancelledException') {
           console.warn(`Render notice on page ${pageNumber}:`, error);
+          setRenderError((error as Error)?.message || 'Render failed');
         }
       } finally {
         if (staging) {
@@ -409,7 +427,7 @@ const PdfPageView: React.FC<PdfPageProps> = ({
         currentRenderTaskRef.current = null;
       }
     };
-  }, [doc, pageNumber, scale, theme, isVisible]);
+  }, [doc, pageNumber, scale, theme, isVisible, retryKey]);
 
   // The text layer is laid out once at the page's natural size and scaled with
   // a CSS transform. Rebuilding it on every zoom step destroyed any selection
@@ -718,10 +736,30 @@ const PdfPageView: React.FC<PdfPageProps> = ({
         </div>
       )}
 
-      {!hasRenderedOnce && (
+      {!hasRenderedOnce && !renderError && (
         <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-widest text-ink-faint opacity-50 select-none">
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
           <span>{lang === 'ar' ? `صفحة ${pageNumber}` : `Page ${pageNumber}`}</span>
+        </div>
+      )}
+
+      {renderError && !hasRenderedOnce && (
+        <div className="absolute inset-0 z-[6] flex flex-col items-center justify-center gap-2.5 p-4 text-center select-none bg-surface/85 backdrop-blur-xs">
+          <AlertTriangle className="w-5 h-5 text-danger-ink opacity-80" />
+          <span className="text-[11px] font-medium text-ink-muted">
+            {lang === 'ar' ? `تعذر تحميل صفحة ${pageNumber}` : `Failed to load page ${pageNumber}`}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setRenderError(null);
+              setRetryKey((k) => k + 1);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-hover border border-line text-xs font-medium text-ink hover:bg-hover-strong active:scale-95 transition-all cursor-pointer shadow-xs"
+          >
+            <RefreshCw className="w-3 h-3" />
+            <span>{lang === 'ar' ? 'إعادة المحاولة' : 'Retry'}</span>
+          </button>
         </div>
       )}
 

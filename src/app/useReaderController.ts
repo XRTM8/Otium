@@ -677,14 +677,28 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         if (pageSaveTimerRef.current !== null && activeDocId) {
           window.clearTimeout(pageSaveTimerRef.current);
           pageSaveTimerRef.current = null;
+        }
+        if (activeDocId) {
+          saveLastPage(activeDocId, activePage);
           void updateDocumentPage(activeDocId, activePage);
         }
+      }
+    };
+
+    const handlePageHide = () => {
+      stopTts();
+      const activeDocId = docIdRef.current;
+      const activePage = currentPageRef.current;
+      if (activeDocId) {
+        saveLastPage(activeDocId, activePage);
+        void updateDocumentPage(activeDocId, activePage);
       }
     };
 
     window.addEventListener('resize', handleResizeOrOrientation);
     window.addEventListener('orientationchange', handleResizeOrOrientation);
     document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pagehide', handlePageHide);
 
     return () => {
       if (timer !== null) window.clearTimeout(timer);
@@ -692,6 +706,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       window.removeEventListener('resize', handleResizeOrOrientation);
       window.removeEventListener('orientationchange', handleResizeOrOrientation);
       document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pagehide', handlePageHide);
     };
   }, [doc, basePageSize, chromeInset, viewMode]);
 

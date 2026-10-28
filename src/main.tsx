@@ -27,3 +27,24 @@ if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
   }).catch(() => {});
 }
 
+// Global safety guards to prevent unhandled promise rejections or canvas cancellation
+// notices from halting WebView threads or blanking the display.
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason;
+    const name = reason?.name;
+    const message = typeof reason?.message === 'string' ? reason.message : '';
+    if (
+      name === 'RenderingCancelledException' ||
+      name === 'AbortError' ||
+      message.includes('RenderingCancelledException') ||
+      message.includes('aborted')
+    ) {
+      event.preventDefault();
+      return;
+    }
+    console.warn('Otium unhandled rejection caught gracefully:', reason);
+  });
+}
+
+

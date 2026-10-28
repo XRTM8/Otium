@@ -35,6 +35,9 @@ async function getDB(): Promise<IDBDatabase> {
         } catch {}
         dbInstance = null;
       };
+      dbInstance.onclose = () => {
+        dbInstance = null;
+      };
       resolve(dbInstance);
     };
 

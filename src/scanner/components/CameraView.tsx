@@ -87,6 +87,12 @@ export const CameraView: React.FC<CameraViewProps> = ({
       return null;
     });
 
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      console.warn('Camera API (navigator.mediaDevices.getUserMedia) is not available');
+      setHasPermission(false);
+      return;
+    }
+
     // Ultra-compatible camera constraints for Android WebView
     const constraintList: MediaStreamConstraints[] = [
       {

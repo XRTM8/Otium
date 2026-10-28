@@ -239,7 +239,13 @@ function openDB(): Promise<IDBDatabase> {
 
     request.onsuccess = () => {
       const db = request.result;
-      db.onversionchange = () => db.close();
+      db.onversionchange = () => {
+        try { db.close(); } catch {}
+        dbPromise = null;
+      };
+      db.onclose = () => {
+        dbPromise = null;
+      };
       void migrateLegacyDatabase(db)
         .catch(() => {})
         .then(() => resolve(db));
@@ -402,23 +408,39 @@ export async function saveDocumentToStorage(
     const db = await openDB();
     const total = Math.max(1, Math.round(totalPages) || 1);
     const lastPage = Math.min(total, Math.max(1, Math.round(page) || 1));
-    const tx = db.transaction([STORE_NAME, FILES_STORE], 'readwrite');
 
-    tx.objectStore(STORE_NAME).put({
-      id,
-      name,
-      lastOpened: Date.now(),
-      lastPage,
-      totalPages: total,
-      sizeBytes: data.byteLength,
-      fingerprint: id,
-      hasFile: true,
-      metadataOnly: false
-    });
-    tx.objectStore(FILES_STORE).put({ id, data });
-
-    await transactionDone(tx);
-    void pruneStorage(id);
+    try {
+      const tx = db.transaction([STORE_NAME, FILES_STORE], 'readwrite');
+      tx.objectStore(STORE_NAME).put({
+        id,
+        name,
+        lastOpened: Date.now(),
+        lastPage,
+        totalPages: total,
+        sizeBytes: data.byteLength,
+        fingerprint: id,
+        hasFile: true,
+        metadataOnly: false
+      });
+      tx.objectStore(FILES_STORE).put({ id, data });
+      await transactionDone(tx);
+      void pruneStorage(id);
+    } catch (saveErr) {
+      console.warn('Primary file storage failed, attempting quota-safe metadata fallback:', saveErr);
+      const fallbackTx = db.transaction(STORE_NAME, 'readwrite');
+      fallbackTx.objectStore(STORE_NAME).put({
+        id,
+        name,
+        lastOpened: Date.now(),
+        lastPage,
+        totalPages: total,
+        sizeBytes: data.byteLength,
+        fingerprint: id,
+        hasFile: false,
+        metadataOnly: true
+      });
+      await transactionDone(fallbackTx);
+    }
   } catch (err) {
     console.warn('IndexedDB save failed:', err);
   }

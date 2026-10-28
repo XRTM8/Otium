@@ -1,11 +1,12 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { TextAnnotation, ThemeMode } from '../core/types';
 import type { Language } from '../core/i18n/translations';
 import type { ReaderController } from '../app/useReaderController';
 import { markScrollActivity } from '../core/reader/renderScheduler';
 import { PdfPage } from './PdfPage';
+import { ErrorBoundary } from './ErrorBoundary';
 
 interface PageSlotProps {
   pageNum: number;
@@ -58,19 +59,45 @@ const PageSlotView: React.FC<PageSlotProps> = ({
       className="pdf-page-frame my-4 sm:my-5 mx-auto flex items-center justify-center"
     >
       {isNear ? (
-        <PdfPage
-          doc={doc}
-          pageNumber={pageNum}
-          scale={scale}
-          theme={theme}
-          annotations={annotations}
-          onDeleteAnnotation={onDeleteAnnotation}
-          baseAspectRatio={baseAspectRatio}
-          searchQuery={searchQuery}
-          isCurrentSearchPage={isCurrentSearchPage}
-          lang={lang}
-          renderPriority={renderPriority}
-        />
+        <ErrorBoundary
+          resetKey={`${pageNum}-${scale}`}
+          fallback={(err, reset) => (
+            <div
+              style={{ width: `${standardWidth}px`, height: `${standardHeight}px` }}
+              className="flex flex-col items-center justify-center p-6 text-center border border-dashed border-danger-ink/30 bg-surface/50 rounded-xl select-none"
+            >
+              <AlertTriangle className="w-8 h-8 text-danger-ink mb-2 opacity-80" />
+              <span className="text-xs font-semibold text-ink mb-1">
+                {lang === 'ar' ? `تعذر عرض الصفحة ${pageNum}` : `Failed to render page ${pageNum}`}
+              </span>
+              <p className="text-[10px] text-ink-muted mb-3 max-w-[220px] truncate">
+                {err.message || (lang === 'ar' ? 'خطأ غير متوقع' : 'Unexpected error')}
+              </p>
+              <button
+                type="button"
+                onClick={reset}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-on-accent text-xs font-medium cursor-pointer active:scale-95 transition-transform"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>{lang === 'ar' ? 'إعادة المحاولة' : 'Retry'}</span>
+              </button>
+            </div>
+          )}
+        >
+          <PdfPage
+            doc={doc}
+            pageNumber={pageNum}
+            scale={scale}
+            theme={theme}
+            annotations={annotations}
+            onDeleteAnnotation={onDeleteAnnotation}
+            baseAspectRatio={baseAspectRatio}
+            searchQuery={searchQuery}
+            isCurrentSearchPage={isCurrentSearchPage}
+            lang={lang}
+            renderPriority={renderPriority}
+          />
+        </ErrorBoundary>
       ) : (
         <div
           style={{ width: `${standardWidth}px`, height: `${standardHeight}px` }}
@@ -483,36 +510,88 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
               }}
             >
               <div className={`relative shrink-0 ${reverseSpread ? 'book-gutter-inner-left' : 'book-gutter-inner-right'}`}>
-                <PdfPage
-                  doc={doc}
-                  pageNumber={currentPage}
-                  scale={zoom}
-                  theme={theme}
-                  annotations={annotationsByPage ? (annotationsByPage.get(currentPage) ?? EMPTY_ANNOTATIONS) : EMPTY_ANNOTATIONS}
-                  onDeleteAnnotation={deleteAnnotation}
-                  baseAspectRatio={baseAspectRatio}
-                  searchQuery={searchQuery}
-                  isCurrentSearchPage={activeSearchPage === currentPage}
-                  lang={lang}
-                  renderPriority={0}
-                />
+                <ErrorBoundary
+                  resetKey={`dual-${currentPage}-${zoom}`}
+                  fallback={(_err, reset) => (
+                    <div
+                      style={{
+                        width: Math.round(basePageSize.width * zoom),
+                        height: Math.round(basePageSize.height * zoom)
+                      }}
+                      className="flex flex-col items-center justify-center p-6 text-center border border-dashed border-danger-ink/30 bg-surface/50 rounded-xl select-none"
+                    >
+                      <AlertTriangle className="w-8 h-8 text-danger-ink mb-2 opacity-80" />
+                      <span className="text-xs font-semibold text-ink mb-1">
+                        {lang === 'ar' ? `تعذر عرض الصفحة ${currentPage}` : `Failed to render page ${currentPage}`}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={reset}
+                        className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-on-accent text-xs font-medium cursor-pointer"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>{lang === 'ar' ? 'إعادة المحاولة' : 'Retry'}</span>
+                      </button>
+                    </div>
+                  )}
+                >
+                  <PdfPage
+                    doc={doc}
+                    pageNumber={currentPage}
+                    scale={zoom}
+                    theme={theme}
+                    annotations={annotationsByPage ? (annotationsByPage.get(currentPage) ?? EMPTY_ANNOTATIONS) : EMPTY_ANNOTATIONS}
+                    onDeleteAnnotation={deleteAnnotation}
+                    baseAspectRatio={baseAspectRatio}
+                    searchQuery={searchQuery}
+                    isCurrentSearchPage={activeSearchPage === currentPage}
+                    lang={lang}
+                    renderPriority={0}
+                  />
+                </ErrorBoundary>
               </div>
 
               {currentPage + 1 <= numPages ? (
                 <div className={`relative shrink-0 ${reverseSpread ? 'border-r book-gutter-inner-right' : 'border-l book-gutter-inner-left'} border-line/40`}>
-                  <PdfPage
-                    doc={doc}
-                    pageNumber={currentPage + 1}
-                    scale={zoom}
-                    theme={theme}
-                    annotations={annotationsByPage ? (annotationsByPage.get(currentPage + 1) ?? EMPTY_ANNOTATIONS) : EMPTY_ANNOTATIONS}
-                    onDeleteAnnotation={deleteAnnotation}
-                    baseAspectRatio={baseAspectRatio}
-                    searchQuery={searchQuery}
-                    isCurrentSearchPage={activeSearchPage === currentPage + 1}
-                    lang={lang}
-                    renderPriority={1}
-                  />
+                  <ErrorBoundary
+                    resetKey={`dual-${currentPage + 1}-${zoom}`}
+                    fallback={(_err, reset) => (
+                      <div
+                        style={{
+                          width: Math.round(basePageSize.width * zoom),
+                          height: Math.round(basePageSize.height * zoom)
+                        }}
+                        className="flex flex-col items-center justify-center p-6 text-center border border-dashed border-danger-ink/30 bg-surface/50 rounded-xl select-none"
+                      >
+                        <AlertTriangle className="w-8 h-8 text-danger-ink mb-2 opacity-80" />
+                        <span className="text-xs font-semibold text-ink mb-1">
+                          {lang === 'ar' ? `تعذر عرض الصفحة ${currentPage + 1}` : `Failed to render page ${currentPage + 1}`}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={reset}
+                          className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-on-accent text-xs font-medium cursor-pointer"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          <span>{lang === 'ar' ? 'إعادة المحاولة' : 'Retry'}</span>
+                        </button>
+                      </div>
+                    )}
+                  >
+                    <PdfPage
+                      doc={doc}
+                      pageNumber={currentPage + 1}
+                      scale={zoom}
+                      theme={theme}
+                      annotations={annotationsByPage ? (annotationsByPage.get(currentPage + 1) ?? EMPTY_ANNOTATIONS) : EMPTY_ANNOTATIONS}
+                      onDeleteAnnotation={deleteAnnotation}
+                      baseAspectRatio={baseAspectRatio}
+                      searchQuery={searchQuery}
+                      isCurrentSearchPage={activeSearchPage === currentPage + 1}
+                      lang={lang}
+                      renderPriority={1}
+                    />
+                  </ErrorBoundary>
                 </div>
               ) : (
                 <div
@@ -541,32 +620,58 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             key={`single-${dualFlipKey}`}
             style={{ animation: pagedAnimation, willChange: 'transform, opacity' }}
           >
-            <PdfPage
-              doc={doc}
-              pageNumber={currentPage}
-              scale={zoom}
-              theme={theme}
-              annotations={annotationsByPage ? (annotationsByPage.get(currentPage) ?? EMPTY_ANNOTATIONS) : EMPTY_ANNOTATIONS}
-              onDeleteAnnotation={deleteAnnotation}
-              baseAspectRatio={baseAspectRatio}
-              searchQuery={searchQuery}
-              isCurrentSearchPage={activeSearchPage === currentPage}
-              lang={lang}
-              renderPriority={0}
-            />
+            <ErrorBoundary
+              resetKey={`single-${currentPage}-${zoom}`}
+              fallback={(_err, reset) => (
+                <div
+                  style={{
+                    width: Math.round(basePageSize.width * zoom),
+                    height: Math.round(basePageSize.height * zoom)
+                  }}
+                  className="flex flex-col items-center justify-center p-6 text-center border border-dashed border-danger-ink/30 bg-surface/50 rounded-xl select-none"
+                >
+                  <AlertTriangle className="w-8 h-8 text-danger-ink mb-2 opacity-80" />
+                  <span className="text-xs font-semibold text-ink mb-1">
+                    {lang === 'ar' ? `تعذر عرض الصفحة ${currentPage}` : `Failed to render page ${currentPage}`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={reset}
+                    className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-on-accent text-xs font-medium cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>{lang === 'ar' ? 'إعادة المحاولة' : 'Retry'}</span>
+                  </button>
+                </div>
+              )}
+            >
+              <PdfPage
+                doc={doc}
+                pageNumber={currentPage}
+                scale={zoom}
+                theme={theme}
+                annotations={annotationsByPage ? (annotationsByPage.get(currentPage) ?? EMPTY_ANNOTATIONS) : EMPTY_ANNOTATIONS}
+                onDeleteAnnotation={deleteAnnotation}
+                baseAspectRatio={baseAspectRatio}
+                searchQuery={searchQuery}
+                isCurrentSearchPage={activeSearchPage === currentPage}
+                lang={lang}
+                renderPriority={0}
+              />
+            </ErrorBoundary>
           </div>
         </div>
       )}
 
-      {/* Zen Minimal Reading Pill: Floats softly in bottom corner during scroll/flip/jump.
-          On mobile (!compact is desktop), hide when bottom toolbar is visible to avoid overlap.
-          In immersive mode, position at safe bottom. Non-immersive + mobile: push up above toolbar. */}
+      {/* Zen Minimal Reading Pill: Floats softly during scroll/flip/jump.
+          In immersive mode on mobile, placed cleanly at top-corner (top-4 end-4) so it NEVER
+          overlaps bottom menus, jump sheets, or page counters. */}
       <div
         dir={isRtl ? 'rtl' : 'ltr'}
         className={`fixed z-30 pointer-events-none transition-all duration-200 ease-out ${
           compact
             ? isImmersive
-              ? 'bottom-6 start-4'
+              ? 'top-4 end-4'
               : 'bottom-24 start-4'
             : 'bottom-6 start-6'
         } ${
