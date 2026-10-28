@@ -96,6 +96,12 @@ check('src-tauri/Cargo.toml [package] version', cargoPackageVersion(cargoToml), 
 const cargoLock = read('src-tauri/Cargo.lock');
 check('src-tauri/Cargo.lock otium version', cargoLockVersion(cargoLock), version);
 
+// The scanner bundles its own update checker and displays this constant, so it
+// must be bumped with everything else or the UI reports the wrong version.
+const scannerUpdater = read('src/scanner/core/updater.ts');
+const scannerVersion = /APP_CURRENT_VERSION\s*=\s*'([^']+)'/.exec(scannerUpdater)?.[1] ?? null;
+check('src/scanner/core/updater.ts APP_CURRENT_VERSION', scannerVersion, version);
+
 const packageLock = parseJson('package-lock.json');
 if (packageLock) {
   check('package-lock.json version', packageLock.version, version);

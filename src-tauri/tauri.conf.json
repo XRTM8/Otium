@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Otium",
-  "version": "1.5.5",
+  "version": "1.6.0",
   "identifier": "com.otium.reader",
   "build": {
     "frontendDist": "../dist",
@@ -28,9 +28,10 @@
     "security": {
       "csp": {
         "default-src": "'self'",
-        "connect-src": "'self' ipc: http://ipc.localhost https://github.com https://*.githubusercontent.com",
+        "connect-src": "'self' ipc: http://ipc.localhost https://github.com https://*.githubusercontent.com https://cdn.jsdelivr.net",
         "font-src": "'self' data:",
         "img-src": "'self' data: blob:",
+        "media-src": "'self' blob: data: mediastream:",
         "style-src": "'self' 'unsafe-inline'",
         "script-src": "'self' 'wasm-unsafe-eval'",
         "worker-src": "'self' blob:",
@@ -42,9 +43,10 @@
       },
       "devCsp": {
         "default-src": "'self'",
-        "connect-src": "'self' ipc: http://ipc.localhost https://github.com https://*.githubusercontent.com http://localhost:5173 ws://localhost:5173",
+        "connect-src": "'self' ipc: http://ipc.localhost https://github.com https://*.githubusercontent.com https://cdn.jsdelivr.net http://localhost:5173 ws://localhost:5173",
         "font-src": "'self' data:",
         "img-src": "'self' data: blob:",
+        "media-src": "'self' blob: data: mediastream:",
         "style-src": "'self' 'unsafe-inline'",
         "script-src": "'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'",
         "worker-src": "'self' blob:",

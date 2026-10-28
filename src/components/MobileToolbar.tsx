@@ -9,6 +9,7 @@ import {
   Layers,
   MoreHorizontal,
   Palette,
+  ScanLine,
   Scroll,
   Search,
   Settings2,
@@ -38,6 +39,7 @@ interface MobileToolbarProps {
   onToggleSearch: () => void;
   onOpenSidebar: () => void;
   onOpenSettings: () => void;
+  onOpenScanner?: () => void;
   onCloseDocument: () => void;
 }
 
@@ -71,6 +73,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
   onToggleSearch,
   onOpenSidebar,
   onOpenSettings,
+  onOpenScanner,
   onCloseDocument
 }) => {
   const [showMenu, setShowMenu] = useState(false);
@@ -207,6 +210,18 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
           >
             <Search className="w-4 h-4" />
           </button>
+
+          {onOpenScanner && (
+            <button
+              type="button"
+              onClick={onOpenScanner}
+              title={ar ? 'مسح مستند بالكاميرا' : 'Scan document'}
+              aria-label={ar ? 'مسح مستند بالكاميرا' : 'Scan document'}
+              className="p-2 rounded-xl text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 active:bg-hover-strong transition-colors shrink-0"
+            >
+              <ScanLine className="w-4 h-4" />
+            </button>
+          )}
 
           <button
             type="button"

@@ -173,6 +173,20 @@ jobs:
         run: |
           set -euo pipefail
           keystore_dir="src-tauri/gen/android/app"
+          mkdir -p "$keystore_dir"
+
+          # Never fall back to an unsigned build. An unsigned APK cannot be
+          # installed on any device, and shipping one silently is worse than
+          # failing the release.
+          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "::error ::ANDROID_KEYSTORE_BASE64 is missing. Refusing to build an unsigned release APK."
+            exit 1
+          fi
+          if [ -z "${ANDROID_KEYSTORE_PASSWORD:-}" ] || [ -z "${ANDROID_KEY_ALIAS:-}" ]; then
+            echo "::error ::ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS are missing."
+            exit 1
+          fi
+
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore_dir/otium-release.jks"
           cat > "$keystore_dir/keystore.properties" <<EOF
           storeFile=otium-release.jks
@@ -180,6 +194,13 @@ jobs:
           keyAlias=$ANDROID_KEY_ALIAS
           keyPassword=$ANDROID_KEY_PASSWORD
           EOF
+
+          # Prove the keystore is readable and the alias exists before building.
+          keytool -list \
+            -keystore "$keystore_dir/otium-release.jks" \
+            -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -alias "$ANDROID_KEY_ALIAS" > /dev/null
+          echo "Keystore ready: alias $ANDROID_KEY_ALIAS"
 
       - name: Build signed APKs
         shell: bash
@@ -228,6 +249,18 @@ jobs:
             exit 1
           fi
           ls -lh release/*.apk
+
+      - name: Verify APKs (signature, key, version, ABI, 16 KB alignment)
+        shell: bash
+        env:
+          EXPECTED_CERT: ${{ vars.ANDROID_CERT_SHA256 || '685e083d1cf5b48970c847a01cbe2b957668b435897763d8027f206430fa2302' }}
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          set -euo pipefail
+          node scripts/verify-apk.mjs \
+            --expect-cert "$EXPECTED_CERT" \
+            --expect-version "$VERSION" \
+            release/*.apk
 
       - uses: actions/upload-artifact@v4
         with:

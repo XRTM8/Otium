@@ -36,6 +36,7 @@ interface WelcomeScreenProps {
   onOpenFile: (file: File) => void;
   onOpenSample: () => void;
   onOpenRecent: (doc: RecentDocItem) => void;
+  onOpenScanner?: () => void;
 }
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
@@ -46,7 +47,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onOpenSettings,
   onOpenFile,
   onOpenSample,
-  onOpenRecent
+  onOpenRecent,
+  onOpenScanner
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -103,6 +105,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   };
 
   const handleLaunchScanner = () => {
+    if (onOpenScanner) {
+      onOpenScanner();
+      return;
+    }
     const launched = launchOtiumScan();
     if (!launched) {
       window.open('https://github.com/XRTM8/Otium-Scan', '_blank', 'noopener,noreferrer');
@@ -338,11 +344,11 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         <div className="flex flex-wrap items-center justify-center gap-2.5 w-full">
           <button
             onClick={handleLaunchScanner}
-            title={currentLang === 'ar' ? 'مسح كتاب أو مستند ورقي ضوئياً باستخدام Otium Scan' : 'Scan book or document with Otium Scan'}
+            title={currentLang === 'ar' ? 'مسح كتاب أو مستند ورقي ضوئياً إلى ملف PDF' : 'Scan document with camera to PDF'}
             className="btn-secondary px-4 py-2 text-xs sm:text-sm cursor-pointer shadow-sm active:scale-95 transition-all"
           >
             <ScanLine className="w-4 h-4 text-emerald-400" />
-            <span>{currentLang === 'ar' ? 'مسح بـ Otium Scan' : 'Scan with Otium Scan'}</span>
+            <span>{currentLang === 'ar' ? 'مسح مستند بالكاميرا' : 'Scan with Camera'}</span>
           </button>
 
           <button
