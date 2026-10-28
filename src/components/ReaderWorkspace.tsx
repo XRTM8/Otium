@@ -558,11 +558,19 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
         </div>
       )}
 
-      {/* Zen Minimal Reading Pill: Floats softly in bottom corner during scroll/flip/jump */}
+      {/* Zen Minimal Reading Pill: Floats softly in bottom corner during scroll/flip/jump.
+          On mobile (!compact is desktop), hide when bottom toolbar is visible to avoid overlap.
+          In immersive mode, position at safe bottom. Non-immersive + mobile: push up above toolbar. */}
       <div
         dir={isRtl ? 'rtl' : 'ltr'}
-        className={`fixed z-30 bottom-6 start-6 pointer-events-none transition-all duration-300 ${
-          showScrubberPill || Boolean(numberJumpDisplay)
+        className={`fixed z-30 pointer-events-none transition-all duration-300 ${
+          compact
+            ? isImmersive
+              ? 'bottom-6 start-4'
+              : 'bottom-24 start-4'
+            : 'bottom-6 start-6'
+        } ${
+          (showScrubberPill || Boolean(numberJumpDisplay)) && (isImmersive || !compact)
             ? 'opacity-100 translate-y-0 scale-100'
             : 'opacity-0 translate-y-2 scale-95'
         }`}

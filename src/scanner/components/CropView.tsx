@@ -17,6 +17,8 @@ type EdgeKey = 'top' | 'right' | 'bottom' | 'left';
 export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onConfirm, onCancel }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
+  // Cache the image bounding rect at drag-start so coordinate mapping stays stable during the gesture
+  const imageBoundsRef = useRef<DOMRect | null>(null);
   const [currentSrc, setCurrentSrc] = useState<string>(imageSrc);
   const [quad, setQuad] = useState<Quad | null>(null);
   const [activeCorner, setActiveCorner] = useState<CornerKey | null>(null);
@@ -136,10 +138,12 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
   };
 
   // Map viewport client coords to natural image coords
+  // Uses a cached bounding rect during drag so the mapping stays stable as React re-renders
   const clientToImageCoords = useCallback(
     (clientX: number, clientY: number): Point => {
       if (!imageRef.current || imageSize.width === 0) return { x: 0, y: 0 };
-      const rect = imageRef.current.getBoundingClientRect();
+      // Use cached rect if available (stable during pointer capture), otherwise measure live
+      const rect = imageBoundsRef.current ?? imageRef.current.getBoundingClientRect();
       const scaleX = imageSize.width / rect.width;
       const scaleY = imageSize.height / rect.height;
 
@@ -171,7 +175,10 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
     e.preventDefault();
     e.stopPropagation();
     pushHistory(quad);
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    // Snapshot the image bounds BEFORE capture so the rect never shifts mid-drag
+    imageBoundsRef.current = imageRef.current?.getBoundingClientRect() ?? null;
+    // Capture on the stable container, NOT the moving corner element (avoids coordinate jump)
+    try { containerRef.current?.setPointerCapture(e.pointerId); } catch {}
     setActiveCorner(corner);
     setActiveEdge(null);
     setPointerPos({ x: e.clientX, y: e.clientY });
@@ -183,7 +190,10 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
     e.stopPropagation();
     if (!quad) return;
     pushHistory(quad);
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    // Snapshot the image bounds BEFORE capture so the rect never shifts mid-drag
+    imageBoundsRef.current = imageRef.current?.getBoundingClientRect() ?? null;
+    // Capture on the stable container, NOT the moving edge handle
+    try { containerRef.current?.setPointerCapture(e.pointerId); } catch {}
     setActiveEdge(edge);
     setActiveCorner(null);
     setEdgeDragStart({ client: { x: e.clientX, y: e.clientY }, quad: { ...quad } });
@@ -194,17 +204,17 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!quad) return;
 
-    // Corner dragging with magnetic edge snapping
+    // Corner dragging with magnetic edge snapping and strict crossover prevention
     if (activeCorner) {
       e.preventDefault();
       setPointerPos({ x: e.clientX, y: e.clientY });
       const imgCoord = clientToImageCoords(e.clientX, e.clientY);
 
-      const rect = imageRef.current?.getBoundingClientRect();
+      const rect = imageBoundsRef.current ?? imageRef.current?.getBoundingClientRect();
       const scaleX = rect && rect.width > 0 ? imageSize.width / rect.width : 1;
       const scaleY = rect && rect.height > 0 ? imageSize.height / rect.height : 1;
-      const snapX = 22 * scaleX;
-      const snapY = 22 * scaleY;
+      const snapX = 16 * scaleX;
+      const snapY = 16 * scaleY;
 
       if (Math.abs(imgCoord.x - 0) < snapX) {
         imgCoord.x = 0;
@@ -222,7 +232,30 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
         triggerHaptic(8);
       }
 
-      setQuad((prev) => (prev ? { ...prev, [activeCorner]: imgCoord } : prev));
+      // Minimum gap between adjacent and opposite corners so quad can NEVER cross or invert
+      const minGapX = Math.max(24, Math.round(imageSize.width * 0.07));
+      const minGapY = Math.max(24, Math.round(imageSize.height * 0.07));
+
+      setQuad((prev) => {
+        if (!prev) return prev;
+        const nextCoord = { ...imgCoord };
+
+        if (activeCorner === 'topLeft') {
+          nextCoord.x = Math.max(0, Math.min(nextCoord.x, prev.topRight.x - minGapX));
+          nextCoord.y = Math.max(0, Math.min(nextCoord.y, prev.bottomLeft.y - minGapY));
+        } else if (activeCorner === 'topRight') {
+          nextCoord.x = Math.min(imageSize.width, Math.max(nextCoord.x, prev.topLeft.x + minGapX));
+          nextCoord.y = Math.max(0, Math.min(nextCoord.y, prev.bottomRight.y - minGapY));
+        } else if (activeCorner === 'bottomRight') {
+          nextCoord.x = Math.min(imageSize.width, Math.max(nextCoord.x, prev.bottomLeft.x + minGapX));
+          nextCoord.y = Math.min(imageSize.height, Math.max(nextCoord.y, prev.topRight.y + minGapY));
+        } else if (activeCorner === 'bottomLeft') {
+          nextCoord.x = Math.max(0, Math.min(nextCoord.x, prev.bottomRight.x - minGapX));
+          nextCoord.y = Math.min(imageSize.height, Math.max(nextCoord.y, prev.topLeft.y + minGapY));
+        }
+
+        return { ...prev, [activeCorner]: nextCoord };
+      });
       return;
     }
 
@@ -231,7 +264,8 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
       e.preventDefault();
       setPointerPos({ x: e.clientX, y: e.clientY });
 
-      const rect = imageRef.current.getBoundingClientRect();
+      // Use cached rect if available so coords don't shift mid-gesture
+      const rect = imageBoundsRef.current ?? imageRef.current.getBoundingClientRect();
       const scaleX = imageSize.width / rect.width;
       const scaleY = imageSize.height / rect.height;
 
@@ -267,9 +301,8 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (activeCorner || activeEdge) {
-      try {
-        (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-      } catch {}
+      try { containerRef.current?.releasePointerCapture(e.pointerId); } catch {}
+      imageBoundsRef.current = null;
       setActiveCorner(null);
       setActiveEdge(null);
       setEdgeDragStart(null);
@@ -420,7 +453,7 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
           </button>
           <button
             onClick={handleSelectFullImage}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full glass-button text-emerald-400 active:scale-95 text-[11px] font-bold"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full glass-button text-accent active:scale-95 text-[11px] font-bold"
             title="تحديد كامل الصورة / Full Image"
           >
             <Maximize2 className="w-3.5 h-3.5" />
@@ -428,7 +461,7 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
           </button>
           <button
             onClick={handleAutoDetect}
-            className="p-2 rounded-full glass-button text-emerald-400 active:scale-90"
+            className="p-2 rounded-full glass-button text-accent active:scale-90"
             title="كشف ذكي / Auto Detect"
           >
             <Wand2 className="w-4 h-4" />
@@ -442,7 +475,7 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
           </button>
           <button
             onClick={handleResetQuad}
-            className="p-2 rounded-full glass-button text-gray-300 active:text-emerald-400"
+            className="p-2 rounded-full glass-button text-gray-300 active:text-accent"
             title="إعادة ضبط / Reset"
           >
             <RotateCcw className="w-4 h-4" />
@@ -460,20 +493,20 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
           className="max-w-full max-h-[68vh] object-contain rounded-lg shadow-2xl pointer-events-none"
         />
 
-        {/* SVG Quad Overlay */}
+        {/* SVG Quad Overlay with Theme Accent */}
         {quad && (
           <svg className="fixed inset-0 w-full h-full pointer-events-none z-20">
             <polygon
               points={renderPolyPoints()}
-              fill={isValidQuad ? "rgba(16, 185, 129, 0.18)" : "rgba(239, 68, 68, 0.22)"}
-              stroke={isValidQuad ? "#10B981" : "#EF4444"}
+              fill={isValidQuad ? "color-mix(in srgb, var(--accent, #38bdf8) 18%, transparent)" : "rgba(239, 68, 68, 0.22)"}
+              stroke={isValidQuad ? "var(--accent, #38bdf8)" : "#EF4444"}
               strokeWidth="2.5"
               strokeDasharray="6 4"
             />
           </svg>
         )}
 
-        {/* 4 Corner Handles */}
+        {/* 4 Corner Handles with Theme Accent */}
         {quad &&
           (['topLeft', 'topRight', 'bottomRight', 'bottomLeft'] as CornerKey[]).map((corner) => {
             const clientPt = imageToClientCoords(quad[corner]);
@@ -489,14 +522,18 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
                   isTargeted ? 'scale-125' : 'active:scale-125'
                 }`}
               >
-                <div className={`w-6 h-6 rounded-full ${isValidQuad ? 'bg-emerald-400 ring-emerald-500/30' : 'bg-red-500 ring-red-500/30'} border-2 border-white shadow-xl flex items-center justify-center ring-4`}>
+                <div
+                  className={`w-6 h-6 rounded-full ${
+                    isValidQuad ? 'bg-accent ring-accent/30' : 'bg-red-500 ring-red-500/30'
+                  } border-2 border-white shadow-xl flex items-center justify-center ring-4`}
+                >
                   <div className="w-1.5 h-1.5 rounded-full bg-black" />
                 </div>
               </div>
             );
           })}
 
-        {/* 4 Edge Midpoint Handles */}
+        {/* 4 Edge Midpoint Handles with Theme Accent */}
         {edgeMidpoints &&
           (['top', 'right', 'bottom', 'left'] as EdgeKey[]).map((edge) => {
             const pt = edgeMidpoints[edge];
@@ -513,22 +550,23 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
                 }`}
                 title={`Drag ${edge} edge`}
               >
-                <div className="w-6 h-2.5 rounded-full bg-emerald-500 border border-white/90 shadow-md flex items-center justify-center">
+                <div className="w-6 h-2.5 rounded-full bg-accent border border-white/90 shadow-md flex items-center justify-center">
                   <div className="w-2 h-0.5 bg-black/80 rounded-full" />
                 </div>
               </div>
             );
           })}
 
-        {/* Precision Magnifier Loupe */}
+        {/* Precision Magnifier Loupe with Theme Accent */}
         {pointerPos && loupeTargetPt && (
           <div
             style={{
               left: `${Math.max(68, Math.min(window.innerWidth - 68, pointerPos.x))}px`,
               top: `${Math.max(68, Math.min(window.innerHeight - 68, pointerPos.y < 170 ? pointerPos.y + 115 : pointerPos.y - 115))}px`,
               transform: 'translate(-50%, -50%)',
+              borderColor: 'var(--accent, #38bdf8)'
             }}
-            className="fixed z-50 w-28 h-28 rounded-full border-4 border-emerald-400 overflow-hidden shadow-2xl bg-black pointer-events-none ring-4 ring-black/70 animate-in fade-in zoom-in-95 duration-100"
+            className="fixed z-50 w-28 h-28 rounded-full border-4 overflow-hidden shadow-2xl bg-black pointer-events-none ring-4 ring-black/70 animate-in fade-in zoom-in-95 duration-100"
           >
             <div
               style={{
@@ -541,9 +579,9 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
               }}
             />
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-full h-[1.5px] bg-emerald-400/80 shadow-sm" />
-              <div className="absolute h-full w-[1.5px] bg-emerald-400/80 shadow-sm" />
-              <div className="absolute w-3 h-3 rounded-full border-2 border-emerald-400 bg-emerald-400/20" />
+              <div className="w-full h-[1.5px] bg-accent/80 shadow-sm" />
+              <div className="absolute h-full w-[1.5px] bg-accent/80 shadow-sm" />
+              <div className="absolute w-3 h-3 rounded-full border-2 border-accent bg-accent/20" />
             </div>
           </div>
         )}
@@ -554,26 +592,26 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
         <span className="text-[10px] text-gray-400 font-bold ml-1 font-arabic">المقاس:</span>
         <button
           onClick={() => applyAspectRatio(1 / 1.414)}
-          className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-emerald-500/20 text-gray-300 hover:text-emerald-400 text-[11px] font-bold border border-white/10 flex items-center gap-1 active:scale-95 transition-all"
+          className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-accent/20 text-gray-300 hover:text-accent text-[11px] font-bold border border-white/10 flex items-center gap-1 active:scale-95 transition-all"
           title="A4 Standard Document (1:1.414)"
         >
-          <FileText className="w-3 h-3 text-emerald-400" />
+          <FileText className="w-3 h-3 text-accent" />
           <span>A4 قياسي</span>
         </button>
         <button
           onClick={() => applyAspectRatio(0.55)}
-          className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-emerald-500/20 text-gray-300 hover:text-emerald-400 text-[11px] font-bold border border-white/10 flex items-center gap-1 active:scale-95 transition-all"
+          className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-accent/20 text-gray-300 hover:text-accent text-[11px] font-bold border border-white/10 flex items-center gap-1 active:scale-95 transition-all"
           title="Receipt / Invoice"
         >
-          <Receipt className="w-3 h-3 text-emerald-400" />
+          <Receipt className="w-3 h-3 text-accent" />
           <span>فاتورة</span>
         </button>
         <button
           onClick={() => applyAspectRatio(1.586)}
-          className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-emerald-500/20 text-gray-300 hover:text-emerald-400 text-[11px] font-bold border border-white/10 flex items-center gap-1 active:scale-95 transition-all"
+          className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-accent/20 text-gray-300 hover:text-accent text-[11px] font-bold border border-white/10 flex items-center gap-1 active:scale-95 transition-all"
           title="ID Card / Business Card"
         >
-          <CreditCard className="w-3 h-3 text-emerald-400" />
+          <CreditCard className="w-3 h-3 text-accent" />
           <span>هوية / كرت</span>
         </button>
         <button
@@ -590,16 +628,16 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
         <div className="flex items-center gap-2">
           <button
             onClick={handleSelectFullImage}
-            className="px-3 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] text-gray-200 text-xs font-bold active:scale-95 transition-all flex items-center gap-1.5"
+            className="px-3 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] text-gray-200 text-xs font-bold active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
           >
-            <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
+            <Maximize2 className="w-3.5 h-3.5 text-accent" />
             <span>كامل الصورة</span>
           </button>
           <button
             onClick={handleAutoDetect}
-            className="px-3 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] text-gray-200 text-xs font-bold active:scale-95 transition-all flex items-center gap-1.5"
+            className="px-3 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] text-gray-200 text-xs font-bold active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
           >
-            <Wand2 className="w-3.5 h-3.5 text-emerald-400" />
+            <Wand2 className="w-3.5 h-3.5 text-accent" />
             <span>كشف ذكي</span>
           </button>
         </div>
@@ -607,9 +645,9 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
         <button
           onClick={handleApply}
           disabled={!isValidQuad}
-          className={`flex items-center gap-2 px-7 py-3 rounded-2xl font-black text-sm active:scale-95 transition-all shadow-xl ${
+          className={`flex items-center gap-2 px-7 py-3 rounded-2xl font-black text-sm active:scale-95 transition-all shadow-xl cursor-pointer ${
             isValidQuad
-              ? 'bg-emerald-500 text-black emerald-glow'
+              ? 'bg-accent text-on-accent shadow-accent/25'
               : 'bg-red-500/20 text-red-300 border border-red-500/30 opacity-70 cursor-not-allowed'
           }`}
         >

@@ -32,6 +32,10 @@ interface MobileToolbarProps {
   /** A single tap on the page hides every chrome surface for immersive reading. */
   immersive?: boolean;
   onPageChange: (page: number) => void;
+  /** Go to the logical previous page (handles dual/rtl correctly via the controller). */
+  onPrevPage?: () => void;
+  /** Go to the logical next page (handles dual/rtl correctly via the controller). */
+  onNextPage?: () => void;
   onThemeChange: (theme: ThemeMode) => void;
   onViewModeChange: (mode: ViewMode) => void;
   onToggleBookmark: () => void;
@@ -66,6 +70,8 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
   showBottomBar = true,
   immersive = false,
   onPageChange,
+  onPrevPage,
+  onNextPage,
   onThemeChange,
   onViewModeChange,
   onToggleBookmark,
@@ -418,11 +424,21 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             immersive ? 'pointer-events-none' : 'pointer-events-auto'
           }`}
         >
+          {/* Left Arrow: In RTL (Arabic) flipping left advances to Next Page; in LTR it goes to Prev Page */}
           <button
             type="button"
-            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-            disabled={currentPage <= 1}
-            aria-label={t.prevPage}
+            onClick={() => {
+              if (ar) {
+                if (onNextPage) onNextPage();
+                else onPageChange(Math.min(totalPages, currentPage + 1));
+              } else {
+                if (onPrevPage) onPrevPage();
+                else onPageChange(Math.max(1, currentPage - 1));
+              }
+            }}
+            disabled={ar ? currentPage >= totalPages : currentPage <= 1}
+            aria-label={ar ? t.nextPage : t.prevPage}
+            title={ar ? t.nextPage : t.prevPage}
             className="p-2 rounded-xl text-ink-muted disabled:opacity-30 active:bg-hover-strong active:scale-90 transition-all cursor-pointer"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -438,11 +454,21 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             {currentPage} / {totalPages}
           </button>
 
+          {/* Right Arrow: In RTL (Arabic) flipping right goes back to Prev Page; in LTR it goes to Next Page */}
           <button
             type="button"
-            onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-            disabled={currentPage >= totalPages}
-            aria-label={t.nextPage}
+            onClick={() => {
+              if (ar) {
+                if (onPrevPage) onPrevPage();
+                else onPageChange(Math.max(1, currentPage - 1));
+              } else {
+                if (onNextPage) onNextPage();
+                else onPageChange(Math.min(totalPages, currentPage + 1));
+              }
+            }}
+            disabled={ar ? currentPage <= 1 : currentPage >= totalPages}
+            aria-label={ar ? t.prevPage : t.nextPage}
+            title={ar ? t.prevPage : t.nextPage}
             className="p-2 rounded-xl text-ink-muted disabled:opacity-30 active:bg-hover-strong active:scale-90 transition-all cursor-pointer"
           >
             <ChevronRight className="w-5 h-5" />

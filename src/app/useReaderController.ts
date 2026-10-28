@@ -460,15 +460,21 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     const target = document.getElementById(`pdf-page-${pageNumber}`);
     if (!target) return;
     const container = scrollContainerRef.current;
-    if (container && typeof offsetRatio === 'number' && offsetRatio > 0) {
-      const targetTop = target.offsetTop;
+    if (!container) {
+      // Fallback only if container ref is not ready yet
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    const targetTop = target.offsetTop;
+    if (typeof offsetRatio === 'number' && offsetRatio > 0) {
       const targetHeight = target.offsetHeight;
       container.scrollTo({
         top: targetTop + Math.round(targetHeight * Math.min(1, Math.max(0, offsetRatio))),
         behavior: 'smooth'
       });
     } else {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Always use container.scrollTo for reliable mobile WebView behaviour
+      container.scrollTo({ top: targetTop, behavior: 'smooth' });
     }
   }, []);
 

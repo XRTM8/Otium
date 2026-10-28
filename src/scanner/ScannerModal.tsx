@@ -19,15 +19,21 @@ import {
 import { getFullFrameQuad } from './core/edgeDetection';
 import { warpPerspective } from './core/geometry';
 import { AlertTriangle, Bookmark, Trash2 } from 'lucide-react';
+import type { ThemeMode } from '../core/types';
+import type { Language } from '../core/i18n/translations';
 
 interface ScannerModalProps {
   isOpen: boolean;
+  theme?: ThemeMode;
+  lang?: Language;
   onClose: () => void;
   onPdfGenerated: (file: File) => void;
 }
 
 export const ScannerModal: React.FC<ScannerModalProps> = ({
   isOpen,
+  theme = 'midnight',
+  lang = 'ar',
   onClose,
   onPdfGenerated,
 }) => {
@@ -55,11 +61,13 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
     }
   }, [isOpen]);
 
-  // Persist session pages on modification
+  // Persist session pages on modification (debounced off interaction path)
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) return;
+    const timer = window.setTimeout(() => {
       saveActiveSessionPages(pages);
-    }
+    }, 350);
+    return () => window.clearTimeout(timer);
   }, [pages, isOpen]);
 
   if (!isOpen) return null;
@@ -265,7 +273,10 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black text-white flex flex-col select-none overflow-hidden animate-in fade-in duration-200">
+    <div
+      dir={lang === 'ar' ? 'rtl' : 'ltr'}
+      className={`fixed inset-0 z-50 bg-[#07090e] text-white flex flex-col select-none overflow-hidden animate-in fade-in duration-200 theme-${theme}`}
+    >
       {step === 'camera' && (
         <CameraView
           onCapture={handleCapture}
@@ -347,18 +358,18 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
             </div>
 
             <div className="space-y-1">
-              <h3 className="text-base font-bold text-white">إغلاق جلسة المسح الضوئي؟</h3>
-              <p className="text-xs text-gray-400 leading-relaxed">
-                لديك <span className="text-emerald-400 font-bold">{pages.length}</span> {pages.length === 1 ? 'صفحة ممسوحة' : 'صفحات ممسوحة'}. هل تود حفظها كمسودة للمتابعة لاحقاً أم حذفها؟
+              <h3 className="text-base font-bold text-white font-arabic">إغلاق جلسة المسح الضوئي؟</h3>
+              <p className="text-xs text-gray-400 leading-relaxed font-arabic">
+                لديك <span className="text-accent font-bold">{pages.length}</span> {pages.length === 1 ? 'صفحة ممسوحة' : 'صفحات ممسوحة'}. هل تود حفظها كمسودة للمتابعة لاحقاً أم حذفها؟
               </p>
             </div>
 
             <div className="flex flex-col gap-2 pt-2">
               <button
                 onClick={handleSaveDraftAndClose}
-                className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-emerald-500/20 active:scale-95"
+                className="w-full py-2.5 px-4 rounded-xl bg-accent text-on-accent font-black text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-accent/20 active:scale-95"
               >
-                <Bookmark className="w-4 h-4 fill-black" />
+                <Bookmark className="w-4 h-4 fill-current" />
                 <span>حفظ كمسودة ومغادرة</span>
               </button>
 

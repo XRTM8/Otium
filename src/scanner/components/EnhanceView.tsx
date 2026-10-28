@@ -622,19 +622,19 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                 if (e.key === 'Enter') setIsEditingTitle(false);
               }}
               onChange={(e) => setDocTitle(e.target.value)}
-              className="text-xs bg-white/10 text-white px-2 py-0.5 rounded-lg border border-emerald-400 focus:outline-none text-center max-w-full font-bold"
+              className="text-xs bg-white/10 text-white px-2 py-0.5 rounded-lg border border-accent focus:outline-none text-center max-w-full font-bold"
             />
           ) : (
             <button
               onClick={() => setIsEditingTitle(true)}
-              className="flex items-center gap-1 text-xs sm:text-sm font-bold tracking-wide text-white truncate max-w-full hover:text-emerald-400"
+              className="flex items-center gap-1 text-xs sm:text-sm font-bold tracking-wide text-white truncate max-w-full hover:text-accent"
               title="تعديل اسم المستند"
             >
               <span className="truncate">{docTitle}</span>
-              <Edit3 className="w-3 h-3 text-emerald-400 opacity-80 shrink-0" />
+              <Edit3 className="w-3 h-3 text-accent opacity-80 shrink-0" />
             </button>
           )}
-          <span className="text-[10px] text-emerald-400 font-bold tracking-wider mt-0.5">
+          <span className="text-[10px] text-accent font-bold tracking-wider mt-0.5">
             صفحة {safeIndex + 1} من {pages.length}
           </span>
         </div>
@@ -657,7 +657,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
               setIsRedacting(!isRedacting);
             }}
             className={`p-1.5 rounded-full glass-button transition-colors ${
-              isRedacting ? 'text-emerald-400 border-emerald-500/50 bg-emerald-500/20' : 'text-gray-300 active:text-emerald-400'
+              isRedacting ? 'text-accent border-accent/50 bg-accent/20' : 'text-gray-300 active:text-accent'
             }`}
             title="حجب نصوص حساسة"
           >
@@ -671,7 +671,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
               setIsGridView(!isGridView);
             }}
             className={`p-1.5 rounded-full glass-button transition-colors ${
-              isGridView ? 'text-emerald-400 border-emerald-500/50 bg-emerald-500/10' : 'text-gray-300 active:text-emerald-400'
+              isGridView ? 'text-accent border-accent/50 bg-accent/10' : 'text-gray-300 active:text-accent'
             }`}
             title="عرض شبكي"
           >
@@ -685,7 +685,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
               setIsWatermarkOpen(true);
             }}
             className={`p-1.5 rounded-full glass-button transition-colors ${
-              watermarkText ? 'text-emerald-400 border-emerald-500/50 bg-emerald-500/10' : 'text-gray-300 active:text-emerald-400'
+              watermarkText ? 'text-accent border-accent/50 bg-accent/10' : 'text-gray-300 active:text-accent'
             }`}
             title="علامة مائية"
           >
@@ -699,7 +699,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
               setIsSignatureOpen(true);
             }}
             className={`p-1.5 rounded-full glass-button transition-colors ${
-              signatures[safeIndex] ? 'text-emerald-400 border-emerald-500/50' : 'text-gray-300 active:text-emerald-400'
+              signatures[safeIndex] ? 'text-accent border-accent/50' : 'text-gray-300 active:text-accent'
             }`}
             title="إضافة توقيع"
           >
@@ -710,8 +710,8 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
 
       {/* Active Redaction Control Bar */}
       {isRedacting && (
-        <div className="relative z-30 px-6 py-2.5 bg-black/95 border-b border-emerald-500/30 flex items-center justify-between text-xs animate-in slide-in-from-top-2">
-          <div className="flex items-center gap-2 text-emerald-400 font-semibold">
+        <div className="relative z-30 px-6 py-2.5 bg-black/95 border-b border-accent/30 flex items-center justify-between text-xs animate-in slide-in-from-top-2">
+          <div className="flex items-center gap-2 text-accent font-semibold">
             <EyeOff className="w-4 h-4 shrink-0" />
             <span className="truncate">Drag finger over text to censor</span>
           </div>
@@ -739,7 +739,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
             </button>
             <button
               onClick={handleBurnRedaction}
-              className="px-3.5 py-1 rounded-lg bg-emerald-500 text-black font-bold text-xs emerald-glow active:scale-95"
+              className="px-3.5 py-1 rounded-lg bg-accent text-on-accent font-bold text-xs shadow-lg shadow-accent/25 active:scale-95"
             >
               Apply
             </button>
@@ -769,7 +769,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
 
               <button
                 onClick={() => setIsGridView(false)}
-                className="px-3.5 py-1.5 rounded-xl bg-emerald-500 text-black font-bold text-xs emerald-glow active:scale-95"
+                className="px-3.5 py-1.5 rounded-xl bg-accent text-on-accent font-bold text-xs shadow-lg shadow-accent/25 active:scale-95"
               >
                 Done
               </button>
@@ -790,9 +790,9 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                   }}
                   className={`relative rounded-xl overflow-hidden border-2 bg-black/40 flex flex-col group cursor-pointer transition-all ${
                     isSelected
-                      ? 'border-emerald-400 ring-2 ring-emerald-500/40 shadow-lg'
+                      ? 'border-accent ring-2 ring-accent/40 shadow-lg'
                       : isCurrent
-                      ? 'border-emerald-500/70'
+                      ? 'border-accent/70'
                       : 'border-white/10 hover:border-white/30'
                   }`}
                 >
@@ -807,7 +807,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                       className="absolute top-1.5 left-1.5 p-1 rounded-md bg-black/70 text-white shadow"
                     >
                       {isSelected ? (
-                        <CheckSquare className="w-4 h-4 text-emerald-400" />
+                        <CheckSquare className="w-4 h-4 text-accent" />
                       ) : (
                         <Square className="w-4 h-4 text-gray-400" />
                       )}
@@ -853,7 +853,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
         >
           {toastMsg && (
             <div className="absolute top-4 inset-x-0 flex justify-center z-40 pointer-events-none animate-in fade-in duration-200">
-              <span className="px-4 py-1.5 rounded-full bg-emerald-500 text-black font-semibold text-xs shadow-2xl flex items-center gap-1.5 border border-white/20">
+              <span className="px-4 py-1.5 rounded-full bg-accent text-on-accent font-semibold text-xs shadow-2xl flex items-center gap-1.5 border border-white/20">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>{toastMsg}</span>
               </span>
@@ -869,7 +869,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                   setZoomScale(1);
                   setPanOffset({ x: 0, y: 0 });
                 }}
-                className="px-3.5 py-1 rounded-full bg-black/85 backdrop-blur-md border border-emerald-500/50 text-emerald-400 text-xs font-bold shadow-2xl flex items-center gap-1.5 active:scale-95 transition-transform"
+                className="px-3.5 py-1 rounded-full bg-black/85 backdrop-blur-md border border-accent/50 text-accent text-xs font-bold shadow-2xl flex items-center gap-1.5 active:scale-95 transition-transform"
               >
                 <span>{Math.round(zoomScale * 100)}%</span>
                 <span className="text-[10px] text-gray-300 font-arabic font-normal">• انقر للعودة إلى 1x</span>
@@ -879,11 +879,11 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
 
           {/* Smart Barcode / QR Code Intelligence Badge */}
           {detectedBarcodes.length > 0 && zoomScale <= 1.05 && (
-            <div className="absolute top-2 inset-x-6 z-30 flex items-center justify-between px-3.5 py-2 rounded-2xl bg-black/85 backdrop-blur-xl border border-emerald-500/40 shadow-2xl animate-in fade-in slide-in-from-top-2">
+            <div className="absolute top-2 inset-x-6 z-30 flex items-center justify-between px-3.5 py-2 rounded-2xl bg-black/85 backdrop-blur-xl border border-accent/40 shadow-2xl animate-in fade-in slide-in-from-top-2">
               <div className="flex items-center gap-2 overflow-hidden">
-                <QrCode className="w-4 h-4 text-emerald-400 shrink-0" />
+                <QrCode className="w-4 h-4 text-accent shrink-0" />
                 <div className="flex flex-col overflow-hidden text-left">
-                  <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+                  <span className="text-[10px] text-accent font-bold uppercase tracking-wider">
                     {detectedBarcodes[0].format.replace('_', ' ')} Detected
                   </span>
                   <span className="text-xs text-white truncate max-w-[180px] font-mono">
@@ -909,7 +909,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                     href={detectedBarcodes[0].rawValue}
                     target="_blank"
                     rel="noreferrer"
-                    className="p-1.5 rounded-lg glass-button text-emerald-400 hover:text-white"
+                    className="p-1.5 rounded-lg glass-button text-accent hover:text-white"
                     title="Open link"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -1005,7 +1005,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                   left: `${signatures[safeIndex].x * 100}%`,
                   top: `${signatures[safeIndex].y * 100}%`,
                 }}
-                className="absolute z-20 w-32 -translate-x-1/2 -translate-y-1/2 p-1.5 border-2 border-dashed border-emerald-400 bg-emerald-500/10 rounded-xl shadow-2xl flex items-center justify-center group"
+                className="absolute z-20 w-32 -translate-x-1/2 -translate-y-1/2 p-1.5 border-2 border-dashed border-accent bg-accent/10 rounded-xl shadow-2xl flex items-center justify-center group"
               >
                 <img
                   src={signatures[safeIndex].dataUrl}
@@ -1032,7 +1032,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
 
             {pdfGenerating && (
               <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-30">
-                <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3" />
+                <div className="w-10 h-10 border-4 border-accent border-t-transparent rounded-full animate-spin mb-3" />
                 <p className="text-sm font-semibold text-white">
                   {ocrStatus || 'Compiling Optimized PDF...'}
                 </p>
@@ -1076,7 +1076,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
               triggerHaptic(15);
               onEditCrop?.(safeIndex);
             }}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-xs font-bold active:scale-95 shrink-0"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-accent/15 text-accent border border-accent/30 text-xs font-bold active:scale-95 shrink-0"
             title="تعديل القص / Crop"
           >
             <Crop className="w-3.5 h-3.5" />
@@ -1139,7 +1139,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                 onClick={() => handleFilterSelect(item.id)}
                 className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 ${
                   isActive
-                    ? 'bg-emerald-500 text-black font-semibold shadow-md ring-1 ring-emerald-300'
+                    ? 'bg-accent text-on-accent font-semibold shadow-md ring-1 ring-accent/40'
                     : 'glass-button text-gray-300'
                 }`}
               >
@@ -1152,7 +1152,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
           {pages.length > 1 && (
             <button
               onClick={handleApplyFilterToAll}
-              className="text-[10px] text-emerald-400 font-semibold underline underline-offset-2 ml-1 active:opacity-60 whitespace-nowrap shrink-0"
+              className="text-[10px] text-accent font-semibold underline underline-offset-2 ml-1 active:opacity-60 whitespace-nowrap shrink-0"
               title="تطبيق الفلتر على جميع الصفحات"
             >
               تطبيق على الكل
@@ -1172,7 +1172,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                 }}
                 className={`relative flex-shrink-0 w-10 h-14 rounded-lg overflow-hidden border-2 transition-all ${
                   idx === safeIndex
-                    ? 'border-emerald-400 scale-105 shadow-md ring-2 ring-emerald-500/40'
+                    ? 'border-accent scale-105 shadow-md ring-2 ring-accent/40'
                     : 'border-white/20 opacity-60'
                 }`}
               >
@@ -1192,7 +1192,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                 triggerHaptic(15);
                 onAddMorePages();
               }}
-              className="flex-shrink-0 w-10 h-14 rounded-lg border-2 border-dashed border-emerald-500/50 flex flex-col items-center justify-center text-emerald-400 active:scale-95 glass-button"
+              className="flex-shrink-0 w-10 h-14 rounded-lg border-2 border-dashed border-accent/50 flex flex-col items-center justify-center text-accent active:scale-95 glass-button"
               title="مسح صفحة إضافية"
             >
               <Plus className="w-4 h-4 mb-0.5" />
@@ -1211,13 +1211,13 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] text-gray-200 text-xs font-semibold active:scale-95 transition-all shadow-sm shrink-0"
             title="خيارات حجم وضغط الـ PDF ومقاس A4 وثنية الكتب"
           >
-            <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <SlidersHorizontal className="w-3.5 h-3.5 text-accent shrink-0" />
             <span className="whitespace-nowrap">خيارات PDF (A4)</span>
           </button>
 
           <span className="text-[11px] text-gray-400 flex items-center gap-1 shrink-0">
             <span>الحجم التقريبي:</span>
-            <span dir="ltr" className="text-emerald-400 font-bold font-mono inline-block">
+            <span dir="ltr" className="text-accent font-bold font-mono inline-block">
               {compressionPreset === 'compact'
                 ? `${Math.round(pages.length * 35)} KB`
                 : compressionPreset === 'balanced'
@@ -1232,7 +1232,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
           <button
             onClick={handleSharePdf}
             disabled={pdfGenerating}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs active:scale-95 transition-all shadow-lg disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-accent hover:opacity-95 text-on-accent font-black text-xs active:scale-95 transition-all shadow-lg disabled:opacity-50"
             title="مشاركة وتصدير مستند الـ PDF"
           >
             <Share2 className="w-4 h-4 text-black shrink-0" />
@@ -1242,10 +1242,10 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
           <button
             onClick={handleOpenInOtium}
             disabled={pdfGenerating}
-            className="flex items-center gap-1 px-3 py-2.5 rounded-xl glass-button text-gray-200 hover:text-emerald-400 active:scale-95 transition-all text-xs font-bold shrink-0 disabled:opacity-50"
+            className="flex items-center gap-1 px-3 py-2.5 rounded-xl glass-button text-gray-200 hover:text-accent active:scale-95 transition-all text-xs font-bold shrink-0 disabled:opacity-50"
             title="فتح المستند في قارئ أو تيوم"
           >
-            <OtiumLogo size={15} className="text-emerald-400 shrink-0" />
+            <OtiumLogo size={15} className="text-accent shrink-0" />
             <span className="text-xs">القارئ</span>
           </button>
 
@@ -1365,9 +1365,9 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                 setShowMoreActions(false);
                 handleShareWhatsApp();
               }}
-              className="w-full flex items-center gap-3 p-3 rounded-2xl glass-button text-white text-xs font-semibold hover:border-emerald-500/40"
+              className="w-full flex items-center gap-3 p-3 rounded-2xl glass-button text-white text-xs font-semibold hover:border-accent/40"
             >
-              <Send className="w-4 h-4 text-emerald-400 shrink-0" />
+              <Send className="w-4 h-4 text-accent shrink-0" />
               <span>إرسال سريع عبر الواتساب والمحادثات (&lt; 1.5MB)</span>
             </button>
 
@@ -1376,9 +1376,9 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                 setShowMoreActions(false);
                 handleDownloadPdf();
               }}
-              className="w-full flex items-center gap-3 p-3 rounded-2xl glass-button text-white text-xs font-semibold hover:border-emerald-500/40"
+              className="w-full flex items-center gap-3 p-3 rounded-2xl glass-button text-white text-xs font-semibold hover:border-accent/40"
             >
-              <Download className="w-4 h-4 text-emerald-400 shrink-0" />
+              <Download className="w-4 h-4 text-accent shrink-0" />
               <span>تنزيل وحفظ ملف PDF في الجهاز</span>
             </button>
 
@@ -1387,9 +1387,9 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                 setShowMoreActions(false);
                 handlePrintPdf();
               }}
-              className="w-full flex items-center gap-3 p-3 rounded-2xl glass-button text-white text-xs font-semibold hover:border-emerald-500/40"
+              className="w-full flex items-center gap-3 p-3 rounded-2xl glass-button text-white text-xs font-semibold hover:border-accent/40"
             >
-              <Printer className="w-4 h-4 text-emerald-400 shrink-0" />
+              <Printer className="w-4 h-4 text-accent shrink-0" />
               <span>طباعة المستند عبر طابعة</span>
             </button>
 
@@ -1431,7 +1431,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
               </button>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-white">العلامة المائية الأمنية</span>
-                <Stamp className="w-5 h-5 text-emerald-400" />
+                <Stamp className="w-5 h-5 text-accent" />
               </div>
             </div>
 
@@ -1445,7 +1445,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                 onClick={() => setWatermarkStyle('diagonal')}
                 className={`flex-1 py-1.5 rounded-xl font-bold transition-all ${
                   watermarkStyle === 'diagonal'
-                    ? 'bg-emerald-500 text-black shadow'
+                    ? 'bg-accent text-on-accent shadow'
                     : 'text-gray-400'
                 }`}
               >
@@ -1455,7 +1455,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                 onClick={() => setWatermarkStyle('tiled')}
                 className={`flex-1 py-1.5 rounded-xl font-bold transition-all ${
                   watermarkStyle === 'tiled'
-                    ? 'bg-emerald-500 text-black shadow'
+                    ? 'bg-accent text-on-accent shadow'
                     : 'text-gray-400'
                 }`}
               >
@@ -1468,7 +1468,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
               placeholder="اكتب نص العلامة المائية (مثال: سري، مسودة...)"
               value={watermarkText}
               onChange={(e) => setWatermarkText(e.target.value)}
-              className="w-full bg-white/5 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/60 text-right font-arabic"
+              className="w-full bg-white/5 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-accent/60 text-right font-arabic"
             />
 
             {/* Quick Presets */}
@@ -1477,7 +1477,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                 <button
                   key={preset}
                   onClick={() => setWatermarkText(preset)}
-                  className="px-2.5 py-1 rounded-lg bg-white/5 text-[10px] text-gray-300 border border-white/5 hover:border-emerald-400/40 active:scale-95 font-arabic"
+                  className="px-2.5 py-1 rounded-lg bg-white/5 text-[10px] text-gray-300 border border-white/5 hover:border-accent/40 active:scale-95 font-arabic"
                 >
                   {preset}
                 </button>
@@ -1506,7 +1506,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                     setTimeout(() => setToastMsg(''), 2200);
                   }
                 }}
-                className="px-5 py-2 rounded-xl bg-emerald-500 text-black font-bold text-xs emerald-glow active:scale-95 mr-auto"
+                className="px-5 py-2 rounded-xl bg-accent text-on-accent font-bold text-xs shadow-lg shadow-accent/25 active:scale-95 mr-auto"
               >
                 تطبيق العلامة
               </button>
@@ -1522,7 +1522,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/[0.08] otium-chrome">
               <div className="flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4 text-emerald-400" />
+                <SlidersHorizontal className="w-4 h-4 text-accent" />
                 <span className="text-sm font-bold text-white">إعدادات PDF المتقدمة</span>
               </div>
               <button
@@ -1554,7 +1554,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                       }}
                       className={`py-2 px-1 rounded-xl text-center transition-all ${
                         compressionPreset === q.id
-                          ? 'bg-emerald-500 text-black font-bold shadow-md'
+                          ? 'bg-accent text-on-accent font-bold shadow-md'
                           : 'text-gray-300 hover:text-white'
                       }`}
                     >
@@ -1578,7 +1578,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                     }}
                     className={`py-2 px-2 rounded-xl text-xs font-bold transition-all ${
                       pageFormat === 'a4'
-                        ? 'bg-emerald-500 text-black shadow-md'
+                        ? 'bg-accent text-on-accent shadow-md'
                         : 'text-gray-300 hover:text-white'
                     }`}
                   >
@@ -1591,7 +1591,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                     }}
                     className={`py-2 px-2 rounded-xl text-xs font-bold transition-all ${
                       pageFormat === 'fit'
-                        ? 'bg-emerald-500 text-black shadow-md'
+                        ? 'bg-accent text-on-accent shadow-md'
                         : 'text-gray-300 hover:text-white'
                     }`}
                   >
@@ -1609,7 +1609,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                   }}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                     enableOcr
-                      ? 'bg-emerald-500 text-black shadow'
+                      ? 'bg-accent text-on-accent shadow'
                       : 'bg-white/[0.08] text-gray-400'
                   }`}
                 >
@@ -1624,7 +1624,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
               {/* 4. Book Spine Dewarping */}
               <div className="p-3 rounded-2xl bg-white/[0.04] border border-white/[0.08] space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-emerald-400 font-mono font-bold">
+                  <span className="text-[10px] text-accent font-mono font-bold">
                     {Math.round(curvature * 100)}%
                   </span>
                   <span className="text-xs font-bold text-gray-200">تسوية انحناء ثنية الكتب</span>
@@ -1633,7 +1633,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                   <button
                     onClick={() => setSpinePos(0.15)}
                     className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
-                      spinePos <= 0.25 ? 'bg-emerald-500 text-black' : 'bg-white/[0.06] text-gray-400'
+                      spinePos <= 0.25 ? 'bg-accent text-on-accent' : 'bg-white/[0.06] text-gray-400'
                     }`}
                   >
                     صفحة يمنى
@@ -1641,7 +1641,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                   <button
                     onClick={() => setSpinePos(0.5)}
                     className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
-                      spinePos > 0.25 && spinePos < 0.75 ? 'bg-emerald-500 text-black' : 'bg-white/[0.06] text-gray-400'
+                      spinePos > 0.25 && spinePos < 0.75 ? 'bg-accent text-on-accent' : 'bg-white/[0.06] text-gray-400'
                     }`}
                   >
                     الوسط
@@ -1649,7 +1649,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                   <button
                     onClick={() => setSpinePos(0.85)}
                     className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
-                      spinePos >= 0.75 ? 'bg-emerald-500 text-black' : 'bg-white/[0.06] text-gray-400'
+                      spinePos >= 0.75 ? 'bg-accent text-on-accent' : 'bg-white/[0.06] text-gray-400'
                     }`}
                   >
                     صفحة يسرى
@@ -1662,7 +1662,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                   step="0.05"
                   value={curvature}
                   onChange={(e) => setCurvature(parseFloat(e.target.value))}
-                  className="w-full accent-emerald-500 cursor-pointer"
+                  className="w-full accent-accent cursor-pointer"
                 />
               </div>
 
@@ -1675,7 +1675,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                   }}
                   className="py-2.5 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-xs font-semibold text-gray-200 flex items-center justify-center gap-1.5 border border-white/[0.08]"
                 >
-                  <Stamp className="w-3.5 h-3.5 text-emerald-400" />
+                  <Stamp className="w-3.5 h-3.5 text-accent" />
                   <span>علامة مائية</span>
                 </button>
                 <button
@@ -1685,7 +1685,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                   }}
                   className="py-2.5 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-xs font-semibold text-gray-200 flex items-center justify-center gap-1.5 border border-white/[0.08]"
                 >
-                  <PenTool className="w-3.5 h-3.5 text-emerald-400" />
+                  <PenTool className="w-3.5 h-3.5 text-accent" />
                   <span>توقيع يدوي</span>
                 </button>
               </div>
@@ -1693,7 +1693,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
               {/* Close / Done */}
               <button
                 onClick={() => setIsAdvancedOptionsOpen(false)}
-                className="w-full py-2.5 rounded-xl bg-emerald-500 text-black font-bold text-xs active:scale-95 mt-2"
+                className="w-full py-2.5 rounded-xl bg-accent text-on-accent font-bold text-xs active:scale-95 mt-2"
               >
                 تم تطبيق الإعدادات
               </button>

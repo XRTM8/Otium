@@ -48,6 +48,8 @@ export const MobileShell: React.FC = () => {
             showBottomBar={reader.showMobileNavBar}
             immersive={reader.isImmersive}
             onPageChange={reader.scrollToPage}
+            onPrevPage={reader.goToPrevPage}
+            onNextPage={reader.goToNextPage}
             onThemeChange={reader.changeTheme}
             onViewModeChange={reader.changeViewMode}
             onToggleBookmark={() => reader.toggleBookmark(reader.currentPage)}
@@ -76,6 +78,8 @@ export const MobileShell: React.FC = () => {
         {isScannerOpen && (
           <ScannerModal
             isOpen={isScannerOpen}
+            theme={reader.theme}
+            lang={reader.lang}
             onClose={() => setIsScannerOpen(false)}
             onPdfGenerated={(file) => reader.openFile(file)}
           />

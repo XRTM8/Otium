@@ -94,6 +94,8 @@ export const DesktopShell: React.FC = () => {
         {isScannerOpen && (
           <ScannerModal
             isOpen={isScannerOpen}
+            theme={reader.theme}
+            lang={reader.lang}
             onClose={() => setIsScannerOpen(false)}
             onPdfGenerated={(file) => reader.openFile(file)}
           />
