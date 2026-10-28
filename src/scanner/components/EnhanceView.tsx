@@ -583,8 +583,13 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
 
   return (
     <div className="relative w-full h-full bg-[#07090e] flex flex-col justify-between overflow-hidden select-none">
-      {/* Top Bar */}
-      <div className="relative z-20 flex items-center justify-between px-3 pt-12 pb-3 otium-chrome border-b border-white/[0.08]">
+      {/* Top Bar with Safe Area Inset */}
+      <div
+        style={{
+          paddingTop: 'max(env(safe-area-inset-top, 0px) + 10px, 48px)',
+        }}
+        className="relative z-20 flex items-center justify-between px-3 pb-3 otium-chrome border-b border-white/[0.08]"
+      >
         {/* Left: Back & Cancel All */}
         <div className="flex items-center gap-1.5">
           <button

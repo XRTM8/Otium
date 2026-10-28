@@ -68,7 +68,6 @@ export const DesktopShell: React.FC = () => {
             onToggleSidebar={() => reader.setIsSidebarOpen(true)}
             onToggleSearch={() => reader.setIsSearchOpen((open) => !open)}
             onToggleSettings={() => reader.setIsSettingsOpen(true)}
-            onOpenScanner={() => setIsScannerOpen(true)}
             onCloseDocument={reader.closeDocument}
           />
 

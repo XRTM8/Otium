@@ -5,23 +5,19 @@ import {
   Zap,
   ZapOff,
   ScanLine,
-  Sparkles,
   CreditCard,
   FileCheck2,
   FileText,
-  Volume2,
-  VolumeX,
   RefreshCw,
   Settings,
   ArrowLeft,
-  Crop,
-  Maximize2,
+  X,
 } from 'lucide-react';
 import { OtiumLogo } from './OtiumLogo';
 import { playShutterSound } from '../core/audio';
 import { mergeIdCardSidesToA4 } from '../core/idCard';
-import { calculateLaplacianSharpness, detectDocumentCorners, getFullFrameQuad } from '../core/edgeDetection';
-import type { Point, Quad, CropMode } from '../core/types';
+import { detectDocumentCorners, getFullFrameQuad } from '../core/edgeDetection';
+import type { Quad, CropMode } from '../core/types';
 
 interface CameraViewProps {
   onCapture: (imageDataUrl: string, isBatchMode: boolean, detectedQuad?: Quad) => void;
@@ -30,6 +26,7 @@ interface CameraViewProps {
   onFinishBatch: () => void;
   onOpenLibrary?: () => void;
   onOpenSettings?: () => void;
+  onClose?: () => void;
 }
 
 export const CameraView: React.FC<CameraViewProps> = ({
@@ -39,6 +36,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
   onFinishBatch,
   onOpenLibrary,
   onOpenSettings,
+  onClose,
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const viewfinderRef = useRef<HTMLDivElement | null>(null);
@@ -51,15 +49,14 @@ export const CameraView: React.FC<CameraViewProps> = ({
   const [idStatusToast, setIdStatusToast] = useState<string>('');
   const [capturing, setCapturing] = useState(false);
   const [flashAnimation, setFlashAnimation] = useState(false);
-  const [autoCaptureEnabled, setAutoCaptureEnabled] = useState(false);
-  const [cropMode, setCropMode] = useState<CropMode>(() => {
+  const [cropMode] = useState<CropMode>(() => {
     try {
       return (localStorage.getItem('otium_scan_crop_mode') as CropMode) || 'full';
     } catch {
       return 'full';
     }
   });
-  const [viewfinderFit, setViewfinderFit] = useState<'contain' | 'cover'>(() => {
+  const [viewfinderFit] = useState<'contain' | 'cover'>(() => {
     try {
       return (localStorage.getItem('otium_scan_viewfinder_fit') as 'contain' | 'cover') || 'contain';
     } catch {
@@ -75,54 +72,10 @@ export const CameraView: React.FC<CameraViewProps> = ({
   const [captureToast, setCaptureToast] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const handleToggleCropMode = useCallback(() => {
-    setCropMode((prev) => {
-      const next: CropMode = prev === 'full' ? 'auto' : 'full';
-      try {
-        localStorage.setItem('otium_scan_crop_mode', next);
-      } catch {}
-      setCaptureToast(
-        next === 'full'
-          ? '🔲 تم تفعيل كامل الإطار (يدوي): حفظ الصورة كاملة بدون قص'
-          : '📐 تم تفعيل التحديد الذكي: كشف أطراف المستند وإزالة الخلفية'
-      );
-      setTimeout(() => setCaptureToast(''), 2500);
-      return next;
-    });
-  }, []);
-
-  const handleToggleViewfinderFit = useCallback(() => {
-    setViewfinderFit((prev) => {
-      const next = prev === 'contain' ? 'cover' : 'contain';
-      try {
-        localStorage.setItem('otium_scan_viewfinder_fit', next);
-      } catch {}
-      setCaptureToast(
-        next === 'contain'
-          ? '🔲 عرض الحساس 100%: ما تراه في الشاشة هو ما يُلتقط بالضبط'
-          : '📱 ملء الشاشة: توسيع الصورة لتملأ شاشة الهاتف'
-      );
-      setTimeout(() => setCaptureToast(''), 2500);
-      return next;
-    });
-  }, []);
-
-  // Live Real-Time Document Quad Tracker State
-  const [liveScreenQuad, setLiveScreenQuad] = useState<{
-    topLeft: Point;
-    topRight: Point;
-    bottomRight: Point;
-    bottomLeft: Point;
-  } | null>(null);
-  const [isQuadSteady, setIsQuadSteady] = useState(false);
-  const liveNormalizedQuadRef = useRef<Quad | null>(null);
-  const trackerCanvasRef = useRef<HTMLCanvasElement | null>(null);
-
   // Sensor & Device States
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
-  const [isMuted, setIsMuted] = useState(false);
+  const isMuted = false;
   const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
-  const [tiltAngle, setTiltAngle] = useState<{ x: number; y: number; isLevel: boolean }>({ x: 0, y: 0, isLevel: true });
 
   const initCamera = useCallback(async (targetFacingMode?: 'environment' | 'user') => {
     const activeFacing = targetFacingMode || facingMode;
@@ -226,21 +179,6 @@ export const CameraView: React.FC<CameraViewProps> = ({
     }
   };
 
-  // 2D Gyroscope Spirit Level Tracker
-  useEffect(() => {
-    const handleOrientation = (e: DeviceOrientationEvent) => {
-      if (e.beta === null || e.gamma === null) return;
-      const roll = e.gamma;
-      const pitch = e.beta;
-      const devX = Math.max(-1, Math.min(1, roll / 20));
-      const devY = Math.max(-1, Math.min(1, (pitch > 45 ? pitch - 90 : pitch) / 20));
-      const isLevel = Math.abs(roll) < 4.5 && (Math.abs(pitch) < 4.5 || Math.abs(pitch - 90) < 4.5);
-      setTiltAngle({ x: devX, y: devY, isLevel });
-    };
-
-    window.addEventListener('deviceorientation', handleOrientation);
-    return () => window.removeEventListener('deviceorientation', handleOrientation);
-  }, []);
 
   const updateRenderedBounds = useCallback(() => {
     const video = videoRef.current;
@@ -316,15 +254,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
           detectedQuad = getFullFrameQuad(frameW, frameH, 0.005);
         }
       } else {
-        const norm = liveNormalizedQuadRef.current;
-        if (norm && frameW && frameH && frameW > 0 && frameH > 0) {
-          detectedQuad = {
-            topLeft: { x: Math.round(norm.topLeft.x * frameW), y: Math.round(norm.topLeft.y * frameH) },
-            topRight: { x: Math.round(norm.topRight.x * frameW), y: Math.round(norm.topRight.y * frameH) },
-            bottomRight: { x: Math.round(norm.bottomRight.x * frameW), y: Math.round(norm.bottomRight.y * frameH) },
-            bottomLeft: { x: Math.round(norm.bottomLeft.x * frameW), y: Math.round(norm.bottomLeft.y * frameH) },
-          };
-        } else if (sourceCanvas) {
+        if (sourceCanvas) {
           try {
             detectedQuad = detectDocumentCorners(sourceCanvas);
           } catch {
@@ -553,193 +483,14 @@ export const CameraView: React.FC<CameraViewProps> = ({
     }
   }, [capturing, cropMode, idCardStep, idFrontDataUrl, isMuted, onCapture, pagesCount, scanMode, stream]);
 
-  // Real-Time Live Document Boundary Tracker (15-20 FPS, Lerp-smoothed)
+  // 120 FPS Native Hardware-Accelerated Viewport Bounds Synchronization
   useEffect(() => {
-    if (hasPermission !== true || scanMode === 'idcard' || cropMode === 'full') {
-      setLiveScreenQuad(null);
-      liveNormalizedQuadRef.current = null;
-      setIsQuadSteady(false);
-      return;
-    }
-
-    let animationFrameId: number;
-    let lastSampleTime = 0;
-    let steadyFramesCount = 0;
-    let lastCornerPos: Point | null = null;
-
-    const sampleIntervalMs = 60; // Smooth 16 FPS with negligible CPU impact
-
-    const trackLoop = (timestamp: number) => {
-      animationFrameId = requestAnimationFrame(trackLoop);
-
-      if (document.hidden) return;
-      if (timestamp - lastSampleTime < sampleIntervalMs) return;
-      lastSampleTime = timestamp;
-
-      const video = videoRef.current;
-      const container = viewfinderRef.current;
-      if (!video || !container || video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
-        return;
-      }
-
-      const vWidth = video.videoWidth;
-      const vHeight = video.videoHeight;
-      const cWidth = container.clientWidth;
-      const cHeight = container.clientHeight;
-      if (cWidth === 0 || cHeight === 0) return;
-
-      if (!trackerCanvasRef.current) {
-        trackerCanvasRef.current = document.createElement('canvas');
-      }
-      const canvas = trackerCanvasRef.current;
-      const sampleW = 160;
-      const sampleH = Math.round(160 * (vHeight / vWidth));
-      if (canvas.width !== sampleW || canvas.height !== sampleH) {
-        canvas.width = sampleW;
-        canvas.height = sampleH;
-      }
-
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      if (!ctx) return;
-
-      ctx.drawImage(video, 0, 0, sampleW, sampleH);
-
-      const detected = detectDocumentCorners(canvas);
-
-      const normQuad: Quad = {
-        topLeft: { x: detected.topLeft.x / sampleW, y: detected.topLeft.y / sampleH },
-        topRight: { x: detected.topRight.x / sampleW, y: detected.topRight.y / sampleH },
-        bottomRight: { x: detected.bottomRight.x / sampleW, y: detected.bottomRight.y / sampleH },
-        bottomLeft: { x: detected.bottomLeft.x / sampleW, y: detected.bottomLeft.y / sampleH },
-      };
-
-      const isTrivialFullFrame =
-        normQuad.topLeft.x < 0.04 && normQuad.topLeft.y < 0.04 &&
-        normQuad.bottomRight.x > 0.96 && normQuad.bottomRight.y > 0.96;
-
-      if (isTrivialFullFrame) {
-        setLiveScreenQuad(null);
-        liveNormalizedQuadRef.current = null;
-        setIsQuadSteady(false);
-        steadyFramesCount = 0;
-        return;
-      }
-
-      // Lerp smoothing (EMA alpha = 0.35)
-      if (!liveNormalizedQuadRef.current) {
-        liveNormalizedQuadRef.current = {
-          topLeft: { ...normQuad.topLeft },
-          topRight: { ...normQuad.topRight },
-          bottomRight: { ...normQuad.bottomRight },
-          bottomLeft: { ...normQuad.bottomLeft },
-        };
-      } else {
-        const cur = liveNormalizedQuadRef.current;
-        const alpha = 0.35;
-        cur.topLeft.x += (normQuad.topLeft.x - cur.topLeft.x) * alpha;
-        cur.topLeft.y += (normQuad.topLeft.y - cur.topLeft.y) * alpha;
-        cur.topRight.x += (normQuad.topRight.x - cur.topRight.x) * alpha;
-        cur.topRight.y += (normQuad.topRight.y - cur.topRight.y) * alpha;
-        cur.bottomRight.x += (normQuad.bottomRight.x - cur.bottomRight.x) * alpha;
-        cur.bottomRight.y += (normQuad.bottomRight.y - cur.bottomRight.y) * alpha;
-        cur.bottomLeft.x += (normQuad.bottomLeft.x - cur.bottomLeft.x) * alpha;
-        cur.bottomLeft.y += (normQuad.bottomLeft.y - cur.bottomLeft.y) * alpha;
-      }
-
-      const cur = liveNormalizedQuadRef.current;
-
-      // Steady movement tracking
-      if (lastCornerPos) {
-        const delta = Math.hypot(cur.topLeft.x - lastCornerPos.x, cur.topLeft.y - lastCornerPos.y);
-        if (delta < 0.015) {
-          steadyFramesCount++;
-        } else {
-          steadyFramesCount = Math.max(0, steadyFramesCount - 1);
-        }
-      }
-      lastCornerPos = { x: cur.topLeft.x, y: cur.topLeft.y };
-      const steady = steadyFramesCount >= 5;
-      setIsQuadSteady(steady);
-
-      // Map to container coordinates based on viewfinderFit
-      const scale = viewfinderFit === 'contain'
-        ? Math.min(cWidth / vWidth, cHeight / vHeight)
-        : Math.max(cWidth / vWidth, cHeight / vHeight);
-      const renderedW = Math.round(vWidth * scale);
-      const renderedH = Math.round(vHeight * scale);
-      const offsetX = Math.round((cWidth - renderedW) / 2);
-      const offsetY = Math.round((cHeight - renderedH) / 2);
-
-      setRenderedBounds({ x: offsetX, y: offsetY, width: renderedW, height: renderedH });
-
-      const mapPt = (p: Point) => ({
-        x: Math.round(offsetX + p.x * renderedW),
-        y: Math.round(offsetY + p.y * renderedH),
-      });
-
-      setLiveScreenQuad({
-        topLeft: mapPt(cur.topLeft),
-        topRight: mapPt(cur.topRight),
-        bottomRight: mapPt(cur.bottomRight),
-        bottomLeft: mapPt(cur.bottomLeft),
-      });
+    const handleResize = () => {
+      updateRenderedBounds();
     };
-
-    animationFrameId = requestAnimationFrame(trackLoop);
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, [cropMode, hasPermission, scanMode, viewfinderFit]);
-
-  // Enterprise Hands-Free Auto-Capture Engine
-  useEffect(() => {
-    if (!autoCaptureEnabled || hasPermission !== true) return;
-
-    let isChecking = false;
-    let steadyCount = 0;
-    let lastSharpness = 0;
-    let lastCaptureTime = 0;
-
-    const intervalId = setInterval(async () => {
-      const now = Date.now();
-      if (isChecking || capturing || now - lastCaptureTime < 2800) return;
-      const video = videoRef.current;
-      if (!video || video.videoWidth === 0 || video.videoHeight === 0) return;
-
-      isChecking = true;
-      try {
-        const testCanvas = document.createElement('canvas');
-        testCanvas.width = 160;
-        testCanvas.height = Math.round(160 * (video.videoHeight / video.videoWidth));
-        const ctx = testCanvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(video, 0, 0, testCanvas.width, testCanvas.height);
-          const currentSharpness = calculateLaplacianSharpness(testCanvas);
-
-          // Focus check with steady quad confirmation
-          const isSharp = currentSharpness > 42 && Math.abs(currentSharpness - lastSharpness) < 25;
-          if (isSharp && (isQuadSteady || liveNormalizedQuadRef.current !== null)) {
-            steadyCount++;
-            if (steadyCount >= 2) {
-              steadyCount = 0;
-              lastCaptureTime = Date.now();
-              setCaptureToast('🎯 ثبات تام — التقاط تلقائي');
-              await handleCapture();
-            }
-          } else {
-            steadyCount = 0;
-          }
-          lastSharpness = currentSharpness;
-        }
-      } catch (e) {
-        console.warn('Auto-capture check error:', e);
-      } finally {
-        isChecking = false;
-      }
-    }, 400);
-
-    return () => clearInterval(intervalId);
-  }, [autoCaptureEnabled, hasPermission, capturing, isQuadSteady, handleCapture]);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [updateRenderedBounds]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -812,50 +563,64 @@ export const CameraView: React.FC<CameraViewProps> = ({
         </div>
       )}
 
-      {/* Top Header Bar */}
-      <div className="relative z-20 flex items-center justify-between px-4 pt-12 pb-3.5 otium-chrome border-b border-white/[0.08] select-none">
-        {/* Left: Vault & Settings/Updates */}
+      {/* Minimalist Safe-Area Header (Apple / Nothing OS Aesthetic) */}
+      <div
+        style={{
+          paddingTop: 'max(env(safe-area-inset-top, 0px) + 10px, 48px)',
+          paddingLeft: 'max(env(safe-area-inset-left, 0px) + 16px, 16px)',
+          paddingRight: 'max(env(safe-area-inset-right, 0px) + 16px, 16px)',
+        }}
+        className="relative z-30 flex items-center justify-between pb-3 bg-gradient-to-b from-black/90 via-black/40 to-transparent select-none"
+      >
+        {/* Right side (RTL): Close & Vault */}
         <div className="flex items-center gap-2">
-          {/* Brand Logo & Vault Shortcut */}
+          {onClose && (
+            <button
+              onClick={() => {
+                triggerHaptic(15);
+                onClose();
+              }}
+              className="w-10 h-10 rounded-full bg-black/60 hover:bg-black/90 border border-white/15 flex items-center justify-center text-white active:scale-90 transition-transform shadow-lg cursor-pointer"
+              title="إغلاق الماسح الضوئي"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+
+          {/* Vault Archive Shortcut */}
           <button
             onClick={() => {
               triggerHaptic(15);
               onOpenLibrary?.();
             }}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full glass-button hover:border-emerald-500/40 active:scale-95 transition-all shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/60 hover:bg-black/90 border border-white/15 text-xs font-bold text-gray-200 active:scale-95 transition-transform shadow-lg cursor-pointer"
             title="خزنة المستندات المحفوظة"
           >
-            <OtiumLogo size={18} className="text-emerald-400" />
-            <span className="text-xs font-bold text-gray-200">الخزنة</span>
-          </button>
-
-          {/* Prominent Settings & Updates Button */}
-          <button
-            onClick={() => {
-              triggerHaptic(15);
-              onOpenSettings?.();
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] active:scale-95 transition-all text-xs"
-            title="الإعدادات والتحديثات"
-          >
-            <Settings className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-xs font-bold text-gray-200">الإعدادات</span>
+            <OtiumLogo size={16} className="text-emerald-400 shrink-0" />
+            <span className="text-xs">الخزنة</span>
           </button>
         </div>
 
-        {/* Right: Quick Controls */}
+        {/* Center: Live Minimalist Status */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 border border-white/10 shadow-lg">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-xs font-mono tracking-wider text-gray-200">
+            {scanMode === 'idcard' ? 'بطاقة هوية' : scanMode === 'batch' ? 'دفعة متعددة' : 'صفحة مفردة'}
+          </span>
+        </div>
+
+        {/* Left side: Quick Controls (Flash, Flip, Settings) */}
         <div className="flex items-center gap-1.5">
           <button
-            onClick={() => {
-              triggerHaptic(15);
-              setIsMuted(!isMuted);
-            }}
-            className={`p-2 rounded-full glass-button transition-colors ${
-              isMuted ? 'text-yellow-400 border-yellow-500/40 bg-yellow-500/10' : 'text-gray-300'
-            }`}
-            title={isMuted ? 'الصوت مكتوم' : 'صوت الالتقاط مفعل'}
+            onClick={toggleTorch}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+              torchOn
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 shadow-lg shadow-emerald-500/20'
+                : 'bg-black/60 hover:bg-black/90 text-gray-300 border border-white/15'
+            } active:scale-90`}
+            title="فلاش الكاميرا"
           >
-            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            {torchOn ? <Zap className="w-4 h-4 fill-emerald-400" /> : <ZapOff className="w-4 h-4" />}
           </button>
 
           <button
@@ -866,7 +631,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
               setTorchOn(false);
               initCamera(nextMode);
             }}
-            className="p-2 rounded-full glass-button text-gray-300 hover:text-white active:scale-90"
+            className="w-10 h-10 rounded-full bg-black/60 hover:bg-black/90 border border-white/15 flex items-center justify-center text-gray-300 hover:text-white active:scale-90 transition-transform cursor-pointer"
             title="تبديل الكاميرا (أمامية / خلفية)"
           >
             <RefreshCw className="w-4 h-4" />
@@ -875,32 +640,17 @@ export const CameraView: React.FC<CameraViewProps> = ({
           <button
             onClick={() => {
               triggerHaptic(15);
-              setAutoCaptureEnabled(!autoCaptureEnabled);
+              onOpenSettings?.();
             }}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-              autoCaptureEnabled
-                ? 'bg-emerald-500 text-black shadow-md shadow-emerald-500/30'
-                : 'glass-button text-gray-300'
-            }`}
-            title="التقاط تلقائي عند ثبات الهاتف"
+            className="w-10 h-10 rounded-full bg-black/60 hover:bg-black/90 border border-white/15 flex items-center justify-center text-gray-300 hover:text-white active:scale-90 transition-transform cursor-pointer"
+            title="الإعدادات والتحديثات"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>تلقائي</span>
-          </button>
-
-          <button
-            onClick={toggleTorch}
-            className={`p-2 rounded-full glass-button transition-colors ${
-              torchOn ? 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10' : 'text-gray-300'
-            }`}
-            title="فلاش الكاميرا"
-          >
-            {torchOn ? <Zap className="w-4 h-4 fill-emerald-400" /> : <ZapOff className="w-4 h-4" />}
+            <Settings className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Main Viewfinder Screen */}
+      {/* Main Viewfinder Screen — 120 FPS Clean Video Stream */}
       <div
         ref={viewfinderRef}
         onClick={handleViewfinderTap}
@@ -921,81 +671,6 @@ export const CameraView: React.FC<CameraViewProps> = ({
           }`}
         />
 
-        {/* Unified Top Viewfinder HUD */}
-        <div className="absolute top-3 inset-x-0 z-20 flex items-center justify-between px-3 gap-1.5 pointer-events-none">
-          {/* Left: 2D Gyroscope Spirit Level Bubble */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/10 shadow-lg pointer-events-auto shrink-0">
-            <div className="relative w-3.5 h-3.5 rounded-full border border-white/30 flex items-center justify-center">
-              <div
-                style={{
-                  transform: `translate(${tiltAngle.x * 3}px, ${tiltAngle.y * 3}px)`,
-                }}
-                className={`w-1.5 h-1.5 rounded-full transition-transform duration-75 ${
-                  tiltAngle.isLevel ? 'bg-emerald-400 shadow-sm shadow-emerald-400' : 'bg-yellow-400'
-                }`}
-              />
-            </div>
-            <span className={`text-[10px] font-bold font-arabic ${tiltAngle.isLevel ? 'text-emerald-400' : 'text-gray-400'}`}>
-              {tiltAngle.isLevel ? 'مستوى مثالي' : 'اضبط الزاوية'}
-            </span>
-          </div>
-
-          {/* Center: Viewfinder Aspect Fit Switcher */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleToggleViewfinderFit();
-            }}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-full backdrop-blur-md shadow-lg transition-all active:scale-95 font-arabic select-none pointer-events-auto shrink-0 ${
-              viewfinderFit === 'contain'
-                ? 'bg-black/80 text-emerald-300 border border-emerald-500/50'
-                : 'bg-black/80 text-gray-300 border border-white/10'
-            }`}
-            title={
-              viewfinderFit === 'contain'
-                ? 'وضع كامل الحساس مفعل (WYSIWYG) — انقر للتوسيع لملء الشاشة'
-                : 'وضع ملء الشاشة مفعل — انقر للتبديل لعرض كامل الحساس 100%'
-            }
-          >
-            <ScanLine className="w-3 h-3 text-emerald-400" />
-            <span className="text-[10px] font-bold whitespace-nowrap">
-              {viewfinderFit === 'contain' ? 'الحساس 100%' : 'ملء الشاشة'}
-            </span>
-          </button>
-
-          {/* Right: Crop Mode Switcher */}
-          {scanMode !== 'idcard' && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleToggleCropMode();
-              }}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-full backdrop-blur-md shadow-lg transition-all active:scale-95 font-arabic select-none pointer-events-auto shrink-0 ${
-                cropMode === 'full'
-                  ? 'bg-black/80 text-emerald-300 border border-emerald-500/50'
-                  : 'bg-black/80 text-amber-300 border border-amber-500/50'
-              }`}
-              title={
-                cropMode === 'full'
-                  ? 'وضع كامل الإطار مفعل — انقر للتبديل للتحديد الذكي'
-                  : 'وضع التحديد الذكي مفعل — انقر للتبديل إلى كامل الإطار'
-              }
-            >
-              {cropMode === 'full' ? (
-                <>
-                  <Maximize2 className="w-3 h-3 text-emerald-400" />
-                  <span className="text-[10px] font-bold whitespace-nowrap">كامل الإطار</span>
-                </>
-              ) : (
-                <>
-                  <Crop className="w-3 h-3 text-amber-400" />
-                  <span className="text-[10px] font-bold whitespace-nowrap">تحديد ذكي</span>
-                </>
-              )}
-            </button>
-          )}
-        </div>
-
         {/* Tap-to-Focus Animated Reticle */}
         {focusPoint && (
           <div
@@ -1007,37 +682,6 @@ export const CameraView: React.FC<CameraViewProps> = ({
           </div>
         )}
 
-        {/* Real-Time Live Document Boundary Overlay */}
-        {liveScreenQuad && scanMode !== 'idcard' && (
-          <svg className="absolute inset-0 w-full h-full pointer-events-none z-10 transition-opacity duration-200">
-            {/* Translucent Glowing Polygon */}
-            <polygon
-              points={`${liveScreenQuad.topLeft.x},${liveScreenQuad.topLeft.y} ${liveScreenQuad.topRight.x},${liveScreenQuad.topRight.y} ${liveScreenQuad.bottomRight.x},${liveScreenQuad.bottomRight.y} ${liveScreenQuad.bottomLeft.x},${liveScreenQuad.bottomLeft.y}`}
-              fill={isQuadSteady ? 'rgba(16, 185, 129, 0.20)' : 'rgba(16, 185, 129, 0.10)'}
-              stroke={isQuadSteady ? '#34D399' : '#10B981'}
-              strokeWidth={isQuadSteady ? '2.5' : '1.8'}
-              strokeDasharray={isQuadSteady ? 'none' : '6 4'}
-              className="transition-all duration-150"
-            />
-
-            {/* Dynamic Reticle Brackets at 4 Corners */}
-            {[
-              { p: liveScreenQuad.topLeft, dx: 1, dy: 1 },
-              { p: liveScreenQuad.topRight, dx: -1, dy: 1 },
-              { p: liveScreenQuad.bottomRight, dx: -1, dy: -1 },
-              { p: liveScreenQuad.bottomLeft, dx: 1, dy: -1 },
-            ].map(({ p, dx, dy }, idx) => (
-              <path
-                key={idx}
-                d={`M ${p.x + dx * 18} ${p.y} L ${p.x} ${p.y} L ${p.x} ${p.y + dy * 18}`}
-                fill="none"
-                stroke={isQuadSteady ? '#34D399' : '#10B981'}
-                strokeWidth="3.5"
-                strokeLinecap="round"
-              />
-            ))}
-          </svg>
-        )}
 
         {/* Fallback state when permission is pending or denied */}
         {hasPermission === false && (
@@ -1095,11 +739,6 @@ export const CameraView: React.FC<CameraViewProps> = ({
               <span className="text-emerald-400 font-bold flex items-center gap-1.5">
                 <CreditCard className="w-3.5 h-3.5" />
                 <span>{idCardStep === 'front' ? 'ضع الوجه الأمامي للهوية داخل الإطار' : 'ضع الوجه الخلفي للهوية'}</span>
-              </span>
-            ) : isQuadSteady ? (
-              <span className="text-emerald-300 font-bold flex items-center gap-1.5 animate-pulse">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                <span>تم تثبيت المستند بنجاح</span>
               </span>
             ) : pagesCount > 0 ? (
               <span className="text-emerald-300 font-semibold flex items-center gap-1.5">
@@ -1164,27 +803,32 @@ export const CameraView: React.FC<CameraViewProps> = ({
         </div>
       </div>
 
-      {/* Bottom Shutter Dock — CamScanner Layout */}
-      <div className="relative z-20 flex items-center justify-around px-8 pt-2 pb-10 otium-chrome border-t border-white/[0.08]">
-        {/* Left: Gallery Import */}
+      {/* Bottom Shutter Dock — Apple / Nothing OS Aesthetic with Safe-Area Padding */}
+      <div
+        style={{
+          paddingBottom: 'max(env(safe-area-inset-bottom, 0px) + 16px, 32px)',
+        }}
+        className="relative z-20 flex items-center justify-around px-8 pt-3 bg-gradient-to-t from-black via-black/80 to-transparent border-t border-white/[0.06]"
+      >
+        {/* Gallery Import */}
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="flex flex-col items-center gap-1 p-3 rounded-2xl glass-button text-gray-300 active:scale-90 transition-transform"
-          title="استيراد من المعرض / Import from Gallery"
+          className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-gray-300 active:scale-90 transition-all cursor-pointer"
+          title="استيراد من المعرض"
         >
-          <ImageIcon className="w-6 h-6 text-gray-200" />
-          <span className="text-[10px] text-gray-400 font-arabic">المعرض</span>
+          <ImageIcon className="w-5 h-5 text-gray-200" />
+          <span className="text-[10px] text-gray-400 font-bold font-arabic">المعرض</span>
         </button>
 
-        {/* Center: Tactile Shutter Button */}
+        {/* Center: Tactile Shutter Button (Apple / Nothing Concentric Rings) */}
         <button
           onClick={handleCapture}
           disabled={capturing}
-          className="relative flex items-center justify-center w-20 h-20 rounded-full border-4 border-emerald-500/30 p-1 active:scale-95 transition-transform disabled:opacity-50"
+          className="relative flex items-center justify-center w-20 h-20 rounded-full border-2 border-white/30 p-1.5 active:scale-90 transition-all disabled:opacity-50 cursor-pointer shadow-2xl"
           title="التقاط صورة"
         >
-          <div className="w-full h-full rounded-full bg-emerald-500 emerald-glow flex items-center justify-center shadow-2xl">
-            <div className={`w-8 h-8 rounded-full bg-white/25 ${capturing ? 'animate-ping' : ''}`} />
+          <div className="w-full h-full rounded-full bg-emerald-500 hover:bg-emerald-400 emerald-glow flex items-center justify-center shadow-lg transition-colors">
+            <div className={`w-7 h-7 rounded-full bg-black/30 ${capturing ? 'animate-ping' : ''}`} />
           </div>
         </button>
 

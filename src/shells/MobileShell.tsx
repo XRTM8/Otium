@@ -54,7 +54,6 @@ export const MobileShell: React.FC = () => {
             onToggleSearch={() => reader.setIsSearchOpen((open) => !open)}
             onOpenSidebar={() => reader.setIsSidebarOpen(true)}
             onOpenSettings={() => reader.setIsSettingsOpen(true)}
-            onOpenScanner={() => setIsScannerOpen(true)}
             onCloseDocument={reader.closeDocument}
           />
 

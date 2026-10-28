@@ -18,7 +18,7 @@ import {
 } from './core/storage/pageStore';
 import { getFullFrameQuad } from './core/edgeDetection';
 import { warpPerspective } from './core/geometry';
-import { X, AlertTriangle, Bookmark, Trash2 } from 'lucide-react';
+import { AlertTriangle, Bookmark, Trash2 } from 'lucide-react';
 
 interface ScannerModalProps {
   isOpen: boolean;
@@ -266,17 +266,6 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black text-white flex flex-col select-none overflow-hidden animate-in fade-in duration-200">
-      {/* Top Close Button */}
-      <div className="absolute top-4 right-4 z-50">
-        <button
-          onClick={handleRequestClose}
-          className="p-2.5 rounded-full bg-black/60 text-white hover:bg-black/90 transition-all border border-white/10 cursor-pointer"
-          title="إغلاق الماسح الضوئي"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-
       {step === 'camera' && (
         <CameraView
           onCapture={handleCapture}
@@ -285,6 +274,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
           onFinishBatch={() => setStep('review')}
           onOpenLibrary={() => setIsLibraryOpen(true)}
           onOpenSettings={() => setIsSettingsOpen(true)}
+          onClose={handleRequestClose}
         />
       )}
 

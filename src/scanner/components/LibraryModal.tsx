@@ -360,8 +360,13 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   // Vault Unlocked Document Library
   return (
     <div className="fixed inset-0 z-50 bg-[#07090e]/95 backdrop-blur-2xl flex flex-col justify-between select-none animate-in fade-in duration-200">
-      {/* Top Header Bar */}
-      <div className="flex items-center justify-between px-5 pt-12 pb-3.5 otium-chrome border-b border-white/[0.08]">
+      {/* Top Header Bar with Safe Area Inset */}
+      <div
+        style={{
+          paddingTop: 'max(env(safe-area-inset-top, 0px) + 10px, 48px)',
+        }}
+        className="flex items-center justify-between px-5 pb-3.5 otium-chrome border-b border-white/[0.08]"
+      >
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/[0.08]">
             <OtiumLogo size={20} className="text-emerald-400" />

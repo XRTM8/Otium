@@ -5,7 +5,6 @@ import {
   Check,
   CheckCircle2,
   Columns,
-  Database,
   Download,
   ExternalLink,
   HardDrive,
@@ -295,15 +294,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const tabs: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'fonts', label: ar ? 'الخطوط' : 'Fonts', icon: <Type className="w-3.5 h-3.5" /> },
-    { id: 'reading', label: ar ? 'العرض' : 'Reading', icon: <BookOpen className="w-3.5 h-3.5" /> },
-    {
-      id: 'data',
-      label: ar ? 'البيانات' : 'Data',
-      icon: <Database className="w-3.5 h-3.5" />
-    },
-    { id: 'about', label: ar ? 'حول التطبيق' : 'About', icon: <Download className="w-3.5 h-3.5" /> }
+  const tabs: { id: SettingsTab; label: string }[] = [
+    { id: 'fonts', label: ar ? 'الخطوط' : 'Fonts' },
+    { id: 'reading', label: ar ? 'العرض' : 'Reading' },
+    { id: 'data', label: ar ? 'البيانات' : 'Data' },
+    { id: 'about', label: ar ? 'حول التطبيق' : 'About' }
   ];
 
   return (
@@ -337,15 +332,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
 
-        <div className="segmented my-3 flex w-full shrink-0 overflow-x-auto scrollbar-none gap-1 p-1">
+        <div className="my-3 flex w-full shrink-0 gap-1.5 p-1 rounded-2xl bg-white/[0.04] border border-white/[0.08]">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              data-active={activeTab === tab.id}
-              className="flex-1 min-w-[70px] justify-center py-2 px-2 text-xs font-semibold whitespace-nowrap active:scale-95 transition-all cursor-pointer"
+              className={`flex-1 py-2 px-2 text-xs font-bold rounded-xl transition-all cursor-pointer text-center ${
+                activeTab === tab.id
+                  ? 'bg-emerald-500 text-black shadow-md shadow-emerald-500/20'
+                  : 'text-ink-muted hover:text-ink hover:bg-white/[0.04]'
+              }`}
             >
-              {tab.icon}
               <span>{tab.label}</span>
             </button>
           ))}
@@ -684,7 +681,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           )}
         </div>
 
-        <div className="pt-3 border-t border-line flex items-center justify-between shrink-0 mt-2">
+        <div className="pt-3 border-t border-line flex items-center justify-between shrink-0 mt-2 pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]">
           <button
             onClick={onResetDefaults}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-hover text-ink-muted hover:text-ink transition-colors text-xs cursor-pointer"

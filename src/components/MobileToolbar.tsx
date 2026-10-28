@@ -9,7 +9,6 @@ import {
   Layers,
   MoreHorizontal,
   Palette,
-  ScanLine,
   Scroll,
   Search,
   Settings2,
@@ -39,7 +38,6 @@ interface MobileToolbarProps {
   onToggleSearch: () => void;
   onOpenSidebar: () => void;
   onOpenSettings: () => void;
-  onOpenScanner?: () => void;
   onCloseDocument: () => void;
 }
 
@@ -73,7 +71,6 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
   onToggleSearch,
   onOpenSidebar,
   onOpenSettings,
-  onOpenScanner,
   onCloseDocument
 }) => {
   const [showMenu, setShowMenu] = useState(false);
@@ -145,11 +142,11 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
   }, []);
 
   const topOffset = compactLandscape
-    ? 'max(0.35rem, calc(env(safe-area-inset-top, 0px) + 0.25rem))'
-    : 'max(0.6rem, calc(env(safe-area-inset-top, 0px) + 0.45rem))';
+    ? 'max(0.5rem, calc(env(safe-area-inset-top, 0px) + 0.35rem))'
+    : 'max(0.85rem, calc(env(safe-area-inset-top, 0px) + 0.65rem))';
   const bottomOffset = compactLandscape
-    ? 'max(0.35rem, calc(env(safe-area-inset-bottom, 0px) + 0.25rem))'
-    : 'max(0.6rem, calc(env(safe-area-inset-bottom, 0px) + 0.45rem))';
+    ? 'max(0.4rem, calc(env(safe-area-inset-bottom, 0px) + 0.3rem))'
+    : 'max(0.75rem, calc(env(safe-area-inset-bottom, 0px) + 0.55rem))';
 
   const viewModeIcon =
     viewMode === 'continuous' ? (
@@ -210,18 +207,6 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
           >
             <Search className="w-4 h-4" />
           </button>
-
-          {onOpenScanner && (
-            <button
-              type="button"
-              onClick={onOpenScanner}
-              title={ar ? 'مسح مستند بالكاميرا' : 'Scan document'}
-              aria-label={ar ? 'مسح مستند بالكاميرا' : 'Scan document'}
-              className="p-2 rounded-xl text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 active:bg-hover-strong transition-colors shrink-0"
-            >
-              <ScanLine className="w-4 h-4" />
-            </button>
-          )}
 
           <button
             type="button"
