@@ -508,7 +508,12 @@ const PdfPageView: React.FC<PdfPageProps> = ({
     if (term.length < 2) return;
 
     const safeTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(safeTerm, 'gi');
+    let regex: RegExp;
+    try {
+      regex = new RegExp(safeTerm, 'gi');
+    } catch {
+      return;
+    }
     const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
     const textNodes: Text[] = [];
 

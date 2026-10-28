@@ -61,7 +61,22 @@ export async function mergeIdCardSidesToA4(
     pathRoundRect(ctx, x, y, cardW, cardH, borderRadius);
     ctx.clip();
 
-    ctx.drawImage(source, x, y, cardW, cardH);
+    // Object-fit: cover inside rounded card boundary to avoid any stretching distortion
+    const srcRatio = source.width / Math.max(1, source.height);
+    const targetRatio = cardW / cardH;
+    let sx = 0;
+    let sy = 0;
+    let sw = source.width;
+    let sh = source.height;
+    if (srcRatio > targetRatio) {
+      sw = Math.round(source.height * targetRatio);
+      sx = Math.round((source.width - sw) / 2);
+    } else {
+      sh = Math.round(source.width / targetRatio);
+      sy = Math.round((source.height - sh) / 2);
+    }
+
+    ctx.drawImage(source, sx, sy, sw, sh, x, y, cardW, cardH);
     ctx.restore();
 
     // 1px subtle card border

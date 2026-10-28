@@ -141,9 +141,10 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
   // Uses a cached bounding rect during drag so the mapping stays stable as React re-renders
   const clientToImageCoords = useCallback(
     (clientX: number, clientY: number): Point => {
-      if (!imageRef.current || imageSize.width === 0) return { x: 0, y: 0 };
+      if (!imageRef.current || imageSize.width <= 0 || imageSize.height <= 0) return { x: 0, y: 0 };
       // Use cached rect if available (stable during pointer capture), otherwise measure live
       const rect = imageBoundsRef.current ?? imageRef.current.getBoundingClientRect();
+      if (!rect || rect.width <= 0 || rect.height <= 0) return { x: 0, y: 0 };
       const scaleX = imageSize.width / rect.width;
       const scaleY = imageSize.height / rect.height;
 
@@ -158,8 +159,9 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
   // Map natural image coords to viewport client coords
   const imageToClientCoords = useCallback(
     (point: Point): Point => {
-      if (!imageRef.current || imageSize.width === 0) return { x: 0, y: 0 };
+      if (!imageRef.current || imageSize.width <= 0 || imageSize.height <= 0) return { x: 0, y: 0 };
       const rect = imageRef.current.getBoundingClientRect();
+      if (!rect || rect.width <= 0 || rect.height <= 0) return { x: 0, y: 0 };
       const scaleX = rect.width / imageSize.width;
       const scaleY = rect.height / imageSize.height;
 

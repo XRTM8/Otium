@@ -57,6 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isSheet = variant === 'sheet';
   const [tab, setTab] = useState<'pages' | 'toc' | 'notes'>('pages');
   const [toc, setToc] = useState<TocItem[]>([]);
+  const [displayedPageLimit, setDisplayedPageLimit] = useState(60);
   const [copiedAll, setCopiedAll] = useState(false);
   const [exported, setExported] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -80,7 +81,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (isOpen) return;
     setEditingNoteId(null);
     setNoteDraft('');
+    setDisplayedPageLimit(60);
   }, [isOpen]);
+
+  const handleContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (tab !== 'pages' || displayedPageLimit >= totalPages) return;
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 350) {
+      setDisplayedPageLimit((prev) => Math.min(totalPages, prev + 60));
+    }
+  };
 
   useEffect(() => {
     if (!doc) return;
@@ -91,18 +101,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
           const items: TocItem[] = [];
           for (const item of outline) {
             let pageNum = 1;
-            if (typeof item.dest === 'string') {
-              const dest = await doc.getDestination(item.dest);
-              if (dest) {
-                const ref = dest[0];
-                pageNum = (await doc.getPageIndex(ref)) + 1;
+            try {
+              if (typeof item.dest === 'string') {
+                const dest = await doc.getDestination(item.dest);
+                if (dest) {
+                  const ref = dest[0];
+                  pageNum = (await doc.getPageIndex(ref)) + 1;
+                }
+              } else if (Array.isArray(item.dest)) {
+                pageNum = (await doc.getPageIndex(item.dest[0])) + 1;
               }
-            } else if (Array.isArray(item.dest)) {
-              pageNum = (await doc.getPageIndex(item.dest[0])) + 1;
+            } catch {
+              // Resilient fallback for broken outline destinations
             }
             items.push({
               title: item.title,
-              pageNumber: pageNum
+              pageNumber: Number.isFinite(pageNum) && pageNum > 0 ? pageNum : 1
             });
           }
           setToc(items);
@@ -369,6 +383,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Content Area */}
         <div
+          onScroll={handleContentScroll}
           className={`flex-1 overflow-y-auto overscroll-contain space-y-3 ${
             isSheet ? 'px-4 py-3' : 'p-3'
           }`}
@@ -377,7 +392,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {/* TAB 1: Pages Grid */}
           {tab === 'pages' && (
             <div className={isSheet ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-2 gap-2.5'}>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
+              {Array.from({ length: Math.min(totalPages, displayedPageLimit) }, (_, i) => i + 1).map((pageNum) => {
                 const isCurrent = pageNum === currentPage;
                 const isBookmarked = bookmarks.some((b) => b.pageNumber === pageNum);
                 return (
@@ -415,6 +430,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </button>
                 );
               })}
+              {displayedPageLimit < totalPages && (
+                <div className="col-span-full py-2.5 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setDisplayedPageLimit((prev) => Math.min(totalPages, prev + 120))}
+                    className="px-4 py-2 rounded-xl bg-hover border border-line text-ink-muted text-xs font-medium cursor-pointer hover:bg-hover-strong hover:text-ink transition-all active:scale-95"
+                  >
+                    {ar ? `تحميل المزيد من الصفحات (${totalPages - displayedPageLimit} متبقية)` : `Load more pages (${totalPages - displayedPageLimit} remaining)`}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

@@ -433,9 +433,16 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
-    const handleFullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    const docWithVendor = document as any;
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement || docWithVendor.webkitFullscreenElement));
+    };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -1095,6 +1102,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       if (!file) return;
       if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
         void openFileRef.current(file);
+      } else {
+        setDocumentError(lang === 'ar' ? 'يرجى اختيار ملف PDF صالح.' : 'Please select a valid PDF file.');
       }
     };
 
@@ -1250,7 +1259,9 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       // level (including a pinch below fit) returns to fit first.
       const nearFit = Math.abs(zoom - fit) <= Math.max(0.08, fit * 0.1);
       const target = nearFit ? Math.min(3.5, Math.max(1.6, fit * 2)) : fit;
-      startZoomTransition(() => setZoom(Number(target.toFixed(2))));
+      if (Number.isFinite(target) && target > 0) {
+        startZoomTransition(() => setZoom(Number(target.toFixed(2))));
+      }
 
       const captured = zoomAnchorRef.current;
       window.setTimeout(() => {
@@ -1339,7 +1350,9 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         3.5,
         Math.max(0.5, Number((pinchStartZoomRef.current * factor).toFixed(2)))
       );
-      startZoomTransition(() => setZoom(targetZoom));
+      if (Number.isFinite(targetZoom) && targetZoom > 0) {
+        startZoomTransition(() => setZoom(targetZoom));
+      }
       return;
     }
 
@@ -1539,13 +1552,19 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
   const handleToggleFullscreen = useCallback(() => {
     if (typeof document === 'undefined') return;
-    const root = document.documentElement;
-    if (!document.fullscreenElement) {
-      if (typeof root.requestFullscreen === 'function') {
-        void root.requestFullscreen().catch(() => {});
+    const docWithVendor = document as any;
+    const root = document.documentElement as any;
+    const isFull = Boolean(document.fullscreenElement || docWithVendor.webkitFullscreenElement);
+    if (!isFull) {
+      const request = root.requestFullscreen || root.webkitRequestFullscreen;
+      if (typeof request === 'function') {
+        void request.call(root).catch(() => {});
       }
-    } else if (typeof document.exitFullscreen === 'function') {
-      void document.exitFullscreen().catch(() => {});
+    } else {
+      const exit = document.exitFullscreen || docWithVendor.webkitExitFullscreen;
+      if (typeof exit === 'function') {
+        void exit.call(document).catch(() => {});
+      }
     }
   }, []);
 

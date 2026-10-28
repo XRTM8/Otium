@@ -274,6 +274,49 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
     onClose();
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleBack = (event: Event) => {
+      event.preventDefault();
+      if (isLibraryOpen) {
+        setIsLibraryOpen(false);
+        return;
+      }
+      if (isSettingsOpen) {
+        setIsSettingsOpen(false);
+        return;
+      }
+      if (showCloseConfirmModal) {
+        setShowCloseConfirmModal(false);
+        return;
+      }
+      if (step === 'crop') {
+        handleCropCancel();
+        return;
+      }
+      if (step === 'review' && pages.length === 0) {
+        setStep('camera');
+        return;
+      }
+      handleRequestClose();
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        handleBack(event);
+      }
+    };
+
+    window.addEventListener('otium:back', handleBack);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('otium:back', handleBack);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, isLibraryOpen, isSettingsOpen, showCloseConfirmModal, step, pages.length]);
+
   return (
     <div
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
