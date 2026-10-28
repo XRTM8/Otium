@@ -10,12 +10,14 @@ Changelog: https://github.com/XRTM8/Otium-Link/releases
 Name: Otium Link
 Summary: Peer-to-peer LAN file transfer and clipboard bridge
 Description: |-
-  Otium Link is a sovereign, local-first utility for high-speed file transfer and
-  instant clipboard synchronization between Android and Windows over local Wi-Fi.
+  Otium Link is a sovereign, local-first utility for high-speed file transfer,
+  instant clipboard synchronization, and offline smart board wireless presentations
+  between Android, Windows, and interactive classroom displays over local Wi-Fi.
 
   Features:
   * Pure Peer-to-Peer (P2P) local transfers (40+ MB/s)
   * Seamless clipboard text synchronization
+  * Smart Cast: Wireless presentation & laser pointer on smart TVs/boards without internet
   * Zero servers, zero telemetry, zero proxy relays
   * Fully signed, verified, and offline
   * Licensed under GNU General Public License v3.0
@@ -24,14 +26,14 @@ RepoType: git
 Repo: https://github.com/XRTM8/Otium-Link.git
 
 Builds:
-  - versionName: 1.6.3
-    versionCode: 163
-    commit: v1.6.3
+  - versionName: 1.7.0
+    versionCode: 170
+    commit: cbe21aa47bb1be7a13c4c965b8c3d9aa6a3d7026
     subdir: src-tauri/gen/android
     gradle:
       - yes
 
 AutoUpdateMode: Version v%v
 UpdateCheckMode: Tags
-CurrentVersion: 1.6.3
-CurrentVersionCode: 163
+CurrentVersion: 1.7.0
+CurrentVersionCode: 170
