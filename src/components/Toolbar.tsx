@@ -14,6 +14,7 @@ import {
   Scroll,
   Search,
   Settings2,
+  X,
   ZoomIn,
   ZoomOut
 } from 'lucide-react';
@@ -84,6 +85,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
+  const [showInspector, setShowInspector] = useState(false);
   const [showMoreMobile, setShowMoreMobile] = useState(false);
   const [inputPage, setInputPage] = useState(currentPage.toString());
 
@@ -101,7 +103,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       setIsVisible(true);
       window.clearTimeout(timeout);
       timeout = window.setTimeout(() => {
-        if (!showThemeMenu && !showMoreMobile) setIsVisible(false);
+        if (!showThemeMenu && !showMoreMobile && !showInspector) setIsVisible(false);
       }, 5000);
     };
 
@@ -215,13 +217,84 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <Layers className="w-4 h-4" />
         </button>
 
-        <span
-          title={title}
-          dir="auto"
-          className="hidden max-w-[90px] shrink-0 select-none truncate px-1 text-xs font-medium text-ink-muted sm:block md:max-w-[150px] xl:max-w-[220px]"
-        >
-          {title}
-        </span>
+        <div className="relative hidden sm:block">
+          <button
+            type="button"
+            onClick={() => setShowInspector((prev) => !prev)}
+            title={ar ? 'معلومات المستند والتقدم' : 'Document Info & Progress'}
+            dir="auto"
+            className={`max-w-[100px] md:max-w-[160px] xl:max-w-[220px] shrink-0 truncate rounded-lg px-2 py-1 text-xs font-medium transition-all cursor-pointer ${
+              showInspector
+                ? 'bg-hover text-ink font-semibold'
+                : 'text-ink-muted hover:bg-hover-subtle hover:text-ink'
+            }`}
+          >
+            {title}
+          </button>
+
+          {showInspector && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowInspector(false)}
+              />
+              <div
+                dir={ar ? 'rtl' : 'ltr'}
+                className="chrome-surface absolute start-0 top-full z-50 mt-2 w-64 rounded-2xl p-3.5 text-ink shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none text-start"
+              >
+                <div className="flex items-start justify-between gap-2 border-b border-line pb-2.5">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[10px] font-mono uppercase tracking-wider text-ink-faint">
+                      {ar ? 'المستند الحالي' : 'Current Document'}
+                    </div>
+                    <div className="truncate font-semibold text-xs text-ink mt-0.5" title={title}>
+                      {title}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowInspector(false)}
+                    className="toolbar-icon h-6 w-6 shrink-0"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="mt-2.5 space-y-2 text-[11px] font-mono">
+                  <div className="flex items-center justify-between text-ink-muted">
+                    <span className="font-sans font-medium">{ar ? 'تقدّم القراءة:' : 'Progress:'}</span>
+                    <span className="text-accent font-semibold">
+                      {Math.min(100, Math.round((currentPage / Math.max(1, totalPages)) * 100))}%
+                    </span>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-hover">
+                    <div
+                      className="h-full bg-accent transition-all duration-300 rounded-full"
+                      style={{ width: `${Math.min(100, Math.round((currentPage / Math.max(1, totalPages)) * 100))}%` }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-ink-muted pt-1">
+                    <span className="font-sans">{ar ? 'الصفحات:' : 'Pages:'}</span>
+                    <span>{currentPage} / {totalPages}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-ink-muted">
+                    <span className="font-sans">{ar ? 'نسبة العرض:' : 'Zoom:'}</span>
+                    <span>{Math.round(zoom * 100)}%</span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-ink-muted">
+                    <span className="font-sans">{ar ? 'الثيم النشط:' : 'Theme:'}</span>
+                    <span className="font-sans">{t.themes[theme]}</span>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
         <span className="mx-0.5 h-4 w-px shrink-0 bg-line-subtle" />
 

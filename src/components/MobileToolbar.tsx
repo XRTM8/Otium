@@ -192,12 +192,15 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             <OtiumLogo size={20} />
           </div>
 
-          <span
+          <button
+            type="button"
+            onClick={() => setShowMenu((open) => !open)}
+            title={ar ? 'أدوات ومعلومات المستند' : 'Document Info & Tools'}
             dir="auto"
-            className="flex-1 min-w-0 truncate text-[11px] font-medium text-ink-muted select-none"
+            className="flex-1 min-w-0 truncate text-start px-1.5 py-1 rounded-lg text-[11px] font-medium text-ink-muted hover:text-ink hover:bg-hover-subtle active:scale-[0.98] transition-all cursor-pointer"
           >
             {title}
-          </span>
+          </button>
 
           <button
             type="button"

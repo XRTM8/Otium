@@ -124,6 +124,8 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
   } = reader;
 
   const [compactLandscape, setCompactLandscape] = useState(false);
+  const [showScrubberPill, setShowScrubberPill] = useState(false);
+  const scrubberTimeoutRef = useRef<number | null>(null);
   const isRtl = lang === 'ar';
   const lastScrollPageRef = useRef<number>(currentPage);
   const scrollFrameRef = useRef<number | null>(null);
@@ -202,6 +204,14 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
 
     const onScroll = () => {
       markScrollActivity();
+      setShowScrubberPill(true);
+      if (scrubberTimeoutRef.current !== null) {
+        window.clearTimeout(scrubberTimeoutRef.current);
+      }
+      scrubberTimeoutRef.current = window.setTimeout(() => {
+        setShowScrubberPill(false);
+      }, 1600);
+
       if (scrollFrameRef.current !== null) return;
       scrollFrameRef.current = window.requestAnimationFrame(measure);
     };
@@ -215,6 +225,25 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
       }
     };
   }, [viewMode, doc, currentPage, numPages, basePageSize, zoom, handlePageVisible, scrollContainerRef]);
+
+  useEffect(() => {
+    if (!isImmersive) return;
+    setShowScrubberPill(true);
+    if (scrubberTimeoutRef.current !== null) {
+      window.clearTimeout(scrubberTimeoutRef.current);
+    }
+    scrubberTimeoutRef.current = window.setTimeout(() => {
+      setShowScrubberPill(false);
+    }, 1600);
+  }, [currentPage, isImmersive]);
+
+  useEffect(() => {
+    return () => {
+      if (scrubberTimeoutRef.current !== null) {
+        window.clearTimeout(scrubberTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // When the page fits vertically, vertical touch gestures turn pages instead
   // of panning: block native vertical panning so the page stays perfectly
@@ -527,6 +556,24 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
           </div>
         </div>
       )}
+
+      {/* Zen Minimal Reading Pill: Floats softly during scroll/flip, vanishes 1.6s later */}
+      <div
+        dir={isRtl ? 'rtl' : 'ltr'}
+        className={`fixed z-30 bottom-6 inset-x-0 flex justify-center pointer-events-none transition-all duration-300 ${
+          showScrubberPill ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+        }`}
+      >
+        <div className="chrome-surface flex items-center gap-2 rounded-full px-3.5 py-1.5 font-mono text-[11px] text-ink shadow-xl backdrop-blur-xl border border-line-subtle select-none">
+          <span className="font-sans font-medium text-ink">
+            {lang === 'ar' ? `صفحة ${currentPage} من ${numPages}` : `Page ${currentPage} of ${numPages}`}
+          </span>
+          <span className="text-ink-faint text-[9px]">•</span>
+          <span className="text-accent font-semibold text-[10px]">
+            {Math.min(100, Math.round((currentPage / Math.max(1, numPages)) * 100))}%
+          </span>
+        </div>
+      </div>
     </div>
   );
 };
