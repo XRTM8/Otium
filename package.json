@@ -1,16 +1,19 @@
 {
   "name": "otium-reader",
   "private": true,
-  "version": "1.5.5",
+  "version": "1.6.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "predev": "node scripts/copy-ocr-assets.mjs",
     "build": "tsc -b && vite build",
+    "prebuild": "node scripts/copy-ocr-assets.mjs",
     "lint": "oxlint",
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview",
     "version:check": "node scripts/check-version.mjs",
+    "verify:apk": "node scripts/verify-apk.mjs",
     "release:feed": "node scripts/generate-latest-json.mjs",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
@@ -32,7 +35,8 @@
     "lucide-react": "^1.61.0",
     "pdfjs-dist": "^6.4.299",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

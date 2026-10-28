@@ -11,6 +11,7 @@ import {
   Minimize2,
   MoreHorizontal,
   Palette,
+  ScanLine,
   Scroll,
   Search,
   Settings2,
@@ -41,6 +42,7 @@ interface ToolbarProps {
   onToggleSidebar: () => void;
   onToggleSearch: () => void;
   onToggleSettings: () => void;
+  onOpenScanner?: () => void;
   onCloseDocument: () => void;
 }
 
@@ -79,6 +81,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onToggleSidebar,
   onToggleSearch,
   onToggleSettings,
+  onOpenScanner,
   onCloseDocument
 }) => {
   const [isVisible, setIsVisible] = useState(true);
@@ -338,6 +341,18 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
 
+          {onOpenScanner && (
+            <button
+              type="button"
+              onClick={onOpenScanner}
+              title={ar ? 'مسح مستند بالكاميرا (Ctrl+Shift+S)' : 'Scan document with camera (Ctrl+Shift+S)'}
+              aria-label={ar ? 'مسح مستند بالكاميرا' : 'Scan document with camera'}
+              className="toolbar-icon text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 active:scale-95 transition-all"
+            >
+              <ScanLine className="w-4 h-4" />
+            </button>
+          )}
+
           <button
             type="button"
             onClick={onToggleSettings}
@@ -391,7 +406,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-5 gap-1.5">
             <button
               type="button"
               onClick={onToggleBookmark}
@@ -423,6 +438,20 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     : ar ? 'مفردة' : 'Single'}
               </span>
             </button>
+
+            {onOpenScanner && (
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenScanner();
+                  setShowMoreMobile(false);
+                }}
+                className="flex flex-col items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-1 py-2 text-[10px] text-emerald-400 transition-colors"
+              >
+                <ScanLine className="w-4 h-4" />
+                <span>{ar ? 'مسح' : 'Scan'}</span>
+              </button>
+            )}
 
             <button
               type="button"

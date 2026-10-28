@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, useState } from 'react';
 import { useReaderController } from '../app/useReaderController';
 import { getThemeBackground } from '../app/themeBackground';
 import { MobileToolbar } from '../components/MobileToolbar';
@@ -7,9 +7,14 @@ import { ReaderWorkspace } from '../components/ReaderWorkspace';
 import { TextSelectionMenu } from '../components/TextSelectionMenu';
 import { WelcomeScreen } from '../components/WelcomeScreen';
 
+const ScannerModal = React.lazy(() =>
+  import('../scanner/ScannerModal').then((m) => ({ default: m.ScannerModal }))
+);
+
 /** Android shell: touch-first bars, swipe gestures and no keyboard shortcuts. */
 export const MobileShell: React.FC = () => {
   const reader = useReaderController({ keyboard: false, dragDrop: false });
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   return (
     <div
@@ -26,6 +31,7 @@ export const MobileShell: React.FC = () => {
           onOpenFile={reader.openFile}
           onOpenSample={reader.openSample}
           onOpenRecent={reader.openRecent}
+          onOpenScanner={() => setIsScannerOpen(true)}
         />
       ) : (
         <>
@@ -48,6 +54,7 @@ export const MobileShell: React.FC = () => {
             onToggleSearch={() => reader.setIsSearchOpen((open) => !open)}
             onOpenSidebar={() => reader.setIsSidebarOpen(true)}
             onOpenSettings={() => reader.setIsSettingsOpen(true)}
+            onOpenScanner={() => setIsScannerOpen(true)}
             onCloseDocument={reader.closeDocument}
           />
 
@@ -65,6 +72,16 @@ export const MobileShell: React.FC = () => {
       )}
 
       <ReaderOverlays reader={reader} mobile />
+
+      <Suspense fallback={null}>
+        {isScannerOpen && (
+          <ScannerModal
+            isOpen={isScannerOpen}
+            onClose={() => setIsScannerOpen(false)}
+            onPdfGenerated={(file) => reader.openFile(file)}
+          />
+        )}
+      </Suspense>
     </div>
   );
 };

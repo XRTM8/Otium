@@ -1,12 +1,20 @@
 package com.otium.reader
 
+import android.content.ContentValues
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.print.PageRange
+import android.print.PrintAttributes
+import android.print.PrintDocumentAdapter
+import android.print.PrintDocumentInfo
+import android.print.PrintManager
+import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.util.Base64
 import android.webkit.JavascriptInterface
@@ -14,10 +22,15 @@ import android.webkit.WebView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
+import androidx.core.content.FileProvider
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import org.json.JSONObject
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import java.nio.charset.StandardCharsets
 
 class MainActivity : TauriActivity() {
@@ -30,6 +43,8 @@ class MainActivity : TauriActivity() {
   private var pendingPdfName: String? = null
   private var pendingExportContent: String? = null
   private var pendingExportMime: String? = null
+  private var pendingBinaryBytes: ByteArray? = null
+  private var pendingBinaryMime: String = "application/octet-stream"
   private var deliveryGeneration = 0
   private var intentGeneration = 0
 
@@ -83,7 +98,13 @@ class MainActivity : TauriActivity() {
 
   override fun onWebViewCreate(webView: WebView) {
     appWebView = webView
+    // The document scanner renders a live camera stream into a <video> element.
+    // Without this the WebView can refuse to start playback until another tap.
+    webView.settings.mediaPlaybackRequiresUserGesture = false
     webView.addJavascriptInterface(AndroidUpdateBridge(this, webView), "OtiumAndroid")
+    // Scanner share/save/print/HTTP bridge. Kept separate from OtiumAndroid,
+    // which owns the signed update flow.
+    webView.addJavascriptInterface(ScannerBridge(), "OtiumNative")
     webView.addJavascriptInterface(ThemeBridge(), "OtiumTheme")
     webView.addJavascriptInterface(UiBridge(), "OtiumUi")
     webView.addJavascriptInterface(FileBridge(), "OtiumFile")
@@ -178,6 +199,287 @@ class MainActivity : TauriActivity() {
     }
   }
 
+  /**
+   * Native half of the document scanner: Android share sheet, saving to
+   * Downloads, real PDF printing, external links and a GitHub-only HTTP helper.
+   *
+   * Deliberately does NOT expose an "open in Otium Reader" method: the scanner
+   * already lives inside the reader, so the web layer hands the generated File
+   * straight to the reader controller.
+   */
+  private inner class ScannerBridge {
+    private fun sanitizeFilename(filename: String, fallback: String): String {
+      val rawName = File(filename).name
+      val cleaned = rawName
+        .replace(Regex("[\\\\/:*?\"<>|\\u0000-\\u001f]"), "_")
+        .trim()
+        .take(120)
+      return cleaned.ifBlank { fallback }
+    }
+
+    private fun decodeBase64(base64Data: String): ByteArray {
+      val clean = if (base64Data.contains(",")) base64Data.substringAfter(",") else base64Data
+      return Base64.decode(clean, Base64.DEFAULT)
+    }
+
+    private fun resolveMime(filename: String, fallback: String): String = when {
+      filename.endsWith(".jpg", true) || filename.endsWith(".jpeg", true) -> "image/jpeg"
+      filename.endsWith(".png", true) -> "image/png"
+      filename.endsWith(".pdf", true) -> "application/pdf"
+      fallback.isNotBlank() -> fallback
+      else -> "application/octet-stream"
+    }
+
+    @JavascriptInterface
+    fun sharePdf(base64Data: String, filename: String) {
+      shareFile(base64Data, filename, "application/pdf")
+    }
+
+    @JavascriptInterface
+    fun shareFile(base64Data: String, filename: String, mimeType: String) {
+      runOnUiThread {
+        try {
+          val safeName = sanitizeFilename(filename, "scan.pdf")
+          val file = File(cacheDir, safeName)
+          file.writeBytes(decodeBase64(base64Data))
+
+          val uri = FileProvider.getUriForFile(
+            this@MainActivity,
+            "${packageName}.fileprovider",
+            file
+          )
+          val intent = Intent(Intent.ACTION_SEND).apply {
+            type = resolveMime(safeName, mimeType)
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_SUBJECT, safeName)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+          }
+          startActivity(Intent.createChooser(intent, "Share document"))
+        } catch (error: Exception) {
+          Toast.makeText(
+            this@MainActivity,
+            "Could not share the file: ${error.message}",
+            Toast.LENGTH_LONG
+          ).show()
+        }
+      }
+    }
+
+    @JavascriptInterface
+    fun savePdfToDownloads(base64Data: String, filename: String): Boolean {
+      return saveFileToDownloads(base64Data, filename, "application/pdf")
+    }
+
+    /**
+     * Android 10+ writes straight into public Downloads/Pictures through
+     * MediaStore. Older devices cannot write there without a storage
+     * permission, so they get the system "save as" picker instead.
+     */
+    @JavascriptInterface
+    fun saveFileToDownloads(base64Data: String, filename: String, mimeType: String): Boolean {
+      val isImage = filename.endsWith(".jpg", true) ||
+        filename.endsWith(".jpeg", true) ||
+        filename.endsWith(".png", true)
+      val safeName = sanitizeFilename(filename, if (isImage) "scan.jpg" else "scan.pdf")
+      val bytes = try {
+        decodeBase64(base64Data)
+      } catch (error: Exception) {
+        runOnUiThread {
+          Toast.makeText(this@MainActivity, "Could not read the file data.", Toast.LENGTH_LONG).show()
+        }
+        return false
+      }
+      val resolvedMime = resolveMime(safeName, mimeType)
+
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        return try {
+          val collection = if (isImage) {
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+          } else {
+            MediaStore.Downloads.EXTERNAL_CONTENT_URI
+          }
+          val relativePath = if (isImage) {
+            Environment.DIRECTORY_PICTURES + "/Otium"
+          } else {
+            Environment.DIRECTORY_DOWNLOADS
+          }
+          val values = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, safeName)
+            put(MediaStore.MediaColumns.MIME_TYPE, resolvedMime)
+            put(MediaStore.MediaColumns.RELATIVE_PATH, relativePath)
+          }
+          val uri = contentResolver.insert(collection, values)
+          if (uri == null) {
+            false
+          } else {
+            contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
+            val location = if (isImage) "Pictures/Otium" else "Downloads"
+            runOnUiThread {
+              Toast.makeText(
+                this@MainActivity,
+                "Saved to $location: $safeName",
+                Toast.LENGTH_LONG
+              ).show()
+            }
+            true
+          }
+        } catch (error: Exception) {
+          runOnUiThread {
+            Toast.makeText(
+              this@MainActivity,
+              "Could not save the file: ${error.message}",
+              Toast.LENGTH_LONG
+            ).show()
+          }
+          false
+        }
+      }
+
+      // API 24–28: hand the bytes to the system file picker.
+      pendingBinaryBytes = bytes
+      pendingBinaryMime = resolvedMime
+      runOnUiThread {
+        try {
+          val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = resolvedMime
+            putExtra(Intent.EXTRA_TITLE, safeName)
+          }
+          startActivityForResult(intent, REQUEST_SAVE_BINARY)
+        } catch (_: Exception) {
+          pendingBinaryBytes = null
+          Toast.makeText(
+            this@MainActivity,
+            "No file manager is available to save this file.",
+            Toast.LENGTH_LONG
+          ).show()
+        }
+      }
+      return true
+    }
+
+    @JavascriptInterface
+    fun printPdf(base64Data: String, filename: String) {
+      val cleanFilename = if (filename.endsWith(".pdf", true)) filename else "$filename.pdf"
+      val safeName = sanitizeFilename(cleanFilename, "scan.pdf")
+      val file = try {
+        File(cacheDir, safeName).apply { writeBytes(decodeBase64(base64Data)) }
+      } catch (error: Exception) {
+        runOnUiThread {
+          Toast.makeText(
+            this@MainActivity,
+            "Could not prepare the file for printing: ${error.message}",
+            Toast.LENGTH_LONG
+          ).show()
+        }
+        return
+      }
+
+      runOnUiThread {
+        try {
+          val printManager =
+            getSystemService(android.content.Context.PRINT_SERVICE) as PrintManager
+          val adapter = object : PrintDocumentAdapter() {
+            override fun onLayout(
+              oldAttributes: PrintAttributes?,
+              newAttributes: PrintAttributes?,
+              cancellationSignal: android.os.CancellationSignal?,
+              callback: PrintDocumentAdapter.LayoutResultCallback,
+              extras: android.os.Bundle?
+            ) {
+              val info = PrintDocumentInfo.Builder(safeName)
+                .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
+                .build()
+              callback.onLayoutFinished(info, true)
+            }
+
+            override fun onWrite(
+              pages: Array<out PageRange>?,
+              destination: android.os.ParcelFileDescriptor,
+              cancellationSignal: android.os.CancellationSignal?,
+              callback: PrintDocumentAdapter.WriteResultCallback
+            ) {
+              try {
+                FileInputStream(file).use { input ->
+                  FileOutputStream(destination.fileDescriptor).use { output ->
+                    input.copyTo(output)
+                  }
+                }
+                callback.onWriteFinished(arrayOf(PageRange.ALL_PAGES))
+              } catch (error: Exception) {
+                callback.onWriteFailed(error.message)
+              }
+            }
+          }
+          printManager.print(safeName, adapter, PrintAttributes.Builder().build())
+        } catch (error: Exception) {
+          Toast.makeText(
+            this@MainActivity,
+            "Could not start printing: ${error.message}",
+            Toast.LENGTH_LONG
+          ).show()
+        }
+      }
+    }
+
+    @JavascriptInterface
+    fun openExternalUrl(url: String) {
+      runOnUiThread {
+        try {
+          startActivity(
+            Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+              addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+          )
+        } catch (error: Exception) {
+          Toast.makeText(
+            this@MainActivity,
+            "Could not open the link: ${error.message}",
+            Toast.LENGTH_SHORT
+          ).show()
+        }
+      }
+    }
+
+    /**
+     * GitHub-only GET for the update checker. Blocking is acceptable here: the
+     * JS bridge runs this on its own thread, not the UI thread.
+     */
+    @JavascriptInterface
+    fun fetchUrl(urlStr: String): String {
+      return try {
+        val allowedPrefixes = listOf(
+          "https://api.github.com/",
+          "https://raw.githubusercontent.com/",
+          "https://github.com/",
+          "https://objects.githubusercontent.com/"
+        )
+        if (allowedPrefixes.none { urlStr.startsWith(it) }) {
+          return "ERROR: URL domain is not permitted"
+        }
+        val connection = (URL(urlStr).openConnection() as HttpURLConnection).apply {
+          requestMethod = "GET"
+          setRequestProperty("User-Agent", "Otium-Android")
+          setRequestProperty("Accept", "application/vnd.github.v3+json")
+          connectTimeout = 10_000
+          readTimeout = 10_000
+        }
+        try {
+          val stream = if (connection.responseCode in 200..299) {
+            connection.inputStream
+          } else {
+            connection.errorStream
+          }
+          stream.bufferedReader().use { it.readText() }
+        } finally {
+          connection.disconnect()
+        }
+      } catch (error: Exception) {
+        "ERROR:" + (error.message ?: "Network error")
+      }
+    }
+  }
+
   override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
     if (requestCode == REQUEST_SAVE_TEXT) {
       val content = pendingExportContent
@@ -207,6 +509,35 @@ class MainActivity : TauriActivity() {
             }
           }.start()
         }
+      }
+      return
+    }
+
+    if (requestCode == REQUEST_SAVE_BINARY) {
+      val bytes = pendingBinaryBytes
+      pendingBinaryBytes = null
+
+      val uri = data?.data
+      if (resultCode == RESULT_OK && bytes != null && uri != null) {
+        Thread {
+          val saved = try {
+            contentResolver.openOutputStream(uri)?.use { stream ->
+              stream.write(bytes)
+              stream.flush()
+            }
+            true
+          } catch (_: Exception) {
+            false
+          }
+
+          runOnUiThread {
+            Toast.makeText(
+              this@MainActivity,
+              if (saved) "File saved" else "Could not save the file",
+              Toast.LENGTH_SHORT
+            ).show()
+          }
+        }.start()
       }
       return
     }
@@ -470,5 +801,6 @@ class MainActivity : TauriActivity() {
     private const val DELIVERY_RETRY_MS = 200L
     private const val MAX_DELIVERY_ATTEMPTS = 150
     private const val REQUEST_SAVE_TEXT = 0x0751
+  private const val REQUEST_SAVE_BINARY = 0x0752
   }
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useReaderController } from '../app/useReaderController';
 import { getThemeBackground } from '../app/themeBackground';
 import { ReaderOverlays } from '../components/ReaderOverlays';
@@ -7,9 +7,26 @@ import { TextSelectionMenu } from '../components/TextSelectionMenu';
 import { Toolbar } from '../components/Toolbar';
 import { WelcomeScreen } from '../components/WelcomeScreen';
 
+const ScannerModal = React.lazy(() =>
+  import('../scanner/ScannerModal').then((m) => ({ default: m.ScannerModal }))
+);
+
 /** Windows shell: floating desktop toolbar, keyboard shortcuts and drag/drop. */
 export const DesktopShell: React.FC = () => {
   const reader = useReaderController({ keyboard: true, dragDrop: true });
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Shift+S / Cmd+Shift+S: global quick toggle for the scanner.
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        setIsScannerOpen((open) => !open);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
     <div
@@ -26,6 +43,7 @@ export const DesktopShell: React.FC = () => {
           onOpenFile={reader.openFile}
           onOpenSample={reader.openSample}
           onOpenRecent={reader.openRecent}
+          onOpenScanner={() => setIsScannerOpen(true)}
         />
       ) : (
         <>
@@ -50,6 +68,7 @@ export const DesktopShell: React.FC = () => {
             onToggleSidebar={() => reader.setIsSidebarOpen(true)}
             onToggleSearch={() => reader.setIsSearchOpen((open) => !open)}
             onToggleSettings={() => reader.setIsSettingsOpen(true)}
+            onOpenScanner={() => setIsScannerOpen(true)}
             onCloseDocument={reader.closeDocument}
           />
 
@@ -66,6 +85,16 @@ export const DesktopShell: React.FC = () => {
       )}
 
       <ReaderOverlays reader={reader} />
+
+      <Suspense fallback={null}>
+        {isScannerOpen && (
+          <ScannerModal
+            isOpen={isScannerOpen}
+            onClose={() => setIsScannerOpen(false)}
+            onPdfGenerated={(file) => reader.openFile(file)}
+          />
+        )}
+      </Suspense>
     </div>
   );
 };

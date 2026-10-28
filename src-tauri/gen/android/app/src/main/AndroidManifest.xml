@@ -3,6 +3,12 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
+    <!-- Document scanner: getUserMedia camera capture. Requested at runtime by
+         Tauri's RustWebChromeClient only when the scanner opens the camera. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
     <!-- Android 11+ package visibility: TextToSpeech & Otium Scan companion discovery -->
     <queries>
         <intent>
