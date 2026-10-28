@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
@@ -1025,7 +1025,7 @@
             <div>
               <div class="insp-header">
                 <h2 class="insp-title" id="insp-title">Otium Docs</h2>
-                <span class="insp-version-chip" id="insp-ver">v1.1.0</span>
+                <span class="insp-version-chip" id="insp-ver">v1.1.1</span>
                 <span class="insp-type-pill" id="insp-type-pill">المنظومة الموحدة</span>
               </div>
 
@@ -1047,7 +1047,7 @@
               <!-- Actions Deck -->
               <div class="insp-actions-deck">
                 <a href="#" id="insp-download-btn" target="_blank" rel="noopener" class="btn-insp-download">
-                  <span id="insp-download-label">تنزيل Otium Docs v1.1.0</span>
+                  <span id="insp-download-label">تنزيل Otium Docs v1.1.1</span>
                   <span>↗</span>
                 </a>
                 <a href="#" id="insp-repo-btn" target="_blank" rel="noopener" class="btn-insp-source">
@@ -1058,6 +1058,16 @@
               <!-- Dual Mode Deploy Box (Terminal) -->
               <div class="insp-deploy-box" id="insp-deploy-box">
                 <!-- Dynamically populated -->
+              </div>
+
+              <!-- Android Universal & Play Protect Guidance -->
+              <div class="android-install-guide-box" style="margin-top:14px;padding:12px 14px;background:rgba(0, 229, 153, 0.04);border:1px solid rgba(0, 229, 153, 0.2);border-radius:var(--radius-sm);font-size:12px;line-height:1.6;color:var(--text-muted);">
+                <div style="font-weight:700;color:var(--signal);margin-bottom:4px;display:flex;align-items:center;gap:6px;">
+                  <span>⚡</span>
+                  <span id="i18n-guide-title">دليل تثبيت أندرويد (تجاوز تحذيرات الحماية مجاناً)</span>
+                </div>
+                <p style="margin:0 0 6px 0;" id="i18n-guide-p1">• <strong>الحزمة الشاملة:</strong> يفضل دائماً تنزيل ملف <code>universal.apk</code> لضمان التوافق مع كافة المعالجات والهواتف.</p>
+                <p style="margin:0;" id="i18n-guide-p2">• <strong>Google Play Protect & Auto Blocker:</strong> عند ظهور تنبيه الحماية، اضغط على <em>مزيد من التفاصيل (More details)</em> ثم <em>التثبيت على أي حال (Install anyway)</em>. في أجهزة سامسونج عطل <em>الحظر التلقائي (Auto Blocker)</em> مؤقتاً.</p>
               </div>
             </div>
           </section>
@@ -1153,6 +1163,9 @@
         spec3Meta: "03 // HARDWARE EFFICIENCY",
         spec3Title: "كفاءة وسرعة عتادية",
         spec3Desc: "محركات مدمجة بالكامل بلغة Rust و Webview الأصلي توفر استهلاك الذاكرة وتعمل فورياً بسرعة استجابة 0.02 ثانية بدون خوادم خارجية.",
+        guideTitle: "دليل تثبيت أندرويد (تجاوز تحذيرات الحماية مجاناً)",
+        guideP1: "• <strong>الحزمة الشاملة:</strong> يفضل دائماً تنزيل ملف <code>universal.apk</code> لضمان التوافق مع كافة المعالجات والهواتف.",
+        guideP2: "• <strong>Google Play Protect & Auto Blocker:</strong> عند ظهور تنبيه الحماية، اضغط على <em>مزيد من التفاصيل (More details)</em> ثم <em>التثبيت على أي حال (Install anyway)</em>. في أجهزة سامسونج عطل <em>الحظر التلقائي (Auto Blocker)</em> مؤقتاً.",
         footerCopy: "© 2026 Otium Software Studio • مرخصة برخصة GNU General Public License v3.0",
         apps: {
           reader: {
@@ -1163,7 +1176,7 @@
             status: "STANDALONE PDF ENGINE",
             desc: "قارئ PDF فائق الخفة والسرعة مصمم لمن يريد قراءة الكتب والمستندات بتركيز تام، باستهلاك ذاكرة شبه معدوم وبدون أي أدوات غير ضرورية؛ سلاسة عتادية مع دعم القراءة المظلمة.",
             specs: ["محرك PDF فائق الخفة", "استهلاك RAM شبه معدوم", "وضع قراءة مظلم عالي التباين", "Windows & Android", "ترخيص GPL-3.0"],
-            downloadLabel: "تنزيل Otium Reader v1.0.0",
+            downloadLabel: "تنزيل Otium Reader v1.5.5",
             termCmd: "winget install XRTM8.OtiumReader"
           },
           scan: {
@@ -1185,7 +1198,7 @@
             status: "DOCS SUITE ACTIVE",
             desc: "المنظومة الرائدة المحدثة التي تدمج قوة (Otium Reader + Otium Scan) في منصة موحدة مع زر مسح فوري من داخل شريط القراءة؛ امسح مستنداتك بالكاميرا وافتحها فورياً للقراءة والتظليل وإدارتها داخل مكان واحد بأعلى أداء وسرعة.",
             specs: ["دمج Reader + Scanner", "تشغيل فوري 0.02s", "معالجة On-Device", "Windows & Android", "ترخيص GPL-3.0"],
-            downloadLabel: "تنزيل Otium Docs v1.1.0",
+            downloadLabel: "تنزيل Otium Docs v1.1.1",
             termCmd: "winget install XRTM8.OtiumDocs"
           },
           link: {
@@ -1196,7 +1209,7 @@
             status: "P2P LAN ENGINE ACTIVE",
             desc: "أداة متخصصة لنقل الملفات الضخمة ومزامنة نصوص الحافظة بين ويندوز وأندرويد عبر شبكتك المحلية المباشرة (P2P) بدون خوادم، مع حزم أندرويد موحدة وموقعة رسمياً وبسرعة تتجاوز 40MB/s.",
             specs: ["اتصال P2P مباشر وسريع", "حزم أندرويد موحدة وموقعة", "كشف الملفات في المجلد", "Windows & Android", "ترخيص GPL-3.0"],
-            downloadLabel: "تنزيل Otium Link v1.6.0",
+            downloadLabel: "تنزيل Otium Link v1.6.1",
             termCmd: "winget install XRTM8.OtiumLink"
           },
           downloader: {
@@ -1207,7 +1220,7 @@
             status: "MULTI-STREAM CORE ACTIVE",
             desc: "مسرع تنزيل مستقل يضاعف سرعة تحميل الملفات من الإنترنت بتقسيم الرابط إلى 4 إلى 16 مساراً متزامناً مع فحص خوادم التحميل حياً والتحقق من تجزئة SHA-256 وفتح المجلد محلياً بدون خوادم وسيطة.",
             specs: ["تسريع متزامن 4-16 مسار", "فحص خادم حي وتقدير تدفق", "تحقق تجزئة SHA-256", "استكشاف المجلد والتحكم الجماعي", "ترخيص GPL-3.0"],
-            downloadLabel: "تنزيل Otium Downloader v1.1.0",
+            downloadLabel: "تنزيل Otium Downloader v1.2.0",
             termCmd: "winget install XRTM8.OtiumDownloader"
           },
           hub: {
@@ -1248,6 +1261,9 @@
         spec3Meta: "03 // HARDWARE EFFICIENCY",
         spec3Title: "Bare-Metal Speed & Efficiency",
         spec3Desc: "Built entirely in native Rust and Webview runtimes to minimize RAM usage and achieve instantaneous 0.02s cold-start responsiveness without third-party servers.",
+        guideTitle: "Android Installation Guide (Play Protect & Auto Blocker)",
+        guideP1: "• <strong>Universal Package:</strong> Always prefer downloading <code>universal.apk</code> for universal ABI compatibility across all phones.",
+        guideP2: "• <strong>Google Play Protect & Auto Blocker:</strong> If a warning appears, tap <em>More details</em> then <em>Install anyway</em>. On Samsung One UI, temporarily disable <em>Auto Blocker</em> during APK install.",
         footerCopy: "© 2026 Otium Software Studio • Licensed under GNU General Public License v3.0",
         apps: {
           reader: {
@@ -1258,7 +1274,7 @@
             status: "STANDALONE PDF ENGINE",
             desc: "An ultra-fast, minimal PDF reader crafted for distraction-free reading with near-zero memory footprint, high-contrast dark reading mode, and instant page rendering.",
             specs: ["Ultra-Lightweight Engine", "Near-Zero RAM Overhead", "High-Contrast Dark Mode", "Windows & Android", "GPL-3.0 License"],
-            downloadLabel: "Download Otium Reader v1.0.0",
+            downloadLabel: "Download Otium Reader v1.5.5",
             termCmd: "winget install XRTM8.OtiumReader"
           },
           scan: {
@@ -1280,7 +1296,7 @@
             status: "DOCS SUITE ACTIVE",
             desc: "The overhauled flagship document workspace combining an ultra-fast PDF reading engine with an on-device camera scanner, direct-from-toolbar scan integration, dynamic code-splitting, and instant annotations.",
             specs: ["Reader + Scanner Unified", "0.02s Cold Start", "On-Device Edge Camera", "Windows & Android", "GPL-3.0 License"],
-            downloadLabel: "Download Otium Docs v1.1.0",
+            downloadLabel: "Download Otium Docs v1.1.1",
             termCmd: "winget install XRTM8.OtiumDocs"
           },
           link: {
@@ -1291,7 +1307,7 @@
             status: "P2P LAN ENGINE ACTIVE",
             desc: "Instant peer-to-peer clipboard synchronization and high-throughput file transfer across Windows and Android devices over local Wi-Fi with signed universal packages and speeds exceeding 40MB/s.",
             specs: ["Direct P2P LAN Connection", "Signed Universal Android APKs", "Native Folder Navigation", "Windows & Android", "GPL-3.0 License"],
-            downloadLabel: "Download Otium Link v1.6.0",
+            downloadLabel: "Download Otium Link v1.6.1",
             termCmd: "winget install XRTM8.OtiumLink"
           },
           downloader: {
@@ -1302,7 +1318,7 @@
             status: "MULTI-STREAM CORE ACTIVE",
             desc: "A dedicated multi-segment download accelerator splitting downloads across 4 to 16 concurrent HTTP range streams, with live server probing, native folder exploration, and local SHA-256 verification.",
             specs: ["4-16 Concurrent Streams", "Live Server Probe Telemetry", "Local SHA-256 Verification", "Folder Navigation & Batch Controls", "GPL-3.0 License"],
-            downloadLabel: "Download Otium Downloader v1.1.0",
+            downloadLabel: "Download Otium Downloader v1.2.0",
             termCmd: "winget install XRTM8.OtiumDownloader"
           },
           hub: {
@@ -1506,6 +1522,11 @@
       document.getElementById('i18n-spec3-title').innerText = t.spec3Title;
       document.getElementById('i18n-spec3-desc').innerText = t.spec3Desc;
       document.getElementById('i18n-footer-copy').innerText = t.footerCopy;
+      if (document.getElementById('i18n-guide-title')) {
+        document.getElementById('i18n-guide-title').innerText = t.guideTitle;
+        document.getElementById('i18n-guide-p1').innerHTML = t.guideP1;
+        document.getElementById('i18n-guide-p2').innerHTML = t.guideP2;
+      }
 
       // Update Inspector
       renderInspector(currentAppKey);
