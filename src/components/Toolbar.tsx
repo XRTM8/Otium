@@ -13,6 +13,7 @@ import {
   Minimize2,
   MoreHorizontal,
   Palette,
+  ScanLine,
   Scroll,
   Search,
   Settings2,
@@ -44,6 +45,7 @@ interface ToolbarProps {
   onToggleSidebar: () => void;
   onToggleSearch: () => void;
   onToggleSettings: () => void;
+  onOpenScanner?: () => void;
   onCloseDocument: () => void;
   onRenameTitle?: (newTitle: string) => void;
   annotationsCount?: number;
@@ -88,6 +90,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onToggleSidebar,
   onToggleSearch,
   onToggleSettings,
+  onOpenScanner,
   onCloseDocument,
   onRenameTitle,
   annotationsCount,
@@ -513,6 +516,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             className="toolbar-icon"
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenScanner}
+            title={ar ? 'المسح الضوئي بالكاميرا (Ctrl+Shift+S)' : 'Scan Document (Ctrl+Shift+S)'}
+            aria-label={ar ? 'المسح الضوئي بالكاميرا' : 'Scan Document'}
+            className="toolbar-icon text-accent hover:text-accent"
+          >
+            <ScanLine className="w-3.5 h-3.5" />
           </button>
 
           <button

@@ -19,6 +19,7 @@ import {
 import { getFullFrameQuad } from './core/edgeDetection';
 import { warpPerspective } from './core/geometry';
 import { AlertTriangle, Bookmark, Trash2 } from 'lucide-react';
+import { OtiumLogo } from '../components/OtiumLogo';
 import type { ThemeMode } from '../core/types';
 import type { Language } from '../core/i18n/translations';
 
@@ -47,6 +48,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showCloseConfirmModal, setShowCloseConfirmModal] = useState(false);
+  const [isOpeningInReader, setIsOpeningInReader] = useState(false);
 
   // Restore active draft session upon opening
   useEffect(() => {
@@ -275,7 +277,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
   return (
     <div
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
-      className={`fixed inset-0 z-50 bg-[#07090e] text-white flex flex-col select-none overflow-hidden animate-in fade-in duration-200 theme-${theme}`}
+      className={`fixed inset-0 z-50 bg-[#07090e] text-white flex flex-col select-none overflow-hidden animate-in fade-in zoom-in-[0.985] duration-250 ease-out theme-${theme}`}
     >
       {step === 'camera' && (
         <CameraView
@@ -310,11 +312,16 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
           onEditCrop={handleEditCrop}
           onResetAll={handleResetAll}
           onOpenPdfInReader={(file) => {
-            clearScanSession();
-            clearActiveSessionPages();
-            setPages([]);
-            onPdfGenerated(file);
-            onClose();
+            setIsOpeningInReader(true);
+            window.setTimeout(() => {
+              clearScanSession();
+              clearActiveSessionPages();
+              setPages([]);
+              onPdfGenerated(file);
+              window.setTimeout(() => {
+                onClose();
+              }, 260);
+            }, 180);
           }}
         />
       )}
@@ -388,6 +395,24 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
                 متابعة المسح
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Smooth Opening in Reader Transition Overlay */}
+      {isOpeningInReader && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/85 backdrop-blur-2xl animate-in fade-in duration-200 select-none">
+          <div className="relative w-16 h-16 rounded-3xl bg-accent/20 border border-accent/40 flex items-center justify-center shadow-2xl">
+            <div className="absolute inset-0 rounded-3xl border border-accent animate-ping opacity-30" />
+            <OtiumLogo size={32} />
+          </div>
+          <div className="text-center space-y-1">
+            <p className="text-base font-bold text-white font-arabic">
+              {lang === 'ar' ? 'جاري فتح المستند في القارئ...' : 'Opening in Reader...'}
+            </p>
+            <p className="text-xs text-gray-400 font-mono">
+              {pages.length} {lang === 'ar' ? 'صفحات ممسوحة' : 'pages scanned'}
+            </p>
           </div>
         </div>
       )}

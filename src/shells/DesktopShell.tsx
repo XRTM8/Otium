@@ -10,11 +10,30 @@ import { WelcomeScreen } from '../components/WelcomeScreen';
 const ScannerModal = React.lazy(() =>
   import('../scanner/ScannerModal').then((m) => ({ default: m.ScannerModal }))
 );
+const preloadScanner = () => import('../scanner/ScannerModal');
 
 /** Windows shell: floating desktop toolbar, keyboard shortcuts and drag/drop. */
 export const DesktopShell: React.FC = () => {
   const reader = useReaderController({ keyboard: true, dragDrop: true });
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  // Preload scanner code during idle moments so opening is instantaneous
+  useEffect(() => {
+    let timer: any = null;
+    if (typeof window !== 'undefined') {
+      const win = window as any;
+      if (typeof win.requestIdleCallback === 'function') {
+        win.requestIdleCallback(() => {
+          void preloadScanner();
+        });
+      } else {
+        timer = win.setTimeout(() => void preloadScanner(), 1500);
+      }
+    }
+    return () => {
+      if (timer !== null) clearTimeout(timer);
+    };
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -68,6 +87,7 @@ export const DesktopShell: React.FC = () => {
             onToggleSidebar={() => reader.setIsSidebarOpen(true)}
             onToggleSearch={() => reader.setIsSearchOpen((open) => !open)}
             onToggleSettings={() => reader.setIsSettingsOpen(true)}
+            onOpenScanner={() => setIsScannerOpen(true)}
             onCloseDocument={reader.closeDocument}
             onRenameTitle={reader.renameDocument}
             annotationsCount={reader.annotations.length}

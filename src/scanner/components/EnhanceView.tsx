@@ -1230,29 +1230,29 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
         {/* Row 4: Primary Export & Companion Actions (Screen-fitted, Never overflows) */}
         <div className="flex items-center gap-1.5 mt-0.5">
           <button
-            onClick={handleSharePdf}
+            onClick={handleOpenInOtium}
             disabled={pdfGenerating}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-accent hover:opacity-95 text-on-accent font-black text-xs active:scale-95 transition-all shadow-lg disabled:opacity-50"
-            title="مشاركة وتصدير مستند الـ PDF"
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-accent hover:opacity-95 text-on-accent font-black text-xs active:scale-95 transition-all shadow-lg shadow-accent/25 disabled:opacity-50 cursor-pointer"
+            title="فتح المستند في قارئ أو تيوم مباشرة"
           >
-            <Share2 className="w-4 h-4 text-black shrink-0" />
-            <span className="font-bold text-xs truncate">مشاركة وتصدير PDF</span>
+            <OtiumLogo size={16} className="text-current shrink-0" />
+            <span className="font-bold text-xs truncate">فتح في القارئ</span>
           </button>
 
           <button
-            onClick={handleOpenInOtium}
+            onClick={handleSharePdf}
             disabled={pdfGenerating}
-            className="flex items-center gap-1 px-3 py-2.5 rounded-xl glass-button text-gray-200 hover:text-accent active:scale-95 transition-all text-xs font-bold shrink-0 disabled:opacity-50"
-            title="فتح المستند في قارئ أو تيوم"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl glass-button text-gray-200 hover:text-white font-bold text-xs active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
+            title="مشاركة وتصدير مستند الـ PDF"
           >
-            <OtiumLogo size={15} className="text-accent shrink-0" />
-            <span className="text-xs">القارئ</span>
+            <Share2 className="w-4 h-4 text-accent shrink-0" />
+            <span className="text-xs truncate">مشاركة وتصدير</span>
           </button>
 
           <button
             onClick={handleDownloadJpg}
             disabled={pdfGenerating}
-            className="p-2.5 rounded-xl glass-button text-gray-200 active:scale-95 transition-transform shrink-0 disabled:opacity-50"
+            className="p-2.5 rounded-xl glass-button text-gray-200 hover:text-white active:scale-95 transition-transform shrink-0 disabled:opacity-50 cursor-pointer"
             title="حفظ الصفحة كصورة JPG"
           >
             <ImageIcon className="w-4 h-4 text-gray-300" />

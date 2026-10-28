@@ -9,6 +9,7 @@ import {
   Layers,
   MoreHorizontal,
   Palette,
+  ScanLine,
   Scroll,
   Search,
   Settings2,
@@ -41,6 +42,7 @@ interface MobileToolbarProps {
   onToggleBookmark: () => void;
   onToggleSearch: () => void;
   onOpenSidebar: () => void;
+  onOpenScanner?: () => void;
   onOpenSettings: () => void;
   onCloseDocument: () => void;
 }
@@ -77,6 +79,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
   onToggleBookmark,
   onToggleSearch,
   onOpenSidebar,
+  onOpenScanner,
   onOpenSettings,
   onCloseDocument
 }) => {
@@ -251,30 +254,30 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-5 gap-1">
             <button
               type="button"
               onClick={() => {
                 onToggleBookmark();
                 setShowMenu(false);
               }}
-              className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-[10px] transition-colors ${
+              className={`flex flex-col items-center gap-1 p-1.5 rounded-xl border text-[10px] transition-colors ${
                 isBookmarked
                   ? 'bg-accent/20 text-accent border-accent/40'
                   : 'bg-hover-subtle text-ink-muted border-line-subtle'
               }`}
             >
               <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-highlight' : ''}`} />
-              <span>{ar ? 'إشارة' : 'Bookmark'}</span>
+              <span className="truncate">{ar ? 'إشارة' : 'Mark'}</span>
             </button>
 
             <button
               type="button"
               onClick={() => onViewModeChange(VIEW_MODES[(VIEW_MODES.indexOf(viewMode) + 1) % VIEW_MODES.length])}
-              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-hover-subtle border border-line-subtle text-ink-muted text-[10px]"
+              className="flex flex-col items-center gap-1 p-1.5 rounded-xl bg-hover-subtle border border-line-subtle text-ink-muted text-[10px]"
             >
               {viewModeIcon}
-              <span>{viewModeLabel}</span>
+              <span className="truncate">{viewModeLabel}</span>
             </button>
 
             <button
@@ -283,10 +286,22 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
                 onOpenSidebar();
                 setShowMenu(false);
               }}
-              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-hover-subtle border border-line-subtle text-ink-muted text-[10px]"
+              className="flex flex-col items-center gap-1 p-1.5 rounded-xl bg-hover-subtle border border-line-subtle text-ink-muted text-[10px]"
             >
               <Layers className="w-4 h-4" />
-              <span>{t.pagesTab}</span>
+              <span className="truncate">{t.pagesTab}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                onOpenScanner?.();
+                setShowMenu(false);
+              }}
+              className="flex flex-col items-center gap-1 p-1.5 rounded-xl bg-accent/15 border border-accent/30 text-accent text-[10px] active:scale-95 transition-all cursor-pointer"
+            >
+              <ScanLine className="w-4 h-4 text-accent" />
+              <span className="truncate font-semibold">{ar ? 'الماسح' : 'Scanner'}</span>
             </button>
 
             <button
@@ -295,10 +310,10 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
                 onOpenSettings();
                 setShowMenu(false);
               }}
-              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-hover-subtle border border-line-subtle text-accent text-[10px]"
+              className="flex flex-col items-center gap-1 p-1.5 rounded-xl bg-hover-subtle border border-line-subtle text-ink-muted hover:text-ink text-[10px]"
             >
               <Settings2 className="w-4 h-4" />
-              <span>{ar ? 'إعدادات' : 'Settings'}</span>
+              <span className="truncate">{ar ? 'إعدادات' : 'Settings'}</span>
             </button>
           </div>
 
