@@ -70,7 +70,8 @@ const THEME_ORDER: ThemeMode[] = [
   'parchment',
   'amber',
   'eink',
-  'pure'
+  'pure',
+  'sakura'
 ];
 
 const SAMPLE_DOCUMENT_NAME = 'The Art of Vibe Reading.pdf';

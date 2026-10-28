@@ -2,7 +2,7 @@ import type { ThemeMode } from '../core/types';
 import { getThemeBackground } from '../app/themeBackground';
 import { getPlatformId, isTauriRuntime } from './runtime';
 
-const LIGHT_THEMES: readonly ThemeMode[] = ['paper', 'parchment', 'eink', 'pure'];
+const LIGHT_THEMES: readonly ThemeMode[] = ['paper', 'parchment', 'eink', 'pure', 'sakura'];
 const ALL_THEMES: readonly ThemeMode[] = [
   'paper',
   'midnight',
@@ -10,7 +10,8 @@ const ALL_THEMES: readonly ThemeMode[] = [
   'parchment',
   'amber',
   'eink',
-  'pure'
+  'pure',
+  'sakura'
 ];
 
 export function isLightTheme(theme: ThemeMode): boolean {

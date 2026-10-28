@@ -1,7 +1,7 @@
 import type { ThemeMode, ViewMode } from '../types';
 import type { Language } from '../i18n/translations';
 
-const THEMES: ThemeMode[] = ['paper', 'midnight', 'eink', 'amber', 'pure', 'amoled', 'parchment'];
+const THEMES: ThemeMode[] = ['paper', 'midnight', 'eink', 'amber', 'pure', 'amoled', 'parchment', 'sakura'];
 const VIEW_MODES: ViewMode[] = ['continuous', 'single', 'dual'];
 
 const KEYS = {

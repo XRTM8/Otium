@@ -15,6 +15,8 @@ export function getThemeBackground(theme: ThemeMode): string {
       return '#000000';
     case 'parchment':
       return '#ede2cd';
+    case 'sakura':
+      return '#fbf1f3';
     case 'pure':
     default:
       return '#f1f5f9';

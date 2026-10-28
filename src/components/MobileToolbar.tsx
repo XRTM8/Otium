@@ -48,7 +48,8 @@ const THEMES: { id: ThemeMode; dot: string }[] = [
   { id: 'parchment', dot: '#d97706' },
   { id: 'amber', dot: '#f59e0b' },
   { id: 'eink', dot: '#9ca3af' },
-  { id: 'pure', dot: '#f8fafc' }
+  { id: 'pure', dot: '#f8fafc' },
+  { id: 'sakura', dot: '#f472b6' }
 ];
 
 const VIEW_MODES: ViewMode[] = ['continuous', 'dual', 'single'];

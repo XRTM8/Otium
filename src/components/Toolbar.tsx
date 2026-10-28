@@ -51,7 +51,8 @@ const THEME_DOTS: Record<ThemeMode, string> = {
   parchment: '#d97706',
   amber: '#f59e0b',
   eink: '#9ca3af',
-  pure: '#f8fafc'
+  pure: '#f8fafc',
+  sakura: '#f472b6'
 };
 
 const VIEW_MODES: { id: ViewMode; icon: React.ReactNode; key: keyof ReturnType<typeof getTranslations> }[] = [

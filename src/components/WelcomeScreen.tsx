@@ -72,7 +72,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
     { id: 'parchment', label: t.themes.parchment, dot: '#d97706' },
     { id: 'amber', label: t.themes.amber, dot: '#f59e0b' },
     { id: 'eink', label: t.themes.eink, dot: '#a3a3a3' },
-    { id: 'pure', label: t.themes.pure, dot: '#818cf8' }
+    { id: 'pure', label: t.themes.pure, dot: '#818cf8' },
+    { id: 'sakura', label: t.themes.sakura, dot: '#f472b6' }
   ];
 
   const activeThemeMeta = themesList.find((th) => th.id === currentTheme) || themesList[0];

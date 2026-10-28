@@ -5,7 +5,7 @@ import { normalizeAnnotation } from './annotations';
 export const BACKUP_FORMAT = 'otium-backup';
 export const BACKUP_VERSION = 1;
 
-const THEMES: ThemeMode[] = ['paper', 'midnight', 'eink', 'amber', 'pure', 'amoled', 'parchment'];
+const THEMES: ThemeMode[] = ['paper', 'midnight', 'eink', 'amber', 'pure', 'amoled', 'parchment', 'sakura'];
 const VIEW_MODES: ViewMode[] = ['continuous', 'single', 'dual'];
 const FONT_IDS: FontFamilyId[] = [
   'tajawal',

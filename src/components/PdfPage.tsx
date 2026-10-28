@@ -39,7 +39,8 @@ const PAGE_BACKGROUND: Record<ThemeMode, string> = {
   parchment: '#fbf6ea',
   eink: '#e5e7eb',
   pure: '#ffffff',
-  paper: '#fdfcf8'
+  paper: '#fdfcf8',
+  sakura: '#fdf6f7'
 };
 
 const THEME_FILTERS: Partial<Record<ThemeMode, string>> = {
@@ -568,9 +569,15 @@ const PdfPageView: React.FC<PdfPageProps> = ({
         />
       )}
 
-      {(theme === 'paper' || theme === 'parchment') && (
+      {(theme === 'paper' || theme === 'parchment' || theme === 'sakura') && (
         <div
-          className={`paper-overlay ${theme === 'parchment' ? 'paper-overlay-parchment' : 'paper-overlay-book'}`}
+          className={`paper-overlay ${
+            theme === 'parchment'
+              ? 'paper-overlay-parchment'
+              : theme === 'sakura'
+                ? 'paper-overlay-sakura'
+                : 'paper-overlay-book'
+          }`}
           aria-hidden="true"
         />
       )}
