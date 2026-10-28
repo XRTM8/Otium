@@ -3,9 +3,11 @@ import {
   ArrowLeft,
   Bookmark,
   BookOpen,
+  Check,
   ChevronLeft,
   ChevronRight,
   Columns,
+  Edit2,
   Layers,
   Maximize2,
   Minimize2,
@@ -43,6 +45,11 @@ interface ToolbarProps {
   onToggleSearch: () => void;
   onToggleSettings: () => void;
   onCloseDocument: () => void;
+  onRenameTitle?: (newTitle: string) => void;
+  annotationsCount?: number;
+  bookmarksCount?: number;
+  fileSizeBytes?: number;
+  pageDimensions?: { width: number; height: number };
 }
 
 const THEME_DOTS: Record<ThemeMode, string> = {
@@ -81,16 +88,27 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onToggleSidebar,
   onToggleSearch,
   onToggleSettings,
-  onCloseDocument
+  onCloseDocument,
+  onRenameTitle,
+  annotationsCount,
+  bookmarksCount,
+  fileSizeBytes,
+  pageDimensions
 }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameText, setRenameText] = useState(title);
   const [showMoreMobile, setShowMoreMobile] = useState(false);
   const [inputPage, setInputPage] = useState(currentPage.toString());
 
   const t = getTranslations(currentLang);
   const ar = currentLang === 'ar';
+
+  useEffect(() => {
+    setRenameText(title);
+  }, [title]);
 
   useEffect(() => {
     setInputPage(currentPage.toString());
@@ -247,13 +265,64 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     <div className="text-[10px] font-mono uppercase tracking-wider text-ink-faint">
                       {ar ? 'المستند الحالي' : 'Current Document'}
                     </div>
-                    <div className="truncate font-semibold text-xs text-ink mt-0.5" title={title}>
-                      {title}
-                    </div>
+                    {isRenaming ? (
+                      <div className="flex items-center gap-1 mt-1">
+                        <input
+                          type="text"
+                          value={renameText}
+                          onChange={(e) => setRenameText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              if (renameText.trim() && onRenameTitle) {
+                                onRenameTitle(renameText.trim());
+                              }
+                              setIsRenaming(false);
+                            } else if (e.key === 'Escape') {
+                              setRenameText(title);
+                              setIsRenaming(false);
+                            }
+                          }}
+                          autoFocus
+                          className="w-full text-xs font-medium text-ink bg-hover px-1.5 py-0.5 rounded outline-none border border-line-strong"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (renameText.trim() && onRenameTitle) {
+                              onRenameTitle(renameText.trim());
+                            }
+                            setIsRenaming(false);
+                          }}
+                          className="toolbar-icon h-5 w-5 text-accent shrink-0"
+                          title={ar ? 'حفظ الاسم' : 'Save name'}
+                        >
+                          <Check className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 mt-0.5 group">
+                        <span className="truncate font-semibold text-xs text-ink" title={title}>
+                          {title}
+                        </span>
+                        {onRenameTitle && (
+                          <button
+                            type="button"
+                            onClick={() => setIsRenaming(true)}
+                            className="opacity-50 hover:opacity-100 p-0.5 text-ink-muted hover:text-ink shrink-0"
+                            title={ar ? 'إعادة تسمية العرض' : 'Rename title'}
+                          >
+                            <Edit2 className="w-2.5 h-2.5" />
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <button
                     type="button"
-                    onClick={() => setShowInspector(false)}
+                    onClick={() => {
+                      setShowInspector(false);
+                      setIsRenaming(false);
+                    }}
                     className="toolbar-icon h-6 w-6 shrink-0"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -280,6 +349,38 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     <span className="font-sans">{ar ? 'الصفحات:' : 'Pages:'}</span>
                     <span>{currentPage} / {totalPages}</span>
                   </div>
+
+                  {fileSizeBytes ? (
+                    <div className="flex items-center justify-between text-ink-muted">
+                      <span className="font-sans">{ar ? 'حجم الملف:' : 'File size:'}</span>
+                      <span dir="ltr">
+                        {fileSizeBytes < 1024 * 1024
+                          ? `${Math.round(fileSizeBytes / 1024)} KB`
+                          : `${(fileSizeBytes / (1024 * 1024)).toFixed(1)} MB`}
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {pageDimensions ? (
+                    <div className="flex items-center justify-between text-ink-muted">
+                      <span className="font-sans">{ar ? 'أبعاد الصفحة:' : 'Dimensions:'}</span>
+                      <span dir="ltr">{Math.round(pageDimensions.width)} × {Math.round(pageDimensions.height)} pt</span>
+                    </div>
+                  ) : null}
+
+                  {typeof annotationsCount === 'number' ? (
+                    <div className="flex items-center justify-between text-ink-muted">
+                      <span className="font-sans">{ar ? 'الملاحظات والتظليلات:' : 'Notes & Highlights:'}</span>
+                      <span>{annotationsCount}</span>
+                    </div>
+                  ) : null}
+
+                  {typeof bookmarksCount === 'number' ? (
+                    <div className="flex items-center justify-between text-ink-muted">
+                      <span className="font-sans">{ar ? 'الإشارات المرجعية:' : 'Bookmarks:'}</span>
+                      <span>{bookmarksCount}</span>
+                    </div>
+                  ) : null}
 
                   <div className="flex items-center justify-between text-ink-muted">
                     <span className="font-sans">{ar ? 'نسبة العرض:' : 'Zoom:'}</span>

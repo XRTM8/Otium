@@ -24,6 +24,7 @@ export interface RecentDocItem {
   sizeBytes: number;
   /** False for a restored entry whose PDF has not been re-imported yet. */
   available: boolean;
+  scrollOffsetRatio?: number;
 }
 
 export interface StoredDocumentRecord {
@@ -33,6 +34,7 @@ export interface StoredDocumentRecord {
   lastPage: number;
   totalPages: number;
   sizeBytes: number;
+  scrollOffsetRatio?: number;
   fingerprint?: string;
   hasFile?: boolean;
   metadataOnly?: boolean;
@@ -87,7 +89,8 @@ function toRecentDoc(raw: StoredDocumentRecord): RecentDocItem {
     lastPage: record.lastPage,
     totalPages: record.totalPages,
     sizeBytes: record.sizeBytes,
-    available: Boolean(record.hasFile || record.data)
+    available: Boolean(record.hasFile || record.data),
+    scrollOffsetRatio: record.scrollOffsetRatio
   };
 }
 
@@ -421,7 +424,11 @@ export async function saveDocumentToStorage(
   }
 }
 
-export async function updateDocumentPage(id: string, page: number): Promise<void> {
+export async function updateDocumentPage(
+  id: string,
+  page: number,
+  scrollOffsetRatio?: number
+): Promise<void> {
   if (!id) return;
   try {
     const db = await openDB();
@@ -436,11 +443,35 @@ export async function updateDocumentPage(id: string, page: number): Promise<void
     tx.objectStore(STORE_NAME).put({
       ...metadata,
       lastPage,
+      scrollOffsetRatio:
+        typeof scrollOffsetRatio === 'number' && Number.isFinite(scrollOffsetRatio)
+          ? Math.max(0, Math.min(1, scrollOffsetRatio))
+          : metadata.scrollOffsetRatio ?? 0,
       lastOpened: Date.now()
     });
     await transactionDone(tx);
   } catch {
     // Progress is best-effort; the PDF remains readable without it.
+  }
+}
+
+export async function renameStoredDocument(id: string, newName: string): Promise<void> {
+  if (!id || !newName.trim()) return;
+  try {
+    const db = await openDB();
+    const record = await readMetadata(db, id);
+    if (!record) return;
+
+    const normalized = normalizeRecord(record);
+    const { data: _data, ...metadata } = normalized;
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).put({
+      ...metadata,
+      name: newName.trim()
+    });
+    await transactionDone(tx);
+  } catch {
+    // Best-effort rename
   }
 }
 

@@ -69,6 +69,11 @@ export const DesktopShell: React.FC = () => {
             onToggleSearch={() => reader.setIsSearchOpen((open) => !open)}
             onToggleSettings={() => reader.setIsSettingsOpen(true)}
             onCloseDocument={reader.closeDocument}
+            onRenameTitle={reader.renameDocument}
+            annotationsCount={reader.annotations.length}
+            bookmarksCount={reader.bookmarks.length}
+            fileSizeBytes={reader.fileSizeBytes}
+            pageDimensions={reader.basePageSize}
           />
 
           <TextSelectionMenu

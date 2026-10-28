@@ -14,6 +14,7 @@ import { openPdf } from '../core/pdf/document';
 import {
   adoptLegacyDocumentRecord,
   getDocumentFromStorage,
+  renameStoredDocument,
   saveDocumentToStorage,
   updateDocumentPage
 } from '../core/storage/documents';
@@ -29,11 +30,13 @@ import {
   loadLanguage,
   loadLastPage,
   loadMobileNavVisible,
+  loadScrollOffset,
   loadTheme,
   loadViewMode,
   saveLanguage,
   saveLastPage,
   saveMobileNavVisible,
+  saveScrollOffset,
   saveTheme,
   saveViewMode
 } from '../core/settings/preferences';
@@ -259,6 +262,11 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const bookmarksHydratedRef = useRef(false);
   const docIdRef = useRef('');
   const pendingScrollPageRef = useRef<number | null>(null);
+  const pendingScrollOffsetRef = useRef<number | null>(null);
+  const numberJumpBufferRef = useRef<string>('');
+  const numberJumpTimerRef = useRef<number | null>(null);
+  const [numberJumpDisplay, setNumberJumpDisplay] = useState<string | null>(null);
+  const [fileSizeBytes, setFileSizeBytes] = useState<number>(0);
   const lastWheelTimeRef = useRef(0);
   const wheelAccumRef = useRef(0);
   const wheelDirectionRef = useRef(0);
@@ -446,13 +454,27 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     };
   }, []);
 
-  const scrollToRenderedPage = useCallback((pageNumber: number) => {
+  const scrollToRenderedPage = useCallback((pageNumber: number, offsetRatio?: number) => {
     const target = document.getElementById(`pdf-page-${pageNumber}`);
-    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!target) return;
+    const container = scrollContainerRef.current;
+    if (container && typeof offsetRatio === 'number' && offsetRatio > 0) {
+      const targetTop = target.offsetTop;
+      const targetHeight = target.offsetHeight;
+      container.scrollTo({
+        top: targetTop + Math.round(targetHeight * Math.min(1, Math.max(0, offsetRatio))),
+        behavior: 'smooth'
+      });
+    } else {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }, []);
 
-  const persistVisiblePage = useCallback((documentId: string, pageNumber: number) => {
+  const persistVisiblePage = useCallback((documentId: string, pageNumber: number, offsetRatio?: number) => {
     saveLastPage(documentId, pageNumber);
+    if (typeof offsetRatio === 'number') {
+      saveScrollOffset(documentId, offsetRatio);
+    }
     if (
       lastSavedPageRef.current?.title === documentId &&
       lastSavedPageRef.current.page === pageNumber
@@ -465,7 +487,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     }
     pageSaveTimerRef.current = window.setTimeout(() => {
       pageSaveTimerRef.current = null;
-      void updateDocumentPage(documentId, pageNumber);
+      void updateDocumentPage(documentId, pageNumber, offsetRatio);
     }, 600);
   }, []);
 
@@ -500,8 +522,10 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   useEffect(() => {
     if (viewMode !== 'continuous' || pendingScrollPageRef.current === null) return;
     const pageNumber = pendingScrollPageRef.current;
+    const offsetRatio = pendingScrollOffsetRef.current ?? undefined;
     pendingScrollPageRef.current = null;
-    scrollToRenderedPage(pageNumber);
+    pendingScrollOffsetRef.current = null;
+    scrollToRenderedPage(pageNumber, offsetRatio);
   }, [currentPage, doc, viewMode, scrollToRenderedPage]);
 
   // Single and dual pages are separate viewports: a new page starts at the
@@ -521,7 +545,17 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     (pageNumber: number) => {
       setCurrentPage((current) => (current === pageNumber ? current : pageNumber));
       if (docId) {
-        persistVisiblePage(docId, pageNumber);
+        let offsetRatio: number | undefined;
+        const container = scrollContainerRef.current;
+        const slot = document.getElementById(`pdf-page-${pageNumber}`);
+        if (container && slot) {
+          const slotTop = slot.offsetTop;
+          const slotHeight = slot.offsetHeight;
+          if (slotHeight > 0) {
+            offsetRatio = Math.max(0, Math.min(1, (container.scrollTop - slotTop) / slotHeight));
+          }
+        }
+        persistVisiblePage(docId, pageNumber, offsetRatio);
       }
     },
     [docId, persistVisiblePage]
@@ -967,10 +1001,13 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       }
 
       const savedPage = loadLastPage(documentId, title);
+      const savedOffset = loadScrollOffset(documentId);
       const initialPage =
         savedPage > 0 && savedPage <= opened.numPages ? savedPage : 1;
-      pendingScrollPageRef.current = initialPage > 1 ? initialPage : null;
+      pendingScrollPageRef.current = initialPage > 1 || savedOffset > 0 ? initialPage : null;
+      pendingScrollOffsetRef.current = savedOffset > 0 ? savedOffset : null;
       setCurrentPage(initialPage);
+      setFileSizeBytes(storageBuffer.byteLength);
 
       if (storageBuffer.byteLength > 0) {
         void saveDocumentToStorage(documentId, title, storageBuffer, opened.numPages, initialPage);
@@ -978,7 +1015,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         // prove they are the same document, so same-named books stay separate.
         void adoptLegacyDocumentRecord(title, documentId);
       } else {
-        void updateDocumentPage(documentId, initialPage);
+        void updateDocumentPage(documentId, initialPage, savedOffset);
       }
 
       if (previousDoc && previousDoc !== opened.doc) {
@@ -1495,6 +1532,54 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (isEditableTarget(event.target)) return;
 
+      if (!event.ctrlKey && !event.metaKey && !event.altKey) {
+        if (/^[0-9]$/.test(event.key)) {
+          // If '0' and no buffer, keep '0' shortcut (reset zoom to 1.15)
+          if (event.key === '0' && !numberJumpBufferRef.current) {
+            event.preventDefault();
+            setZoom(1.15);
+            return;
+          }
+          event.preventDefault();
+          numberJumpBufferRef.current = `${numberJumpBufferRef.current}${event.key}`;
+          setNumberJumpDisplay(numberJumpBufferRef.current);
+          if (numberJumpTimerRef.current !== null) {
+            window.clearTimeout(numberJumpTimerRef.current);
+          }
+          numberJumpTimerRef.current = window.setTimeout(() => {
+            numberJumpBufferRef.current = '';
+            setNumberJumpDisplay(null);
+          }, 2400);
+          return;
+        }
+
+        if ((event.key === 'Enter' || event.key.toLowerCase() === 'g') && numberJumpBufferRef.current) {
+          event.preventDefault();
+          const target = Number.parseInt(numberJumpBufferRef.current, 10);
+          numberJumpBufferRef.current = '';
+          setNumberJumpDisplay(null);
+          if (numberJumpTimerRef.current !== null) {
+            window.clearTimeout(numberJumpTimerRef.current);
+            numberJumpTimerRef.current = null;
+          }
+          if (Number.isFinite(target) && target >= 1 && target <= numPages) {
+            scrollToPage(target);
+          }
+          return;
+        }
+
+        if (event.key === 'Escape' && numberJumpBufferRef.current) {
+          event.preventDefault();
+          numberJumpBufferRef.current = '';
+          setNumberJumpDisplay(null);
+          if (numberJumpTimerRef.current !== null) {
+            window.clearTimeout(numberJumpTimerRef.current);
+            numberJumpTimerRef.current = null;
+          }
+          return;
+        }
+      }
+
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') {
         event.preventDefault();
         setIsSearchOpen((open) => !open);
@@ -1647,6 +1732,18 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     saveMobileNavVisible(true);
   }, [changeFont, changeTheme, changeViewMode]);
 
+  const renameCurrentDocument = useCallback(
+    (newTitle: string) => {
+      const trimmed = newTitle.trim();
+      if (!trimmed) return;
+      setDocTitle(trimmed);
+      if (docId) {
+        void renameStoredDocument(docId, trimmed);
+      }
+    },
+    [docId]
+  );
+
   return {
     doc,
     docTitle,
@@ -1678,6 +1775,9 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     passwordModal,
     dualFlipKey,
     dualFlipDir,
+    fileSizeBytes,
+    numberJumpDisplay,
+    renameDocument: renameCurrentDocument,
     isDraggingTouch,
     scrollContainerRef,
     openFile,

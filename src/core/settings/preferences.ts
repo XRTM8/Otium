@@ -94,3 +94,15 @@ export function saveLastPage(docKey: string, page: number): void {
   if (!docKey) return;
   write(KEYS.page(docKey), String(page));
 }
+
+export function loadScrollOffset(docKey: string): number {
+  if (!docKey) return 0;
+  const saved = read(`otium_scroll_${docKey}`);
+  const ratio = saved ? Number.parseFloat(saved) : 0;
+  return Number.isFinite(ratio) && ratio >= 0 && ratio <= 1 ? ratio : 0;
+}
+
+export function saveScrollOffset(docKey: string, ratio: number): void {
+  if (!docKey) return;
+  write(`otium_scroll_${docKey}`, String(Math.max(0, Math.min(1, ratio))));
+}

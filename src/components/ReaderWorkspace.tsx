@@ -120,7 +120,8 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
     handleTouchCancel,
     isDraggingTouch,
     dualFlipKey,
-    dualFlipDir
+    dualFlipDir,
+    numberJumpDisplay
   } = reader;
 
   const [compactLandscape, setCompactLandscape] = useState(false);
@@ -557,21 +558,33 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
         </div>
       )}
 
-      {/* Zen Minimal Reading Pill: Floats softly during scroll/flip, vanishes 1.6s later */}
+      {/* Zen Minimal Reading Pill: Floats softly in bottom corner during scroll/flip/jump */}
       <div
         dir={isRtl ? 'rtl' : 'ltr'}
-        className={`fixed z-30 bottom-6 inset-x-0 flex justify-center pointer-events-none transition-all duration-300 ${
-          showScrubberPill ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+        className={`fixed z-30 bottom-6 start-6 pointer-events-none transition-all duration-300 ${
+          showScrubberPill || Boolean(numberJumpDisplay)
+            ? 'opacity-100 translate-y-0 scale-100'
+            : 'opacity-0 translate-y-2 scale-95'
         }`}
       >
         <div className="chrome-surface flex items-center gap-2 rounded-full px-3.5 py-1.5 font-mono text-[11px] text-ink shadow-xl backdrop-blur-xl border border-line-subtle select-none">
-          <span className="font-sans font-medium text-ink">
-            {lang === 'ar' ? `صفحة ${currentPage} من ${numPages}` : `Page ${currentPage} of ${numPages}`}
-          </span>
-          <span className="text-ink-faint text-[9px]">•</span>
-          <span className="text-accent font-semibold text-[10px]">
-            {Math.min(100, Math.round((currentPage / Math.max(1, numPages)) * 100))}%
-          </span>
+          {numberJumpDisplay ? (
+            <span className="flex items-center gap-1.5 text-accent font-semibold font-mono">
+              <span>{lang === 'ar' ? 'انتقال إلى صفحة' : 'Jump to:'}</span>
+              <span className="text-ink text-xs underline decoration-accent font-bold">{numberJumpDisplay}</span>
+              <span className="text-[10px] text-ink-muted">(Enter ↵)</span>
+            </span>
+          ) : (
+            <>
+              <span className="font-sans font-medium text-ink">
+                {lang === 'ar' ? `صفحة ${currentPage} من ${numPages}` : `Page ${currentPage} of ${numPages}`}
+              </span>
+              <span className="text-ink-faint text-[9px]">•</span>
+              <span className="text-accent font-semibold text-[10px]">
+                {Math.min(100, Math.round((currentPage / Math.max(1, numPages)) * 100))}%
+              </span>
+            </>
+          )}
         </div>
       </div>
     </div>
