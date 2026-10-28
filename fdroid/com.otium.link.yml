@@ -24,14 +24,14 @@ RepoType: git
 Repo: https://github.com/XRTM8/Otium-Link.git
 
 Builds:
-  - versionName: 1.6.2
-    versionCode: 162
-    commit: v1.6.2
+  - versionName: 1.6.3
+    versionCode: 163
+    commit: v1.6.3
     subdir: src-tauri/gen/android
     gradle:
       - yes
 
 AutoUpdateMode: Version v%v
 UpdateCheckMode: Tags
-CurrentVersion: 1.6.2
-CurrentVersionCode: 162
+CurrentVersion: 1.6.3
+CurrentVersionCode: 163
