@@ -144,10 +144,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sdkmanager --install \
-            "platforms;android-36" \
-            "build-tools;36.0.0" \
-            "ndk;27.0.12077973"
+          for attempt in 1 2 3; do
+            echo "Installing SDK packages (attempt $attempt/3)..."
+            if sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973"; then
+              echo "SDK packages installed successfully."
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Error: Failed to install Android SDK packages after 3 attempts."
+              exit 1
+            fi
+            echo "sdkmanager download interrupted. Retrying in 5s..."
+            sleep 5
+          done
           yes | sdkmanager --licenses > /dev/null || true
           echo "NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> "$GITHUB_ENV"
           echo "$ANDROID_HOME/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin" >> "$GITHUB_PATH"
