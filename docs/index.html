@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
@@ -6,18 +6,18 @@
   <title>Otium Software — منظومة البرمجيات الحرة والمحلية المستقلة والموحدة</title>
   <meta name="description" content="منظومة برمجيات هندسية حرة ومحلية 100% لنظامي Windows و Android: أدوات مستقلة متخصصة وحزم موحدة شاملة. خصوصية تامة، وترخيص GNU GPL v3." />
   <meta name="color-scheme" content="dark" />
-  <meta name="theme-color" content="#08090c" />
+  <meta name="theme-color" content="#08090d" />
   <link rel="icon" type="image/png" href="favicon.png" />
 
-  <!-- Typography: Tajawal + JetBrains Mono -->
+  <!-- Typography: Tajawal (Arabic/Body) + Plus Jakarta Sans + JetBrains Mono (Code/Telemetry) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet" />
 
   <style>
     /* ==========================================================================
-       OTIUM 2026/2027 INDUSTRIAL MONOLITH — MODULAR EQUATION ARCHITECTURE
-       Strict 2-Color Architecture: Obsidian Carbon (#08090c) + Signal Phosphor (#00e599)
+       OTIUM SOVEREIGN ECOSYSTEM 2026/2027 — LUXURY INDUSTRIAL ARCHITECTURE
+       Dynamic Multi-Brand Palette + Pure Obsidian Carbon Glass
        ========================================================================== */
     *, *::before, *::after {
       box-sizing: border-box;
@@ -26,30 +26,39 @@
     }
 
     :root {
-      /* Base & Surfaces (Carbon Obsidian) */
-      --bg-root: #08090c;
-      --bg-panel: #0d0f14;
-      --bg-card: #12151c;
-      --bg-card-hover: #171b24;
+      /* Base & Obsidian Surfaces */
+      --bg-root: #08090d;
+      --bg-panel: #0d1017;
+      --bg-card: #131722;
+      --bg-card-hover: #1a2030;
       --border-hairline: rgba(255, 255, 255, 0.08);
-      --border-focus: rgba(255, 255, 255, 0.22);
-      --text-white: #f5f7fa;
+      --border-focus: rgba(255, 255, 255, 0.2);
+      --text-white: #f8fafc;
       --text-muted: #94a3b8;
       --text-dim: #64748b;
 
-      /* Single Signal Accent (Phosphor Emerald) */
-      --signal: #00e599;
-      --signal-glow: rgba(0, 229, 153, 0.24);
-      --signal-dim: rgba(0, 229, 153, 0.08);
-      --signal-border: rgba(0, 229, 153, 0.35);
+      /* Dynamic Sovereign Accent (Defaults to Otium Docs Cyan/Indigo) */
+      --app-accent: #06b6d4;
+      --app-accent-dim: rgba(6, 182, 212, 0.12);
+      --app-accent-glow: rgba(6, 182, 212, 0.28);
+      --app-accent-border: rgba(6, 182, 212, 0.4);
 
-      /* Mechanical Radii & Transitions */
-      --radius-sm: 6px;
-      --radius-md: 10px;
-      --radius-lg: 16px;
-      --radius-squircle: 18px;
-      --snappy: 90ms cubic-bezier(0.16, 1, 0.3, 1);
-      --fade-duration: 120ms;
+      /* App-Specific Signature Colors */
+      --col-reader: #10b981;
+      --col-scan: #f59e0b;
+      --col-docs: #06b6d4;
+      --col-link: #3b82f6;
+      --col-downloader: #0284c7;
+      --col-hub: #8b5cf6;
+
+      /* Radii & Timings */
+      --radius-xs: 6px;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-pill: 999px;
+      --snappy: 120ms cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-fluid: 200ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     html {
@@ -60,7 +69,7 @@
     }
 
     html[dir="ltr"] {
-      font-family: 'JetBrains Mono', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     body {
@@ -71,20 +80,21 @@
       -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
       background-image: 
+        radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.08) 0%, transparent 45%),
         linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
         linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-      background-size: 40px 40px;
+      background-size: 100% 100%, 48px 48px, 48px 48px;
     }
 
     ::selection {
-      background: var(--signal);
+      background: var(--app-accent);
       color: #000000;
     }
 
     .container {
-      max-width: 1180px;
+      max-width: 1220px;
       margin: 0 auto;
-      padding: 0 20px;
+      padding: 0 24px;
     }
 
     /* ---------------- Topbar Navigation ---------------- */
@@ -92,13 +102,14 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      background: rgba(8, 9, 12, 0.94);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
+      background: rgba(8, 9, 13, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border-hairline);
-      height: 62px;
+      height: 66px;
       display: flex;
       align-items: center;
+      transition: border-color var(--ease-fluid);
     }
 
     .topbar-inner {
@@ -114,14 +125,20 @@
       gap: 12px;
       text-decoration: none;
       color: var(--text-white);
+      transition: transform var(--snappy);
+    }
+
+    .brand-mark:hover {
+      transform: scale(1.02);
     }
 
     .brand-mark img {
-      width: 34px;
-      height: 34px;
+      width: 36px;
+      height: 36px;
       border-radius: var(--radius-sm);
       border: 1px solid var(--border-hairline);
       display: block;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     }
 
     .brand-title-wrap {
@@ -131,8 +148,8 @@
 
     .brand-name {
       font-family: 'JetBrains Mono', monospace;
-      font-weight: 700;
-      font-size: 14px;
+      font-weight: 800;
+      font-size: 14.5px;
       letter-spacing: 0.5px;
       line-height: 1.2;
     }
@@ -140,65 +157,174 @@
     .brand-sub {
       font-family: 'JetBrains Mono', monospace;
       font-size: 10px;
-      color: var(--signal);
+      color: var(--app-accent);
       letter-spacing: 0.6px;
+      transition: color var(--ease-fluid);
     }
 
     .nav-center {
       display: flex;
       align-items: center;
-      gap: 22px;
+      gap: 24px;
       list-style: none;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 820px) {
       .nav-center { display: none; }
     }
 
     .nav-center a {
       color: var(--text-muted);
       text-decoration: none;
-      font-size: 13px;
-      font-weight: 600;
+      font-size: 13.5px;
+      font-weight: 700;
       transition: color var(--snappy);
+      padding: 6px 10px;
+      border-radius: var(--radius-xs);
     }
 
     .nav-center a:hover {
       color: var(--text-white);
+      background: rgba(255, 255, 255, 0.04);
     }
 
     .nav-right-controls {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
     }
 
     .btn-lang-toggle {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--border-hairline);
       color: var(--text-white);
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
       font-weight: 700;
-      padding: 5px 10px;
-      border-radius: var(--radius-sm);
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
       transition: all var(--snappy);
     }
 
     .btn-lang-toggle:hover {
-      border-color: var(--signal);
-      color: var(--signal);
+      border-color: var(--app-accent);
+      color: var(--app-accent);
+      background: var(--app-accent-dim);
     }
 
     .btn-lang-toggle span.active-lang {
-      color: var(--signal);
+      color: var(--app-accent);
     }
 
     .btn-github {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-pill);
+      color: var(--text-white);
+      text-decoration: none;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      transition: all var(--snappy);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-github:hover {
+      border-color: var(--app-accent);
+      color: var(--app-accent);
+      background: var(--app-accent-dim);
+      box-shadow: 0 0 16px var(--app-accent-glow);
+    }
+
+    /* ---------------- Hero Section (Luxury Showcase) ---------------- */
+    .hero {
+      padding: 64px 0 40px;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero-badge-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-pill);
+      margin-bottom: 24px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .hero-badge-wrap .dot-pulse {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--app-accent);
+      box-shadow: 0 0 10px var(--app-accent);
+      animation: pulse-dot 2s infinite ease-in-out;
+      transition: background var(--ease-fluid), box-shadow var(--ease-fluid);
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.7; }
+    }
+
+    .hero-badge-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.4px;
+    }
+
+    .hero h1 {
+      font-size: clamp(32px, 5.2vw, 56px);
+      font-weight: 900;
+      line-height: 1.2;
+      letter-spacing: -0.6px;
+      color: var(--text-white);
+      margin-bottom: 18px;
+      max-width: 920px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero h1 .gradient-text {
+      background: linear-gradient(135deg, #ffffff 20%, var(--app-accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      transition: all var(--ease-fluid);
+    }
+
+    .hero p {
+      font-size: 17px;
+      color: var(--text-muted);
+      max-width: 740px;
+      margin: 0 auto 28px;
+      line-height: 1.75;
+      font-weight: 500;
+    }
+
+    .hero-pills {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+
+    .hero-pill-item {
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -206,71 +332,63 @@
       background: var(--bg-card);
       border: 1px solid var(--border-hairline);
       border-radius: var(--radius-sm);
-      color: var(--text-white);
-      text-decoration: none;
-      font-family: 'JetBrains Mono', monospace;
       font-size: 12px;
-      font-weight: 600;
-      transition: all var(--snappy);
+      font-weight: 700;
+      color: var(--text-muted);
     }
 
-    .btn-github:hover {
-      border-color: var(--signal);
-      color: var(--signal);
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
     }
 
-    /* ---------------- Hero Section ---------------- */
-    .hero {
-      padding: 52px 0 32px;
-      text-align: center;
-    }
-
-    .hero-tag {
+    .btn-hero-primary {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 4px 14px;
-      background: var(--signal-dim);
-      border: 1px solid var(--signal-border);
-      border-radius: 999px;
-      color: var(--signal);
-      font-size: 12px;
-      font-weight: 700;
-      margin-bottom: 18px;
+      padding: 12px 28px;
+      background: var(--app-accent);
+      color: #000000;
+      font-size: 14px;
+      font-weight: 800;
+      border-radius: var(--radius-pill);
+      text-decoration: none;
+      transition: all var(--snappy);
+      box-shadow: 0 4px 20px var(--app-accent-glow);
     }
 
-    .hero-tag span.dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--signal);
-      box-shadow: 0 0 8px var(--signal);
+    .btn-hero-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px var(--app-accent-glow);
     }
 
-    .hero h1 {
-      font-size: clamp(28px, 4.8vw, 46px);
-      font-weight: 900;
-      line-height: 1.25;
-      letter-spacing: -0.5px;
+    .btn-hero-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: var(--bg-card);
       color: var(--text-white);
-      margin-bottom: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border-hairline);
+      text-decoration: none;
+      transition: all var(--snappy);
     }
 
-    .hero h1 .highlight {
-      color: var(--signal);
+    .btn-hero-secondary:hover {
+      border-color: var(--border-focus);
+      background: var(--bg-card-hover);
+      transform: translateY(-1px);
     }
 
-    .hero p {
-      font-size: 16px;
-      color: var(--text-muted);
-      max-width: 680px;
-      margin: 0 auto;
-      line-height: 1.7;
-    }
-
-    /* ---------------- Unified Desktop Cockpit Section ---------------- */
+    /* ---------------- Cockpit Studio (Modular Equations) ---------------- */
     .cockpit-section {
-      margin-bottom: 64px;
+      margin-bottom: 80px;
     }
 
     .cockpit-container {
@@ -278,7 +396,9 @@
       border: 1px solid var(--border-hairline);
       border-radius: var(--radius-lg);
       overflow: hidden;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.7);
+      position: relative;
+      transition: border-color var(--ease-fluid);
     }
 
     /* Telemetry Top Bar */
@@ -286,8 +406,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 18px;
-      background: rgba(0, 0, 0, 0.45);
+      padding: 12px 22px;
+      background: rgba(0, 0, 0, 0.4);
       border-bottom: 1px solid var(--border-hairline);
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
@@ -298,31 +418,42 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      color: var(--signal);
-      font-weight: 600;
+      color: var(--app-accent);
+      font-weight: 700;
+      transition: color var(--ease-fluid);
+    }
+
+    .telemetry-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--app-accent);
+      box-shadow: 0 0 8px var(--app-accent);
+      transition: background var(--ease-fluid), box-shadow var(--ease-fluid);
     }
 
     .telemetry-right {
       color: var(--text-dim);
+      font-weight: 600;
     }
 
-    /* Main Cockpit Layout: Responsive Grid */
+    /* Main Cockpit Layout: 3 Columns */
     .cockpit-grid {
       display: grid;
-      grid-template-columns: 360px 1fr 340px;
-      min-height: 520px;
+      grid-template-columns: 370px 1fr 340px;
+      min-height: 540px;
     }
 
-    @media (max-width: 1100px) {
+    @media (max-width: 1120px) {
       .cockpit-grid {
-        grid-template-columns: 340px 1fr;
+        grid-template-columns: 350px 1fr;
       }
       .cockpit-preview-col {
         display: none !important;
       }
     }
 
-    @media (max-width: 820px) {
+    @media (max-width: 860px) {
       .cockpit-grid {
         display: flex;
         flex-direction: column;
@@ -334,14 +465,14 @@
       }
     }
 
-    /* Column 1: Modular Equation Suites Dock */
+    /* Column 1: Equations Dock */
     .cockpit-dock-col {
-      padding: 20px;
+      padding: 24px;
       background: rgba(0, 0, 0, 0.25);
       border-left: 1px solid var(--border-hairline);
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 24px;
     }
 
     html[dir="ltr"] .cockpit-dock-col {
@@ -352,7 +483,7 @@
     .suite-section {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
     }
 
     .suite-header-wrap {
@@ -362,7 +493,7 @@
     }
 
     .suite-title {
-      font-size: 12.5px;
+      font-size: 13px;
       font-weight: 800;
       color: var(--text-white);
       letter-spacing: 0.2px;
@@ -372,21 +503,20 @@
       font-family: 'JetBrains Mono', monospace;
       font-size: 9.5px;
       font-weight: 700;
-      color: var(--signal);
-      background: var(--signal-dim);
-      border: 1px solid var(--signal-border);
-      padding: 1px 6px;
-      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-hairline);
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
       letter-spacing: 0.5px;
     }
 
-    /* Equation Row & Interactive Tiles */
     .equation-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 6px;
-      background: rgba(0, 0, 0, 0.3);
+      background: rgba(0, 0, 0, 0.35);
       padding: 10px;
       border-radius: var(--radius-md);
       border: 1px solid var(--border-hairline);
@@ -413,40 +543,49 @@
     .eq-tile:hover {
       background: var(--bg-card-hover);
       border-color: var(--border-focus);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
     }
 
+    /* Individual Tile Identity Hover Highlights */
+    .eq-tile#tile-reader:hover { border-color: rgba(16, 185, 129, 0.4); }
+    .eq-tile#tile-scan:hover { border-color: rgba(245, 158, 11, 0.4); }
+    .eq-tile#tile-docs:hover { border-color: rgba(6, 182, 212, 0.4); }
+    .eq-tile#tile-link:hover { border-color: rgba(59, 130, 246, 0.4); }
+    .eq-tile#tile-downloader:hover { border-color: rgba(2, 132, 199, 0.4); }
+    .eq-tile#tile-hub:hover { border-color: rgba(139, 92, 246, 0.4); }
+
     .eq-tile.active {
-      background: #141822;
-      border-color: var(--signal);
-      box-shadow: 0 0 16px var(--signal-glow);
+      background: #171d2c;
+      border-color: var(--app-accent);
+      box-shadow: 0 0 20px var(--app-accent-glow);
     }
 
     .eq-tile.active::after {
       content: "";
       position: absolute;
       top: -3px;
-      width: 14px;
+      width: 18px;
       height: 3px;
-      border-radius: 999px;
-      background: var(--signal);
-      box-shadow: 0 0 6px var(--signal);
+      border-radius: var(--radius-pill);
+      background: var(--app-accent);
+      box-shadow: 0 0 8px var(--app-accent);
     }
 
     .eq-tile-icon {
-      width: 38px;
-      height: 38px;
-      border-radius: 8px;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
       background: #000000;
       border: 1px solid var(--border-hairline);
       overflow: hidden;
       flex-shrink: 0;
       transition: transform var(--snappy);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     }
 
     .eq-tile.active .eq-tile-icon {
-      transform: scale(1.06);
-      border-color: var(--signal);
+      transform: scale(1.08);
+      border-color: var(--app-accent);
     }
 
     .eq-tile-icon img {
@@ -458,7 +597,7 @@
 
     .eq-tile-name {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
+      font-size: 11.5px;
       font-weight: 700;
       color: var(--text-white);
       white-space: nowrap;
@@ -468,8 +607,8 @@
     .eq-tile-badge {
       font-size: 9.5px;
       font-weight: 700;
-      padding: 1px 5px;
-      border-radius: 4px;
+      padding: 1.5px 6px;
+      border-radius: var(--radius-xs);
       white-space: nowrap;
       line-height: 1.2;
     }
@@ -480,14 +619,14 @@
     }
 
     .eq-tile.active .badge-standalone {
-      background: var(--signal-dim);
-      color: var(--signal);
+      background: var(--app-accent-dim);
+      color: var(--app-accent);
     }
 
     .badge-flagship {
-      background: var(--signal-dim);
-      color: var(--signal);
-      border: 1px solid var(--signal-border);
+      background: var(--app-accent-dim);
+      color: var(--app-accent);
+      border: 1px solid var(--app-accent-border);
     }
 
     .badge-upcoming {
@@ -497,18 +636,18 @@
     }
 
     .eq-tile.active .badge-upcoming {
-      color: var(--signal);
-      border-color: var(--signal);
+      color: var(--app-accent);
+      border-color: var(--app-accent);
     }
 
     .eq-operator {
       font-family: 'JetBrains Mono', monospace;
       font-size: 16px;
       font-weight: 800;
-      color: var(--signal);
+      color: var(--text-dim);
       opacity: 0.8;
       user-select: none;
-      padding: 0 1px;
+      padding: 0 2px;
       line-height: 1;
     }
 
@@ -518,69 +657,71 @@
       margin: 4px 0;
     }
 
-    /* Column 2: Dynamic Inspector */
+    /* Column 2: Dynamic Sovereign Inspector */
     .cockpit-inspector-col {
-      padding: 28px;
+      padding: 32px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      transition: opacity var(--fade-duration) ease, transform var(--fade-duration) ease;
+      transition: opacity var(--ease-fluid), transform var(--ease-fluid);
     }
 
     .cockpit-inspector-col.is-fading {
-      opacity: 0.15;
-      transform: translateY(3px);
+      opacity: 0.2;
+      transform: translateY(4px);
     }
 
     .insp-header {
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       flex-wrap: wrap;
     }
 
     .insp-title {
-      font-size: clamp(22px, 3vw, 30px);
+      font-size: clamp(24px, 3.2vw, 32px);
       font-weight: 900;
-      letter-spacing: -0.3px;
+      letter-spacing: -0.4px;
     }
 
     .insp-version-chip {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
-      font-weight: 700;
-      color: var(--signal);
-      background: var(--signal-dim);
-      border: 1px solid var(--signal-border);
-      padding: 2px 8px;
-      border-radius: var(--radius-sm);
+      font-weight: 800;
+      color: var(--app-accent);
+      background: var(--app-accent-dim);
+      border: 1px solid var(--app-accent-border);
+      padding: 3px 10px;
+      border-radius: var(--radius-pill);
+      transition: color var(--ease-fluid), border-color var(--ease-fluid);
     }
 
     .insp-type-pill {
       font-family: inherit;
       font-size: 11px;
       font-weight: 700;
-      padding: 2px 8px;
-      border-radius: var(--radius-sm);
+      padding: 3px 10px;
+      border-radius: var(--radius-pill);
       background: rgba(255, 255, 255, 0.06);
       color: var(--text-muted);
       border: 1px solid var(--border-hairline);
     }
 
     .insp-role-text {
-      font-size: 14.5px;
-      color: var(--signal);
-      font-weight: 700;
-      margin-bottom: 12px;
+      font-size: 15px;
+      color: var(--app-accent);
+      font-weight: 800;
+      margin-bottom: 14px;
+      transition: color var(--ease-fluid);
     }
 
     .insp-desc-p {
-      font-size: 14.5px;
+      font-size: 15px;
       color: var(--text-muted);
-      line-height: 1.7;
-      margin-bottom: 18px;
-      max-width: 580px;
+      line-height: 1.75;
+      margin-bottom: 22px;
+      max-width: 620px;
     }
 
     /* Specs Pills */
@@ -588,18 +729,17 @@
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-bottom: 22px;
+      margin-bottom: 26px;
     }
 
     .insp-pill-item {
       font-family: inherit;
-      letter-spacing: normal !important;
       font-size: 12px;
-      font-weight: 600;
-      padding: 4px 10px;
+      font-weight: 700;
+      padding: 4px 12px;
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--border-hairline);
-      border-radius: var(--radius-sm);
+      border-radius: var(--radius-pill);
       color: var(--text-white);
     }
 
@@ -609,37 +749,40 @@
       align-items: center;
       gap: 12px;
       flex-wrap: wrap;
-      margin-bottom: 16px;
+      margin-bottom: 18px;
     }
 
     .btn-insp-download {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 10px 20px;
-      background: var(--signal);
+      padding: 11px 24px;
+      background: var(--app-accent);
       color: #000000;
-      font-size: 13.5px;
+      font-size: 14px;
       font-weight: 800;
       border-radius: var(--radius-sm);
       text-decoration: none;
-      transition: opacity var(--snappy);
+      transition: all var(--snappy);
+      box-shadow: 0 4px 16px var(--app-accent-glow);
     }
 
     .btn-insp-download:hover {
-      opacity: 0.9;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px var(--app-accent-glow);
+      opacity: 0.95;
     }
 
     .btn-insp-source {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 10px 16px;
+      padding: 11px 18px;
       background: var(--bg-card);
       border: 1px solid var(--border-hairline);
       color: var(--text-white);
-      font-size: 13px;
-      font-weight: 600;
+      font-size: 13.5px;
+      font-weight: 700;
       border-radius: var(--radius-sm);
       text-decoration: none;
       transition: all var(--snappy);
@@ -652,10 +795,10 @@
 
     /* Dual-Mode Action Box: Terminal */
     .insp-deploy-box {
-      background: #040507;
+      background: #040508;
       border: 1px solid var(--border-hairline);
       border-radius: var(--radius-sm);
-      padding: 10px 14px;
+      padding: 12px 16px;
     }
 
     .deploy-terminal {
@@ -674,8 +817,9 @@
     }
 
     .term-code-span span.cmd {
-      color: var(--signal);
+      color: var(--app-accent);
       font-weight: 700;
+      transition: color var(--ease-fluid);
     }
 
     .term-code-span span.pkg {
@@ -689,8 +833,8 @@
       font-family: inherit;
       font-size: 11.5px;
       font-weight: 700;
-      padding: 5px 10px;
-      border-radius: var(--radius-sm);
+      padding: 5px 12px;
+      border-radius: var(--radius-xs);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -701,14 +845,25 @@
     }
 
     .btn-term-copy:hover {
-      border-color: var(--signal);
-      color: var(--signal);
-      background: var(--signal-dim);
+      border-color: var(--app-accent);
+      color: var(--app-accent);
+      background: var(--app-accent-dim);
+    }
+
+    .android-install-guide-box {
+      margin-top: 16px;
+      padding: 14px 16px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      line-height: 1.65;
+      color: var(--text-muted);
     }
 
     /* Column 3: Live UI Window Mockup Frame */
     .cockpit-preview-col {
-      padding: 20px;
+      padding: 24px;
       border-right: 1px solid var(--border-hairline);
       background: rgba(0, 0, 0, 0.3);
       display: flex;
@@ -716,7 +871,7 @@
       justify-content: center;
       align-items: center;
       overflow: hidden;
-      transition: opacity var(--fade-duration) ease;
+      transition: opacity var(--ease-fluid);
     }
 
     html[dir="ltr"] .cockpit-preview-col {
@@ -726,22 +881,24 @@
 
     .ui-mockup-frame {
       width: 100%;
-      max-width: 290px;
+      max-width: 300px;
       background: #000000;
       border: 1px solid var(--border-hairline);
       border-radius: var(--radius-md);
       overflow: hidden;
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7);
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.8);
+      border-color: var(--app-accent-border);
+      transition: border-color var(--ease-fluid);
     }
 
     .mockup-top-bar {
-      height: 22px;
+      height: 24px;
       background: var(--bg-card);
       border-bottom: 1px solid var(--border-hairline);
       display: flex;
       align-items: center;
-      padding: 0 8px;
-      gap: 5px;
+      padding: 0 10px;
+      gap: 6px;
       direction: ltr;
     }
 
@@ -749,52 +906,58 @@
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.2);
     }
 
     .mockup-dot.dot-active {
-      background: var(--signal);
+      background: var(--app-accent);
+      box-shadow: 0 0 6px var(--app-accent);
+      transition: background var(--ease-fluid), box-shadow var(--ease-fluid);
     }
 
     .mockup-body {
-      width: 100%;
-      height: 220px;
+      padding: 16px;
+      min-height: 230px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      font-family: 'JetBrains Mono', monospace;
       position: relative;
-      background: #07080a;
-      overflow: hidden;
+      background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.02) 0%, transparent 100%);
     }
 
     .mockup-body img {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      border-radius: 6px;
       display: block;
     }
 
-    /* Vector Mockup Styles */
     .vector-screen {
-      width: 100%;
-      height: 100%;
-      padding: 14px;
       display: flex;
       flex-direction: column;
+      height: 100%;
       justify-content: space-between;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      direction: ltr;
+      gap: 12px;
+      min-height: 200px;
     }
 
-    /* ---------------- Principles Matrix ---------------- */
+    /* ---------------- Engineering Principles Matrix (4 Pillars) ---------------- */
     .principles-matrix {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      margin-bottom: 64px;
-      padding-top: 36px;
-      border-top: 1px solid var(--border-hairline);
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      margin-bottom: 80px;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
+      .principles-matrix {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
       .principles-matrix {
         grid-template-columns: 1fr;
       }
@@ -804,35 +967,54 @@
       background: var(--bg-card);
       border: 1px solid var(--border-hairline);
       border-radius: var(--radius-md);
-      padding: 22px;
+      padding: 24px;
+      transition: all var(--snappy);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .matrix-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-focus);
+      transform: translateY(-2px);
     }
 
     .matrix-meta {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
-      color: var(--signal);
-      margin-bottom: 6px;
+      font-weight: 700;
+      color: var(--app-accent);
+      margin-bottom: 12px;
       letter-spacing: 0.5px;
+      direction: ltr;
+      text-align: left;
+      transition: color var(--ease-fluid);
+    }
+
+    html[dir="rtl"] .matrix-meta {
+      text-align: right;
     }
 
     .matrix-title {
-      font-size: 16px;
+      font-size: 16.5px;
       font-weight: 800;
       color: var(--text-white);
-      margin-bottom: 8px;
+      margin-bottom: 10px;
+      line-height: 1.35;
     }
 
     .matrix-desc {
       font-size: 13.5px;
       color: var(--text-muted);
-      line-height: 1.6;
+      line-height: 1.7;
     }
 
-    /* ---------------- Clean Footer ---------------- */
+    /* ---------------- Footer ---------------- */
     footer {
       border-top: 1px solid var(--border-hairline);
-      padding: 32px 0;
-      font-size: 12px;
+      padding: 36px 0;
+      background: rgba(0, 0, 0, 0.6);
+      font-size: 13px;
       color: var(--text-dim);
     }
 
@@ -841,12 +1023,13 @@
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
-      gap: 16px;
+      gap: 20px;
     }
 
     .footer-links-list {
       display: flex;
-      gap: 16px;
+      align-items: center;
+      gap: 18px;
       list-style: none;
       flex-wrap: wrap;
     }
@@ -854,31 +1037,33 @@
     .footer-links-list a {
       color: var(--text-muted);
       text-decoration: none;
+      font-weight: 600;
       transition: color var(--snappy);
     }
 
     .footer-links-list a:hover {
-      color: var(--signal);
+      color: var(--app-accent);
     }
   </style>
 </head>
-<body>
 
-  <!-- Topbar -->
+<body>
+  <!-- Topbar Header -->
   <header class="topbar">
     <div class="container topbar-inner">
       <a href="#" class="brand-mark">
-        <img src="assets/brand-logo.png" alt="Otium Software Studio" />
+        <img src="assets/brand-logo.png" alt="Otium Software" />
         <div class="brand-title-wrap">
-          <span class="brand-name">Otium Software</span>
-          <span class="brand-sub" id="i18n-brand-sub">استوديو محلي بالكامل</span>
+          <span class="brand-name">OTIUM SOFTWARE</span>
+          <span class="brand-sub" id="i18n-brand-sub">استوديو البرمجيات الحرة</span>
         </div>
       </a>
 
+      <!-- Navigation Center -->
       <ul class="nav-center">
         <li><a href="#cockpit" id="i18n-nav-suite">المنظومة والمعادلات</a></li>
         <li><a href="#specs" id="i18n-nav-specs">المبادئ الهندسية</a></li>
-        <li><a href="https://github.com/XRTM8" target="_blank" rel="noopener" id="i18n-nav-releases">المستودعات</a></li>
+        <li><a href="https://github.com/XRTM8" target="_blank" rel="noopener" id="i18n-nav-releases">المستودعات والمصادر</a></li>
       </ul>
 
       <div class="nav-right-controls">
@@ -900,19 +1085,31 @@
   <!-- Hero Section -->
   <main class="container">
     <section class="hero">
-      <div class="hero-tag">
-        <span class="dot"></span>
-        <span id="i18n-hero-tag">برمجيات حرة • محلية 100%</span>
+      <div class="hero-badge-wrap">
+        <span class="dot-pulse"></span>
+        <span class="hero-badge-text" id="i18n-hero-tag">برمجيات حرة • محلية 100% • ترخيص GNU GPL v3</span>
       </div>
 
       <h1 id="i18n-hero-title">
-        أدوات متخصصة مستقلة.<br />
-        <span class="highlight">أو حزم موحدة شاملة.</span>
+        أدوات هندسية متخصصة مستقلة.<br />
+        <span class="gradient-text">أو منظومات موحدة شاملة.</span>
       </h1>
 
       <p id="i18n-hero-desc">
-        معمارية هندسية مرنة لنظامي Windows و Android؛ إن أردت ميزة واحدة بحد ذاتها نزّل الأداة المستقلة بالغة الخفة، وإن أردت سير عمل متكامل نزّل المنظومة الموحدة — سيادة محلية كاملة وترخيص GNU GPL v3.
+        معمارية مرنة لنظامي Windows و Android؛ إن أردت ميزة واحدة بحد ذاتها نزّل الأداة المستقلة بالغة الخفة، وإن أردت سير عمل متكامل نزّل المنظومة الموحدة — سيادة محلية كاملة بدون أي خوادم وسيطة أو تتبع.
       </p>
+
+      <div class="hero-pills">
+        <span class="hero-pill-item">⚡ Windows 10/11 (Native Rust)</span>
+        <span class="hero-pill-item">📱 Android (Universal APK & F-Droid)</span>
+        <span class="hero-pill-item">🌐 P2P Mesh (Zero Cloud)</span>
+        <span class="hero-pill-item">🔒 GPL-3.0 Perpetual Freedom</span>
+      </div>
+
+      <div class="hero-actions">
+        <a href="#cockpit" class="btn-hero-primary" id="i18n-hero-cta">استعراض وتنزيل التطبيقات ↓</a>
+        <a href="https://github.com/XRTM8" target="_blank" rel="noopener" class="btn-hero-secondary">كود المصدر على GitHub ↗</a>
+      </div>
     </section>
 
     <!-- Cockpit Interactive Studio Architecture -->
@@ -922,8 +1119,8 @@
         <!-- Cockpit Telemetry Strip -->
         <div class="cockpit-telemetry">
           <div class="telemetry-left">
-            <span class="dot" style="width:6px;height:6px;border-radius:50%;background:var(--signal);box-shadow:0 0 6px var(--signal);"></span>
-            <span id="insp-telemetry-status">MODULAR SUITE ACTIVE • ZERO TELEMETRY</span>
+            <span class="telemetry-dot"></span>
+            <span id="insp-telemetry-status">FLAGSHIP DOCS ACTIVE • ZERO TELEMETRY</span>
           </div>
           <div class="telemetry-right">
             <span>SPEC 2026.10 • GNU GPL-3.0</span>
@@ -1037,7 +1234,7 @@
                 المنظومة الموحدة لقراءة ومسح المستندات؛ تجمع محرك قراءة PDF فائق السرعة مع ماسح كاميرا ذكي يصحح الحواف آلياً ويفتح المستند الممسوح فوراً للتظليل والبحث بدون إنترنت.
               </p>
 
-              <!-- Specs Pills with Fixed Ligatures -->
+              <!-- Specs Pills -->
               <div class="insp-pills-wrap" id="insp-pills">
                 <!-- Populated dynamically -->
               </div>
@@ -1061,8 +1258,8 @@
               </div>
 
               <!-- Android Universal & Play Protect Guidance -->
-              <div class="android-install-guide-box" style="margin-top:14px;padding:12px 14px;background:rgba(0, 229, 153, 0.04);border:1px solid rgba(0, 229, 153, 0.2);border-radius:var(--radius-sm);font-size:12px;line-height:1.6;color:var(--text-muted);">
-                <div style="font-weight:700;color:var(--signal);margin-bottom:4px;display:flex;align-items:center;gap:6px;">
+              <div class="android-install-guide-box">
+                <div style="font-weight:700;color:var(--app-accent);margin-bottom:6px;display:flex;align-items:center;gap:6px;">
                   <span>⚡</span>
                   <span id="i18n-guide-title">دليل تثبيت أندرويد (تجاوز تحذيرات الحماية مجاناً)</span>
                 </div>
@@ -1090,10 +1287,10 @@
       </div>
     </section>
 
-    <!-- Engineering Principles Matrix -->
+    <!-- Engineering Principles Matrix (4 Pillars) -->
     <section class="principles-matrix" id="specs">
       <div class="matrix-card">
-        <div class="matrix-meta" id="i18n-spec1-meta">01 // MODULAR EQUATION PHILOSOPHY</div>
+        <div class="matrix-meta" id="i18n-spec1-meta">01 // MODULAR EQUATION</div>
         <h3 class="matrix-title" id="i18n-spec1-title">معمارية الخيار والسيادة</h3>
         <p class="matrix-desc" id="i18n-spec1-desc">
           حرية كاملة دون فرض؛ إن أردت تطبيقاً خفيفاً بحجم 5MB لمهمة واحدة فقط فلك ذلك، وإن أردت المنظومة الموحدة التي تدمج كل شيء في مكان واحد فلك ذلك.
@@ -1101,18 +1298,26 @@
       </div>
 
       <div class="matrix-card">
-        <div class="matrix-meta" id="i18n-spec2-meta">02 // PERPETUAL FREEDOM</div>
-        <h3 class="matrix-title" id="i18n-spec2-title">حرية برمجية أبدية</h3>
+        <div class="matrix-meta" id="i18n-spec2-meta">02 // SOVEREIGN PRIVACY</div>
+        <h3 class="matrix-title" id="i18n-spec2-title">سيادة وخصوصية محلية 100%</h3>
         <p class="matrix-desc" id="i18n-spec2-desc">
-          جميع التطبيقات مرخصة برخصة GNU GPL v3.0؛ الشفرة متاحة للتدقيق الأمني والمساهمة والبناء المستقل للأبد دون قيود تجارية أو تتبع.
+          صفر خوادم وسيطة، صفر إعلانات، وصفر تتبع سلوكي. كافة العمليات الحسابية والمسح البصري ونقل الملفات تتم على جهازك محلياً بالكامل.
         </p>
       </div>
 
       <div class="matrix-card">
-        <div class="matrix-meta" id="i18n-spec3-meta">03 // HARDWARE EFFICIENCY</div>
-        <h3 class="matrix-title" id="i18n-spec3-title">كفاءة وسرعة عتادية</h3>
+        <div class="matrix-meta" id="i18n-spec3-meta">03 // PERPETUAL FREEDOM</div>
+        <h3 class="matrix-title" id="i18n-spec3-title">حرية برمجية أبدية (GPL-3.0)</h3>
         <p class="matrix-desc" id="i18n-spec3-desc">
-          محركات مدمجة بالكامل بلغة Rust و Webview الأصلي توفر استهلاك الذاكرة وتعمل فورياً بسرعة استجابة 0.02 ثانية بدون خوادم خارجية.
+          كافة مشاريع المنظومة حرة ومفتوحة المصدر تحت رخصة GNU GPL v3.0؛ الشفرة متاحة للتدقيق الأمني والمساهمة والبناء المستقل للأبد دون قيود تجارية.
+        </p>
+      </div>
+
+      <div class="matrix-card">
+        <div class="matrix-meta" id="i18n-spec4-meta">04 // BARE-METAL EFFICIENCY</div>
+        <h3 class="matrix-title" id="i18n-spec4-title">كفاءة وسرعة عتادية فائقة</h3>
+        <p class="matrix-desc" id="i18n-spec4-desc">
+          محركات مدمجة بلغة Rust الأصلية ومكتبات نظام التشغيل المباشرة لتقليص استهلاك الذاكرة وسرعة استجابة فورية 0.02s عند بدء التشغيل.
         </p>
       </div>
     </section>
@@ -1135,17 +1340,58 @@
     </div>
   </footer>
 
-  <!-- Complete Interactive Scripts: i18n + Micro-animations + Dual Deploy -->
+  <!-- Complete Interactive Scripts: Dynamic Sovereign Identity + Micro-animations -->
   <script>
+    // Sovereign Color Definitions for Each App
+    const appSovereignPalettes = {
+      reader: {
+        primary: '#10b981',
+        dim: 'rgba(16, 185, 129, 0.12)',
+        glow: 'rgba(16, 185, 129, 0.28)',
+        border: 'rgba(16, 185, 129, 0.4)'
+      },
+      scan: {
+        primary: '#f59e0b',
+        dim: 'rgba(245, 158, 11, 0.12)',
+        glow: 'rgba(245, 158, 11, 0.28)',
+        border: 'rgba(245, 158, 11, 0.4)'
+      },
+      docs: {
+        primary: '#06b6d4',
+        dim: 'rgba(6, 182, 212, 0.12)',
+        glow: 'rgba(6, 182, 212, 0.28)',
+        border: 'rgba(6, 182, 212, 0.4)'
+      },
+      link: {
+        primary: '#3b82f6',
+        dim: 'rgba(59, 130, 246, 0.14)',
+        glow: 'rgba(59, 130, 246, 0.32)',
+        border: 'rgba(59, 130, 246, 0.45)'
+      },
+      downloader: {
+        primary: '#0284c7',
+        dim: 'rgba(2, 132, 199, 0.12)',
+        glow: 'rgba(2, 132, 199, 0.28)',
+        border: 'rgba(2, 132, 199, 0.4)'
+      },
+      hub: {
+        primary: '#8b5cf6',
+        dim: 'rgba(139, 92, 246, 0.12)',
+        glow: 'rgba(139, 92, 246, 0.28)',
+        border: 'rgba(139, 92, 246, 0.4)'
+      }
+    };
+
     const i18nData = {
       ar: {
-        brandSub: "استوديو محلي بالكامل",
+        brandSub: "استوديو البرمجيات الحرة والمحلية",
         navSuite: "المنظومة والمعادلات",
         navSpecs: "المبادئ الهندسية",
-        navReleases: "المستودعات",
-        heroTag: "برمجيات حرة • محلية 100%",
-        heroTitle: 'أدوات متخصصة مستقلة.<br /><span class="highlight">أو حزم موحدة شاملة.</span>',
-        heroDesc: "معمارية هندسية مرنة لنظامي Windows و Android؛ إن أردت ميزة واحدة بحد ذاتها نزّل الأداة المستقلة بالغة الخفة، وإن أردت سير عمل متكامل نزّل المنظومة الموحدة — سيادة محلية كاملة وترخيص GNU GPL v3.",
+        navReleases: "المستودعات والمصادر",
+        heroTag: "برمجيات حرة • محلية 100% • ترخيص GNU GPL v3",
+        heroTitle: 'أدوات هندسية متخصصة مستقلة.<br /><span class="gradient-text">أو منظومات موحدة شاملة.</span>',
+        heroDesc: "معمارية مرنة لنظامي Windows و Android؛ إن أردت ميزة واحدة بحد ذاتها نزّل الأداة المستقلة بالغة الخفة، وإن أردت سير عمل متكامل نزّل المنظومة الموحدة — سيادة محلية كاملة بدون أي خوادم وسيطة أو تتبع.",
+        heroCta: "استعراض وتنزيل التطبيقات ↓",
         suite1Title: "حزمة المستندات والمسح",
         suite2Title: "حزمة الشبكة والبيانات",
         badgeStandalone: "مستقل",
@@ -1154,15 +1400,18 @@
         codeLabel: "المستودع المصدري",
         copyBtn: "نسخ الأمر",
         copiedBtn: "تم النسخ ✓",
-        spec1Meta: "01 // MODULAR EQUATION PHILOSOPHY",
+        spec1Meta: "01 // MODULAR EQUATION",
         spec1Title: "معمارية الخيار والسيادة",
         spec1Desc: "حرية كاملة دون فرض؛ إن أردت تطبيقاً خفيفاً بحجم 5MB لمهمة واحدة فقط فلك ذلك، وإن أردت المنظومة الموحدة التي تدمج كل شيء في مكان واحد فلك ذلك.",
-        spec2Meta: "02 // PERPETUAL FREEDOM",
-        spec2Title: "حرية برمجية أبدية",
-        spec2Desc: "جميع التطبيقات مرخصة برخصة GNU GPL v3.0؛ الشفرة متاحة للتدقيق الأمني والمساهمة والبناء المستقل للأبد دون قيود تجارية أو تتبع.",
-        spec3Meta: "03 // HARDWARE EFFICIENCY",
-        spec3Title: "كفاءة وسرعة عتادية",
-        spec3Desc: "محركات مدمجة بالكامل بلغة Rust و Webview الأصلي توفر استهلاك الذاكرة وتعمل فورياً بسرعة استجابة 0.02 ثانية بدون خوادم خارجية.",
+        spec2Meta: "02 // SOVEREIGN PRIVACY",
+        spec2Title: "سيادة وخصوصية محلية 100%",
+        spec2Desc: "صفر خوادم وسيطة، صفر إعلانات، وصفر تتبع سلوكي. كافة العمليات الحسابية والمسح البصري ونقل الملفات تتم على جهازك محلياً بالكامل.",
+        spec3Meta: "03 // PERPETUAL FREEDOM",
+        spec3Title: "حرية برمجية أبدية (GPL-3.0)",
+        spec3Desc: "كافة مشاريع المنظومة حرة ومفتوحة المصدر تحت رخصة GNU GPL v3.0؛ الشفرة متاحة للتدقيق الأمني والمساهمة والبناء المستقل للأبد دون قيود تجارية.",
+        spec4Meta: "04 // BARE-METAL EFFICIENCY",
+        spec4Title: "كفاءة وسرعة عتادية فائقة",
+        spec4Desc: "محركات مدمجة بلغة Rust الأصلية ومكتبات نظام التشغيل المباشرة لتقليص استهلاك الذاكرة وسرعة استجابة فورية 0.02s عند بدء التشغيل.",
         guideTitle: "دليل تثبيت أندرويد (تجاوز تحذيرات الحماية مجاناً)",
         guideP1: "• <strong>الحزمة الشاملة:</strong> يفضل دائماً تنزيل ملف <code>universal.apk</code> لضمان التوافق مع كافة المعالجات والهواتف.",
         guideP2: "• <strong>Google Play Protect & Auto Blocker:</strong> عند ظهور تنبيه الحماية، اضغط على <em>مزيد من التفاصيل (More details)</em> ثم <em>التثبيت على أي حال (Install anyway)</em>. في أجهزة سامسونج عطل <em>الحظر التلقائي (Auto Blocker)</em> مؤقتاً.",
@@ -1170,18 +1419,18 @@
         apps: {
           reader: {
             title: "Otium Reader",
-            role: "قارئ المستندات المستقل والخفيف",
-            ver: "v1.0.0",
+            role: "قارئ الكتب والمستندات فائق الخفة والتركيز",
+            ver: "v1.5.5",
             typePill: "أداة مستقلة",
             status: "STANDALONE PDF ENGINE",
-            desc: "قارئ PDF فائق الخفة والسرعة مصمم لمن يريد قراءة الكتب والمستندات بتركيز تام، باستهلاك ذاكرة شبه معدوم وبدون أي أدوات غير ضرورية؛ سلاسة عتادية مع دعم القراءة المظلمة.",
-            specs: ["محرك PDF فائق الخفة", "استهلاك RAM شبه معدوم", "وضع قراءة مظلم عالي التباين", "Windows & Android", "ترخيص GPL-3.0"],
+            desc: "قارئ PDF فائق الخفة والسرعة مصمم لمن يريد قراءة الكتب والمستندات بتركيز تام، باستهلاك ذاكرة شبه معدوم وبدون أي أدوات غير ضرورية؛ سلاسة عتادية مع دعم القراءة المظلمة عالية التباين.",
+            specs: ["محرك PDF فائق الخفة", "استهلاك RAM شبه معدوم", "وضع قراءة مظلم مريح", "Windows & Android", "ترخيص GPL-3.0"],
             downloadLabel: "تنزيل Otium Reader v1.5.5",
             termCmd: "winget install XRTM8.OtiumReader"
           },
           scan: {
             title: "Otium Scan",
-            role: "ماسح المستندات الذكي بالكاميرا",
+            role: "ماسح المستندات الذكي وتحديد الحواف آلياً",
             ver: "v1.0.0",
             typePill: "أداة مستقلة",
             status: "STANDALONE CAMERA ENGINE",
@@ -1192,10 +1441,10 @@
           },
           docs: {
             title: "Otium Docs",
-            role: "المنظومة الموحدة الشاملة للمستندات (Reader + Scan)",
-            ver: "v1.1.0",
+            role: "المنظومة الموحدة الشاملة للمستندات والمسح (Reader + Scan)",
+            ver: "v1.1.1",
             typePill: "المنظومة الموحدة ★",
-            status: "DOCS SUITE ACTIVE",
+            status: "FLAGSHIP SUITE ACTIVE",
             desc: "المنظومة الرائدة المحدثة التي تدمج قوة (Otium Reader + Otium Scan) في منصة موحدة مع زر مسح فوري من داخل شريط القراءة؛ امسح مستنداتك بالكاميرا وافتحها فورياً للقراءة والتظليل وإدارتها داخل مكان واحد بأعلى أداء وسرعة.",
             specs: ["دمج Reader + Scanner", "تشغيل فوري 0.02s", "معالجة On-Device", "Windows & Android", "ترخيص GPL-3.0"],
             downloadLabel: "تنزيل Otium Docs v1.1.1",
@@ -1203,19 +1452,19 @@
           },
           link: {
             title: "Otium Link",
-            role: "جسر الحافظة ونقل الملفات المحلي (P2P)",
-            ver: "v1.6.0",
-            typePill: "أداة مستقلة",
-            status: "P2P LAN ENGINE ACTIVE",
-            desc: "أداة متخصصة لنقل الملفات الضخمة ومزامنة نصوص الحافظة بين ويندوز وأندرويد عبر شبكتك المحلية المباشرة (P2P) بدون خوادم، مع حزم أندرويد موحدة وموقعة رسمياً وبسرعة تتجاوز 40MB/s.",
-            specs: ["اتصال P2P مباشر وسريع", "حزم أندرويد موحدة وموقعة", "كشف الملفات في المجلد", "Windows & Android", "ترخيص GPL-3.0"],
-            downloadLabel: "تنزيل Otium Link v1.6.1",
+            role: "جسر الحافظة اللحظي ونقل الملفات المحلي (P2P Mesh)",
+            ver: "v1.7.0",
+            typePill: "أداة مستقلة (AirDrop Style)",
+            status: "P2P MESH ENGINE ACTIVE",
+            desc: "أداة سيادية فاخرة ومستقلة تماماً لنقل الملفات اللحظي ومزامنة نصوص الحافظة بين ويندوز وأندرويد برادار تفاعلي دائري بأسلوب AirDrop، وعرض الشاشات الذكية (Smart Cast) بدون إنترنت وبسرعات تتجاوز 40MB/s.",
+            specs: ["رادار دائري بأسلوب AirDrop", "عرض شاشات ذكية Smart Cast", "درع تطهير روابط UTM", "Windows & Android", "ترخيص GPL-3.0"],
+            downloadLabel: "تنزيل Otium Link v1.7.0",
             termCmd: "winget install XRTM8.OtiumLink"
           },
           downloader: {
             title: "Otium Downloader",
-            role: "مسرع التنزيل متعدد المسارات",
-            ver: "v1.1.0",
+            role: "مسرع التنزيل متعدد المسارات والتحقق من التجزئة",
+            ver: "v1.2.0",
             typePill: "أداة مستقلة",
             status: "MULTI-STREAM CORE ACTIVE",
             desc: "مسرع تنزيل مستقل يضاعف سرعة تحميل الملفات من الإنترنت بتقسيم الرابط إلى 4 إلى 16 مساراً متزامناً مع فحص خوادم التحميل حياً والتحقق من تجزئة SHA-256 وفتح المجلد محلياً بدون خوادم وسيطة.",
@@ -1237,13 +1486,14 @@
         }
       },
       en: {
-        brandSub: "LOCAL-FIRST STUDIO",
+        brandSub: "FREE & LOCAL-FIRST SOFTWARE STUDIO",
         navSuite: "Suite & Equations",
         navSpecs: "Principles",
         navReleases: "Repositories",
-        heroTag: "FREE SOFTWARE • 100% LOCAL",
-        heroTitle: 'Modular standalone tools.<br /><span class="highlight">Or unified flagship suites.</span>',
-        heroDesc: "A sovereign engineering ecosystem for Windows and Android. Need one single capability? Grab the ultra-light standalone tool. Want the complete workflow? Download the converged flagship suite — 100% local with GNU GPL v3.",
+        heroTag: "FREE SOFTWARE • 100% LOCAL • GNU GPL v3",
+        heroTitle: 'Modular specialized tools.<br /><span class="gradient-text">Or unified flagship suites.</span>',
+        heroDesc: "A flexible architecture for Windows and Android. Need one single capability? Grab the featherweight standalone tool. Want a complete sovereign workflow? Download the unified flagship suite — 100% local with zero telemetry.",
+        heroCta: "Explore & Download Apps ↓",
         suite1Title: "DOCUMENTS & CAMERA VISION",
         suite2Title: "LOCAL NETWORK & TRANSFER",
         badgeStandalone: "Standalone",
@@ -1252,15 +1502,18 @@
         codeLabel: "Source Code",
         copyBtn: "Copy Command",
         copiedBtn: "Copied ✓",
-        spec1Meta: "01 // MODULAR EQUATION PHILOSOPHY",
+        spec1Meta: "01 // MODULAR EQUATION",
         spec1Title: "Sovereignty of Choice",
-        spec1Desc: "Total freedom without compromises. If you want a 5MB featherweight app for reading only, you get it. If you want a unified suite with everything combined, you get it.",
-        spec2Meta: "02 // PERPETUAL FREEDOM",
-        spec2Title: "Perpetual Software Freedom",
-        spec2Desc: "Licensed under GNU GPL v3.0. The code is unconditionally open for security audits, peer review, and independent builds forever with zero tracking.",
-        spec3Meta: "03 // HARDWARE EFFICIENCY",
-        spec3Title: "Bare-Metal Speed & Efficiency",
-        spec3Desc: "Built entirely in native Rust and Webview runtimes to minimize RAM usage and achieve instantaneous 0.02s cold-start responsiveness without third-party servers.",
+        spec1Desc: "Total freedom without compromise. If you want a 5MB featherweight tool for reading only, you get it. If you want a unified suite with everything combined, you get it.",
+        spec2Meta: "02 // SOVEREIGN PRIVACY",
+        spec2Title: "100% Local Sovereign Privacy",
+        spec2Desc: "Zero intermediary servers, zero telemetry, and zero ads. All computation, computer vision, and network transfers run strictly on your local hardware.",
+        spec3Meta: "03 // PERPETUAL FREEDOM",
+        spec3Title: "Perpetual Freedom (GPL-3.0)",
+        spec3Desc: "Licensed unconditionally under GNU GPL v3.0. The code is permanently open for security audits, peer review, and independent builds without commercial constraints.",
+        spec4Meta: "04 // BARE-METAL EFFICIENCY",
+        spec4Title: "Bare-Metal Speed & Efficiency",
+        spec4Desc: "Built with native Rust engines and direct OS APIs to minimize memory footprint and achieve instant 0.02s cold-start responsiveness.",
         guideTitle: "Android Installation Guide (Play Protect & Auto Blocker)",
         guideP1: "• <strong>Universal Package:</strong> Always prefer downloading <code>universal.apk</code> for universal ABI compatibility across all phones.",
         guideP2: "• <strong>Google Play Protect & Auto Blocker:</strong> If a warning appears, tap <em>More details</em> then <em>Install anyway</em>. On Samsung One UI, temporarily disable <em>Auto Blocker</em> during APK install.",
@@ -1269,7 +1522,7 @@
           reader: {
             title: "Otium Reader",
             role: "Standalone Ultra-Light PDF Reader",
-            ver: "v1.0.0",
+            ver: "v1.5.5",
             typePill: "Standalone Tool",
             status: "STANDALONE PDF ENGINE",
             desc: "An ultra-fast, minimal PDF reader crafted for distraction-free reading with near-zero memory footprint, high-contrast dark reading mode, and instant page rendering.",
@@ -1290,10 +1543,10 @@
           },
           docs: {
             title: "Otium Docs",
-            role: "Unified Document Reader & Edge Scanner",
-            ver: "v1.1.0",
+            role: "Unified Document Workspace (Reader + Scan)",
+            ver: "v1.1.1",
             typePill: "Unified Flagship ★",
-            status: "DOCS SUITE ACTIVE",
+            status: "FLAGSHIP SUITE ACTIVE",
             desc: "The overhauled flagship document workspace combining an ultra-fast PDF reading engine with an on-device camera scanner, direct-from-toolbar scan integration, dynamic code-splitting, and instant annotations.",
             specs: ["Reader + Scanner Unified", "0.02s Cold Start", "On-Device Edge Camera", "Windows & Android", "GPL-3.0 License"],
             downloadLabel: "Download Otium Docs v1.1.1",
@@ -1301,19 +1554,19 @@
           },
           link: {
             title: "Otium Link",
-            role: "Peer-to-Peer LAN File & Clipboard Bridge",
-            ver: "v1.6.0",
-            typePill: "Standalone Tool",
-            status: "P2P LAN ENGINE ACTIVE",
-            desc: "Instant peer-to-peer clipboard synchronization and high-throughput file transfer across Windows and Android devices over local Wi-Fi with signed universal packages and speeds exceeding 40MB/s.",
-            specs: ["Direct P2P LAN Connection", "Signed Universal Android APKs", "Native Folder Navigation", "Windows & Android", "GPL-3.0 License"],
-            downloadLabel: "Download Otium Link v1.6.1",
+            role: "P2P Mesh LAN File & Clipboard Bridge",
+            ver: "v1.7.0",
+            typePill: "Standalone Tool (AirDrop Style)",
+            status: "P2P MESH ENGINE ACTIVE",
+            desc: "A luxury standalone peer-to-peer file transfer and clipboard bridge featuring an AirDrop-style circular radar, Smart Cast presentation remotes for classroom displays, and transfer throughput exceeding 40MB/s.",
+            specs: ["AirDrop-Style Circular Radar", "Smart Cast Presentation Hub", "UTM Tracking Stripper Shield", "Windows & Android", "GPL-3.0 License"],
+            downloadLabel: "Download Otium Link v1.7.0",
             termCmd: "winget install XRTM8.OtiumLink"
           },
           downloader: {
             title: "Otium Downloader",
             role: "Multi-Stream Download Accelerator",
-            ver: "v1.1.0",
+            ver: "v1.2.0",
             typePill: "Standalone Tool",
             status: "MULTI-STREAM CORE ACTIVE",
             desc: "A dedicated multi-segment download accelerator splitting downloads across 4 to 16 concurrent HTTP range streams, with live server probing, native folder exploration, and local SHA-256 verification.",
@@ -1338,108 +1591,112 @@
 
     const previewMockups = {
       reader: `<div class="vector-screen">
-        <div style="display:flex;justify-content:space-between;color:var(--signal);font-size:10px;">
+        <div style="display:flex;justify-content:space-between;color:var(--col-reader);font-size:10px;font-weight:700;">
           <span>OTIUM READER</span>
-          <span>PAGE 14 / 320</span>
+          <span>PAGE 42 / 320</span>
         </div>
-        <div style="background:#0e1117;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:12px;margin:auto 0;box-shadow:inset 0 0 12px rgba(0,0,0,0.5);">
-          <div style="height:6px;width:70%;background:rgba(255,255,255,0.2);border-radius:3px;margin-bottom:8px;"></div>
+        <div style="background:#0b1114;border:1px solid rgba(16, 185, 129, 0.2);border-radius:8px;padding:14px;margin:auto 0;box-shadow:inset 0 0 16px rgba(0,0,0,0.6);">
+          <div style="height:6px;width:65%;background:rgba(255,255,255,0.25);border-radius:3px;margin-bottom:10px;"></div>
           <div style="height:4px;width:100%;background:rgba(255,255,255,0.08);border-radius:2px;margin-bottom:6px;"></div>
-          <div style="height:4px;width:95%;background:rgba(255,255,255,0.08);border-radius:2px;margin-bottom:6px;"></div>
-          <div style="height:4px;width:85%;background:rgba(255,255,255,0.08);border-radius:2px;margin-bottom:10px;"></div>
-          <div style="height:4px;width:60%;background:var(--signal);border-radius:2px;opacity:0.8;"></div>
+          <div style="height:4px;width:96%;background:rgba(255,255,255,0.08);border-radius:2px;margin-bottom:6px;"></div>
+          <div style="height:4px;width:88%;background:rgba(255,255,255,0.08);border-radius:2px;margin-bottom:12px;"></div>
+          <div style="height:4px;width:55%;background:var(--col-reader);border-radius:2px;box-shadow:0 0 6px var(--col-reader);"></div>
         </div>
-        <div style="display:flex;justify-content:space-between;color:var(--text-dim);font-size:9.5px;">
-          <span>100% ZOOM</span>
-          <span style="color:var(--signal);">FEATHERWEIGHT RAM</span>
+        <div style="display:flex;justify-content:space-between;color:var(--text-dim);font-size:9.5px;font-weight:600;">
+          <span>100% HIGH CONTRAST</span>
+          <span style="color:var(--col-reader);">RAM: 14.2 MB</span>
         </div>
       </div>`,
 
       scan: `<div class="vector-screen">
-        <div style="display:flex;justify-content:space-between;color:var(--signal);font-size:10px;">
-          <span>ON-DEVICE CAMERA</span>
-          <span>AUTO-EDGE: LOCKED</span>
+        <div style="display:flex;justify-content:space-between;color:var(--col-scan);font-size:10px;font-weight:700;">
+          <span>EDGE CAMERA VISOR</span>
+          <span>AUTO-CROP: LOCKED</span>
         </div>
-        <div style="position:relative;background:#090b10;border:1px dashed var(--signal-border);border-radius:6px;margin:auto 0;height:120px;display:flex;align-items:center;justify-content:center;">
+        <div style="position:relative;background:#0d0e12;border:1px dashed rgba(245, 158, 11, 0.4);border-radius:8px;margin:auto 0;height:125px;display:flex;align-items:center;justify-content:center;">
           <!-- Reticles -->
-          <div style="position:absolute;top:6px;left:6px;width:12px;height:12px;border-top:2px solid var(--signal);border-left:2px solid var(--signal);"></div>
-          <div style="position:absolute;top:6px;right:6px;width:12px;height:12px;border-top:2px solid var(--signal);border-right:2px solid var(--signal);"></div>
-          <div style="position:absolute;bottom:6px;left:6px;width:12px;height:12px;border-bottom:2px solid var(--signal);border-left:2px solid var(--signal);"></div>
-          <div style="position:absolute;bottom:6px;right:6px;width:12px;height:12px;border-bottom:2px solid var(--signal);border-right:2px solid var(--signal);"></div>
-          <div style="color:var(--signal);font-size:10px;font-weight:700;">DOCUMENT DETECTED</div>
+          <div style="position:absolute;top:6px;left:6px;width:14px;height:14px;border-top:2px solid var(--col-scan);border-left:2px solid var(--col-scan);"></div>
+          <div style="position:absolute;top:6px;right:6px;width:14px;height:14px;border-top:2px solid var(--col-scan);border-right:2px solid var(--col-scan);"></div>
+          <div style="position:absolute;bottom:6px;left:6px;width:14px;height:14px;border-bottom:2px solid var(--col-scan);border-left:2px solid var(--col-scan);"></div>
+          <div style="position:absolute;bottom:6px;right:6px;width:14px;height:14px;border-bottom:2px solid var(--col-scan);border-right:2px solid var(--col-scan);"></div>
+          <div style="color:var(--col-scan);font-size:10.5px;font-weight:800;letter-spacing:0.4px;">DOCUMENT BOUNDARY</div>
         </div>
-        <div style="text-align:center;color:var(--text-muted);font-size:9.5px;">
-          FILTER: HIGH-CONTRAST MONO
+        <div style="text-align:center;color:var(--col-scan);font-size:9.5px;font-weight:600;">
+          PERSPECTIVE DEWARPING READY
         </div>
       </div>`,
 
       docs: `<img src="assets/screen-reader.png" alt="Otium Docs UI Preview" />`,
 
       link: `<div class="vector-screen">
-        <div style="display:flex;justify-content:space-between;color:var(--signal);font-size:10px;">
-          <span>LAN MESH: 5GHz</span>
-          <span>P2P READY</span>
+        <div style="display:flex;justify-content:space-between;color:var(--col-link);font-size:10px;font-weight:700;">
+          <span>AIRDROP ORBITAL RADAR</span>
+          <span>P2P MESH</span>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-around;margin:auto 0;">
-          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-            <div style="width:34px;height:34px;border-radius:50%;border:1px solid var(--signal-border);background:var(--signal-dim);display:flex;align-items:center;justify-content:center;color:var(--signal);font-weight:700;font-size:10px;">PC</div>
-            <span style="font-size:9.5px;color:var(--text-muted);">Win 11</span>
+        <div style="position:relative;height:120px;margin:auto 0;display:flex;align-items:center;justify-content:center;">
+          <!-- Orbital concentric rings -->
+          <div style="position:absolute;width:110px;height:110px;border-radius:50%;border:1px dashed rgba(59, 130, 246, 0.25);"></div>
+          <div style="position:absolute;width:75px;height:75px;border-radius:50%;border:1px solid rgba(59, 130, 246, 0.2);"></div>
+          <!-- Center Node -->
+          <div style="width:36px;height:36px;border-radius:50%;background:rgba(59, 130, 246, 0.2);border:2px solid var(--col-link);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:10px;box-shadow:0 0 14px rgba(59, 130, 246, 0.5);z-index:2;">
+            PC
           </div>
-          <div style="flex:1;height:1px;background:linear-gradient(90deg, var(--signal) 0%, rgba(0, 229, 153, 0.2) 50%, var(--signal) 100%);margin:0 8px;position:relative;">
-            <div style="position:absolute;top:-2px;left:50%;width:5px;height:5px;border-radius:50%;background:var(--signal);box-shadow:0 0 6px var(--signal);"></div>
+          <!-- Peer 1 (Phone) -->
+          <div style="position:absolute;top:10px;right:40px;width:28px;height:28px;border-radius:50%;background:#0e172a;border:1px solid rgba(59, 130, 246, 0.6);display:flex;align-items:center;justify-content:center;color:var(--col-link);font-size:9px;font-weight:700;">
+            PH
           </div>
-          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-            <div style="width:34px;height:34px;border-radius:50%;border:1px solid var(--signal-border);background:var(--signal-dim);display:flex;align-items:center;justify-content:center;color:var(--signal);font-weight:700;font-size:10px;">PH</div>
-            <span style="font-size:9.5px;color:var(--text-muted);">Android</span>
+          <!-- Peer 2 (TV Cast) -->
+          <div style="position:absolute;bottom:10px;left:40px;width:28px;height:28px;border-radius:50%;background:#0e172a;border:1px solid rgba(99, 102, 241, 0.6);display:flex;align-items:center;justify-content:center;color:#a5b4fc;font-size:9px;font-weight:700;">
+            TV
           </div>
         </div>
-        <div style="text-align:center;color:var(--signal);font-size:10px;">
-          SPEED: 42.8 MB/s • CLIPBOARD SYNC
+        <div style="text-align:center;color:var(--col-link);font-size:10px;font-weight:700;">
+          SPEED: 43.6 MB/s • SMART CAST READY
         </div>
       </div>`,
 
       downloader: `<div class="vector-screen">
-        <div style="display:flex;justify-content:space-between;color:var(--signal);font-size:10px;">
-          <span>STREAMS: 8x PARALLEL</span>
-          <span>38.4 MB/s</span>
+        <div style="display:flex;justify-content:space-between;color:var(--col-downloader);font-size:10px;font-weight:700;">
+          <span>16x TURBO STREAMS</span>
+          <span>41.2 MB/s</span>
         </div>
-        <div style="background:#090b10;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:10px;margin:auto 0;">
-          <div style="display:flex;justify-content:space-between;font-size:9.5px;margin-bottom:6px;">
-            <span style="color:var(--text-white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;">archive_release.iso</span>
-            <span style="color:var(--signal);font-weight:700;">68%</span>
+        <div style="background:#07121a;border:1px solid rgba(2, 132, 199, 0.25);border-radius:8px;padding:12px;margin:auto 0;">
+          <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:6px;">
+            <span style="color:var(--text-white);font-weight:700;">archive_master.iso</span>
+            <span style="color:var(--col-downloader);font-weight:800;">74%</span>
           </div>
-          <div style="height:6px;width:100%;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;margin-bottom:8px;">
-            <div style="height:100%;width:68%;background:var(--signal);box-shadow:0 0 8px var(--signal-glow);"></div>
+          <div style="height:6px;width:100%;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;margin-bottom:10px;">
+            <div style="height:100%;width:74%;background:var(--col-downloader);box-shadow:0 0 10px var(--col-downloader);"></div>
           </div>
           <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:4px;">
-            <div style="height:12px;background:var(--signal-dim);border:1px solid var(--signal-border);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:7.5px;color:var(--signal);">S1:94%</div>
-            <div style="height:12px;background:var(--signal-dim);border:1px solid var(--signal-border);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:7.5px;color:var(--signal);">S2:88%</div>
-            <div style="height:12px;background:var(--signal-dim);border:1px solid var(--signal-border);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:7.5px;color:var(--signal);">S3:75%</div>
-            <div style="height:12px;background:var(--signal-dim);border:1px solid var(--signal-border);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:7.5px;color:var(--signal);">S4:61%</div>
+            <div style="height:14px;background:rgba(2, 132, 199, 0.15);border:1px solid rgba(2, 132, 199, 0.4);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--col-downloader);font-weight:700;">S1:98%</div>
+            <div style="height:14px;background:rgba(2, 132, 199, 0.15);border:1px solid rgba(2, 132, 199, 0.4);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--col-downloader);font-weight:700;">S2:89%</div>
+            <div style="height:14px;background:rgba(2, 132, 199, 0.15);border:1px solid rgba(2, 132, 199, 0.4);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--col-downloader);font-weight:700;">S3:81%</div>
+            <div style="height:14px;background:rgba(2, 132, 199, 0.15);border:1px solid rgba(2, 132, 199, 0.4);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--col-downloader);font-weight:700;">S4:68%</div>
           </div>
         </div>
-        <div style="display:flex;justify-content:space-between;color:var(--text-muted);font-size:9.5px;">
-          <span>ETA: 00:42</span>
-          <span style="color:var(--signal);">SHA-256 VERIFIED</span>
+        <div style="display:flex;justify-content:space-between;color:var(--text-muted);font-size:9.5px;font-weight:600;">
+          <span>ETA: 00:31</span>
+          <span style="color:var(--col-downloader);">SHA-256 VERIFIED</span>
         </div>
       </div>`,
 
       hub: `<div class="vector-screen">
-        <div style="display:flex;justify-content:space-between;color:var(--signal);font-size:10px;">
+        <div style="display:flex;justify-content:space-between;color:var(--col-hub);font-size:10px;font-weight:700;">
           <span>OTIUM TRANSFER HUB</span>
-          <span style="color:#00e599;">V2 ROADMAP</span>
+          <span style="color:var(--col-hub);">V2 ROADMAP</span>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;margin:auto 0;">
-          <div style="padding:6px 8px;background:rgba(0, 229, 153, 0.05);border:1px solid var(--signal-border);border-radius:4px;display:flex;justify-content:space-between;font-size:9px;">
-            <span style="color:var(--text-white);">[P2P MESH ENGINE]</span>
-            <span style="color:var(--signal);">OTIUM LINK</span>
+          <div style="padding:8px 10px;background:rgba(139, 92, 246, 0.08);border:1px solid rgba(139, 92, 246, 0.35);border-radius:6px;display:flex;justify-content:space-between;font-size:9.5px;align-items:center;">
+            <span style="color:var(--text-white);font-weight:700;">[P2P MESH ENGINE]</span>
+            <span style="color:var(--col-link);font-weight:800;">OTIUM LINK</span>
           </div>
-          <div style="padding:6px 8px;background:rgba(0, 229, 153, 0.05);border:1px solid var(--signal-border);border-radius:4px;display:flex;justify-content:space-between;font-size:9px;">
-            <span style="color:var(--text-white);">[16x MULTI-STREAM]</span>
-            <span style="color:var(--signal);">DOWNLOADER</span>
+          <div style="padding:8px 10px;background:rgba(139, 92, 246, 0.08);border:1px solid rgba(139, 92, 246, 0.35);border-radius:6px;display:flex;justify-content:space-between;font-size:9.5px;align-items:center;">
+            <span style="color:var(--text-white);font-weight:700;">[16x MULTI-STREAM]</span>
+            <span style="color:var(--col-downloader);font-weight:800;">DOWNLOADER</span>
           </div>
         </div>
-        <div style="text-align:center;color:var(--signal);font-size:9.5px;">
+        <div style="text-align:center;color:var(--col-hub);font-size:10px;font-weight:700;">
           CONVERGED DATA RUNTIME
         </div>
       </div>`
@@ -1503,6 +1760,7 @@
       document.getElementById('i18n-hero-tag').innerText = t.heroTag;
       document.getElementById('i18n-hero-title').innerHTML = t.heroTitle;
       document.getElementById('i18n-hero-desc').innerText = t.heroDesc;
+      document.getElementById('i18n-hero-cta').innerText = t.heroCta;
       document.getElementById('i18n-suite1-title').innerText = t.suite1Title;
       document.getElementById('i18n-suite2-title').innerText = t.suite2Title;
       document.getElementById('eq-badge-reader').innerText = t.badgeStandalone;
@@ -1521,6 +1779,9 @@
       document.getElementById('i18n-spec3-meta').innerText = t.spec3Meta;
       document.getElementById('i18n-spec3-title').innerText = t.spec3Title;
       document.getElementById('i18n-spec3-desc').innerText = t.spec3Desc;
+      document.getElementById('i18n-spec4-meta').innerText = t.spec4Meta;
+      document.getElementById('i18n-spec4-title').innerText = t.spec4Title;
+      document.getElementById('i18n-spec4-desc').innerText = t.spec4Desc;
       document.getElementById('i18n-footer-copy').innerText = t.footerCopy;
       if (document.getElementById('i18n-guide-title')) {
         document.getElementById('i18n-guide-title').innerText = t.guideTitle;
@@ -1539,6 +1800,15 @@
     function selectApp(key) {
       if (currentAppKey === key) return;
       currentAppKey = key;
+
+      // Animate Sovereign Dynamic Palette
+      const palette = appSovereignPalettes[key];
+      if (palette) {
+        document.documentElement.style.setProperty('--app-accent', palette.primary);
+        document.documentElement.style.setProperty('--app-accent-dim', palette.dim);
+        document.documentElement.style.setProperty('--app-accent-glow', palette.glow);
+        document.documentElement.style.setProperty('--app-accent-border', palette.border);
+      }
 
       // Animate Cockpit Inspector & Preview with 120ms fade
       const inspCol = document.getElementById('inspector-col');
