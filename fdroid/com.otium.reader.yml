@@ -1,0 +1,37 @@
+Categories:
+  - Reading
+  - Office
+License: GPL-3.0-or-later
+AuthorName: XRTM8
+SourceCode: https://github.com/XRTM8/Otium
+IssueTracker: https://github.com/XRTM8/Otium/issues
+Changelog: https://github.com/XRTM8/Otium/releases
+
+Name: Otium Reader
+Summary: Minimal, ultra-lightweight offline PDF reader
+Description: |-
+  Otium Reader is a distraction-free, ultra-lightweight PDF reader designed for
+  high-speed offline document consumption with near-zero memory footprint.
+
+  Features:
+  * Ultra-fast PDF rendering engine
+  * Near-zero RAM footprint
+  * High-contrast dark reading mode
+  * Zero telemetry, zero analytics
+  * Licensed under GNU General Public License v3.0
+
+RepoType: git
+Repo: https://github.com/XRTM8/Otium.git
+
+Builds:
+  - versionName: 1.5.5
+    versionCode: 155
+    commit: v1.5.5
+    subdir: src-tauri/gen/android
+    gradle:
+      - yes
+
+AutoUpdateMode: Version v%v
+UpdateCheckMode: Tags
+CurrentVersion: 1.5.5
+CurrentVersionCode: 155

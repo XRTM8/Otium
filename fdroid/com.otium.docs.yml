@@ -1,0 +1,38 @@
+Categories:
+  - Reading
+  - Office
+License: GPL-3.0-or-later
+AuthorName: XRTM8
+SourceCode: https://github.com/XRTM8/Otium-Docs
+IssueTracker: https://github.com/XRTM8/Otium-Docs/issues
+Changelog: https://github.com/XRTM8/Otium-Docs/releases
+
+Name: Otium Docs
+Summary: Sovereign, offline document reader and camera scanner
+Description: |-
+  Otium Docs is a 100% local-first, privacy-respecting document workspace and camera
+  scanner. It combines high-performance PDF reading with an on-device camera
+  scanner, offline OCR, and zero cloud dependencies.
+
+  Features:
+  * 100% Offline and Local-First
+  * Zero Telemetry, Zero Analytics, Zero Ads
+  * Direct Optical Camera Scanner with auto boundary detection
+  * Ultra-fast PDF rendering engine
+  * Licensed under GNU General Public License v3.0
+
+RepoType: git
+Repo: https://github.com/XRTM8/Otium-Docs.git
+
+Builds:
+  - versionName: 1.1.1
+    versionCode: 111
+    commit: v1.1.1
+    subdir: src-tauri/gen/android
+    gradle:
+      - yes
+
+AutoUpdateMode: Version v%v
+UpdateCheckMode: Tags
+CurrentVersion: 1.1.1
+CurrentVersionCode: 111
