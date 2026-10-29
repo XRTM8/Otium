@@ -51,6 +51,8 @@ const THEMES: { id: ThemeMode; dot: string }[] = [
   { id: 'paper', dot: '#d4c5a9' },
   { id: 'midnight', dot: '#38bdf8' },
   { id: 'amoled', dot: '#10b981' },
+  { id: 'forest', dot: '#34d399' },
+  { id: 'nordic', dot: '#60a5fa' },
   { id: 'parchment', dot: '#d97706' },
   { id: 'amber', dot: '#f59e0b' },
   { id: 'eink', dot: '#9ca3af' },

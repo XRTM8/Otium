@@ -69,6 +69,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
     { id: 'paper', label: t.themes.paper, dot: '#d4c5a9' },
     { id: 'midnight', label: t.themes.midnight, dot: '#38bdf8' },
     { id: 'amoled', label: t.themes.amoled, dot: '#10b981' },
+    { id: 'forest', label: t.themes.forest, dot: '#34d399' },
+    { id: 'nordic', label: t.themes.nordic, dot: '#60a5fa' },
     { id: 'parchment', label: t.themes.parchment, dot: '#d97706' },
     { id: 'amber', label: t.themes.amber, dot: '#f59e0b' },
     { id: 'eink', label: t.themes.eink, dot: '#a3a3a3' },

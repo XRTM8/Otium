@@ -11,6 +11,8 @@ export interface Translations {
     amoled: string;
     parchment: string;
     sakura: string;
+    forest: string;
+    nordic: string;
   };
   dropzoneTitle: string;
   dropzoneSubtitle: string;
@@ -61,7 +63,9 @@ const translations: Record<Language, Translations> = {
       pure: 'أبيض استوديو',
       amoled: 'أسود مطلق',
       parchment: 'ورق قديم',
-      sakura: 'ساكورا وردي'
+      sakura: 'ساكورا وردي',
+      forest: 'غابة هادئة',
+      nordic: 'حجر نوردي'
     },
     dropzoneTitle: 'اسحب وأفلت ملف PDF هنا',
     dropzoneSubtitle: 'أو انقر للاستعراض من جهازك',
@@ -110,7 +114,9 @@ const translations: Record<Language, Translations> = {
       pure: 'Pure',
       amoled: 'AMOLED',
       parchment: 'Parchment',
-      sakura: 'Sakura'
+      sakura: 'Sakura',
+      forest: 'Forest Sage',
+      nordic: 'Nordic Slate'
     },
     dropzoneTitle: 'Drag & drop a PDF file here',
     dropzoneSubtitle: 'or click to browse from your device',

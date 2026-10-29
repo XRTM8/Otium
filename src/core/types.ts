@@ -1,4 +1,4 @@
-export type ThemeMode = 'paper' | 'midnight' | 'eink' | 'amber' | 'pure' | 'amoled' | 'parchment' | 'sakura';
+export type ThemeMode = 'paper' | 'midnight' | 'eink' | 'amber' | 'pure' | 'amoled' | 'parchment' | 'sakura' | 'forest' | 'nordic';
 
 export type FontFamilyId = 'tajawal' | 'cairo' | 'amiri' | 'almarai' | 'ibm' | 'lora' | 'jakarta' | 'system';
 

@@ -8,21 +8,26 @@ import {
   Columns,
   Download,
   ExternalLink,
+  Eye,
   HardDrive,
   LayoutTemplate,
   Loader2,
   Lock,
+  Moon,
+  Palette,
   RefreshCw,
   RotateCcw,
   Shield,
   Sparkles,
+  Sun,
   Type,
   Unlock,
   Upload,
   X
 } from 'lucide-react';
-import type { FontFamilyId, ViewMode } from '../core/types';
+import type { FontFamilyId, ThemeMode, ViewMode } from '../core/types';
 import type { Language } from '../core/i18n/translations';
+import type { ThemeScheduleMode } from '../core/settings/preferences';
 import { FONTS_LIST } from '../core/settings/fonts';
 import { getTranslations } from '../core/i18n/translations';
 import { getCurrentVersion } from '../core/updates/currentVersion';
@@ -51,6 +56,20 @@ interface SettingsModalProps {
   mobile?: boolean;
   mobileNavVisible?: boolean;
   onMobileNavVisibleChange?: (visible: boolean) => void;
+  theme?: ThemeMode;
+  onThemeChange?: (theme: ThemeMode) => void;
+  themeSchedule?: ThemeScheduleMode;
+  onThemeScheduleChange?: (mode: ThemeScheduleMode) => void;
+  dayTheme?: ThemeMode;
+  onDayThemeChange?: (theme: ThemeMode) => void;
+  nightTheme?: ThemeMode;
+  onNightThemeChange?: (theme: ThemeMode) => void;
+  rememberDocTheme?: boolean;
+  onRememberDocThemeChange?: (enabled: boolean) => void;
+  readingWarmth?: number;
+  onReadingWarmthChange?: (warmth: number) => void;
+  ultraDim?: number;
+  onUltraDimChange?: (dim: number) => void;
   onResetDefaults?: () => void;
   onExportBackup?: () => Promise<SaveTextOutcome>;
   onImportBackup?: (text: string) => Promise<RestoreSummary>;
@@ -206,6 +225,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   mobile = false,
   mobileNavVisible = true,
   onMobileNavVisibleChange,
+  theme,
+  onThemeChange,
+  themeSchedule = 'manual',
+  onThemeScheduleChange,
+  dayTheme = 'paper',
+  onDayThemeChange,
+  nightTheme = 'amoled',
+  onNightThemeChange,
+  rememberDocTheme = true,
+  onRememberDocThemeChange,
+  readingWarmth = 0,
+  onReadingWarmthChange,
+  ultraDim = 0,
+  onUltraDimChange,
   onResetDefaults = () => {},
   onExportBackup,
   onImportBackup,
@@ -575,6 +608,225 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </span>
                 </button>
               )}
+
+              {/* Visual Comfort & Theme Intelligence */}
+              <div className="space-y-3 pt-3 border-t border-line-subtle">
+                <div className="flex items-center gap-2">
+                  <Palette className="w-4 h-4 text-accent" />
+                  <span className="text-xs font-bold text-ink">
+                    {ar ? 'الراحة البصرية وبيئة القراءة' : 'Visual Comfort & Reading Environment'}
+                  </span>
+                </div>
+
+                {/* Theme Scheduling Mode */}
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-ink-muted">
+                    {ar ? 'جدولة الثيم الذكية' : 'Theme Schedule'}
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'manual' as const, label: ar ? 'يدوي' : 'Manual', desc: ar ? 'اختيارك الثابت' : 'Fixed choice' },
+                      { id: 'system' as const, label: ar ? 'مزامنة النظام' : 'Follow System', desc: ar ? 'تلقائي مع جهازك' : 'With device OS' },
+                      { id: 'sunset' as const, label: ar ? 'حماية الغروب' : 'Sunset Shield', desc: ar ? 'ليلي في المساء' : 'Night at sunset' }
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => onThemeScheduleChange?.(item.id)}
+                        className={`p-2.5 rounded-xl border flex flex-col items-center text-center transition-all cursor-pointer ${
+                          themeSchedule === item.id
+                            ? 'bg-accent/15 border-accent/50 text-accent font-semibold'
+                            : 'bg-hover-subtle border-line-subtle text-ink-muted hover:bg-hover'
+                        }`}
+                      >
+                        <span className="text-xs">{item.label}</span>
+                        <span className="text-[9px] text-ink-faint mt-0.5">{item.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Active Theme Selector (when Manual) */}
+                {theme && onThemeChange && themeSchedule === 'manual' && (
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-medium text-ink-muted">
+                      {ar ? 'الثيم النشط الحالي' : 'Active Theme'}
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                      {(['paper', 'midnight', 'amoled', 'forest', 'nordic', 'parchment', 'amber', 'eink', 'pure', 'sakura'] as ThemeMode[]).map((id) => (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => onThemeChange(id)}
+                          className={`p-2 rounded-xl border flex items-center gap-2 text-start transition-all cursor-pointer ${
+                            theme === id
+                              ? 'bg-accent/15 border-accent/50 text-accent font-semibold'
+                              : 'bg-hover-subtle border-line-subtle text-ink-muted hover:bg-hover'
+                          }`}
+                        >
+                          <span
+                            className="w-3 h-3 rounded-full shrink-0 border border-black/20"
+                            style={{
+                              backgroundColor: {
+                                paper: '#d4c5a9',
+                                midnight: '#38bdf8',
+                                amoled: '#10b981',
+                                forest: '#34d399',
+                                nordic: '#60a5fa',
+                                parchment: '#d97706',
+                                amber: '#f59e0b',
+                                eink: '#9ca3af',
+                                pure: '#f8fafc',
+                                sakura: '#f472b6'
+                              }[id]
+                            }}
+                          />
+                          <span className="text-[11px] truncate">{t.themes[id]}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Day / Night Theme Selection when scheduled */}
+                {themeSchedule && themeSchedule !== 'manual' && (
+                  <div className="grid grid-cols-2 gap-2.5 p-3 rounded-2xl bg-hover-subtle border border-line-subtle text-xs">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-ink-muted text-[11px] font-medium">
+                        <Sun className="w-3.5 h-3.5 text-amber-500" />
+                        <span>{ar ? 'الثيم النهاري' : 'Day Theme'}</span>
+                      </div>
+                      <select
+                        value={dayTheme || 'paper'}
+                        onChange={(e) => onDayThemeChange?.(e.target.value as ThemeMode)}
+                        className="w-full py-1.5 px-2 rounded-lg bg-surface border border-line text-ink text-xs focus:outline-none focus:border-accent cursor-pointer"
+                      >
+                        {['paper', 'pure', 'parchment', 'eink', 'sakura'].map((id) => (
+                          <option key={id} value={id}>
+                            {t.themes[id as ThemeMode]}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-ink-muted text-[11px] font-medium">
+                        <Moon className="w-3.5 h-3.5 text-accent" />
+                        <span>{ar ? 'الثيم الليلي' : 'Night Theme'}</span>
+                      </div>
+                      <select
+                        value={nightTheme || 'amoled'}
+                        onChange={(e) => onNightThemeChange?.(e.target.value as ThemeMode)}
+                        className="w-full py-1.5 px-2 rounded-lg bg-surface border border-line text-ink text-xs focus:outline-none focus:border-accent cursor-pointer"
+                      >
+                        {['amoled', 'midnight', 'forest', 'nordic', 'amber'].map((id) => (
+                          <option key={id} value={id}>
+                            {t.themes[id as ThemeMode]}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {/* Remember Theme Per Book Toggle */}
+                {onRememberDocThemeChange && (
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={rememberDocTheme}
+                    onClick={() => onRememberDocThemeChange(!rememberDocTheme)}
+                    className="flex w-full items-center gap-3 rounded-2xl border border-line-subtle bg-hover-subtle p-3 text-start transition-colors active:bg-hover cursor-pointer"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-semibold text-ink">
+                        {ar ? 'تذكر بيئة القراءة لكل كتاب' : 'Remember Theme Per Book'}
+                      </div>
+                      <p className="mt-0.5 text-[10px] leading-relaxed text-ink-muted">
+                        {ar
+                          ? 'يحفظ الثيم المختار لكل كتاب بمفرده، فتعود لكل رواية أو بحث بنفس مظهر القراءة المفضل له.'
+                          : 'Remembers your chosen theme for each book independently, so each document reopens with its preferred atmosphere.'}
+                      </p>
+                    </div>
+                    <span
+                      aria-hidden="true"
+                      className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
+                        rememberDocTheme
+                          ? 'border-accent/50 bg-accent'
+                          : 'border-line-strong bg-hover-strong'
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all ${
+                          rememberDocTheme ? 'start-6' : 'start-0.5'
+                        }`}
+                      />
+                    </span>
+                  </button>
+                )}
+
+                {/* Reading Warmth Slider */}
+                {onReadingWarmthChange && (
+                  <div className="p-3 rounded-2xl border border-line-subtle bg-hover-subtle space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-3.5 h-3.5 text-amber-500" />
+                        <span className="font-semibold text-ink">
+                          {ar ? 'دفء القراءة وحماية العين' : 'Reading Warmth & Eye Shield'}
+                        </span>
+                      </div>
+                      <span className="font-mono text-xs font-bold text-accent">
+                        {readingWarmth || 0}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={50}
+                      step={2}
+                      value={readingWarmth || 0}
+                      onChange={(e) => onReadingWarmthChange(Number(e.target.value))}
+                      className="w-full accent-accent cursor-pointer"
+                    />
+                    <div className="flex justify-between text-[10px] text-ink-faint">
+                      <span>{ar ? 'طبيعي' : 'Natural'}</span>
+                      <span>{ar ? 'دافئ هادئ' : 'Warm'}</span>
+                      <span>{ar ? 'أقصى حماية' : 'Max Shield'}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Ultra-Dim Slider */}
+                {onUltraDimChange && (
+                  <div className="p-3 rounded-2xl border border-line-subtle bg-hover-subtle space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                        <span className="font-semibold text-ink">
+                          {ar ? 'التعتيم الليلي الفائق' : 'Ultra-Dim Night Mode'}
+                        </span>
+                      </div>
+                      <span className="font-mono text-xs font-bold text-accent">
+                        {ultraDim || 0}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={75}
+                      step={5}
+                      value={ultraDim || 0}
+                      onChange={(e) => onUltraDimChange(Number(e.target.value))}
+                      className="w-full accent-accent cursor-pointer"
+                    />
+                    <div className="flex justify-between text-[10px] text-ink-faint">
+                      <span>{ar ? 'سطوع الشاشة المعتاد' : 'Standard'}</span>
+                      <span>{ar ? 'تعتيم ليلي خفيف' : 'Subtle Dim'}</span>
+                      <span>{ar ? 'ظلام دامس' : 'Pitch Dark'}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <div className="p-3 rounded-2xl bg-hover-subtle border border-line-subtle flex items-start gap-2.5 text-xs text-ink-muted">
                 <Sparkles className="w-4 h-4 text-highlight shrink-0 mt-0.5" />

@@ -40,13 +40,17 @@ const PAGE_BACKGROUND: Record<ThemeMode, string> = {
   eink: '#e5e7eb',
   pure: '#ffffff',
   paper: '#fdfcf8',
-  sakura: '#fdf6f7'
+  sakura: '#fdf6f7',
+  forest: '#0c1813',
+  nordic: '#15181e'
 };
 
 const THEME_FILTERS: Partial<Record<ThemeMode, string>> = {
   amoled: 'invert(1) hue-rotate(180deg) contrast(1.12) brightness(0.92)',
   midnight: 'invert(0.92) hue-rotate(185deg) contrast(1.02) brightness(0.94)',
   amber: 'invert(0.90) sepia(0.55) hue-rotate(-15deg) contrast(1.03) brightness(0.94)',
+  forest: 'invert(0.92) sepia(0.35) hue-rotate(90deg) contrast(1.04) brightness(0.94)',
+  nordic: 'invert(0.92) hue-rotate(175deg) contrast(1.05) brightness(0.92)',
   eink: 'grayscale(1) contrast(1.18) brightness(0.97)'
 };
 
@@ -196,7 +200,7 @@ const PdfPageView: React.FC<PdfPageProps> = ({
   const [retryKey, setRetryKey] = useState(0);
   const [textLayerVersion, setTextLayerVersion] = useState(0);
   const [activeAnno, setActiveAnno] = useState<ActiveAnnotation | null>(null);
-  const isDark = theme === 'amoled' || theme === 'midnight' || theme === 'amber';
+  const isDark = theme === 'amoled' || theme === 'midnight' || theme === 'amber' || theme === 'forest' || theme === 'nordic';
   const cssThemeFilter = useMemo(() => {
     const filter = themeFilter(theme);
     return filter && !supportsCanvasFilter() ? filter : undefined;

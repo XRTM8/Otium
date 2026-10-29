@@ -196,6 +196,16 @@
   background: rgba(244, 114, 182, 0.35) !important;
 }
 
+.theme-forest .textLayer ::selection,
+.theme-forest .textLayer ::-moz-selection {
+  background: rgba(72, 169, 124, 0.38) !important;
+}
+
+.theme-nordic .textLayer ::selection,
+.theme-nordic .textLayer ::-moz-selection {
+  background: rgba(91, 147, 211, 0.38) !important;
+}
+
 /* In-Document Search Highlights */
 .search-highlight {
   background-color: rgba(251, 191, 36, 0.45) !important;
@@ -407,6 +417,54 @@
   --danger-ink: #be123c;
 }
 
+/* Forest / Sage calming green dark theme */
+.theme-forest {
+  color-scheme: dark;
+  --app-bg: #0c1813;
+  --surface-1: rgba(15, 29, 23, 0.88);
+  --surface-2: rgba(22, 40, 32, 0.94);
+  --surface-hover: rgba(220, 240, 230, 0.10);
+  --surface-hover-subtle: rgba(220, 240, 230, 0.05);
+  --surface-hover-strong: rgba(220, 240, 230, 0.16);
+  --ink: #e2ede5;
+  --ink-muted: #95af9f;
+  --ink-faint: #5a7566;
+  --line: rgba(72, 169, 124, 0.20);
+  --line-subtle: rgba(72, 169, 124, 0.10);
+  --line-strong: rgba(72, 169, 124, 0.32);
+  --scrim: rgba(5, 12, 9, 0.68);
+  --accent: #48a97c;
+  --accent-strong: #2e7a55;
+  --on-accent: #ffffff;
+  --highlight: #34d399;
+  --success-ink: #6ee7b7;
+  --danger-ink: #fecdd3;
+}
+
+/* Nordic Slate crisp minimalist dark theme */
+.theme-nordic {
+  color-scheme: dark;
+  --app-bg: #15181e;
+  --surface-1: rgba(26, 30, 38, 0.88);
+  --surface-2: rgba(33, 38, 49, 0.94);
+  --surface-hover: rgba(226, 232, 240, 0.10);
+  --surface-hover-subtle: rgba(226, 232, 240, 0.05);
+  --surface-hover-strong: rgba(226, 232, 240, 0.16);
+  --ink: #e2e8f0;
+  --ink-muted: #94a3b8;
+  --ink-faint: #5c6b82;
+  --line: rgba(148, 163, 184, 0.20);
+  --line-subtle: rgba(148, 163, 184, 0.10);
+  --line-strong: rgba(148, 163, 184, 0.32);
+  --scrim: rgba(10, 12, 16, 0.66);
+  --accent: #5b93d3;
+  --accent-strong: #2f6cb0;
+  --on-accent: #ffffff;
+  --highlight: #60a5fa;
+  --success-ink: #6ee7b7;
+  --danger-ink: #fecdd3;
+}
+
 /* ==========================================================================
    Fluid Hardware-Accelerated Theme View Transition (Silky 60/120fps)
    ========================================================================== */
@@ -497,10 +555,12 @@
   mix-blend-mode: multiply;
 }
 
-/* In Dark Themes (amoled, midnight, amber), soften paper overlays to overlay blend */
+/* In Dark Themes (amoled, midnight, amber, forest, nordic), soften paper overlays to overlay blend */
 .theme-amoled .paper-overlay,
 .theme-midnight .paper-overlay,
-.theme-amber .paper-overlay {
+.theme-amber .paper-overlay,
+.theme-forest .paper-overlay,
+.theme-nordic .paper-overlay {
   mix-blend-mode: overlay;
   opacity: 0.35;
 }
@@ -749,7 +809,9 @@
 }
 
 .theme-midnight .chrome-surface,
-.theme-amber .chrome-surface {
+.theme-amber .chrome-surface,
+.theme-forest .chrome-surface,
+.theme-nordic .chrome-surface {
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.08) inset,
     0 14px 40px -12px rgba(0, 0, 0, 0.55);
@@ -1058,6 +1120,18 @@ body[data-has-selection='true'] .textLayer {
   background: rgba(244, 114, 182, 0.28);
   box-shadow: 0 0 0 1px rgba(244, 114, 182, 0.36);
   mix-blend-mode: multiply;
+}
+
+.theme-forest .selection-overlay {
+  background: rgba(72, 169, 124, 0.32);
+  box-shadow: 0 0 0 1px rgba(72, 169, 124, 0.40);
+  mix-blend-mode: screen;
+}
+
+.theme-nordic .selection-overlay {
+  background: rgba(91, 147, 211, 0.32);
+  box-shadow: 0 0 0 1px rgba(91, 147, 211, 0.40);
+  mix-blend-mode: screen;
 }
 
 .annotation-highlight {

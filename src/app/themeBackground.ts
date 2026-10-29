@@ -17,6 +17,10 @@ export function getThemeBackground(theme: ThemeMode): string {
       return '#ede2cd';
     case 'sakura':
       return '#fbf1f3';
+    case 'forest':
+      return '#0c1813';
+    case 'nordic':
+      return '#15181e';
     case 'pure':
     default:
       return '#f1f5f9';

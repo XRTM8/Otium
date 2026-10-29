@@ -149,7 +149,9 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
     isDraggingTouch,
     dualFlipKey,
     dualFlipDir,
-    numberJumpDisplay
+    numberJumpDisplay,
+    readingWarmth,
+    ultraDim
   } = reader;
 
   const [compactLandscape, setCompactLandscape] = useState(false);
@@ -740,6 +742,27 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
           )}
         </button>
       </div>
+
+      {/* Visual Comfort Overlays: Reading Warmth and Ultra-Dim */}
+      {readingWarmth > 0 && (
+        <div
+          aria-hidden="true"
+          className="fixed inset-0 pointer-events-none z-30 transition-opacity duration-300"
+          style={{
+            backgroundColor: `rgba(245, 158, 11, ${(readingWarmth / 100) * 0.22})`,
+            mixBlendMode: 'multiply'
+          }}
+        />
+      )}
+      {ultraDim > 0 && (
+        <div
+          aria-hidden="true"
+          className="fixed inset-0 pointer-events-none z-30 transition-opacity duration-300"
+          style={{
+            backgroundColor: `rgba(0, 0, 0, ${(ultraDim / 100) * 0.75})`
+          }}
+        />
+      )}
     </div>
   );
 };

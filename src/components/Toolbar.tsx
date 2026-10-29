@@ -60,6 +60,8 @@ const THEME_DOTS: Record<ThemeMode, string> = {
   paper: '#d4c5a9',
   midnight: '#38bdf8',
   amoled: '#10b981',
+  forest: '#34d399',
+  nordic: '#60a5fa',
   parchment: '#d97706',
   amber: '#f59e0b',
   eink: '#9ca3af',

@@ -38,7 +38,23 @@ import {
   saveMobileNavVisible,
   saveScrollOffset,
   saveTheme,
-  saveViewMode
+  saveViewMode,
+  loadThemeSchedule,
+  saveThemeSchedule,
+  loadDayTheme,
+  saveDayTheme,
+  loadNightTheme,
+  saveNightTheme,
+  loadRememberDocTheme,
+  saveRememberDocTheme,
+  loadDocumentTheme,
+  saveDocumentTheme,
+  loadReadingWarmth,
+  saveReadingWarmth,
+  loadUltraDim,
+  saveUltraDim,
+  resolveScheduledTheme,
+  type ThemeScheduleMode
 } from '../core/settings/preferences';
 import { computeOptimalPageScale, measureRefreshRate } from '../core/reader/device';
 import { clearSearchTextCache } from '../core/search/documentSearch';
@@ -70,6 +86,8 @@ const THEME_ORDER: ThemeMode[] = [
   'paper',
   'midnight',
   'amoled',
+  'forest',
+  'nordic',
   'parchment',
   'amber',
   'eink',
@@ -152,7 +170,28 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
   const [dualFlipKey, setDualFlipKey] = useState(0);
   const [dualFlipDir, setDualFlipDir] = useState<'forward' | 'backward'>('forward');
-  const [theme, setTheme] = useState<ThemeMode>(loadTheme);
+  const [themeSchedule, setThemeScheduleState] = useState<ThemeScheduleMode>(loadThemeSchedule);
+  const [dayTheme, setDayThemeState] = useState<ThemeMode>(loadDayTheme);
+  const [nightTheme, setNightThemeState] = useState<ThemeMode>(loadNightTheme);
+  const [rememberDocTheme, setRememberDocThemeState] = useState<boolean>(loadRememberDocTheme);
+  const [readingWarmth, setReadingWarmthState] = useState<number>(loadReadingWarmth);
+  const [ultraDim, setUltraDimState] = useState<number>(loadUltraDim);
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    const saved = loadTheme();
+    const sched = loadThemeSchedule();
+    if (sched !== 'manual') {
+      return resolveScheduledTheme(sched, loadDayTheme(), loadNightTheme(), saved);
+    }
+    return saved;
+  });
+  const rememberDocThemeRef = useRef(rememberDocTheme);
+  rememberDocThemeRef.current = rememberDocTheme;
+  const themeScheduleRef = useRef(themeSchedule);
+  themeScheduleRef.current = themeSchedule;
+  const dayThemeRef = useRef(dayTheme);
+  dayThemeRef.current = dayTheme;
+  const nightThemeRef = useRef(nightTheme);
+  nightThemeRef.current = nightTheme;
   const [baseAspectRatio, setBaseAspectRatio] = useState(0.707);
   const [basePageSize, setBasePageSize] = useState({ width: 595, height: 842 });
   const [viewMode, setViewMode] = useState<ViewMode>(loadViewMode);
@@ -607,8 +646,11 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     }
   }, [currentPage, scrollToPage, viewMode]);
 
-  const changeTheme = useCallback((nextTheme: ThemeMode) => {
+  const changeTheme = useCallback((nextTheme: ThemeMode, persistDocument = true) => {
     saveTheme(nextTheme);
+    if (persistDocument && docIdRef.current && rememberDocThemeRef.current) {
+      saveDocumentTheme(docIdRef.current, nextTheme);
+    }
 
     const doc = (typeof document !== 'undefined' ? document : null) as unknown as {
       startViewTransition?: (callback: () => void | Promise<void>) => {
@@ -632,6 +674,78 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       applyDomTheme(nextTheme);
     }
   }, []);
+
+  const changeThemeSchedule = useCallback((mode: ThemeScheduleMode) => {
+    saveThemeSchedule(mode);
+    setThemeScheduleState(mode);
+    if (mode !== 'manual') {
+      const scheduled = resolveScheduledTheme(mode, dayTheme, nightTheme, theme);
+      if (scheduled !== theme) {
+        changeTheme(scheduled, false);
+      }
+    }
+  }, [changeTheme, dayTheme, nightTheme, theme]);
+
+  const changeDayTheme = useCallback((nextDayTheme: ThemeMode) => {
+    saveDayTheme(nextDayTheme);
+    setDayThemeState(nextDayTheme);
+    if (themeSchedule !== 'manual') {
+      const scheduled = resolveScheduledTheme(themeSchedule, nextDayTheme, nightTheme, theme);
+      if (scheduled !== theme) {
+        changeTheme(scheduled, false);
+      }
+    }
+  }, [changeTheme, nightTheme, theme, themeSchedule]);
+
+  const changeNightTheme = useCallback((nextNightTheme: ThemeMode) => {
+    saveNightTheme(nextNightTheme);
+    setNightThemeState(nextNightTheme);
+    if (themeSchedule !== 'manual') {
+      const scheduled = resolveScheduledTheme(themeSchedule, dayTheme, nextNightTheme, theme);
+      if (scheduled !== theme) {
+        changeTheme(scheduled, false);
+      }
+    }
+  }, [changeTheme, dayTheme, theme, themeSchedule]);
+
+  const changeRememberDocTheme = useCallback((enabled: boolean) => {
+    saveRememberDocTheme(enabled);
+    setRememberDocThemeState(enabled);
+  }, []);
+
+  const changeReadingWarmth = useCallback((warmth: number) => {
+    saveReadingWarmth(warmth);
+    setReadingWarmthState(warmth);
+  }, []);
+
+  const changeUltraDim = useCallback((dim: number) => {
+    saveUltraDim(dim);
+    setUltraDimState(dim);
+  }, []);
+
+  useEffect(() => {
+    if (themeSchedule !== 'system' || typeof window === 'undefined') return;
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const update = () => {
+      const targetTheme = media.matches ? nightTheme : dayTheme;
+      changeTheme(targetTheme, false);
+    };
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, [themeSchedule, dayTheme, nightTheme, changeTheme]);
+
+  useEffect(() => {
+    if (themeSchedule !== 'sunset' || typeof window === 'undefined') return;
+    const checkSunset = () => {
+      const scheduled = resolveScheduledTheme('sunset', dayTheme, nightTheme, theme);
+      if (scheduled !== theme) {
+        changeTheme(scheduled, false);
+      }
+    };
+    checkSunset();
+    const interval = window.setInterval(checkSunset, 60_000);
+    return () => window.clearInterval(interval);
+  }, [themeSchedule, dayTheme, nightTheme, theme, changeTheme]);
 
   const changeLanguage = useCallback(() => {
     setLang((current) => {
@@ -1079,6 +1193,16 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       pendingScrollOffsetRef.current = savedOffset > 0 ? savedOffset : null;
       setCurrentPage(initialPage);
       setFileSizeBytes(storageBuffer.byteLength);
+
+      if (rememberDocThemeRef.current) {
+        const savedDocTheme = loadDocumentTheme(documentId, title);
+        if (savedDocTheme) {
+          changeTheme(savedDocTheme, false);
+        } else if (themeScheduleRef.current !== 'manual') {
+          const scheduled = resolveScheduledTheme(themeScheduleRef.current, dayThemeRef.current, nightThemeRef.current, loadTheme());
+          changeTheme(scheduled, false);
+        }
+      }
 
       if (storageBuffer.byteLength > 0) {
         void saveDocumentToStorage(documentId, title, storageBuffer, opened.numPages, initialPage);
@@ -1826,9 +1950,25 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     changeFont('tajawal');
     changeViewMode('continuous');
     changeTheme('paper');
+    changeThemeSchedule('manual');
+    changeDayTheme('paper');
+    changeNightTheme('amoled');
+    changeRememberDocTheme(true);
+    changeReadingWarmth(0);
+    changeUltraDim(0);
     setShowMobileNavBar(true);
     saveMobileNavVisible(true);
-  }, [changeFont, changeTheme, changeViewMode]);
+  }, [
+    changeDayTheme,
+    changeFont,
+    changeNightTheme,
+    changeReadingWarmth,
+    changeRememberDocTheme,
+    changeTheme,
+    changeThemeSchedule,
+    changeUltraDim,
+    changeViewMode
+  ]);
 
   const renameCurrentDocument = useCallback(
     (newTitle: string) => {
@@ -1851,6 +1991,12 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     zoom,
     setZoom,
     theme,
+    themeSchedule,
+    dayTheme,
+    nightTheme,
+    rememberDocTheme,
+    readingWarmth,
+    ultraDim,
     viewMode,
     lang,
     fontFamily,
@@ -1889,6 +2035,12 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     goToNextPage,
     goToPrevPage,
     changeTheme,
+    changeThemeSchedule,
+    changeDayTheme,
+    changeNightTheme,
+    changeRememberDocTheme,
+    changeReadingWarmth,
+    changeUltraDim,
     changeLanguage,
     changeFont,
     changeViewMode,

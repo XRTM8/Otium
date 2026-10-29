@@ -11,7 +11,9 @@ const ALL_THEMES: readonly ThemeMode[] = [
   'amber',
   'eink',
   'pure',
-  'sakura'
+  'sakura',
+  'forest',
+  'nordic'
 ];
 
 export function isLightTheme(theme: ThemeMode): boolean {
