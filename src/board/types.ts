@@ -51,14 +51,33 @@ export interface BeamPayload {
   theme: ThemeMode;
   pdfBase64?: string;
   pdfData?: ArrayBuffer;
+  pdfUrl?: string;
+  chunks?: string[];
+  totalSize?: number;
 }
 
 export interface BeamMessage {
-  type: 'BEAM_HANDSHAKE' | 'BEAM_PAYLOAD' | 'BEAM_PAGE_CHANGE' | 'BEAM_LASER' | 'BEAM_DISCONNECT';
+  type:
+    | 'BEAM_HANDSHAKE'
+    | 'BEAM_PAYLOAD'
+    | 'BEAM_PAGE_CHANGE'
+    | 'BEAM_STEP'
+    | 'BEAM_QUERY_STATE'
+    | 'BEAM_STATE_ANNOUNCE'
+    | 'BEAM_LASER'
+    | 'BEAM_DISCONNECT'
+    | 'BEAM_RTC_OFFER'
+    | 'BEAM_RTC_ANSWER'
+    | 'BEAM_RTC_ICE';
   roomCode: string;
   senderName?: string;
   payload?: BeamPayload;
   pageNumber?: number;
+  direction?: 'next' | 'prev';
+  docTitle?: string;
+  totalPages?: number;
+  sdp?: RTCSessionDescriptionInit;
+  candidate?: RTCIceCandidateInit;
   laserPoint?: { x: number; y: number; active: boolean };
   timestamp: number;
 }

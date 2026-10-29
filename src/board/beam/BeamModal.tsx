@@ -69,7 +69,12 @@ export const BeamModal: React.FC<BeamModalProps> = ({
   const [copiedCode, setCopiedCode] = useState(false);
   const [recentRooms, setRecentRooms] = useState<string[]>([]);
   const [beamError, setBeamError] = useState<string | null>(null);
+  const [remoteDocTitle, setRemoteDocTitle] = useState<string>(() => reader.docTitle || '');
+  const [remotePage, setRemotePage] = useState<number>(() => reader.currentPage || 1);
+  const [remoteTotal, setRemoteTotal] = useState<number>(() => reader.numPages || 0);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const offlineFileInputRef = useRef<HTMLInputElement>(null);
+  const beamFileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync beam connection state
   useEffect(() => {
@@ -129,10 +134,18 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     }
   }, [isOpen, activeTab, receiverRoomCode]);
 
-  // Subscribe to beam messages (receiver mode & payload receipt)
+  // Query remote receiver state when remote tab becomes active
+  useEffect(() => {
+    if (!isOpen) return;
+    if (activeTab === 'remote' && connectedRoom) {
+      beamService.queryReceiverState(connectedRoom);
+    }
+  }, [isOpen, activeTab, connectedRoom]);
+
+  // Subscribe to beam messages (receiver mode, payload receipt & remote state updates)
   useEffect(() => {
     const unsubscribe = beamService.subscribe(async (msg: BeamMessage) => {
-      // When incoming payload matches our receiver room, activate split board and close modal
+      // 1. When incoming payload matches our receiver room, activate split board and close modal
       if (
         msg.type === 'BEAM_PAYLOAD' &&
         msg.payload &&
@@ -141,6 +154,13 @@ export const BeamModal: React.FC<BeamModalProps> = ({
         saveRecentRoom(receiverRoomCode);
         onSetBoardOpen(true);
         onClose();
+      }
+
+      // 2. When receiver announces its state, sync remote clicker view
+      if (msg.type === 'BEAM_STATE_ANNOUNCE') {
+        if (msg.docTitle) setRemoteDocTitle(msg.docTitle);
+        if (typeof msg.pageNumber === 'number') setRemotePage(msg.pageNumber);
+        if (typeof msg.totalPages === 'number') setRemoteTotal(msg.totalPages);
       }
     });
 
@@ -160,43 +180,85 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     setIsScanningCamera(false);
   }, []);
 
-  // Send current book to Smartboard
+  // Send current book or custom file to Smartboard
   const handleBeamDocument = useCallback(
-    async (overrideCode?: string) => {
+    async (overrideCode?: string, overrideBuffer?: ArrayBuffer, overrideTitle?: string) => {
       const raw = (overrideCode || targetRoomCode).trim();
       const code = formatRoomCode(raw);
       if (!code) return;
 
       setBeamError(null);
 
-      if (!reader.doc || !reader.docId) {
-        setBeamError(lang === 'ar' ? 'يرجى فتح كتاب أولاً لبثه إلى السبورة' : 'Please open a document first');
-        return;
+      let buffer = overrideBuffer;
+      const title = overrideTitle || reader.docTitle || (lang === 'ar' ? 'المحاضرة' : 'Lecture Document');
+      const pageNumber = reader.currentPage || 1;
+      const totalPages = reader.numPages || 1;
+
+      if (!buffer) {
+        if (!reader.doc || !reader.docId) {
+          beamFileInputRef.current?.click();
+          return;
+        }
+        try {
+          const docBuf = await getDocumentFromStorage(reader.docId);
+          if (!docBuf) throw new Error('Document buffer not found in storage');
+          buffer = docBuf;
+        } catch {
+          setBeamError(lang === 'ar' ? 'تعذر قراءة ملف المستند' : 'Failed to read document');
+          return;
+        }
       }
 
       setIsSending(true);
       setSendSuccess(false);
+      setUploadProgress(15);
 
       try {
-        const buffer = await getDocumentFromStorage(reader.docId);
-        if (!buffer) {
-          throw new Error('Document buffer not found in storage');
-        }
+        const totalBytes = buffer.byteLength;
+        const SINGLE_LIMIT = 2 * 1024 * 1024; // 2MB
 
-        const MAX_CLOUD_BYTES = 2.5 * 1024 * 1024;
-        if (buffer.byteLength <= MAX_CLOUD_BYTES) {
-          const base64 = arrayBufferToBase64(buffer);
+        if (totalBytes <= SINGLE_LIMIT) {
+          setUploadProgress(40);
+          const pdfUrl = await beamService.uploadAttachment(code, buffer, `${title}.pdf`);
+          setUploadProgress(85);
 
           const payloadMsg: BeamMessage = {
             type: 'BEAM_PAYLOAD',
             roomCode: code,
             senderName: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
             payload: {
-              title: reader.docTitle,
-              pageNumber: reader.currentPage,
-              totalPages: reader.numPages,
+              title,
+              pageNumber,
+              totalPages,
               theme: reader.theme,
-              pdfBase64: base64
+              pdfUrl: pdfUrl || undefined,
+              pdfBase64: !pdfUrl && totalBytes < 500000 ? arrayBufferToBase64(buffer) : undefined
+            },
+            timestamp: Date.now()
+          };
+
+          await beamService.broadcast(payloadMsg);
+        } else {
+          // Chunked upload for larger files (e.g. 5MB, 10MB+)
+          const chunkUrls = await beamService.uploadChunked(code, buffer, `${title}.pdf`, (p) => {
+            setUploadProgress(Math.min(95, Math.max(15, p)));
+          });
+
+          if (!chunkUrls || chunkUrls.length === 0) {
+            throw new Error('Chunked upload failed');
+          }
+
+          const payloadMsg: BeamMessage = {
+            type: 'BEAM_PAYLOAD',
+            roomCode: code,
+            senderName: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
+            payload: {
+              title,
+              pageNumber,
+              totalPages,
+              theme: reader.theme,
+              chunks: chunkUrls,
+              totalSize: totalBytes
             },
             timestamp: Date.now()
           };
@@ -205,11 +267,12 @@ export const BeamModal: React.FC<BeamModalProps> = ({
         }
 
         beamService.startSender(code);
-        beamService.broadcastPageChange(reader.currentPage);
+        beamService.broadcastPageChange(pageNumber);
 
         setConnectedRoom(code);
         setSendSuccess(true);
         setIsSending(false);
+        setUploadProgress(null);
 
         // Transition to remote presentation mode
         setTimeout(() => {
@@ -218,13 +281,14 @@ export const BeamModal: React.FC<BeamModalProps> = ({
       } catch (err) {
         console.error('Failed to beam document:', err);
         setIsSending(false);
+        setUploadProgress(null);
         setBeamError(lang === 'ar' ? 'تعذر إرسال المستند، تأكد من الرمز وحاول مجدداً' : 'Failed to beam document');
       }
     },
     [targetRoomCode, reader, lang]
   );
 
-  // Quick remote pairing without re-uploading file
+  // Quick remote pairing without re-uploading file (Works even without document open!)
   const handlePairAsRemote = useCallback(
     (overrideCode?: string) => {
       const raw = (overrideCode || targetRoomCode).trim();
@@ -233,15 +297,36 @@ export const BeamModal: React.FC<BeamModalProps> = ({
 
       setBeamError(null);
       beamService.startSender(code);
-      beamService.broadcastPageChange(reader.currentPage);
+      if (reader.doc) {
+        beamService.broadcastPageChange(reader.currentPage);
+      } else {
+        beamService.queryReceiverState(code);
+      }
       setConnectedRoom(code);
       setSendSuccess(true);
       setTimeout(() => {
         setActiveTab('remote');
       }, 200);
     },
-    [targetRoomCode, reader.currentPage]
+    [targetRoomCode, reader.doc, reader.currentPage]
   );
+
+  // File picker handler to beam a file directly without opening it first
+  const handleBeamFileDirect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const buf = await file.arrayBuffer();
+      const code = targetRoomCode.trim() || connectedRoom || '';
+      if (!code) {
+        setBeamError(lang === 'ar' ? 'يرجى إدخال رمز السبورة أولاً' : 'Please enter room code first');
+        return;
+      }
+      void handleBeamDocument(code, buf, file.name.replace(/\.pdf$/i, ''));
+    } catch {
+      setBeamError(lang === 'ar' ? 'تعذر قراءة الملف المحدد' : 'Failed to read selected file');
+    }
+  };
 
   // Camera QR Code Scanner Execution
   const startCameraScanner = async () => {
@@ -273,7 +358,11 @@ export const BeamModal: React.FC<BeamModalProps> = ({
               if (detected) {
                 stopCamera();
                 setTargetRoomCode(detected);
-                void handleBeamDocument(detected);
+                if (reader.doc) {
+                  void handleBeamDocument(detected);
+                } else {
+                  handlePairAsRemote(detected);
+                }
                 return;
               }
             }
@@ -313,13 +402,23 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     }
   }, []);
 
-  // Remote clicker controls
+  const activeDocTitle =
+    reader.docTitle || remoteDocTitle || (lang === 'ar' ? 'المستند المتصل بالسبورة' : 'Connected Document');
+  const activePage = reader.doc ? reader.currentPage : remotePage;
+  const activeTotal = reader.doc ? reader.numPages : remoteTotal;
+
+  // Remote clicker controls (works seamlessly with or without local document loaded!)
   const handleRemoteNext = useCallback(() => {
-    if (reader.currentPage >= reader.numPages) return;
+    if (activeTotal > 0 && activePage >= activeTotal) return;
     triggerHaptic();
-    const nextPage = Math.min(reader.numPages, reader.currentPage + 1);
-    reader.goToNextPage();
+    const nextPage = activePage + 1;
+    if (reader.doc) {
+      reader.goToNextPage();
+    } else {
+      setRemotePage(nextPage);
+    }
     if (connectedRoom) {
+      beamService.sendStep('next');
       void beamService.broadcast({
         type: 'BEAM_PAGE_CHANGE',
         roomCode: connectedRoom,
@@ -327,14 +426,19 @@ export const BeamModal: React.FC<BeamModalProps> = ({
         timestamp: Date.now()
       });
     }
-  }, [reader, connectedRoom, triggerHaptic]);
+  }, [activeTotal, activePage, reader, connectedRoom, triggerHaptic]);
 
   const handleRemotePrev = useCallback(() => {
-    if (reader.currentPage <= 1) return;
+    if (activeTotal > 0 && activePage <= 1) return;
     triggerHaptic();
-    const prevPage = Math.max(1, reader.currentPage - 1);
-    reader.goToPrevPage();
+    const prevPage = Math.max(1, activePage - 1);
+    if (reader.doc) {
+      reader.goToPrevPage();
+    } else {
+      setRemotePage(prevPage);
+    }
     if (connectedRoom) {
+      beamService.sendStep('prev');
       void beamService.broadcast({
         type: 'BEAM_PAGE_CHANGE',
         roomCode: connectedRoom,
@@ -342,7 +446,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
         timestamp: Date.now()
       });
     }
-  }, [reader, connectedRoom, triggerHaptic]);
+  }, [activeTotal, activePage, reader, connectedRoom, triggerHaptic]);
 
   // Keyboard navigation when remote tab is active
   useEffect(() => {
@@ -481,7 +585,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
         {/* Tab 1: Send Mode (From Phone / Laptop) */}
         {activeTab === 'send' && (
           <div className="p-5 space-y-3.5">
-            {/* Active Book Pill */}
+            {/* Active Book Pill or Standalone Remote Mode */}
             {reader.doc ? (
               <div className="px-3.5 py-2.5 rounded-2xl bg-hover-subtle border border-line flex items-center justify-between">
                 <div className="min-w-0 flex-1">
@@ -497,8 +601,24 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                 </span>
               </div>
             ) : (
-              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-500 text-center font-medium">
-                {lang === 'ar' ? 'يرجى فتح ملف أولاً لبثه إلى السبورة' : 'Open a file first to beam'}
+              <div className="px-3.5 py-2.5 rounded-2xl bg-hover-subtle border border-line flex items-center justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] text-accent font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                    <Radio className="w-3 h-3 text-accent animate-pulse" />
+                    <span>{lang === 'ar' ? 'وضع ريموت التحكم الذكي' : 'Smart Remote Controller Mode'}</span>
+                  </div>
+                  <div className="text-xs font-bold truncate text-ink">
+                    {lang === 'ar' ? 'التحكم بالسبورة أو الحاسبة من هاتفك' : 'Control Smartboard / PC from your phone'}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => beamFileInputRef.current?.click()}
+                  className="px-2.5 py-1 rounded-xl bg-accent/15 hover:bg-accent/25 border border-accent/30 text-accent font-bold text-[11px] flex items-center gap-1 transition-all cursor-pointer shrink-0"
+                >
+                  <FileUp className="w-3 h-3" />
+                  <span>{lang === 'ar' ? 'اختيار ملف وبثه' : 'Pick & Beam File'}</span>
+                </button>
               </div>
             )}
 
@@ -597,8 +717,14 @@ export const BeamModal: React.FC<BeamModalProps> = ({
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => void handleBeamDocument()}
-                  disabled={isSending || !targetRoomCode.trim() || !reader.doc}
+                  onClick={() => {
+                    if (reader.doc) {
+                      void handleBeamDocument();
+                    } else {
+                      beamFileInputRef.current?.click();
+                    }
+                  }}
+                  disabled={isSending || (!targetRoomCode.trim() && !reader.doc)}
                   className="py-2.5 px-3 rounded-2xl bg-accent text-on-accent font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:bg-accent-strong active:scale-98 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
                 >
                   {isSending ? (
@@ -608,7 +734,13 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                   ) : (
                     <Send className="w-3.5 h-3.5" />
                   )}
-                  <span>{lang === 'ar' ? 'بث ومزامنة' : 'Beam & Sync'}</span>
+                  <span>
+                    {uploadProgress !== null
+                      ? `${uploadProgress}%`
+                      : reader.doc
+                      ? lang === 'ar' ? 'بث ومزامنة' : 'Beam & Sync'
+                      : lang === 'ar' ? 'اختيار ملف وبثه' : 'Pick File & Beam'}
+                  </span>
                 </button>
 
                 <button
@@ -772,9 +904,13 @@ export const BeamModal: React.FC<BeamModalProps> = ({
             {/* Seamless Reader Background Notice */}
             <div className="p-2.5 rounded-2xl bg-accent/10 border border-accent/20 text-start text-[11px] text-ink leading-relaxed">
               <span className="font-bold text-accent">💡 {lang === 'ar' ? 'تقليب مباشر:' : 'Live Page Turning:'} </span>
-              {lang === 'ar'
-                ? 'يمكنك إغلاق هذه النافذة وتصفح الملزمة بحرية من هاتفك (بالسحب أو الأسهم)، وستتحرك شاشة الحاسبة والسبورة معك فوراً!'
-                : 'You can close this modal and turn pages normally in Otium on your phone; your PC will follow in real-time!'}
+              {reader.doc
+                ? lang === 'ar'
+                  ? 'يمكنك إغلاق هذه النافذة وتصفح الملزمة بحرية من هاتفك (بالسحب أو الأسهم)، وستتحرك شاشة الحاسبة والسبورة معك فوراً!'
+                  : 'You can close this modal and turn pages normally in Otium on your phone; your PC will follow in real-time!'
+                : lang === 'ar'
+                  ? 'تم الاقتران بنجاح! يمكنك الآن تقليب شرائح وملزمة الحاسبة والسبورة بالكامل من هاتفك.'
+                  : 'Paired successfully! You can now control your PC / Smartboard slides directly from your phone.'}
             </div>
 
             {/* Slide Progress Bar */}
@@ -782,7 +918,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
               <div
                 className="bg-accent h-full transition-all duration-300 rounded-full"
                 style={{
-                  width: `${reader.numPages > 0 ? (reader.currentPage / reader.numPages) * 100 : 0}%`
+                  width: `${activeTotal > 0 ? (activePage / activeTotal) * 100 : 50}%`
                 }}
               />
             </div>
@@ -790,10 +926,10 @@ export const BeamModal: React.FC<BeamModalProps> = ({
             {/* Page Count Display */}
             <div className="py-3 px-4 rounded-2xl bg-hover-subtle border border-line space-y-0.5">
               <div className="text-3xl font-black text-ink font-mono tracking-tight">
-                {reader.currentPage} <span className="text-sm font-normal text-ink-muted">/ {reader.numPages}</span>
+                {activePage} <span className="text-sm font-normal text-ink-muted">/ {activeTotal > 0 ? activeTotal : '-'}</span>
               </div>
               <div className="text-[11px] text-ink-muted truncate max-w-xs mx-auto">
-                {reader.docTitle || (lang === 'ar' ? 'كتاب المحاضرة' : 'Lecture Document')}
+                {activeDocTitle}
               </div>
             </div>
 
@@ -802,7 +938,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
               <button
                 type="button"
                 onClick={handleRemotePrev}
-                disabled={reader.currentPage <= 1}
+                disabled={activeTotal > 0 && activePage <= 1}
                 className="py-7 px-4 rounded-2xl bg-hover border border-line hover:bg-hover-strong active:scale-95 text-ink font-bold text-sm flex flex-col items-center justify-center gap-2 cursor-pointer disabled:opacity-25 disabled:pointer-events-none transition-all shadow-xs touch-manipulation"
               >
                 <ArrowRight className="w-6 h-6 rtl:rotate-0 ltr:rotate-180 text-ink-muted" />
@@ -812,7 +948,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
               <button
                 type="button"
                 onClick={handleRemoteNext}
-                disabled={reader.currentPage >= reader.numPages}
+                disabled={activeTotal > 0 && activePage >= activeTotal}
                 className="py-7 px-4 rounded-2xl bg-accent text-on-accent hover:bg-accent-strong active:scale-95 font-bold text-sm flex flex-col items-center justify-center gap-2 cursor-pointer disabled:opacity-25 disabled:pointer-events-none shadow-md transition-all touch-manipulation"
               >
                 <ArrowLeft className="w-6 h-6 rtl:rotate-0 ltr:rotate-180" />
@@ -829,6 +965,15 @@ export const BeamModal: React.FC<BeamModalProps> = ({
             </div>
           </div>
         )}
+
+        {/* Hidden File Input for Direct PDF Beaming */}
+        <input
+          ref={beamFileInputRef}
+          type="file"
+          accept=".pdf,application/pdf"
+          className="hidden"
+          onChange={handleBeamFileDirect}
+        />
 
         {/* Hidden File Input for Offline / USB Flash Opening */}
         <input

@@ -11,10 +11,8 @@ import {
   ExternalLink,
   Globe,
   HardDrive,
-  Monitor,
   Palette,
   ScanLine,
-  Smartphone,
   Trash2,
   Upload,
   X,
@@ -566,9 +564,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
         {/* Sovereign Bottom Dock (Web Browser Only): Latest Release & Instagram MA.XRT */}
         {!isTauriRuntime() && (
-          <div className="w-full pt-6 pb-2 border-t border-line/60 flex flex-col items-center gap-3 text-ink select-none animate-in fade-in duration-300">
-          {/* Latest Release & Download Links */}
-          <div className="flex flex-wrap items-center justify-center gap-2">
+          <div className="w-full pt-6 pb-2 border-t border-line/60 flex flex-col items-center gap-2.5 text-ink select-none animate-in fade-in duration-300">
+            {/* Latest Release Download Button */}
             <a
               href="https://github.com/XRTM8/Otium/releases/latest"
               onClick={(e) => {
@@ -577,13 +574,13 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               }}
               target="_blank"
               rel="noopener noreferrer"
-              className="group fluid-press px-3.5 py-1.5 rounded-full bg-surface border border-line hover:border-accent/50 shadow-sm flex items-center gap-2 text-xs font-medium text-ink hover:text-accent transition-all duration-200"
+              className="group fluid-press px-4 py-2 rounded-full bg-surface border border-line hover:border-accent/50 shadow-sm flex items-center gap-2 text-xs font-semibold text-ink hover:text-accent transition-all duration-200"
               title={currentLang === 'ar' ? `تحميل أحدث إصدار v${getCurrentVersion()}` : `Download Latest Release v${getCurrentVersion()}`}
             >
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <Download className="w-3.5 h-3.5 text-accent" />
               <span>
-                {currentLang === 'ar' ? 'تحميل أحدث إصدار' : 'Download Latest'}
+                {currentLang === 'ar' ? 'تحميل أحدث إصدار' : 'Download Latest Release'}
               </span>
               <span className="font-mono text-[10px] px-1.5 py-0.5 rounded-md bg-accent/10 text-accent font-semibold">
                 v{getCurrentVersion()}
@@ -591,41 +588,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               <ExternalLink className="w-3 h-3 text-ink-muted group-hover:text-accent opacity-70 group-hover:opacity-100 transition-opacity" />
             </a>
 
-            {/* Quick direct download targets */}
-            <div className="flex items-center gap-1.5">
-              <a
-                href="https://github.com/XRTM8/Otium/releases/latest"
-                onClick={(e) => {
-                  e.preventDefault();
-                  void openExternalLink('https://github.com/XRTM8/Otium/releases/latest');
-                }}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-2.5 py-1.5 rounded-full bg-hover-subtle hover:bg-hover border border-line-subtle text-[11px] text-ink-muted hover:text-ink font-medium flex items-center gap-1.5 transition-colors"
-                title="Windows (.exe)"
-              >
-                <Monitor className="w-3 h-3 text-ink-muted" />
-                <span>Windows</span>
-              </a>
-              <a
-                href="https://github.com/XRTM8/Otium/releases/latest"
-                onClick={(e) => {
-                  e.preventDefault();
-                  void openExternalLink('https://github.com/XRTM8/Otium/releases/latest');
-                }}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-2.5 py-1.5 rounded-full bg-hover-subtle hover:bg-hover border border-line-subtle text-[11px] text-ink-muted hover:text-ink font-medium flex items-center gap-1.5 transition-colors"
-                title="Android (.apk)"
-              >
-                <Smartphone className="w-3 h-3 text-ink-muted" />
-                <span>Android</span>
-              </a>
-            </div>
-          </div>
-
-          {/* Instagram Link with User MA.XRT */}
-          <div className="flex items-center gap-2">
+            {/* Instagram Link with User MA.XRT (Small & Discrete) */}
             <a
               href="https://instagram.com/ma.xrt"
               onClick={(e) => {
@@ -634,21 +597,20 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               }}
               target="_blank"
               rel="noopener noreferrer"
-              className="group fluid-press inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface/80 hover:bg-surface border border-line hover:border-pink-500/40 text-ink-muted hover:text-ink shadow-xs transition-all duration-200"
+              className="group inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full hover:bg-hover text-ink-muted hover:text-ink transition-colors cursor-pointer"
               title="Instagram: @ma.xrt"
             >
               <svg
-                className="w-3.5 h-3.5 text-pink-500/80 group-hover:text-pink-500 transition-colors"
+                className="w-3 h-3 text-pink-500/80 group-hover:text-pink-500 transition-colors"
                 viewBox="0 0 24 24"
                 fill="currentColor"
               >
                 <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
               </svg>
-              <span className="font-semibold text-ink text-xs tracking-wide">MA.XRT</span>
-              <span className="text-[10px] text-ink-faint">Instagram</span>
+              <span className="font-medium text-[11px] text-ink-muted group-hover:text-ink">MA.XRT</span>
+              <span className="text-[10px] text-ink-faint">• Instagram</span>
             </a>
           </div>
-        </div>
         )}
 
       </div>

@@ -1493,20 +1493,66 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     if (!beamState.room || beamState.role !== 'receiver') return;
 
     const currentRoom = beamState.room;
+
+    // Immediately announce current state to any waiting remotes upon becoming receiver
+    if (docTitle) {
+      beamService.announceState(currentRoom, docTitle, currentPage, numPages);
+    }
+
     const unsubscribe = beamService.subscribe(async (msg: BeamMessage) => {
       if (!beamService.isMatchingRoom(msg.roomCode, currentRoom)) return;
 
       if (msg.type === 'BEAM_PAGE_CHANGE' && typeof msg.pageNumber === 'number') {
         scrollToPage(msg.pageNumber);
-      } else if (msg.type === 'BEAM_PAYLOAD' && msg.payload?.pdfBase64) {
+      } else if (msg.type === 'BEAM_STEP') {
+        if (msg.direction === 'next') {
+          goToNextPage();
+        } else if (msg.direction === 'prev') {
+          goToPrevPage();
+        }
+      } else if (msg.type === 'BEAM_QUERY_STATE') {
+        beamService.announceState(currentRoom, docTitle, currentPage, numPages);
+      } else if (msg.type === 'BEAM_PAYLOAD') {
         try {
-          const buffer = base64ToArrayBuffer(msg.payload.pdfBase64);
-          await loadPdfData(buffer, msg.payload.title);
-          if (msg.payload.pageNumber) {
-            scrollToPage(msg.payload.pageNumber);
+          let buffer: ArrayBuffer | null = null;
+          if (msg.payload?.pdfData) {
+            buffer = msg.payload.pdfData;
+          } else if (msg.payload?.pdfBase64) {
+            buffer = base64ToArrayBuffer(msg.payload.pdfBase64);
+          } else if (msg.payload?.pdfUrl) {
+            const res = await fetch(msg.payload.pdfUrl);
+            buffer = await res.arrayBuffer();
+          } else if (msg.payload?.chunks && msg.payload.chunks.length > 0) {
+            const chunkBuffers = await Promise.all(
+              msg.payload.chunks.map(async (url) => {
+                const res = await fetch(url);
+                return await res.arrayBuffer();
+              })
+            );
+            const totalBytes = chunkBuffers.reduce((sum, b) => sum + b.byteLength, 0);
+            const merged = new Uint8Array(totalBytes);
+            let offset = 0;
+            for (const b of chunkBuffers) {
+              merged.set(new Uint8Array(b), offset);
+              offset += b.byteLength;
+            }
+            buffer = merged.buffer;
           }
-          if (msg.payload.theme) {
-            changeTheme(msg.payload.theme);
+
+          if (buffer) {
+            await loadPdfData(buffer, msg.payload?.title || 'Beamed Document');
+            if (msg.payload?.pageNumber) {
+              scrollToPage(msg.payload.pageNumber);
+            }
+            if (msg.payload?.theme) {
+              changeTheme(msg.payload.theme);
+            }
+            beamService.announceState(
+              currentRoom,
+              msg.payload?.title || 'Beamed Document',
+              msg.payload?.pageNumber || 1,
+              msg.payload?.totalPages || 1
+            );
           }
         } catch (err) {
           console.error('Failed to load beamed PDF in reader:', err);
@@ -1517,7 +1563,14 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     return () => {
       unsubscribe();
     };
-  }, [beamState.room, beamState.role, scrollToPage, changeTheme]);
+  }, [beamState.room, beamState.role, docTitle, currentPage, numPages, scrollToPage, goToNextPage, goToPrevPage, changeTheme]);
+
+  // Keep remote clickers announced whenever page or document changes on PC
+  useEffect(() => {
+    if (beamState.role === 'receiver' && beamState.room && docTitle) {
+      beamService.announceState(beamState.room, docTitle, currentPage, numPages);
+    }
+  }, [currentPage, numPages, docTitle, beamState.role, beamState.room]);
 
   const toggleBookmark = useCallback(
     (pageNumber: number) => {
