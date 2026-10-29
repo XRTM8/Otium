@@ -12,11 +12,17 @@ import {
   Settings,
   ArrowLeft,
   X,
+  Sparkles,
 } from 'lucide-react';
 import { OtiumLogo } from './OtiumLogo';
 import { playShutterSound } from '../core/audio';
 import { mergeIdCardSidesToA4 } from '../core/idCard';
-import { detectDocumentCorners, getFullFrameQuad } from '../core/edgeDetection';
+import {
+  detectDocumentCorners,
+  detectDocumentCornersWithConfidence,
+  calculateLaplacianSharpness,
+  getFullFrameQuad,
+} from '../core/edgeDetection';
 import type { Quad, CropMode } from '../core/types';
 
 interface CameraViewProps {
@@ -49,6 +55,18 @@ export const CameraView: React.FC<CameraViewProps> = ({
   const [idStatusToast, setIdStatusToast] = useState<string>('');
   const [capturing, setCapturing] = useState(false);
   const [flashAnimation, setFlashAnimation] = useState(false);
+
+  // Intelligent Auto-Capture State
+  const [autoCapture, setAutoCapture] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('otium_scan_auto_capture') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [stabilityProgress, setStabilityProgress] = useState<number>(0);
+  const [liveDocPresent, setLiveDocPresent] = useState<boolean>(false);
+
   const [cropMode] = useState<CropMode>(() => {
     try {
       return (localStorage.getItem('otium_scan_crop_mode') as CropMode) || 'full';
@@ -76,6 +94,11 @@ export const CameraView: React.FC<CameraViewProps> = ({
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const isMuted = false;
   const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
+
+  // Auto-capture scratch canvas and stability tracking refs
+  const scratchCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const prevFrameLumRef = useRef<Uint8Array | null>(null);
+  const stabilityStepRef = useRef<number>(0);
 
   const initCamera = useCallback(async (targetFacingMode?: 'environment' | 'user') => {
     const activeFacing = targetFacingMode || facingMode;
@@ -185,7 +208,6 @@ export const CameraView: React.FC<CameraViewProps> = ({
     }
   };
 
-
   const updateRenderedBounds = useCallback(() => {
     const video = videoRef.current;
     const container = viewfinderRef.current;
@@ -196,9 +218,10 @@ export const CameraView: React.FC<CameraViewProps> = ({
     const cHeight = container.clientHeight;
     if (cWidth === 0 || cHeight === 0) return;
 
-    const scale = viewfinderFit === 'contain'
-      ? Math.min(cWidth / vWidth, cHeight / vHeight)
-      : Math.max(cWidth / vWidth, cHeight / vHeight);
+    const scale =
+      viewfinderFit === 'contain'
+        ? Math.min(cWidth / vWidth, cHeight / vHeight)
+        : Math.max(cWidth / vWidth, cHeight / vHeight);
     const renderedW = Math.round(vWidth * scale);
     const renderedH = Math.round(vHeight * scale);
     const offsetX = Math.round((cWidth - renderedW) / 2);
@@ -226,9 +249,11 @@ export const CameraView: React.FC<CameraViewProps> = ({
       try {
         const capabilities = track.getCapabilities?.() as any;
         if (capabilities?.focusMode?.includes('continuous')) {
-          track.applyConstraints({
-            advanced: [{ focusMode: 'continuous' } as any],
-          }).catch(() => {});
+          track
+            .applyConstraints({
+              advanced: [{ focusMode: 'continuous' } as any],
+            })
+            .catch(() => {});
         }
       } catch {}
     }
@@ -367,7 +392,8 @@ export const CameraView: React.FC<CameraViewProps> = ({
       const track = stream.getVideoTracks()[0];
       if (!track || track.readyState !== 'live') return null;
 
-      const ImageCaptureConstructor = (window as unknown as { ImageCapture?: new (track: MediaStreamTrack) => any }).ImageCapture;
+      const ImageCaptureConstructor = (window as unknown as { ImageCapture?: new (track: MediaStreamTrack) => any })
+        .ImageCapture;
       if (typeof ImageCaptureConstructor === 'function') {
         try {
           const capturer = new ImageCaptureConstructor(track);
@@ -403,7 +429,8 @@ export const CameraView: React.FC<CameraViewProps> = ({
       const track = stream.getVideoTracks()[0];
       if (!track || track.readyState !== 'live') return null;
 
-      const ImageCaptureConstructor = (window as unknown as { ImageCapture?: new (track: MediaStreamTrack) => any }).ImageCapture;
+      const ImageCaptureConstructor = (window as unknown as { ImageCapture?: new (track: MediaStreamTrack) => any })
+        .ImageCapture;
       if (typeof ImageCaptureConstructor === 'function') {
         try {
           const capturer = new ImageCaptureConstructor(track);
@@ -489,14 +516,88 @@ export const CameraView: React.FC<CameraViewProps> = ({
     }
   }, [capturing, cropMode, idCardStep, idFrontDataUrl, isMuted, onCapture, pagesCount, scanMode, stream]);
 
-  // 120 FPS Native Hardware-Accelerated Viewport Bounds Synchronization
+  // Handle capture callback ref for auto-capture loop
+  const handleCaptureRef = useRef(handleCapture);
   useEffect(() => {
-    const handleResize = () => {
-      updateRenderedBounds();
+    handleCaptureRef.current = handleCapture;
+  }, [handleCapture]);
+
+  // Intelligent Auto-Capture & Live Edge Stability Engine
+  useEffect(() => {
+    if (!hasPermission || !stream || capturing) {
+      setLiveDocPresent(false);
+      setStabilityProgress(0);
+      stabilityStepRef.current = 0;
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      const video = videoRef.current;
+      if (!video || video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0 || capturing) {
+        return;
+      }
+
+      if (!scratchCanvasRef.current) {
+        scratchCanvasRef.current = document.createElement('canvas');
+        scratchCanvasRef.current.width = 180;
+        scratchCanvasRef.current.height = 135;
+      }
+
+      const canvas = scratchCanvasRef.current;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return;
+
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imgData.data;
+
+      // 1. Motion Calculation against previous sampled frame
+      const totalPixels = canvas.width * canvas.height;
+      const currLum = new Uint8Array(totalPixels);
+      for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+        currLum[j] = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+      }
+
+      let motionScore = 0;
+      if (prevFrameLumRef.current && prevFrameLumRef.current.length === totalPixels) {
+        let diffSum = 0;
+        const step = 4;
+        let count = 0;
+        for (let i = 0; i < totalPixels; i += step) {
+          diffSum += Math.abs(currLum[i] - prevFrameLumRef.current[i]);
+          count++;
+        }
+        motionScore = count > 0 ? diffSum / count : 0;
+      }
+      prevFrameLumRef.current = currLum;
+
+      // 2. Document Presence & Sharpness Analysis
+      const analysis = detectDocumentCornersWithConfidence(canvas);
+      const sharpness = calculateLaplacianSharpness(canvas);
+      setLiveDocPresent(analysis.isDocumentPresent);
+
+      // 3. Auto-Capture Trigger Condition
+      // Stable holding (motion < 8), Document framed (confidence >= 45), Focused (sharpness >= 15)
+      if (autoCapture && analysis.isDocumentPresent && motionScore < 8.5 && sharpness >= 15) {
+        stabilityStepRef.current += 1;
+        const progress = Math.min(100, Math.round((stabilityStepRef.current / 3) * 100));
+        setStabilityProgress(progress);
+
+        if (stabilityStepRef.current >= 3) {
+          stabilityStepRef.current = 0;
+          setStabilityProgress(0);
+          handleCaptureRef.current();
+        }
+      } else {
+        stabilityStepRef.current = 0;
+        setStabilityProgress(0);
+      }
+    }, 220);
+
+    return () => {
+      window.clearInterval(intervalId);
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [updateRenderedBounds]);
+  }, [autoCapture, capturing, hasPermission, stream]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -607,12 +708,29 @@ export const CameraView: React.FC<CameraViewProps> = ({
           </button>
         </div>
 
-        {/* Center: Live Minimalist Status */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 border border-white/10 shadow-lg">
-          <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-          <span className="text-xs font-mono tracking-wider text-gray-200">
-            {scanMode === 'idcard' ? 'بطاقة هوية' : scanMode === 'batch' ? 'دفعة متعددة' : 'صفحة مفردة'}
-          </span>
+        {/* Center: Auto / Manual Intelligence Toggle Pill */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const next = !autoCapture;
+              setAutoCapture(next);
+              try {
+                localStorage.setItem('otium_scan_auto_capture', String(next));
+              } catch {}
+              setCaptureToast(next ? '✓ تم تفعيل الالتقاط التلقائي الذكي' : 'الالتقاط اليدوي');
+              setTimeout(() => setCaptureToast(''), 2200);
+              triggerHaptic(15);
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-lg transition-all cursor-pointer ${
+              autoCapture
+                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-emerald-500/20 ring-1 ring-emerald-500/40'
+                : 'bg-black/60 text-gray-300 border-white/10 hover:text-white'
+            }`}
+            title="تبديل الالتقاط التلقائي عند ثبات المستند"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span className="text-xs font-arabic font-bold">{autoCapture ? 'تلقائي' : 'يدوي'}</span>
+          </button>
         </div>
 
         {/* Left side: Quick Controls (Flash, Flip, Settings) */}
@@ -688,7 +806,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
           </div>
         )}
 
-        {/* Camera Loading State (eliminates black screen freeze on first tap) */}
+        {/* Camera Loading State */}
         {hasPermission === null && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#07090e]/95 backdrop-blur-md p-6 text-center z-30 pointer-events-none animate-in fade-in duration-200">
             <div className="relative w-16 h-16 rounded-full bg-accent/15 border border-accent/40 flex items-center justify-center">
@@ -732,8 +850,24 @@ export const CameraView: React.FC<CameraViewProps> = ({
           </div>
         )}
 
+        {/* Dedicated ID Card Aspect Ratio Framing Guide */}
+        {scanMode === 'idcard' && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+            <div className="relative w-[84%] max-w-[340px] aspect-[1.58/1] rounded-3xl border-2 border-dashed border-accent/70 bg-accent/[0.04] flex flex-col items-center justify-center gap-2 shadow-2xl backdrop-blur-[1px]">
+              <CreditCard className="w-8 h-8 text-accent animate-pulse" />
+              <span className="text-xs font-bold font-arabic text-accent bg-black/75 px-3 py-1 rounded-full border border-accent/30 shadow-md">
+                {idCardStep === 'front' ? 'الوجه الأمامي للبطاقة' : 'الوجه الخلفي للبطاقة'}
+              </span>
+              <div className="absolute -top-1 -left-1 w-6 h-6 border-t-2 border-l-2 border-accent rounded-tl-lg" />
+              <div className="absolute -top-1 -right-1 w-6 h-6 border-t-2 border-r-2 border-accent rounded-tr-lg" />
+              <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-2 border-l-2 border-accent rounded-bl-lg" />
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-2 border-r-2 border-accent rounded-br-lg" />
+            </div>
+          </div>
+        )}
+
         {/* Exact Sensor Framing Boundary — 100% WYSIWYG Camera Sensor Bounds */}
-        {renderedBounds && (
+        {renderedBounds && scanMode !== 'idcard' && (
           <div
             style={{
               left: `${renderedBounds.x}px`,
@@ -741,13 +875,31 @@ export const CameraView: React.FC<CameraViewProps> = ({
               width: `${renderedBounds.width}px`,
               height: `${renderedBounds.height}px`,
             }}
-            className="pointer-events-none absolute border border-accent/25 transition-all duration-150"
+            className={`pointer-events-none absolute border transition-all duration-200 ${
+              liveDocPresent ? 'border-emerald-500/40' : 'border-accent/25'
+            }`}
           >
-            {/* 4 Sensor Frame Corner Marks with Theme Accent */}
-            <div className="absolute -top-1 -left-1 w-6 h-6 border-t-2 border-l-2 border-accent" />
-            <div className="absolute -top-1 -right-1 w-6 h-6 border-t-2 border-r-2 border-accent" />
-            <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-2 border-l-2 border-accent" />
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-2 border-r-2 border-accent" />
+            {/* 4 Sensor Frame Corner Marks */}
+            <div
+              className={`absolute -top-1 -left-1 w-6 h-6 border-t-2 border-l-2 transition-colors ${
+                liveDocPresent ? 'border-emerald-400' : 'border-accent'
+              }`}
+            />
+            <div
+              className={`absolute -top-1 -right-1 w-6 h-6 border-t-2 border-r-2 transition-colors ${
+                liveDocPresent ? 'border-emerald-400' : 'border-accent'
+              }`}
+            />
+            <div
+              className={`absolute -bottom-1 -left-1 w-6 h-6 border-b-2 border-l-2 transition-colors ${
+                liveDocPresent ? 'border-emerald-400' : 'border-accent'
+              }`}
+            />
+            <div
+              className={`absolute -bottom-1 -right-1 w-6 h-6 border-b-2 border-r-2 transition-colors ${
+                liveDocPresent ? 'border-emerald-400' : 'border-accent'
+              }`}
+            />
           </div>
         )}
 
@@ -758,6 +910,16 @@ export const CameraView: React.FC<CameraViewProps> = ({
               <span className="text-accent font-bold flex items-center gap-1.5">
                 <CreditCard className="w-3.5 h-3.5" />
                 <span>{idCardStep === 'front' ? 'ضع الوجه الأمامي للهوية داخل الإطار' : 'ضع الوجه الخلفي للهوية'}</span>
+              </span>
+            ) : autoCapture && stabilityProgress > 0 ? (
+              <span className="text-emerald-400 font-bold flex items-center gap-1.5 animate-pulse">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                <span>ثبّت الكاميرا... جاري الالتقاط التلقائي ({stabilityProgress}%)</span>
+              </span>
+            ) : liveDocPresent ? (
+              <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
+                <FileCheck2 className="w-3.5 h-3.5" />
+                <span>تم التعرف على المستند بنجاح</span>
               </span>
             ) : pagesCount > 0 ? (
               <span className="text-accent font-semibold flex items-center gap-1.5">
@@ -772,7 +934,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
                 </span>
               </span>
             ) : (
-              <span className="text-gray-300">وجّه الكاميرا نحو المستند ثم اضغط زر الالتقاط</span>
+              <span className="text-gray-300">وجّه الكاميرا نحو المستند للتأطير والمسح</span>
             )}
           </span>
         </div>
@@ -846,17 +1008,53 @@ export const CameraView: React.FC<CameraViewProps> = ({
           <span className="text-[10px] text-gray-400 font-bold font-arabic">المعرض</span>
         </button>
 
-        {/* Center: Tactile Shutter Button (Apple / Nothing Concentric Rings) */}
-        <button
-          onClick={handleCapture}
-          disabled={capturing}
-          className="relative flex items-center justify-center w-20 h-20 rounded-full border-2 border-white/30 p-1.5 active:scale-90 transition-all disabled:opacity-50 cursor-pointer shadow-2xl"
-          title="التقاط صورة"
-        >
-          <div className="w-full h-full rounded-full bg-accent hover:opacity-95 flex items-center justify-center shadow-lg transition-colors">
-            <div className={`w-7 h-7 rounded-full bg-black/30 ${capturing ? 'animate-ping' : ''}`} />
-          </div>
-        </button>
+        {/* Center: Tactile Shutter Button with Intelligent Stability Indicator */}
+        <div className="relative flex items-center justify-center">
+          {/* Animated Auto-Capture Stability Ring */}
+          {autoCapture && stabilityProgress > 0 && (
+            <svg className="absolute -inset-2 w-24 h-24 -rotate-90 pointer-events-none z-10" viewBox="0 0 100 100">
+              <circle
+                cx="50"
+                cy="50"
+                r="46"
+                stroke="rgba(16, 185, 129, 0.25)"
+                strokeWidth="4"
+                fill="none"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                r="46"
+                stroke="#10B981"
+                strokeWidth="4"
+                strokeDasharray="289"
+                strokeDashoffset={289 - (289 * stabilityProgress) / 100}
+                strokeLinecap="round"
+                fill="none"
+                className="transition-all duration-150"
+              />
+            </svg>
+          )}
+
+          <button
+            onClick={handleCapture}
+            disabled={capturing}
+            className={`relative flex items-center justify-center w-20 h-20 rounded-full border-2 p-1.5 active:scale-90 transition-all disabled:opacity-50 cursor-pointer shadow-2xl ${
+              autoCapture && stabilityProgress > 0
+                ? 'border-emerald-400 shadow-emerald-500/30'
+                : 'border-white/30'
+            }`}
+            title="التقاط صورة"
+          >
+            <div
+              className={`w-full h-full rounded-full flex items-center justify-center shadow-lg transition-colors ${
+                autoCapture && stabilityProgress > 0 ? 'bg-emerald-500' : 'bg-accent'
+              }`}
+            >
+              <div className={`w-7 h-7 rounded-full bg-black/30 ${capturing ? 'animate-ping' : ''}`} />
+            </div>
+          </button>
+        </div>
 
         {/* Right: CamScanner Multi-Page Review & Finish Button */}
         {pagesCount > 0 ? (

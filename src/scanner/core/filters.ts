@@ -59,6 +59,10 @@ function applyFilter(
       applyAdaptiveMagicFilter(data, width, height);
       applyUnsharpMask(data, width, height, 0.45);
       break;
+    case 'clean':
+      applyAdaptiveCleanFilter(data, width, height);
+      applyUnsharpMask(data, width, height, 0.55);
+      break;
     case 'vibrant':
       applyAdaptiveVibrantFilter(data, width, height);
       applyUnsharpMask(data, width, height, 0.35);
@@ -218,8 +222,83 @@ function applyAdaptiveMagicFilter(data: Uint8ClampedArray, width: number, height
 }
 
 /**
- * Adaptive Document B&W Binary Filter.
- * Crystal-clear binary text for ultra-small file sizes and high OCR accuracy.
+ * Ultra-Clear Inked Document Filter (CamScanner Magic Color HD / Adobe Scan Clean).
+ * - Complete background neutralization to pure #FFFFFF without blotches.
+ * - Rich typography contrast: deepens text, pencil, ballpoint pen, and ink strokes.
+ * - Protects colored notary seals, colored signatures, stamps, and logos.
+ * - Removes sensor ISO noise and shadow gradients.
+ */
+function applyAdaptiveCleanFilter(data: Uint8ClampedArray, width: number, height: number) {
+  const step = Math.max(16, Math.min(48, Math.floor(Math.min(width, height) / 32)));
+  const { grid, gridW, gridH } = computeIlluminationGrid(data, width, height, step);
+
+  for (let y = 0; y < height; y++) {
+    const gyFloat = y / step;
+    const gy0 = Math.floor(gyFloat);
+    const gy1 = Math.min(gridH - 1, gy0 + 1);
+    const ty = gyFloat - gy0;
+
+    for (let x = 0; x < width; x++) {
+      const gxFloat = x / step;
+      const gx0 = Math.floor(gxFloat);
+      const gx1 = Math.min(gridW - 1, gx0 + 1);
+      const tx = gxFloat - gx0;
+
+      const b00 = grid[gy0 * gridW + gx0];
+      const b10 = grid[gy0 * gridW + gx1];
+      const b01 = grid[gy1 * gridW + gx0];
+      const b11 = grid[gy1 * gridW + gx1];
+      const bgLum = (b00 * (1 - tx) + b10 * tx) * (1 - ty) + (b01 * (1 - tx) + b11 * tx) * ty;
+
+      const idx = (y * width + x) * 4;
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+
+      const scale = 255 / Math.max(35, bgLum);
+      let nr = r * scale;
+      let ng = g * scale;
+      let nb = b * scale;
+
+      const lum = 0.299 * nr + 0.587 * ng + 0.114 * nb;
+      const maxVal = Math.max(r, g, b);
+      const minVal = Math.min(r, g, b);
+      const chroma = maxVal - minVal;
+      const bgRatio = lum / 255;
+
+      // Color Stamp & Signature Protection
+      if (chroma > 18 && bgRatio < 0.90) {
+        const mean = (nr + ng + nb) / 3;
+        nr = mean + (nr - mean) * 1.40;
+        ng = mean + (ng - mean) * 1.40;
+        nb = mean + (nb - mean) * 1.40;
+      }
+      // Pure Paper Whitening
+      else if (bgRatio >= 0.78) {
+        const t = Math.min(1, (bgRatio - 0.78) / 0.22);
+        const hermite = t * t * (3 - 2 * t);
+        nr = nr * (1 - hermite) + 255 * hermite;
+        ng = ng * (1 - hermite) + 255 * hermite;
+        nb = nb * (1 - hermite) + 255 * hermite;
+      }
+      // Deep Rich Inked Typography
+      else if (bgRatio < 0.60) {
+        const inkFactor = Math.pow(bgRatio / 0.60, 0.65);
+        nr *= inkFactor;
+        ng *= inkFactor;
+        nb *= inkFactor;
+      }
+
+      data[idx] = Math.min(255, Math.max(0, Math.round(nr)));
+      data[idx + 1] = Math.min(255, Math.max(0, Math.round(ng)));
+      data[idx + 2] = Math.min(255, Math.max(0, Math.round(nb)));
+    }
+  }
+}
+
+/**
+ * Adaptive Document B&W Binary Filter with Local Illumination Reference and De-speckling.
+ * Eradicates shadow blotches by comparing against local illumination surface.
  */
 function applyAdaptiveBwFilter(data: Uint8ClampedArray, width: number, height: number) {
   const step = Math.max(16, Math.min(48, Math.floor(Math.min(width, height) / 32)));
@@ -245,12 +324,39 @@ function applyAdaptiveBwFilter(data: Uint8ClampedArray, width: number, height: n
 
       const idx = (y * width + x) * 4;
       const lum = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
-      const threshold = bgLum * 0.85;
+      const threshold = bgLum * 0.82;
       const val = lum < threshold ? 0 : 255;
 
       data[idx] = val;
       data[idx + 1] = val;
       data[idx + 2] = val;
+    }
+  }
+
+  // De-speckle pass: remove isolated 1px salt-and-pepper scan noise
+  despeckleBinary(data, width, height);
+}
+
+function despeckleBinary(data: Uint8ClampedArray, width: number, height: number) {
+  if (width < 3 || height < 3) return;
+  for (let y = 1; y < height - 1; y++) {
+    const row = y * width * 4;
+    const prevRow = (y - 1) * width * 4;
+    const nextRow = (y + 1) * width * 4;
+    for (let x = 1; x < width - 1; x++) {
+      const idx = row + x * 4;
+      if (data[idx] === 0) {
+        const neighborsWhite =
+          data[prevRow + x * 4] === 255 &&
+          data[nextRow + x * 4] === 255 &&
+          data[row + (x - 1) * 4] === 255 &&
+          data[row + (x + 1) * 4] === 255;
+        if (neighborsWhite) {
+          data[idx] = 255;
+          data[idx + 1] = 255;
+          data[idx + 2] = 255;
+        }
+      }
     }
   }
 }

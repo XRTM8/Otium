@@ -10,7 +10,7 @@ import type {
 import { loadPageCanvasFromDisk, updateStoredPageFilter, storePageToDisk } from '../core/storage/pageStore';
 import { saveDocumentToLibrary } from '../core/storage/documentLibrary';
 import { dewarpBookCurvature } from '../core/geometry';
-import { performOcr, terminateOcrWorker } from '../core/ocr/ocrEngine';
+import { performOcr, terminateOcrWorker, extractPageTextAndMetadata } from '../core/ocr/ocrEngine';
 import { detectBarcodesFromCanvas } from '../core/barcode';
 import type { DetectedBarcode } from '../core/barcode';
 import { isSafeUrl, nativeSharePdf, nativeSavePdf, nativeOpenInOtium, nativeSaveImage, nativePrintPdf } from '../core/nativeBridge';
@@ -35,6 +35,7 @@ import {
   CheckCircle2,
   LayoutGrid,
   Stamp,
+  FileText,
   Image as ImageIcon,
   CheckSquare,
   Square,
@@ -112,6 +113,10 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
     return `Otium_Doc_${dateStr}_${timeStr}`;
   });
   const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [isOcrModalOpen, setIsOcrModalOpen] = useState(false);
+  const [extractedText, setExtractedText] = useState<string>('');
+  const [isExtractingText, setIsExtractingText] = useState(false);
+  const [suggestedDocTitle, setSuggestedDocTitle] = useState<string>('');
 
   // 120Hz Gestures & Touch State
   const [zoomScale, setZoomScale] = useState<number>(1);
@@ -463,6 +468,30 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
       setFullResPreviewUrl(finalCanvas.toDataURL('image/jpeg', 0.9));
     } catch (e) {
       console.warn('Rotation failed:', e);
+    }
+  };
+
+  const handleExtractTextFromPage = async () => {
+    if (isExtractingText || !currentPage) return;
+    triggerHaptic(15);
+    setIsExtractingText(true);
+    setToastMsg('جاري استخراج النص والتعرف الضوئي...');
+    try {
+      const rawCanvas = await loadPageCanvasFromDisk(currentPage.id);
+      const finalCanvas = curvature > 0 ? dewarpBookCurvature(rawCanvas, curvature, spinePos) : rawCanvas;
+      const result = await extractPageTextAndMetadata(finalCanvas);
+      setExtractedText(result.text || 'لم يتم العثور على نص واضح في هذه الصفحة.');
+      if (result.suggestedTitle) {
+        setSuggestedDocTitle(result.suggestedTitle);
+      }
+      setIsOcrModalOpen(true);
+      setToastMsg('');
+    } catch (err) {
+      console.warn('OCR error:', err);
+      setToastMsg('تعذر استخراج النص من الصفحة');
+      setTimeout(() => setToastMsg(''), 2000);
+    } finally {
+      setIsExtractingText(false);
     }
   };
 
@@ -1099,6 +1128,16 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
           </button>
 
           <button
+            onClick={handleExtractTextFromPage}
+            disabled={isExtractingText}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl glass-button text-gray-200 text-xs font-medium active:scale-95 shrink-0"
+            title="استخراج وقراءة نصوص الصفحة (OCR)"
+          >
+            <FileText className="w-3.5 h-3.5 text-accent" />
+            <span>{isExtractingText ? 'جاري القراءة...' : 'استخراج النص'}</span>
+          </button>
+
+          <button
             onClick={() => {
               triggerHaptic(15);
               onRetakePage(safeIndex);
@@ -1131,6 +1170,7 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
           {(
             [
               { id: 'magic', label: 'ورق ناصع', icon: Sparkles },
+              { id: 'clean', label: 'تنقية نصوص', icon: FileText },
               { id: 'vibrant', label: 'ملون فائق', icon: Palette },
               { id: 'bw', label: 'أبيض وأسود' },
               { id: 'grayscale', label: 'رمادي' },
@@ -1702,6 +1742,76 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                 className="w-full py-2.5 rounded-xl bg-accent text-on-accent font-bold text-xs active:scale-95 mt-2"
               >
                 تم تطبيق الإعدادات
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* OCR Extracted Text Inspection Modal */}
+      {isOcrModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div
+            style={{
+              paddingBottom: 'max(env(safe-area-inset-bottom, 0px) + 16px, 20px)',
+            }}
+            className="relative w-full sm:max-w-lg bg-[#0e121b] border-t sm:border border-white/15 rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl flex flex-col gap-4 font-arabic max-h-[85vh]"
+          >
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <button
+                onClick={() => setIsOcrModalOpen(false)}
+                className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-accent" />
+                <h3 className="text-sm font-bold text-white">النص المستخرج من الصفحة {safeIndex + 1}</h3>
+              </div>
+            </div>
+
+            {suggestedDocTitle && (
+              <div className="flex items-center justify-between p-2.5 rounded-2xl bg-accent/10 border border-accent/30 text-xs">
+                <button
+                  onClick={() => {
+                    setDocTitle(suggestedDocTitle);
+                    triggerHaptic(15);
+                    setToastMsg('✓ تم تعيين العنوان المقترح للمستند');
+                    setTimeout(() => setToastMsg(''), 2000);
+                  }}
+                  className="px-3 py-1 bg-accent text-on-accent rounded-xl font-bold active:scale-95 transition-transform cursor-pointer"
+                >
+                  اعتماد كاسم
+                </button>
+                <div className="flex flex-col text-right">
+                  <span className="text-[10px] text-accent font-bold">عنوان ذكي مقترح من المستند:</span>
+                  <span className="text-white font-mono truncate max-w-[200px]">{suggestedDocTitle}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="relative flex-1 min-h-[160px] max-h-[300px] overflow-y-auto rounded-2xl bg-black/40 border border-white/10 p-3.5 text-right font-sans text-xs text-gray-200 leading-relaxed whitespace-pre-wrap select-text">
+              {extractedText}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  triggerHaptic(15);
+                  await copyTextToClipboard(extractedText);
+                  setToastMsg('✓ تم نسخ النص كاملاً إلى الحافظة');
+                  setTimeout(() => setToastMsg(''), 2000);
+                }}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-accent text-on-accent font-bold text-xs flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-lg cursor-pointer"
+              >
+                <Copy className="w-4 h-4" />
+                <span>نسخ النص كاملاً</span>
+              </button>
+              <button
+                onClick={() => setIsOcrModalOpen(false)}
+                className="py-2.5 px-5 rounded-xl glass-button text-gray-300 font-medium text-xs active:scale-95 transition-transform cursor-pointer"
+              >
+                إغلاق
               </button>
             </div>
           </div>

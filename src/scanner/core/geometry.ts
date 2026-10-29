@@ -72,6 +72,46 @@ export function isQuadConvex(quad: Quad): boolean {
   return sign !== 0;
 }
 
+export function computeQuadArea(tl: Point, tr: Point, br: Point, bl: Point): number {
+  return 0.5 * Math.abs(
+    tl.x * tr.y + tr.x * br.y + br.x * bl.y + bl.y * tl.y -
+    (tl.y * tr.x + tr.y * br.x + br.y * bl.x + bl.y * tl.x)
+  );
+}
+
+export function getQuadAspectRatio(quad: Quad): number {
+  const topW = Math.hypot(quad.topRight.x - quad.topLeft.x, quad.topRight.y - quad.topLeft.y);
+  const botW = Math.hypot(quad.bottomRight.x - quad.bottomLeft.x, quad.bottomRight.y - quad.bottomLeft.y);
+  const leftH = Math.hypot(quad.bottomLeft.x - quad.topLeft.x, quad.bottomLeft.y - quad.topLeft.y);
+  const rightH = Math.hypot(quad.bottomRight.x - quad.topRight.x, quad.bottomRight.y - quad.topRight.y);
+
+  const avgW = (topW + botW) / 2;
+  const avgH = (leftH + rightH) / 2;
+  if (avgH === 0) return 1;
+  return avgW / avgH;
+}
+
+export function expandQuadSafetyMargin(quad: Quad, naturalW: number, naturalH: number, factor: number = 0.008): Quad {
+  const cx = (quad.topLeft.x + quad.topRight.x + quad.bottomRight.x + quad.bottomLeft.x) / 4;
+  const cy = (quad.topLeft.y + quad.topRight.y + quad.bottomRight.y + quad.bottomLeft.y) / 4;
+
+  const expandPoint = (p: Point): Point => {
+    const dx = p.x - cx;
+    const dy = p.y - cy;
+    return {
+      x: Math.round(Math.max(0, Math.min(naturalW, p.x + dx * factor))),
+      y: Math.round(Math.max(0, Math.min(naturalH, p.y + dy * factor))),
+    };
+  };
+
+  return {
+    topLeft: expandPoint(quad.topLeft),
+    topRight: expandPoint(quad.topRight),
+    bottomRight: expandPoint(quad.bottomRight),
+    bottomLeft: expandPoint(quad.bottomLeft),
+  };
+}
+
 export function getFullFrameQuad(width: number, height: number, marginPercent: number = 0.005): Quad {
   const insetX = Math.round(width * Math.max(0, Math.min(0.05, marginPercent)));
   const insetY = Math.round(height * Math.max(0, Math.min(0.05, marginPercent)));
@@ -219,7 +259,7 @@ function renderQuadSubdivision(
       const p11 = bilinearInterpolate(tl, tr, bl, br, u1, v1);
 
       renderTriangle(ctx, image, p00, p10, p01, u0 * w, v0 * h, u1 * w, v0 * h, u0 * w, v1 * h);
-      renderTriangle(ctx, image, p10, p11, p01, u1 * w, v0 * h, u1 * w, v1 * h, u0 * w, v1 * h);
+      renderTriangle(ctx, image, p10, p11, p01, u1 * w, v0 * h, u1 * w, v0 * h, u0 * w, v1 * h);
     }
   }
 }

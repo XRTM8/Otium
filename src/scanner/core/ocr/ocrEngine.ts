@@ -1,8 +1,13 @@
-
 import type { OcrWordToken } from '../pdf';
 
 const workers = new Map<string, Promise<any>>();
 const OCR_CACHE_KEY_PREFIX = 'otium_ocr_cached_';
+
+export interface ExtractedPageTextResult {
+  text: string;
+  words: OcrWordToken[];
+  suggestedTitle?: string;
+}
 
 /**
  * The worker script and the WASM core are staged into `public/tesseract` at
@@ -19,7 +24,7 @@ function workerOptions() {
   const base = ocrAssetBase();
   return {
     workerPath: `${base}/worker.min.js`,
-    corePath: `${base}/core`
+    corePath: `${base}/core`,
   };
 }
 
@@ -78,20 +83,18 @@ async function getWorker(lang: string = 'ara+eng') {
 }
 
 /**
- * Performs optical character recognition on a canvas and extracts
- * word tokens with normalized bounding box coordinates for Searchable PDF embedding.
+ * Extracts full text, bounding boxes, and intelligent document title suggestions from canvas.
  */
-export async function performOcr(
+export async function extractPageTextAndMetadata(
   canvas: HTMLCanvasElement,
   lang: string = 'ara+eng',
-  timeoutMs: number = 7000
-): Promise<OcrWordToken[]> {
+  timeoutMs: number = 8000
+): Promise<ExtractedPageTextResult> {
   const isCached = isOcrLanguageCached(lang);
   const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
-  // Immediate offline fallback: avoid stalling PDF export if language weights aren't cached locally
   if (!isOnline && !isCached && !workers.has(lang)) {
-    return [];
+    return { text: '', words: [] };
   }
 
   const effectiveTimeout =
@@ -99,16 +102,16 @@ export async function performOcr(
       ? 1500
       : timeoutMs;
 
-  const ocrTask = async (): Promise<OcrWordToken[]> => {
+  const task = async (): Promise<ExtractedPageTextResult> => {
     try {
       const worker = await getWorker(lang);
       const ret = await worker.recognize(canvas);
-      const words: OcrWordToken[] = [];
+      const dataAny = ret.data as any;
+      const fullText = typeof dataAny.text === 'string' ? dataAny.text.trim() : '';
 
+      const words: OcrWordToken[] = [];
       const width = canvas.width;
       const height = canvas.height;
-
-      const dataAny = ret.data as any;
       const rawWords: any[] = dataAny.words || dataAny.lines?.flatMap((l: any) => l.words || []) || [];
 
       for (const w of rawWords) {
@@ -123,21 +126,51 @@ export async function performOcr(
         });
       }
 
-      return words;
+      // Smart title extraction from recognized lines:
+      let suggestedTitle: string | undefined = undefined;
+      const lines: string[] = fullText.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length >= 3);
+      if (lines.length > 0) {
+        const keywordLine = lines.find((l: string) =>
+          /(فاتورة|تقرير|عقد|شهادة|وصل|كشف|طلب|بيان|وثيقة|invoice|receipt|report|contract|statement)/i.test(l)
+        );
+        const targetLine = keywordLine || lines[0];
+        const cleaned = targetLine
+          .replace(/[^\p{L}\p{N}\s\-_]/gu, '')
+          .replace(/\s+/g, '_')
+          .slice(0, 32);
+        if (cleaned.length >= 3) {
+          suggestedTitle = cleaned;
+        }
+      }
+
+      return { text: fullText, words, suggestedTitle };
     } catch (err) {
-      console.warn('OCR processing failed or skipped:', err);
-      return [];
+      console.warn('OCR text extraction failed:', err);
+      return { text: '', words: [] };
     }
   };
 
-  const timeoutPromise = new Promise<OcrWordToken[]>((resolve) =>
+  const timeoutPromise = new Promise<ExtractedPageTextResult>((resolve) =>
     setTimeout(() => {
-      console.warn(`OCR timed out after ${effectiveTimeout}ms; proceeding without text layer for this page.`);
-      resolve([]);
+      console.warn(`OCR timed out after ${effectiveTimeout}ms; proceeding.`);
+      resolve({ text: '', words: [] });
     }, effectiveTimeout)
   );
 
-  return Promise.race([ocrTask(), timeoutPromise]);
+  return Promise.race([task(), timeoutPromise]);
+}
+
+/**
+ * Performs optical character recognition on a canvas and extracts
+ * word tokens with normalized bounding box coordinates for Searchable PDF embedding.
+ */
+export async function performOcr(
+  canvas: HTMLCanvasElement,
+  lang: string = 'ara+eng',
+  timeoutMs: number = 7000
+): Promise<OcrWordToken[]> {
+  const result = await extractPageTextAndMetadata(canvas, lang, timeoutMs);
+  return result.words;
 }
 
 export async function terminateOcrWorker() {
