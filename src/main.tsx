@@ -18,13 +18,11 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
-// Ensure any legacy service workers from previous PWA tests are purged completely
-if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then((registrations) => {
-    for (const reg of registrations) {
-      reg.unregister().catch(() => {});
-    }
-  }).catch(() => {});
+// Register resilient offline Service Worker for smartboard & classroom offline resilience
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && window.location.protocol === 'https:') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
 }
 
 // Global safety guards to prevent unhandled promise rejections or canvas cancellation

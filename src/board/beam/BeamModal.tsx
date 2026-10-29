@@ -6,12 +6,15 @@ import {
   Cast,
   Check,
   Copy,
+  FileUp,
+  FolderOpen,
   History,
   Radio,
   RefreshCw,
   Send,
   Smartphone,
   Tv,
+  WifiOff,
   X
 } from 'lucide-react';
 import type { Language } from '../../core/i18n/translations';
@@ -46,7 +49,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
   onSetBoardOpen,
   onClose
 }) => {
-  const [activeTab, setActiveTab] = useState<'send' | 'receive' | 'remote'>('send');
+  const [activeTab, setActiveTab] = useState<'send' | 'receive' | 'remote' | 'offline'>('send');
   const [targetRoomCode, setTargetRoomCode] = useState('');
   const [receiverRoomCode] = useState(() => generateRoomCode());
   const [isSending, setIsSending] = useState(false);
@@ -54,6 +57,16 @@ export const BeamModal: React.FC<BeamModalProps> = ({
   const [connectedRoom, setConnectedRoom] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
   const [recentRooms, setRecentRooms] = useState<string[]>([]);
+  const offlineFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleOfflineFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      void reader.openFile(file);
+      onSetBoardOpen(true);
+      onClose();
+    }
+  };
 
   // Camera QR scanner state
   const [isScanningCamera, setIsScanningCamera] = useState(false);
@@ -377,6 +390,22 @@ export const BeamModal: React.FC<BeamModalProps> = ({
             <span>{lang === 'ar' ? 'استقبال كسبورة 📺' : 'Receiver Screen 📺'}</span>
           </button>
 
+          <button
+            type="button"
+            onClick={() => {
+              stopCamera();
+              setActiveTab('offline');
+            }}
+            className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              activeTab === 'offline'
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'text-ink-muted hover:text-ink hover:bg-hover'
+            }`}
+          >
+            <WifiOff className="w-4 h-4" />
+            <span>{lang === 'ar' ? 'بدون إنترنت 📴' : 'Offline 📴'}</span>
+          </button>
+
           {connectedRoom && (
             <button
               type="button"
@@ -611,6 +640,82 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                 <ArrowLeft className="w-6 h-6 rtl:rotate-0 ltr:rotate-180" />
                 <span>{lang === 'ar' ? 'الصفحة التالية' : 'Next Page'}</span>
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Hidden File Input for Offline / USB Flash Opening */}
+        <input
+          ref={offlineFileInputRef}
+          type="file"
+          accept=".pdf,application/pdf"
+          className="hidden"
+          onChange={handleOfflineFile}
+        />
+
+        {/* Tab 4: 100% Offline Mode (No Internet in Classroom) */}
+        {activeTab === 'offline' && (
+          <div className="p-6 space-y-4 text-start">
+            <div className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+              <WifiOff className="w-5 h-5 shrink-0" />
+              <div className="text-xs">
+                <span className="font-bold block">
+                  {lang === 'ar' ? 'وضع العمل بدون إنترنت' : 'Offline Classroom Mode'}
+                </span>
+                <span className="text-[11px] opacity-90">
+                  {lang === 'ar'
+                    ? 'يعمل التطبيق والسبورة بكفاءة 100% حتى في حال انقطاع الشبكة بالكامل.'
+                    : 'Otium & Smartboard work 100% offline with zero internet.'}
+                </span>
+              </div>
+            </div>
+
+            {/* Option A: Open from Flash Drive / Smartboard Storage */}
+            <div className="p-4 rounded-2xl bg-hover-subtle border border-line space-y-2.5">
+              <div className="flex items-center gap-2">
+                <FolderOpen className="w-4 h-4 text-accent" />
+                <h5 className="text-xs font-bold text-ink">
+                  {lang === 'ar' ? '1. فتح الكتاب من فلاش USB أو ذاكرة السبورة' : '1. Open from USB Flash or Storage'}
+                </h5>
+              </div>
+              <p className="text-[11px] text-ink-muted leading-relaxed">
+                {lang === 'ar'
+                  ? 'صل فلاشة الـ USB بالسبورة وافتح الملزمة مباشرة؛ سيتم تفعيل وضع السبورة المنقسمة 50/50 والأقلام فوراً.'
+                  : 'Plug USB drive into smartboard to launch PDF side-by-side with whiteboard canvas.'}
+              </p>
+              <button
+                type="button"
+                onClick={() => offlineFileInputRef.current?.click()}
+                className="w-full py-2.5 px-4 rounded-xl bg-accent text-on-accent text-xs font-bold flex items-center justify-center gap-2 hover:bg-accent-strong active:scale-98 transition-all cursor-pointer shadow-sm"
+              >
+                <FileUp className="w-4 h-4" />
+                <span>{lang === 'ar' ? 'اختيار ملف PDF من الجهاز / الفلاشة 📂' : 'Select PDF from Device / USB 📂'}</span>
+              </button>
+            </div>
+
+            {/* Option B: Mobile Hotspot (Personal LAN with zero internet) */}
+            <div className="p-4 rounded-2xl bg-hover-subtle border border-line space-y-2">
+              <div className="flex items-center gap-2">
+                <Smartphone className="w-4 h-4 text-emerald-500" />
+                <h5 className="text-xs font-bold text-ink">
+                  {lang === 'ar' ? '2. نقطة اتصال الهاتف (Mobile Hotspot)' : '2. Mobile Hotspot (Local Wi-Fi)'}
+                </h5>
+              </div>
+              <p className="text-[11px] text-ink-muted leading-relaxed">
+                {lang === 'ar'
+                  ? 'فعّل "نقطة الاتصال / Hotspot" بهاتفك واشبك السبورة عليها (بدون نت أو باقة بيانات نهائياً). ينشئ الهاتف شبكة واي فاي محلية فائقة السرعة، ويمكنك استخدام كود الغرفة لبث الملف محلياً!'
+                  : 'Turn on phone hotspot and connect smartboard. Works with zero data balance over local Wi-Fi.'}
+              </p>
+            </div>
+
+            {/* Option C: Offline Cache Confirmation */}
+            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+              <Check className="w-4 h-4 shrink-0" />
+              <span>
+                {lang === 'ar'
+                  ? 'الموقع مثبت في ذاكرة المتصفح (PWA Cache)؛ سيفتح دائماً حتى لو انقطع الإنترنت.'
+                  : 'Cached locally in browser; Otium opens anytime without internet.'}
+              </span>
             </div>
           </div>
         )}
