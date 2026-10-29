@@ -1,18 +1,27 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
+  ChevronLeft,
+  ChevronRight,
   Crop,
+  Download,
   Eraser,
+  FileText,
+  Hand,
   Highlighter,
+  Image as ImageIcon,
+  Loader2,
   Move,
   Pen,
+  Plus,
   Pointer,
   RotateCcw,
   RotateCw,
   Trash2,
   X
 } from 'lucide-react';
-import type { BoardBackground, BoardSnippet, BoardStroke, BoardTool, StrokePoint } from '../types';
+import type { BoardBackground, BoardPageData, BoardSnippet, BoardStroke, BoardTool, StrokePoint } from '../types';
 import type { Language } from '../../core/i18n/translations';
+import { exportAllPagesToPdf, exportPageToPng, type ExportableBoardPage } from '../utils/boardExport';
 
 interface BoardCanvasProps {
   lang: Language;
@@ -43,6 +52,20 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const laserCanvasRef = useRef<HTMLCanvasElement>(null);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+
+  // Multi-page state
+  const [pages, setPages] = useState<BoardPageData[]>([
+    { id: 'page-1', strokes: [], redoStack: [], background: 'white' }
+  ]);
+  const [currentPageIndex, setCurrentPageIndex] = useState<number>(0);
+
+  // Palm rejection state (Stylus only mode)
+  const [stylusOnly, setStylusOnly] = useState<boolean>(false);
+
+  // Export popover state
+  const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
 
   const [activeTool, setActiveTool] = useState<BoardTool>('pen');
   const [background, setBackground] = useState<BoardBackground>('white');
@@ -73,6 +96,37 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
       setSelectedColor('#0f172a');
     }
   }, [isDarkBg, selectedColor]);
+
+  // Keep pages array synced with active drawing state
+  useEffect(() => {
+    setPages((prev) => {
+      if (!prev[currentPageIndex]) return prev;
+      const cur = prev[currentPageIndex];
+      if (cur.strokes === strokes && cur.redoStack === redoStack && cur.background === background) {
+        return prev;
+      }
+      const next = [...prev];
+      next[currentPageIndex] = {
+        ...cur,
+        strokes,
+        redoStack,
+        background
+      };
+      return next;
+    });
+  }, [strokes, redoStack, background, currentPageIndex]);
+
+  // Close export menu when clicking outside
+  useEffect(() => {
+    if (!isExportOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setIsExportOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', handleClickOutside);
+    return () => window.removeEventListener('mousedown', handleClickOutside);
+  }, [isExportOpen]);
 
   // Sync canvas size with high DPI pixel ratio
   const syncCanvasDimensions = useCallback(() => {
@@ -122,7 +176,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     ctx.lineJoin = 'round';
 
     for (const stroke of strokes) {
-      if (stroke.points.length === 0) continue;
+      if (!stroke.points || stroke.points.length === 0) continue;
 
       ctx.beginPath();
       if (stroke.tool === 'highlighter') {
@@ -172,7 +226,6 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
       const trail = laserTrailRef.current;
       const dpr = window.devicePixelRatio || 1;
 
-      // Filter points older than 1100ms
       while (trail.length > 0 && now - trail[0].time > 1100) {
         trail.shift();
       }
@@ -235,7 +288,6 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   const eraseStrokesNearPoint = (x: number, y: number, radius = 20) => {
     setStrokes((prevStrokes) => {
       const remaining = prevStrokes.filter((stroke) => {
-        // Quick check against bounding points
         return !stroke.points.some((p) => {
           const dx = p.x - x;
           const dy = p.y - y;
@@ -249,7 +301,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     });
   };
 
-  // Pointer event handlers for zero-latency drawing
+  // Pointer event handlers for zero-latency drawing with Palm Rejection
   const getCanvasCoordinates = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -262,6 +314,11 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    // Palm Rejection: if active, reject non-pen touches
+    if (stylusOnly && e.pointerType === 'touch') {
+      return;
+    }
+
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -296,6 +353,11 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    // Palm Rejection: ignore touch events when stylus only is enabled
+    if (stylusOnly && e.pointerType === 'touch') {
+      return;
+    }
+
     const coords = getCanvasCoordinates(e);
 
     if (activeTool === 'laser') {
@@ -337,6 +399,10 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (stylusOnly && e.pointerType === 'touch') {
+      return;
+    }
+
     const canvas = canvasRef.current;
     if (canvas && canvas.hasPointerCapture(e.pointerId)) {
       canvas.releasePointerCapture(e.pointerId);
@@ -364,6 +430,98 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     if (strokes.length === 0) return;
     setRedoStack((prev) => [strokes, ...prev]);
     setStrokes([]);
+  };
+
+  // Multi-Page Navigation Handlers
+  const handleSwitchPage = (targetIndex: number) => {
+    if (targetIndex < 0 || targetIndex >= pages.length || targetIndex === currentPageIndex) return;
+
+    // 1. Sync current page
+    const updatedPages = [...pages];
+    updatedPages[currentPageIndex] = {
+      ...updatedPages[currentPageIndex],
+      strokes,
+      redoStack,
+      background
+    };
+    setPages(updatedPages);
+
+    // 2. Load target page
+    const target = updatedPages[targetIndex];
+    setStrokes(target.strokes);
+    setRedoStack(target.redoStack);
+    setBackground(target.background);
+    setCurrentPageIndex(targetIndex);
+    laserTrailRef.current = [];
+  };
+
+  const handleAddPage = () => {
+    if (pages.length >= 10) return;
+
+    const updatedPages = [...pages];
+    updatedPages[currentPageIndex] = {
+      ...updatedPages[currentPageIndex],
+      strokes,
+      redoStack,
+      background
+    };
+
+    const newPage: BoardPageData = {
+      id: `page-${Date.now()}`,
+      strokes: [],
+      redoStack: [],
+      background
+    };
+
+    updatedPages.push(newPage);
+    setPages(updatedPages);
+    setCurrentPageIndex(updatedPages.length - 1);
+    setStrokes([]);
+    setRedoStack([]);
+    laserTrailRef.current = [];
+  };
+
+  // Export Handlers
+  const handleExportPdf = async () => {
+    setIsExporting(true);
+    try {
+      const canvas = canvasRef.current;
+      const w = canvas ? canvas.width : 1920;
+      const h = canvas ? canvas.height : 1080;
+
+      const pagesToExport: ExportableBoardPage[] = pages.map((p, idx) =>
+        idx === currentPageIndex ? { ...p, strokes, background } : p
+      );
+
+      await exportAllPagesToPdf(pagesToExport, w, h, snippets);
+    } catch (err) {
+      console.error('Failed to export lecture PDF:', err);
+    } finally {
+      setIsExporting(false);
+      setIsExportOpen(false);
+    }
+  };
+
+  const handleExportPng = async () => {
+    setIsExporting(true);
+    try {
+      const canvas = canvasRef.current;
+      const w = canvas ? canvas.width : 1920;
+      const h = canvas ? canvas.height : 1080;
+
+      const currentPage: ExportableBoardPage = {
+        id: pages[currentPageIndex]?.id || 'page-1',
+        strokes,
+        background
+      };
+
+      await exportPageToPng(currentPage, w, h, snippets, currentPageIndex + 1);
+    } catch (err) {
+      console.error('Failed to export lecture PNG:', err);
+    } finally {
+      setIsExporting(false);
+      setIsExportOpen(false);
+    }
   };
 
   // Snippet Card Dragging
@@ -394,6 +552,8 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
       } catch {}
     }
   };
+
+  const isRtl = lang === 'ar';
 
   return (
     <div
@@ -477,8 +637,8 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
 
       {/* Floating Zen Whiteboard Dock */}
       <div
-        dir={lang === 'ar' ? 'rtl' : 'ltr'}
-        className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-surface/90 border border-line backdrop-blur-md shadow-2xl text-ink max-w-[95vw] overflow-x-auto select-none"
+        dir={isRtl ? 'rtl' : 'ltr'}
+        className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-surface/90 border border-line backdrop-blur-md shadow-2xl text-ink max-w-[96vw] overflow-x-auto select-none"
       >
         {/* Pen Tool */}
         <button
@@ -536,7 +696,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
           <Pointer className="w-4 h-4" />
         </button>
 
-        <div className="h-5 w-px bg-line mx-1" />
+        <div className="h-5 w-px bg-line mx-0.5" />
 
         {/* Color Palette (Active only when Pen is active) */}
         {activeTool === 'pen' && (
@@ -577,7 +737,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
           </div>
         )}
 
-        <div className="h-5 w-px bg-line mx-1" />
+        <div className="h-5 w-px bg-line mx-0.5" />
 
         {/* Background Style Switcher */}
         <div className="flex items-center gap-1">
@@ -631,7 +791,142 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
           </button>
         </div>
 
-        <div className="h-5 w-px bg-line mx-1" />
+        <div className="h-5 w-px bg-line mx-0.5" />
+
+        {/* Palm Rejection Toggle (Stylus Only) */}
+        <button
+          type="button"
+          onClick={() => setStylusOnly((prev) => !prev)}
+          title={
+            lang === 'ar'
+              ? stylusOnly
+                ? 'وضع القلم فقط مفعّل (رفض راحة اليد لحماية السبورة)'
+                : 'تفعيل وضع القلم فقط (تجاهل لمس الكف لمنع البقع)'
+              : stylusOnly
+              ? 'Stylus Only active (Palm rejection enabled)'
+              : 'Enable Stylus Only (Reject palm touches)'
+          }
+          className={`flex items-center gap-1 px-2 py-1.5 rounded-xl border transition-all cursor-pointer ${
+            stylusOnly
+              ? 'bg-accent/15 border-accent text-accent font-bold shadow-xs'
+              : 'border-line hover:bg-hover text-ink-muted hover:text-ink'
+          }`}
+        >
+          <Hand className={`w-3.5 h-3.5 ${stylusOnly ? 'text-accent' : 'text-ink-muted'}`} />
+          <span className="text-[11px] hidden md:inline">
+            {lang === 'ar' ? (stylusOnly ? 'قلم حصري' : 'لمس حر') : (stylusOnly ? 'Stylus' : 'Touch')}
+          </span>
+          {stylusOnly && <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />}
+        </button>
+
+        <div className="h-5 w-px bg-line mx-0.5" />
+
+        {/* Multi-Page Whiteboard Navigator [ < 1/3 > + ] */}
+        <div className="flex items-center gap-1 bg-hover-subtle px-1.5 py-1 rounded-xl border border-line">
+          <button
+            type="button"
+            onClick={() => handleSwitchPage(currentPageIndex - 1)}
+            disabled={currentPageIndex <= 0}
+            title={lang === 'ar' ? 'الصفحة السابقة' : 'Previous Board Page'}
+            className="p-1 rounded-lg hover:bg-surface disabled:opacity-25 disabled:pointer-events-none text-ink-muted hover:text-ink transition-colors cursor-pointer"
+          >
+            {isRtl ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+          </button>
+
+          <span className="text-xs font-mono font-bold text-ink px-1 min-w-[34px] text-center">
+            {currentPageIndex + 1}/{pages.length}
+          </span>
+
+          <button
+            type="button"
+            onClick={() => handleSwitchPage(currentPageIndex + 1)}
+            disabled={currentPageIndex >= pages.length - 1}
+            title={lang === 'ar' ? 'الصفحة التالية' : 'Next Board Page'}
+            className="p-1 rounded-lg hover:bg-surface disabled:opacity-25 disabled:pointer-events-none text-ink-muted hover:text-ink transition-colors cursor-pointer"
+          >
+            {isRtl ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleAddPage}
+            disabled={pages.length >= 10}
+            title={lang === 'ar' ? 'إضافة صفحة سبورة جديدة' : 'Add New Board Page'}
+            className="p-1 rounded-lg hover:bg-accent hover:text-on-accent text-accent transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="h-5 w-px bg-line mx-0.5" />
+
+        {/* Export Lecture Button & Menu */}
+        <div className="relative" ref={exportMenuRef}>
+          <button
+            type="button"
+            onClick={() => setIsExportOpen((prev) => !prev)}
+            title={lang === 'ar' ? 'تصدير ملخص المحاضرة (PDF / صورة)' : 'Export Lecture (PDF / Image)'}
+            className={`p-2 rounded-xl border transition-all cursor-pointer ${
+              isExportOpen
+                ? 'bg-accent text-on-accent border-accent shadow-md'
+                : 'hover:bg-hover border-line text-ink-muted hover:text-ink'
+            }`}
+          >
+            {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+          </button>
+
+          {/* Export Dropdown Popover */}
+          {isExportOpen && (
+            <div
+              dir={isRtl ? 'rtl' : 'ltr'}
+              className="absolute bottom-full mb-3 rtl:right-0 ltr:left-0 z-50 w-60 rounded-2xl bg-surface border border-line shadow-2xl p-2 space-y-1 text-start backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
+            >
+              <div className="px-2.5 py-1.5 text-[11px] font-bold text-ink-muted border-b border-line">
+                {lang === 'ar' ? 'تصدير وحفظ المحاضرة' : 'Export Lecture'}
+              </div>
+
+              {/* Option 1: PDF Export (All Pages) */}
+              <button
+                type="button"
+                onClick={handleExportPdf}
+                disabled={isExporting}
+                className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-hover text-ink text-xs transition-colors cursor-pointer text-start"
+              >
+                <div className="w-7 h-7 rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="font-bold">
+                    {lang === 'ar' ? 'ملف PDF لجميع الصفحات' : 'All Pages as PDF'}
+                  </span>
+                  <span className="text-[10px] text-ink-muted truncate">
+                    {lang === 'ar' ? `${pages.length} صفحات مجمعة بدقة عالية` : `${pages.length} combined vector pages`}
+                  </span>
+                </div>
+              </button>
+
+              {/* Option 2: Current Page PNG */}
+              <button
+                type="button"
+                onClick={handleExportPng}
+                disabled={isExporting}
+                className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-hover text-ink text-xs transition-colors cursor-pointer text-start"
+              >
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                  <ImageIcon className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="font-bold">
+                    {lang === 'ar' ? 'صورة الصفحة الحالية (PNG)' : 'Current Page Image (PNG)'}
+                  </span>
+                  <span className="text-[10px] text-ink-muted truncate">
+                    {lang === 'ar' ? 'صورة عالية النقاء للمشاركة الفورية' : 'High-res image for quick sharing'}
+                  </span>
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Area Clip Button: Crop diagram from PDF to Board */}
         {onRequestAreaClip && (
@@ -645,6 +940,8 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
             <span className="hidden sm:inline">{lang === 'ar' ? 'قص من الكتاب' : 'Clip PDF'}</span>
           </button>
         )}
+
+        <div className="h-5 w-px bg-line mx-0.5" />
 
         {/* Undo / Redo */}
         <button
@@ -672,7 +969,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
           type="button"
           onClick={handleClearAll}
           disabled={strokes.length === 0}
-          title={lang === 'ar' ? 'مسح كل ما كُتب على السبورة' : 'Clear Board'}
+          title={lang === 'ar' ? 'مسح الصفحة الحالية' : 'Clear Current Page'}
           className="p-1.5 rounded-xl hover:bg-hover disabled:opacity-30 disabled:pointer-events-none text-ink-muted hover:text-danger-ink transition-colors cursor-pointer"
         >
           <Trash2 className="w-4 h-4" />
@@ -680,7 +977,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
 
         {onCloseBoard && (
           <>
-            <div className="h-5 w-px bg-line mx-1" />
+            <div className="h-5 w-px bg-line mx-0.5" />
             <button
               type="button"
               onClick={onCloseBoard}

@@ -30,6 +30,13 @@ export interface BoardSnippet {
   createdAt: number;
 }
 
+export interface BoardPageData {
+  id: string;
+  strokes: BoardStroke[];
+  redoStack: BoardStroke[][];
+  background: BoardBackground;
+}
+
 export interface BeamSessionInfo {
   roomCode: string;
   role: 'sender' | 'receiver';

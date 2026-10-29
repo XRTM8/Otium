@@ -285,8 +285,19 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     };
   }, [stopCamera]);
 
+  // Tactile Haptic Feedback Pulse
+  const triggerHaptic = useCallback(() => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        navigator.vibrate(18);
+      } catch {}
+    }
+  }, []);
+
   // Remote clicker controls
-  const handleRemoteNext = () => {
+  const handleRemoteNext = useCallback(() => {
+    if (reader.currentPage >= reader.numPages) return;
+    triggerHaptic();
     const nextPage = Math.min(reader.numPages, reader.currentPage + 1);
     reader.goToNextPage();
     if (connectedRoom) {
@@ -297,9 +308,11 @@ export const BeamModal: React.FC<BeamModalProps> = ({
         timestamp: Date.now()
       });
     }
-  };
+  }, [reader, connectedRoom, triggerHaptic]);
 
-  const handleRemotePrev = () => {
+  const handleRemotePrev = useCallback(() => {
+    if (reader.currentPage <= 1) return;
+    triggerHaptic();
     const prevPage = Math.max(1, reader.currentPage - 1);
     reader.goToPrevPage();
     if (connectedRoom) {
@@ -310,7 +323,23 @@ export const BeamModal: React.FC<BeamModalProps> = ({
         timestamp: Date.now()
       });
     }
-  };
+  }, [reader, connectedRoom, triggerHaptic]);
+
+  // Keyboard navigation when remote tab is active
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'remote') return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault();
+        handleRemoteNext();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        handleRemotePrev();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, activeTab, handleRemoteNext, handleRemotePrev]);
 
   const handleCopyCode = () => {
     navigator.clipboard?.writeText(receiverRoomCode);
@@ -669,13 +698,14 @@ export const BeamModal: React.FC<BeamModalProps> = ({
           </div>
         )}
 
-        {/* Tab 4: Presentation Remote Clicker */}
+        {/* Tab 4: Presentation Remote Clicker (Tactile Blind Clicker without Timer) */}
         {activeTab === 'remote' && (
           <div className="p-5 space-y-4 text-center">
+            {/* Connection Banner */}
             <div className="flex items-center justify-between text-xs text-ink-muted px-1">
               <span className="flex items-center gap-1.5 text-emerald-500 font-semibold text-[11px]">
                 <Radio className="w-3 h-3 animate-pulse" />
-                <span>{lang === 'ar' ? 'متصل:' : 'Connected:'} {connectedRoom}</span>
+                <span>{lang === 'ar' ? 'متصل بالسبورة:' : 'Connected:'} <strong className="font-mono text-ink">{connectedRoom}</strong></span>
               </span>
               <button
                 type="button"
@@ -686,25 +716,35 @@ export const BeamModal: React.FC<BeamModalProps> = ({
               </button>
             </div>
 
-            {/* Page Count */}
+            {/* Slide Progress Bar */}
+            <div className="w-full bg-hover rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-accent h-full transition-all duration-300 rounded-full"
+                style={{
+                  width: `${reader.numPages > 0 ? (reader.currentPage / reader.numPages) * 100 : 0}%`
+                }}
+              />
+            </div>
+
+            {/* Page Count Display */}
             <div className="py-3 px-4 rounded-2xl bg-hover-subtle border border-line space-y-0.5">
-              <div className="text-2xl font-black text-ink font-mono">
-                {reader.currentPage} / {reader.numPages}
+              <div className="text-3xl font-black text-ink font-mono tracking-tight">
+                {reader.currentPage} <span className="text-sm font-normal text-ink-muted">/ {reader.numPages}</span>
               </div>
               <div className="text-[11px] text-ink-muted truncate max-w-xs mx-auto">
-                {reader.docTitle}
+                {reader.docTitle || (lang === 'ar' ? 'كتاب المحاضرة' : 'Lecture Document')}
               </div>
             </div>
 
-            {/* Big Flip Buttons */}
-            <div className="grid grid-cols-2 gap-2.5">
+            {/* Tactile Blind-Flipping Buttons with Haptic Pulse */}
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={handleRemotePrev}
                 disabled={reader.currentPage <= 1}
-                className="py-5 rounded-2xl bg-hover border border-line hover:bg-hover-strong active:scale-95 text-ink font-bold text-xs flex flex-col items-center justify-center gap-1.5 cursor-pointer disabled:opacity-30 disabled:pointer-events-none transition-all shadow-xs"
+                className="py-7 px-4 rounded-2xl bg-hover border border-line hover:bg-hover-strong active:scale-95 text-ink font-bold text-sm flex flex-col items-center justify-center gap-2 cursor-pointer disabled:opacity-25 disabled:pointer-events-none transition-all shadow-xs touch-manipulation"
               >
-                <ArrowRight className="w-5 h-5 rtl:rotate-0 ltr:rotate-180 text-accent" />
+                <ArrowRight className="w-6 h-6 rtl:rotate-0 ltr:rotate-180 text-ink-muted" />
                 <span>{lang === 'ar' ? 'السابقة' : 'Previous'}</span>
               </button>
 
@@ -712,11 +752,21 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                 type="button"
                 onClick={handleRemoteNext}
                 disabled={reader.currentPage >= reader.numPages}
-                className="py-5 rounded-2xl bg-accent text-on-accent hover:bg-accent-strong active:scale-95 font-bold text-xs flex flex-col items-center justify-center gap-1.5 cursor-pointer disabled:opacity-30 disabled:pointer-events-none shadow-md transition-all"
+                className="py-7 px-4 rounded-2xl bg-accent text-on-accent hover:bg-accent-strong active:scale-95 font-bold text-sm flex flex-col items-center justify-center gap-2 cursor-pointer disabled:opacity-25 disabled:pointer-events-none shadow-md transition-all touch-manipulation"
               >
-                <ArrowLeft className="w-5 h-5 rtl:rotate-0 ltr:rotate-180" />
+                <ArrowLeft className="w-6 h-6 rtl:rotate-0 ltr:rotate-180" />
                 <span>{lang === 'ar' ? 'التالية' : 'Next'}</span>
               </button>
+            </div>
+
+            {/* Tactile & Keyboard Guide */}
+            <div className="pt-1 text-[10px] text-ink-muted flex items-center justify-center gap-2">
+              <span className="flex items-center gap-1">
+                <span>📳</span>
+                <span>{lang === 'ar' ? 'اهتزاز لمسي عند التقليب' : 'Haptic feedback on tap'}</span>
+              </span>
+              <span>•</span>
+              <span>{lang === 'ar' ? 'مفاتيح الأسهم مدعومة' : 'Arrow keys supported'}</span>
             </div>
           </div>
         )}
