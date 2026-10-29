@@ -391,7 +391,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
         </div>
 
         {/* Segmented Mode Selector Pills */}
-        <div className="flex items-center p-1.5 bg-hover-subtle/30 border-b border-line gap-1">
+        <div className="flex items-center p-1.5 mx-4 mt-3 bg-hover-subtle/70 rounded-2xl border border-line/60 gap-1 select-none">
           <button
             type="button"
             onClick={() => {
@@ -400,8 +400,8 @@ export const BeamModal: React.FC<BeamModalProps> = ({
             }}
             className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'send'
-                ? 'bg-accent text-on-accent shadow-xs'
-                : 'text-ink-muted hover:text-ink hover:bg-hover'
+                ? 'bg-surface text-ink font-bold shadow-xs border border-line/60'
+                : 'text-ink-muted hover:text-ink'
             }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
@@ -416,8 +416,8 @@ export const BeamModal: React.FC<BeamModalProps> = ({
             }}
             className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'receive'
-                ? 'bg-accent text-on-accent shadow-xs'
-                : 'text-ink-muted hover:text-ink hover:bg-hover'
+                ? 'bg-surface text-ink font-bold shadow-xs border border-line/60'
+                : 'text-ink-muted hover:text-ink'
             }`}
           >
             <Tv className="w-3.5 h-3.5" />
@@ -432,12 +432,12 @@ export const BeamModal: React.FC<BeamModalProps> = ({
             }}
             className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'offline'
-                ? 'bg-amber-600 text-white shadow-xs'
-                : 'text-ink-muted hover:text-ink hover:bg-hover'
+                ? 'bg-surface text-ink font-bold shadow-xs border border-line/60'
+                : 'text-ink-muted hover:text-ink'
             }`}
           >
             <WifiOff className="w-3.5 h-3.5" />
-            <span>{lang === 'ar' ? 'بدون نت' : 'Offline'}</span>
+            <span>{lang === 'ar' ? 'بدون إنترنت' : 'Offline'}</span>
           </button>
 
           {connectedRoom && (
@@ -449,12 +449,12 @@ export const BeamModal: React.FC<BeamModalProps> = ({
               }}
               className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                 activeTab === 'remote'
-                  ? 'bg-emerald-600 text-white shadow-xs animate-pulse'
-                  : 'text-emerald-500 hover:bg-hover'
+                  ? 'bg-accent text-on-accent font-bold shadow-sm'
+                  : 'text-accent hover:bg-hover'
               }`}
             >
               <Radio className="w-3.5 h-3.5" />
-              <span>{lang === 'ar' ? 'الريموت' : 'Clicker'}</span>
+              <span>{lang === 'ar' ? 'الريموت' : 'Remote'}</span>
             </button>
           )}
         </div>
@@ -553,7 +553,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                       }}
                       className="px-2.5 py-1 rounded-xl bg-hover border border-line text-[11px] font-mono font-semibold text-accent hover:bg-accent/15 hover:border-accent/40 active:scale-95 transition-all cursor-pointer"
                     >
-                      ⚡ {room}
+                      {room}
                     </button>
                   ))}
                 </div>
@@ -597,7 +597,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                 {lang === 'ar' ? 'وجّه كاميرا الهاتف نحو الرمز لبث المحاضرة' : 'Point phone camera at QR to beam'}
               </h4>
               <p className="text-[11px] text-ink-muted">
-                {lang === 'ar' ? 'أو افتح أوتيوم بهاتفك واضغط بث 📡' : 'Or open Otium on phone and tap Beam 📡'}
+                {lang === 'ar' ? 'أو افتح Otium بهاتفك واضغط بث' : 'Or open Otium on phone and tap Beam'}
               </p>
             </div>
 
@@ -608,7 +608,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
 
             {/* Code Badge */}
             <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-hover border border-line">
-              <span className="font-mono text-lg font-black tracking-widest text-accent">
+              <span className="font-mono text-xl font-black tracking-[0.2em] text-accent">
                 {receiverRoomCode}
               </span>
               <button
@@ -667,7 +667,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                 className="w-full py-2 px-3 rounded-xl bg-accent text-on-accent text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-accent-strong active:scale-98 transition-all cursor-pointer shadow-xs"
               >
                 <FileUp className="w-3.5 h-3.5" />
-                <span>{lang === 'ar' ? 'اختيار ملف PDF من الجهاز / الفلاشة 📂' : 'Select PDF from USB 📂'}</span>
+                <span>{lang === 'ar' ? 'اختيار ملف من الجهاز أو فلاشة USB' : 'Select PDF from USB or Disk'}</span>
               </button>
             </div>
 
@@ -760,11 +760,9 @@ export const BeamModal: React.FC<BeamModalProps> = ({
             </div>
 
             {/* Tactile & Keyboard Guide */}
-            <div className="pt-1 text-[10px] text-ink-muted flex items-center justify-center gap-2">
-              <span className="flex items-center gap-1">
-                <span>📳</span>
-                <span>{lang === 'ar' ? 'اهتزاز لمسي عند التقليب' : 'Haptic feedback on tap'}</span>
-              </span>
+            <div className="pt-1 text-[10px] text-ink-muted/80 flex items-center justify-center gap-2">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500/80" />
+              <span>{lang === 'ar' ? 'اهتزاز فيزيائي عند التقليب' : 'Haptic pulse enabled'}</span>
               <span>•</span>
               <span>{lang === 'ar' ? 'مفاتيح الأسهم مدعومة' : 'Arrow keys supported'}</span>
             </div>

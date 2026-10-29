@@ -1,5 +1,4 @@
 import React, { useRef } from 'react';
-import { GripVertical } from 'lucide-react';
 
 interface ResizeDividerProps {
   splitPercent: number; // 0 to 100 (percentage of first pane width)
@@ -86,22 +85,24 @@ export const ResizeDivider: React.FC<ResizeDividerProps> = ({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
-      title="اسحب لتغيير الحجم، انقر نقراً مزدوجاً للموازنة 50/50"
-      className={`relative z-30 flex items-center justify-center cursor-col-resize select-none touch-none transition-colors ${
+      title="اسحب لتغيير الحجم • انقر نقراً مزدوجاً للموازنة 50/50"
+      className={`relative z-30 flex items-center justify-center cursor-col-resize select-none touch-none transition-all group before:absolute before:-inset-x-3 before:h-full before:z-10 ${
         isDragging
-          ? 'w-3 bg-accent/40 backdrop-blur-sm'
-          : 'w-2 hover:w-3 bg-line/80 hover:bg-accent/30'
+          ? 'w-2.5 bg-accent/30 backdrop-blur-sm'
+          : 'w-1.5 hover:w-2 bg-line/60 hover:bg-accent/20'
       }`}
     >
-      {/* Centered tactile pill handle */}
+      {/* Centered Apple-grade tactile pill handle */}
       <div
-        className={`flex items-center justify-center w-4 h-12 rounded-full border shadow-md transition-all ${
+        className={`relative z-20 flex flex-col items-center justify-center gap-1 w-3.5 h-10 rounded-full border shadow-[0_4px_16px_rgba(0,0,0,0.12)] transition-all ${
           isDragging
-            ? 'bg-accent text-on-accent scale-110 shadow-lg border-accent'
-            : 'bg-surface text-ink-muted hover:text-ink hover:scale-105 border-line'
+            ? 'bg-accent text-on-accent scale-110 shadow-lg border-accent ring-4 ring-accent/20'
+            : 'bg-surface/95 text-ink-muted group-hover:text-accent group-hover:scale-105 border-line/90 backdrop-blur-md'
         }`}
       >
-        <GripVertical className="w-3.5 h-3.5" />
+        <span className="w-1 h-1 rounded-full bg-current opacity-70" />
+        <span className="w-1 h-1 rounded-full bg-current opacity-70" />
+        <span className="w-1 h-1 rounded-full bg-current opacity-70" />
       </div>
     </div>
   );

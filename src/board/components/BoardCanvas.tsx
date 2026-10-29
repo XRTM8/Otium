@@ -38,8 +38,9 @@ const PEN_WIDTHS = [
   { id: 'thick', value: 12, label: '12px' }
 ];
 
-const LIGHT_COLORS = ['#0f172a', '#2563eb', '#dc2626', '#059669'];
-const DARK_COLORS = ['#f8fafc', '#60a5fa', '#f87171', '#34d399'];
+// Curated academic pigment palette
+const LIGHT_COLORS = ['#111827', '#1d4ed8', '#be123c', '#047857'];
+const DARK_COLORS = ['#f8fafc', '#38bdf8', '#fb7185', '#34d399'];
 
 export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   lang,
@@ -69,7 +70,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
 
   const [activeTool, setActiveTool] = useState<BoardTool>('pen');
   const [background, setBackground] = useState<BoardBackground>('white');
-  const [selectedColor, setSelectedColor] = useState<string>('#0f172a');
+  const [selectedColor, setSelectedColor] = useState<string>('#111827');
   const [selectedWidth, setSelectedWidth] = useState<number>(4);
 
   const [strokes, setStrokes] = useState<BoardStroke[]>([]);
@@ -90,10 +91,10 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
 
   // Auto-tune selected color when switching between light and dark backgrounds
   useEffect(() => {
-    if (isDarkBg && selectedColor === '#0f172a') {
+    if (isDarkBg && selectedColor === '#111827') {
       setSelectedColor('#f8fafc');
     } else if (!isDarkBg && selectedColor === '#f8fafc') {
-      setSelectedColor('#0f172a');
+      setSelectedColor('#111827');
     }
   }, [isDarkBg, selectedColor]);
 
@@ -180,10 +181,12 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
 
       ctx.beginPath();
       if (stroke.tool === 'highlighter') {
-        ctx.strokeStyle = stroke.color || 'rgba(250, 204, 21, 0.4)';
-        ctx.lineWidth = stroke.width || 22;
-        ctx.globalAlpha = 0.45;
+        ctx.globalCompositeOperation = isDarkBg ? 'screen' : 'multiply';
+        ctx.strokeStyle = stroke.color || (isDarkBg ? 'rgba(250, 204, 21, 0.45)' : 'rgba(250, 204, 21, 0.65)');
+        ctx.lineWidth = stroke.width || 24;
+        ctx.globalAlpha = isDarkBg ? 0.45 : 0.65;
       } else {
+        ctx.globalCompositeOperation = 'source-over';
         ctx.strokeStyle = stroke.color;
         ctx.lineWidth = stroke.width;
         ctx.globalAlpha = 1.0;
@@ -343,7 +346,12 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     const newStroke: BoardStroke = {
       id: `stroke-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       points: [coords],
-      color: activeTool === 'highlighter' ? 'rgba(250, 204, 21, 0.45)' : selectedColor,
+      color:
+        activeTool === 'highlighter'
+          ? isDarkBg
+            ? 'rgba(250, 204, 21, 0.45)'
+            : 'rgba(250, 204, 21, 0.65)'
+          : selectedColor,
       width: activeTool === 'highlighter' ? 24 : selectedWidth,
       tool: activeTool === 'highlighter' ? 'highlighter' : 'pen'
     };
@@ -635,120 +643,126 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
         ))}
       </div>
 
-      {/* Floating Zen Whiteboard Dock */}
+      {/* Floating Zen Whiteboard Studio Dock */}
       <div
         dir={isRtl ? 'rtl' : 'ltr'}
-        className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-surface/90 border border-line backdrop-blur-md shadow-2xl text-ink max-w-[96vw] overflow-x-auto select-none"
+        className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-surface/85 border border-line/70 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.18)] ring-1 ring-white/10 text-ink max-w-[96vw] overflow-x-auto select-none"
       >
-        {/* Pen Tool */}
-        <button
-          type="button"
-          onClick={() => setActiveTool('pen')}
-          title={lang === 'ar' ? 'قلم الكتابة' : 'Pen'}
-          className={`p-2 rounded-xl transition-all cursor-pointer ${
-            activeTool === 'pen'
-              ? 'bg-accent text-on-accent shadow-md scale-105'
-              : 'hover:bg-hover text-ink-muted hover:text-ink'
-          }`}
-        >
-          <Pen className="w-4 h-4" />
-        </button>
+        {/* Tool Segmented Group */}
+        <div className="flex items-center gap-1 bg-hover-subtle/70 rounded-xl p-0.5 border border-line/50">
+          {/* Pen Tool */}
+          <button
+            type="button"
+            onClick={() => setActiveTool('pen')}
+            title={lang === 'ar' ? 'قلم الكتابة الحبري' : 'Inking Pen'}
+            className={`p-2 rounded-lg transition-all cursor-pointer ${
+              activeTool === 'pen'
+                ? 'bg-surface text-accent shadow-xs scale-102 font-bold'
+                : 'text-ink-muted hover:text-ink hover:bg-hover'
+            }`}
+          >
+            <Pen className="w-4 h-4" />
+          </button>
 
-        {/* Highlighter Tool */}
-        <button
-          type="button"
-          onClick={() => setActiveTool('highlighter')}
-          title={lang === 'ar' ? 'قلم التظليل العريض' : 'Highlighter'}
-          className={`p-2 rounded-xl transition-all cursor-pointer ${
-            activeTool === 'highlighter'
-              ? 'bg-amber-500 text-white shadow-md scale-105'
-              : 'hover:bg-hover text-ink-muted hover:text-ink'
-          }`}
-        >
-          <Highlighter className="w-4 h-4" />
-        </button>
+          {/* Highlighter Tool */}
+          <button
+            type="button"
+            onClick={() => setActiveTool('highlighter')}
+            title={lang === 'ar' ? 'تظليل فسفوري مضاعف' : 'Highlighter'}
+            className={`p-2 rounded-lg transition-all cursor-pointer ${
+              activeTool === 'highlighter'
+                ? 'bg-amber-500 text-white shadow-xs scale-102 font-bold'
+                : 'text-ink-muted hover:text-ink hover:bg-hover'
+            }`}
+          >
+            <Highlighter className="w-4 h-4" />
+          </button>
 
-        {/* Eraser Tool */}
-        <button
-          type="button"
-          onClick={() => setActiveTool('eraser')}
-          title={lang === 'ar' ? 'ممحاة المسارات' : 'Eraser'}
-          className={`p-2 rounded-xl transition-all cursor-pointer ${
-            activeTool === 'eraser'
-              ? 'bg-rose-500 text-white shadow-md scale-105'
-              : 'hover:bg-hover text-ink-muted hover:text-ink'
-          }`}
-        >
-          <Eraser className="w-4 h-4" />
-        </button>
+          {/* Eraser Tool */}
+          <button
+            type="button"
+            onClick={() => setActiveTool('eraser')}
+            title={lang === 'ar' ? 'ممحاة المسارات الذكية' : 'Stroke Eraser'}
+            className={`p-2 rounded-lg transition-all cursor-pointer ${
+              activeTool === 'eraser'
+                ? 'bg-rose-500 text-white shadow-xs scale-102 font-bold'
+                : 'text-ink-muted hover:text-ink hover:bg-hover'
+            }`}
+          >
+            <Eraser className="w-4 h-4" />
+          </button>
 
-        {/* Digital Laser Pointer */}
-        <button
-          type="button"
-          onClick={() => setActiveTool('laser')}
-          title={lang === 'ar' ? 'مؤشر الليزر المتوهج للشرح' : 'Laser Pointer'}
-          className={`p-2 rounded-xl transition-all cursor-pointer ${
-            activeTool === 'laser'
-              ? 'bg-red-600 text-white shadow-md shadow-red-500/30 scale-105 animate-pulse'
-              : 'hover:bg-hover text-ink-muted hover:text-ink'
-          }`}
-        >
-          <Pointer className="w-4 h-4" />
-        </button>
-
-        <div className="h-5 w-px bg-line mx-0.5" />
+          {/* Digital Laser Pointer */}
+          <button
+            type="button"
+            onClick={() => setActiveTool('laser')}
+            title={lang === 'ar' ? 'مؤشر ليزر للشرح التفاعلي' : 'Laser Pointer'}
+            className={`p-2 rounded-lg transition-all cursor-pointer ${
+              activeTool === 'laser'
+                ? 'bg-red-600 text-white shadow-xs shadow-red-500/30 scale-102 font-bold'
+                : 'text-ink-muted hover:text-ink hover:bg-hover'
+            }`}
+          >
+            <Pointer className="w-4 h-4" />
+          </button>
+        </div>
 
         {/* Color Palette (Active only when Pen is active) */}
         {activeTool === 'pen' && (
-          <div className="flex items-center gap-1.5 px-1">
-            {palette.map((color) => (
-              <button
-                key={color}
-                type="button"
-                onClick={() => setSelectedColor(color)}
-                style={{ backgroundColor: color }}
-                className={`w-5 h-5 rounded-full border-2 transition-transform cursor-pointer ${
-                  selectedColor === color
-                    ? 'border-accent scale-125 shadow-sm ring-1 ring-accent'
-                    : 'border-transparent hover:scale-110'
-                }`}
-              />
-            ))}
-          </div>
+          <>
+            <div className="h-5 w-px bg-line/60 mx-0.5" />
+            <div className="flex items-center gap-1.5 px-1 bg-hover-subtle/50 rounded-xl py-1 border border-line/40">
+              {palette.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => setSelectedColor(color)}
+                  style={{ backgroundColor: color }}
+                  className={`w-4 h-4 rounded-full transition-all cursor-pointer ${
+                    selectedColor === color
+                      ? 'scale-125 ring-2 ring-accent ring-offset-2 ring-offset-surface shadow-xs'
+                      : 'hover:scale-110 opacity-80 hover:opacity-100'
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* Visual Pen Stroke Width Dots */}
+            <div className="flex items-center gap-1 bg-hover-subtle/70 rounded-xl p-0.5 border border-line/50">
+              {PEN_WIDTHS.map((w) => (
+                <button
+                  key={w.id}
+                  type="button"
+                  onClick={() => setSelectedWidth(w.value)}
+                  title={w.label}
+                  className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
+                    selectedWidth === w.value
+                      ? 'bg-surface text-accent shadow-xs'
+                      : 'hover:bg-hover text-ink-muted hover:text-ink'
+                  }`}
+                >
+                  <span
+                    style={{ width: `${w.value * 0.9 + 1}px`, height: `${w.value * 0.9 + 1}px` }}
+                    className="rounded-full bg-current"
+                  />
+                </button>
+              ))}
+            </div>
+          </>
         )}
 
-        {/* Pen Width Selector */}
-        {activeTool === 'pen' && (
-          <div className="flex items-center gap-1 bg-hover-subtle rounded-xl p-0.5 border border-line-subtle">
-            {PEN_WIDTHS.map((w) => (
-              <button
-                key={w.id}
-                type="button"
-                onClick={() => setSelectedWidth(w.value)}
-                className={`px-2 py-0.5 text-[10px] font-mono rounded-lg transition-colors cursor-pointer ${
-                  selectedWidth === w.value
-                    ? 'bg-surface text-accent font-bold shadow-xs'
-                    : 'text-ink-muted hover:text-ink'
-                }`}
-              >
-                {w.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="h-5 w-px bg-line mx-0.5" />
+        <div className="h-5 w-px bg-line/60 mx-0.5" />
 
         {/* Background Style Switcher */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 bg-hover-subtle/50 rounded-xl p-0.5 border border-line/50 text-[11px]">
           <button
             type="button"
             onClick={() => setBackground('white')}
-            title={lang === 'ar' ? 'ورقة بيضاء' : 'Plain White'}
-            className={`px-2 py-1 text-xs rounded-xl border cursor-pointer transition-colors ${
+            title={lang === 'ar' ? 'ورقة بيضاء نقية' : 'Plain White'}
+            className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
               background === 'white'
-                ? 'bg-surface border-accent text-accent font-semibold'
-                : 'border-line text-ink-muted hover:text-ink'
+                ? 'bg-surface border border-line/70 text-accent font-bold shadow-xs'
+                : 'text-ink-muted hover:text-ink'
             }`}
           >
             {lang === 'ar' ? 'بيضاء' : 'White'}
@@ -757,22 +771,22 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
             type="button"
             onClick={() => setBackground('grid')}
             title={lang === 'ar' ? 'شبكة مربعات هندسية' : 'Math Grid'}
-            className={`px-2 py-1 text-xs rounded-xl border cursor-pointer transition-colors ${
+            className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
               background === 'grid'
-                ? 'bg-surface border-accent text-accent font-semibold'
-                : 'border-line text-ink-muted hover:text-ink'
+                ? 'bg-surface border border-line/70 text-accent font-bold shadow-xs'
+                : 'text-ink-muted hover:text-ink'
             }`}
           >
-            {lang === 'ar' ? 'شبكة' : 'Grid'}
+            {lang === 'ar' ? 'مربعات' : 'Grid'}
           </button>
           <button
             type="button"
             onClick={() => setBackground('ruled')}
             title={lang === 'ar' ? 'أسطر دفتر مسطرة' : 'Ruled Lines'}
-            className={`px-2 py-1 text-xs rounded-xl border cursor-pointer transition-colors ${
+            className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
               background === 'ruled'
-                ? 'bg-surface border-accent text-accent font-semibold'
-                : 'border-line text-ink-muted hover:text-ink'
+                ? 'bg-surface border border-line/70 text-accent font-bold shadow-xs'
+                : 'text-ink-muted hover:text-ink'
             }`}
           >
             {lang === 'ar' ? 'مسطر' : 'Ruled'}
@@ -780,18 +794,18 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
           <button
             type="button"
             onClick={() => setBackground('dark')}
-            title={lang === 'ar' ? 'سبورة داكنة' : 'Dark Slate'}
-            className={`px-2 py-1 text-xs rounded-xl border cursor-pointer transition-colors ${
+            title={lang === 'ar' ? 'سبورة داكنة عالية التباين' : 'Dark Slate'}
+            className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
               background === 'dark'
-                ? 'bg-slate-800 border-accent text-accent font-semibold'
-                : 'border-line text-ink-muted hover:text-ink'
+                ? 'bg-slate-800 border border-slate-700 text-white font-bold shadow-xs'
+                : 'text-ink-muted hover:text-ink'
             }`}
           >
             {lang === 'ar' ? 'داكنة' : 'Dark'}
           </button>
         </div>
 
-        <div className="h-5 w-px bg-line mx-0.5" />
+        <div className="h-5 w-px bg-line/60 mx-0.5" />
 
         {/* Palm Rejection Toggle (Stylus Only) */}
         <button
@@ -806,10 +820,10 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
               ? 'Stylus Only active (Palm rejection enabled)'
               : 'Enable Stylus Only (Reject palm touches)'
           }
-          className={`flex items-center gap-1 px-2 py-1.5 rounded-xl border transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
             stylusOnly
               ? 'bg-accent/15 border-accent text-accent font-bold shadow-xs'
-              : 'border-line hover:bg-hover text-ink-muted hover:text-ink'
+              : 'border-line/60 hover:bg-hover text-ink-muted hover:text-ink'
           }`}
         >
           <Hand className={`w-3.5 h-3.5 ${stylusOnly ? 'text-accent' : 'text-ink-muted'}`} />
@@ -819,10 +833,10 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
           {stylusOnly && <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />}
         </button>
 
-        <div className="h-5 w-px bg-line mx-0.5" />
+        <div className="h-5 w-px bg-line/60 mx-0.5" />
 
-        {/* Multi-Page Whiteboard Navigator [ < 1/3 > + ] */}
-        <div className="flex items-center gap-1 bg-hover-subtle px-1.5 py-1 rounded-xl border border-line">
+        {/* Multi-Page Whiteboard Navigator [ ‹  1 / 3  ›  + ] */}
+        <div className="flex items-center gap-1 bg-hover-subtle/70 px-1.5 py-1 rounded-xl border border-line/60">
           <button
             type="button"
             onClick={() => handleSwitchPage(currentPageIndex - 1)}
@@ -833,8 +847,8 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
             {isRtl ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
           </button>
 
-          <span className="text-xs font-mono font-bold text-ink px-1 min-w-[34px] text-center">
-            {currentPageIndex + 1}/{pages.length}
+          <span className="text-xs font-mono font-bold text-ink px-1.5 min-w-[36px] text-center tracking-tight">
+            {currentPageIndex + 1} / {pages.length}
           </span>
 
           <button
@@ -852,24 +866,24 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
             onClick={handleAddPage}
             disabled={pages.length >= 10}
             title={lang === 'ar' ? 'إضافة صفحة سبورة جديدة' : 'Add New Board Page'}
-            className="p-1 rounded-lg hover:bg-accent hover:text-on-accent text-accent transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+            className="p-1 rounded-lg hover:bg-accent hover:text-on-accent text-accent transition-all cursor-pointer disabled:opacity-25 disabled:pointer-events-none"
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <div className="h-5 w-px bg-line mx-0.5" />
+        <div className="h-5 w-px bg-line/60 mx-0.5" />
 
         {/* Export Lecture Button & Menu */}
         <div className="relative" ref={exportMenuRef}>
           <button
             type="button"
             onClick={() => setIsExportOpen((prev) => !prev)}
-            title={lang === 'ar' ? 'تصدير ملخص المحاضرة (PDF / صورة)' : 'Export Lecture (PDF / Image)'}
+            title={lang === 'ar' ? 'تصدير وحفظ المحاضرة' : 'Export Lecture'}
             className={`p-2 rounded-xl border transition-all cursor-pointer ${
               isExportOpen
-                ? 'bg-accent text-on-accent border-accent shadow-md'
-                : 'hover:bg-hover border-line text-ink-muted hover:text-ink'
+                ? 'bg-accent text-on-accent border-accent shadow-md scale-102'
+                : 'hover:bg-hover border-line/60 text-ink-muted hover:text-ink'
             }`}
           >
             {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
@@ -879,9 +893,9 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
           {isExportOpen && (
             <div
               dir={isRtl ? 'rtl' : 'ltr'}
-              className="absolute bottom-full mb-3 rtl:right-0 ltr:left-0 z-50 w-60 rounded-2xl bg-surface border border-line shadow-2xl p-2 space-y-1 text-start backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
+              className="absolute bottom-full mb-3 rtl:right-0 ltr:left-0 z-50 w-64 rounded-2xl bg-surface/95 border border-line/80 shadow-[0_20px_50px_rgba(0,0,0,0.2)] p-2 space-y-1 text-start backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-150"
             >
-              <div className="px-2.5 py-1.5 text-[11px] font-bold text-ink-muted border-b border-line">
+              <div className="px-2.5 py-1.5 text-[11px] font-bold text-ink-muted border-b border-line/60 tracking-tight">
                 {lang === 'ar' ? 'تصدير وحفظ المحاضرة' : 'Export Lecture'}
               </div>
 
@@ -896,11 +910,11 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
                   <FileText className="w-4 h-4" />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="font-bold">
+                  <span className="font-bold tracking-tight">
                     {lang === 'ar' ? 'ملف PDF لجميع الصفحات' : 'All Pages as PDF'}
                   </span>
                   <span className="text-[10px] text-ink-muted truncate">
-                    {lang === 'ar' ? `${pages.length} صفحات مجمعة بدقة عالية` : `${pages.length} combined vector pages`}
+                    {lang === 'ar' ? `${pages.length} صفحات مجمعة بدقة عالية` : `${pages.length} vector pages combined`}
                   </span>
                 </div>
               </button>
@@ -916,7 +930,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
                   <ImageIcon className="w-4 h-4" />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="font-bold">
+                  <span className="font-bold tracking-tight">
                     {lang === 'ar' ? 'صورة الصفحة الحالية (PNG)' : 'Current Page Image (PNG)'}
                   </span>
                   <span className="text-[10px] text-ink-muted truncate">
@@ -937,11 +951,11 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-accent/15 border border-accent/30 text-accent text-xs font-semibold hover:bg-accent hover:text-on-accent transition-all cursor-pointer"
           >
             <Crop className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{lang === 'ar' ? 'قص من الكتاب' : 'Clip PDF'}</span>
+            <span className="hidden sm:inline">{lang === 'ar' ? 'قص من الكتاب' : 'Clip'}</span>
           </button>
         )}
 
-        <div className="h-5 w-px bg-line mx-0.5" />
+        <div className="h-5 w-px bg-line/60 mx-0.5" />
 
         {/* Undo / Redo */}
         <button
@@ -949,7 +963,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
           onClick={handleUndo}
           disabled={strokes.length === 0}
           title={lang === 'ar' ? 'تراجع' : 'Undo'}
-          className="p-1.5 rounded-xl hover:bg-hover disabled:opacity-30 disabled:pointer-events-none text-ink-muted hover:text-ink transition-colors cursor-pointer"
+          className="p-1.5 rounded-xl hover:bg-hover disabled:opacity-25 disabled:pointer-events-none text-ink-muted hover:text-ink transition-colors cursor-pointer"
         >
           <RotateCcw className="w-4 h-4" />
         </button>
@@ -959,7 +973,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
           onClick={handleRedo}
           disabled={redoStack.length === 0}
           title={lang === 'ar' ? 'إعادة' : 'Redo'}
-          className="p-1.5 rounded-xl hover:bg-hover disabled:opacity-30 disabled:pointer-events-none text-ink-muted hover:text-ink transition-colors cursor-pointer"
+          className="p-1.5 rounded-xl hover:bg-hover disabled:opacity-25 disabled:pointer-events-none text-ink-muted hover:text-ink transition-colors cursor-pointer"
         >
           <RotateCw className="w-4 h-4" />
         </button>
@@ -970,14 +984,14 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
           onClick={handleClearAll}
           disabled={strokes.length === 0}
           title={lang === 'ar' ? 'مسح الصفحة الحالية' : 'Clear Current Page'}
-          className="p-1.5 rounded-xl hover:bg-hover disabled:opacity-30 disabled:pointer-events-none text-ink-muted hover:text-danger-ink transition-colors cursor-pointer"
+          className="p-1.5 rounded-xl hover:bg-hover disabled:opacity-25 disabled:pointer-events-none text-ink-muted hover:text-danger-ink transition-colors cursor-pointer"
         >
           <Trash2 className="w-4 h-4" />
         </button>
 
         {onCloseBoard && (
           <>
-            <div className="h-5 w-px bg-line mx-0.5" />
+            <div className="h-5 w-px bg-line/60 mx-0.5" />
             <button
               type="button"
               onClick={onCloseBoard}

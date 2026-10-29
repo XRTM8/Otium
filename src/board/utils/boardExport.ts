@@ -64,11 +64,14 @@ export function renderBoardPageToContext(
     if (!stroke.points || stroke.points.length === 0) continue;
 
     ctx.beginPath();
+    const isDark = page.background === 'dark';
     if (stroke.tool === 'highlighter') {
-      ctx.strokeStyle = stroke.color || 'rgba(250, 204, 21, 0.45)';
-      ctx.lineWidth = stroke.width || 22;
-      ctx.globalAlpha = 0.45;
+      ctx.globalCompositeOperation = isDark ? 'screen' : 'multiply';
+      ctx.strokeStyle = stroke.color || (isDark ? 'rgba(250, 204, 21, 0.45)' : 'rgba(250, 204, 21, 0.65)');
+      ctx.lineWidth = stroke.width || 24;
+      ctx.globalAlpha = isDark ? 0.45 : 0.65;
     } else {
+      ctx.globalCompositeOperation = 'source-over';
       ctx.strokeStyle = stroke.color;
       ctx.lineWidth = stroke.width;
       ctx.globalAlpha = 1.0;

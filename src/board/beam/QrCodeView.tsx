@@ -39,7 +39,7 @@ export const QrCodeView: React.FC<QrCodeViewProps> = ({ value, size = 180 }) => 
   return (
     <div
       style={{ width: `${size}px`, height: `${size}px` }}
-      className="p-2 bg-white rounded-2xl shadow-md border border-slate-200 flex items-center justify-center select-none overflow-hidden"
+      className="p-2.5 bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-slate-100 flex items-center justify-center select-none overflow-hidden"
     >
       {svgString ? (
         <div

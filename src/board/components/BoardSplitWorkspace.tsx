@@ -64,12 +64,12 @@ export const BoardSplitWorkspace: React.FC<BoardSplitWorkspaceProps> = ({
         <button
           type="button"
           onClick={() => setSplitPercent(50)}
-          title={reader.lang === 'ar' ? 'إظهار الكتاب' : 'Show PDF'}
-          className="absolute top-16 rtl:right-4 ltr:left-4 z-40 flex items-center gap-2 px-3 py-2 rounded-2xl bg-surface/90 border border-line shadow-xl backdrop-blur-md text-ink hover:text-accent cursor-pointer transition-transform hover:scale-105 active:scale-95"
+          title={reader.lang === 'ar' ? 'إظهار مستند القراءة' : 'Reveal document pane'}
+          className="absolute top-16 rtl:right-5 ltr:left-5 z-40 flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-surface/90 border border-line/80 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-xl text-ink hover:text-accent hover:border-accent/40 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
         >
           <BookOpen className="w-4 h-4 text-accent" />
-          <span className="text-xs font-semibold">
-            {reader.lang === 'ar' ? 'إظهار الكتاب 📖' : 'Show Book 📖'}
+          <span className="text-xs font-semibold tracking-tight">
+            {reader.lang === 'ar' ? 'إظهار الكتاب' : 'Show Document'}
           </span>
         </button>
       )}
@@ -91,12 +91,12 @@ export const BoardSplitWorkspace: React.FC<BoardSplitWorkspaceProps> = ({
         <button
           type="button"
           onClick={() => setSplitPercent(50)}
-          title={reader.lang === 'ar' ? 'إظهار السبورة' : 'Show Board'}
-          className="absolute top-16 rtl:left-4 ltr:right-4 z-40 flex items-center gap-2 px-3 py-2 rounded-2xl bg-surface/90 border border-line shadow-xl backdrop-blur-md text-ink hover:text-accent cursor-pointer transition-transform hover:scale-105 active:scale-95"
+          title={reader.lang === 'ar' ? 'إظهار السبورة التفاعلية' : 'Reveal whiteboard studio'}
+          className="absolute top-16 rtl:left-5 ltr:right-5 z-40 flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-surface/90 border border-line/80 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-xl text-ink hover:text-accent hover:border-accent/40 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
         >
           <PenTool className="w-4 h-4 text-accent" />
-          <span className="text-xs font-semibold">
-            {reader.lang === 'ar' ? 'إظهار السبورة 🪄' : 'Show Board 🪄'}
+          <span className="text-xs font-semibold tracking-tight">
+            {reader.lang === 'ar' ? 'إظهار السبورة' : 'Show Studio'}
           </span>
         </button>
       )}

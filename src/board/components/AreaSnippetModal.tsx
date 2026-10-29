@@ -175,22 +175,22 @@ export const AreaSnippetModal: React.FC<AreaSnippetModalProps> = ({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
-      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs cursor-crosshair select-none touch-none animate-in fade-in duration-150 flex flex-col justify-between"
+      className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px] cursor-crosshair select-none touch-none animate-in fade-in duration-150 flex flex-col justify-between"
     >
-      {/* Top Banner Guide */}
-      <div className="flex items-center justify-between p-4 max-w-lg mx-auto w-full mt-4 rounded-2xl bg-surface/90 border border-line shadow-2xl backdrop-blur-md pointer-events-auto">
+      {/* Top Banner Guide - Apple-grade floating pill */}
+      <div className="flex items-center justify-between px-4 py-2.5 max-w-md mx-auto w-full mt-5 rounded-2xl bg-surface/90 border border-line/80 shadow-[0_16px_40px_rgba(0,0,0,0.25)] backdrop-blur-xl pointer-events-auto">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-accent/20 text-accent">
-            <Crop className="w-5 h-5" />
+          <div className="p-1.5 rounded-xl bg-accent/15 text-accent">
+            <Crop className="w-4 h-4" />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-ink">
-              {lang === 'ar' ? 'قص جزء من الكتاب للسبورة' : 'Crop Snippet to Board'}
+            <h4 className="text-xs font-bold text-ink tracking-tight">
+              {lang === 'ar' ? 'قص جزء من الكتاب إلى السبورة' : 'Clip Diagram to Studio'}
             </h4>
-            <p className="text-xs text-ink-muted">
+            <p className="text-[11px] text-ink-muted leading-tight">
               {lang === 'ar'
-                ? 'اسحب بإصبعك أو بالقلم لرسم إطار حول المسألة أو المخطط'
-                : 'Drag with finger or stylus around the formula or diagram'}
+                ? 'اسحب لتحديد المسألة أو المخطط المراد نقله'
+                : 'Drag to select formula, figure, or diagram'}
             </p>
           </div>
         </div>
@@ -198,13 +198,14 @@ export const AreaSnippetModal: React.FC<AreaSnippetModalProps> = ({
         <button
           type="button"
           onClick={onClose}
-          className="p-2 rounded-xl hover:bg-hover text-ink-muted hover:text-ink transition-colors cursor-pointer"
+          className="p-1.5 rounded-xl hover:bg-hover text-ink-muted hover:text-ink transition-colors cursor-pointer"
+          title={lang === 'ar' ? 'إلغاء (Esc)' : 'Cancel (Esc)'}
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Render Selection Box */}
+      {/* Render High-Precision Selection Box with Viewfinder Brackets */}
       {isSelecting && boxWidth > 0 && boxHeight > 0 && (
         <div
           style={{
@@ -213,17 +214,24 @@ export const AreaSnippetModal: React.FC<AreaSnippetModalProps> = ({
             width: `${boxWidth}px`,
             height: `${boxHeight}px`
           }}
-          className="absolute border-2 border-accent bg-accent/20 rounded-lg shadow-2xl pointer-events-none"
+          className="absolute border border-accent/80 bg-accent/10 rounded-md shadow-2xl pointer-events-none"
         >
-          <div className="absolute -bottom-7 right-0 px-2 py-0.5 rounded-md bg-accent text-on-accent text-[10px] font-mono shadow-md">
-            {Math.round(boxWidth)} × {Math.round(boxHeight)} px
+          {/* 4 Optical Corner Viewfinder Brackets */}
+          <span className="absolute -top-1 -left-1 w-2.5 h-2.5 border-t-2 border-l-2 border-accent" />
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 border-t-2 border-r-2 border-accent" />
+          <span className="absolute -bottom-1 -left-1 w-2.5 h-2.5 border-b-2 border-l-2 border-accent" />
+          <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 border-b-2 border-r-2 border-accent" />
+
+          {/* Dimension Badge */}
+          <div className="absolute -bottom-6 rtl:right-0 ltr:left-0 px-2 py-0.5 rounded-md bg-surface/95 border border-line text-ink text-[10px] font-mono tracking-wider shadow-md backdrop-blur-md">
+            {Math.round(boxWidth)} × {Math.round(boxHeight)}
           </div>
         </div>
       )}
 
       {/* Bottom Hint */}
-      <div className="text-center p-3 text-white/80 text-xs font-medium">
-        {lang === 'ar' ? 'اضغط Esc للإلغاء' : 'Press Esc to cancel'}
+      <div className="text-center p-3 text-white/70 text-[11px] font-medium tracking-wide">
+        {lang === 'ar' ? 'اضغط زر Esc للإلغاء' : 'Press Esc to cancel'}
       </div>
     </div>
   );
