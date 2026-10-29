@@ -68,7 +68,7 @@ export function detectDeviceArchitecture(): 'arm64-v8a' | 'armeabi-v7a' | 'x86_6
  * Tier 1: GitHub API (api.github.com/repos/XRTM8/Otium/releases/latest)
  * Tier 2: GitHub Web Releases Redirect (github.com/XRTM8/Otium/releases/latest) -> 0 rate limit
  * Tier 3: Raw Git package.json (raw.githubusercontent.com/XRTM8/Otium/main/package.json) -> 0 rate limit
- *
+ * 
  * Guarantees update detection even under strict GitHub API rate limits (HTTP 403) or country blocks.
  */
 export async function checkForAppUpdates(): Promise<UpdateCheckResult> {
