@@ -148,6 +148,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
     handleTouchMove,
     handleTouchEnd,
     handleTouchCancel,
+    handleDoubleTap,
     isDraggingTouch,
     dualFlipKey,
     dualFlipDir,
@@ -540,6 +541,12 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
+        onDoubleClick={(e) => {
+          const sel = typeof window !== 'undefined' ? window.getSelection()?.toString().trim() : '';
+          if (!sel && handleDoubleTap) {
+            handleDoubleTap(e.clientX, e.clientY);
+          }
+        }}
         style={{
           paddingTop: effectiveTopInset,
           scrollPaddingTop: effectiveTopInset,

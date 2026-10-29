@@ -882,6 +882,9 @@ export function useReaderController(capabilities: ReaderCapabilities) {
           ? fit
           : Math.min(3.5, Math.max(0.5, current))
       );
+      window.requestAnimationFrame(() => {
+        scrollToRenderedPage(currentPageRef.current);
+      });
     };
 
     const handleResizeOrOrientation = () => {
@@ -1523,7 +1526,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       const nearFit = Math.abs(zoom - fit) <= Math.max(0.08, fit * 0.1);
       const target = nearFit ? Math.min(3.5, Math.max(1.6, fit * 2)) : fit;
       if (Number.isFinite(target) && target > 0) {
-        startZoomTransition(() => setZoom(Number(target.toFixed(2))));
+        triggerHaptic('light');
+        setZoom(Number(target.toFixed(2)));
       }
 
       const captured = zoomAnchorRef.current;
@@ -1911,6 +1915,24 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         return;
       }
 
+      if ((event.ctrlKey || event.metaKey) && (event.key === '=' || event.key === '+')) {
+        event.preventDefault();
+        setZoom((current) => Math.min(2.5, current + 0.15));
+        return;
+      }
+
+      if ((event.ctrlKey || event.metaKey) && (event.key === '-' || event.key === '_')) {
+        event.preventDefault();
+        setZoom((current) => Math.max(0.5, current - 0.15));
+        return;
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key === '0') {
+        event.preventDefault();
+        setZoom(1.15);
+        return;
+      }
+
       switch (event.key.toLowerCase()) {
         case 'j':
         case 'arrowdown':
@@ -1922,13 +1944,30 @@ export function useReaderController(capabilities: ReaderCapabilities) {
           }
           break;
         case 'pagedown':
-        case ' ':
           event.preventDefault();
           if (viewMode === 'continuous') {
             const viewportH = scrollContainerRef.current?.clientHeight ?? 600;
             scrollContainerRef.current?.scrollBy({ top: Math.round(viewportH * 0.8), behavior: 'smooth' });
           } else {
             goToNextPage();
+          }
+          break;
+        case ' ':
+          event.preventDefault();
+          if (event.shiftKey) {
+            if (viewMode === 'continuous') {
+              const viewportH = scrollContainerRef.current?.clientHeight ?? 600;
+              scrollContainerRef.current?.scrollBy({ top: -Math.round(viewportH * 0.8), behavior: 'smooth' });
+            } else {
+              goToPrevPage();
+            }
+          } else {
+            if (viewMode === 'continuous') {
+              const viewportH = scrollContainerRef.current?.clientHeight ?? 600;
+              scrollContainerRef.current?.scrollBy({ top: Math.round(viewportH * 0.8), behavior: 'smooth' });
+            } else {
+              goToNextPage();
+            }
           }
           break;
         case 'arrowright':
@@ -2157,6 +2196,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     handleTouchMove,
     handleTouchEnd,
     handleTouchCancel,
+    handleDoubleTap,
     handleToggleFullscreen,
     handleSearchQueryChange,
     openSearchWithText,

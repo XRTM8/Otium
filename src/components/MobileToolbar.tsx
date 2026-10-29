@@ -438,7 +438,11 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
                 onChange={(e) => {
                   const val = Number(e.target.value);
                   setJumpValue(String(val));
-                  triggerHaptic('selection');
+                  if (val === 1 || val === totalPages) {
+                    triggerHaptic('boundary');
+                  } else {
+                    triggerHaptic('selection');
+                  }
                 }}
                 className="w-full accent-accent cursor-pointer h-2 bg-line rounded-lg"
               />
