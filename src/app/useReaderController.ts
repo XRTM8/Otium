@@ -53,10 +53,6 @@ import {
   saveRememberDocTheme,
   loadDocumentTheme,
   saveDocumentTheme,
-  loadReadingWarmth,
-  saveReadingWarmth,
-  loadUltraDim,
-  saveUltraDim,
   resolveScheduledTheme,
   loadKeepScreenAwake,
   saveKeepScreenAwake,
@@ -194,8 +190,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const [dayTheme, setDayThemeState] = useState<ThemeMode>(loadDayTheme);
   const [nightTheme, setNightThemeState] = useState<ThemeMode>(loadNightTheme);
   const [rememberDocTheme, setRememberDocThemeState] = useState<boolean>(loadRememberDocTheme);
-  const [readingWarmth, setReadingWarmthState] = useState<number>(loadReadingWarmth);
-  const [ultraDim, setUltraDimState] = useState<number>(loadUltraDim);
   const [keepScreenAwake, setKeepScreenAwakeState] = useState<boolean>(loadKeepScreenAwake);
   const [arrivalGlowKey, setArrivalGlowKey] = useState<number>(0);
   const [theme, setTheme] = useState<ThemeMode>(() => {
@@ -800,15 +794,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     setRememberDocThemeState(enabled);
   }, []);
 
-  const changeReadingWarmth = useCallback((warmth: number) => {
-    saveReadingWarmth(warmth);
-    setReadingWarmthState(warmth);
-  }, []);
-
-  const changeUltraDim = useCallback((dim: number) => {
-    saveUltraDim(dim);
-    setUltraDimState(dim);
-  }, []);
 
   useEffect(() => {
     if (themeSchedule !== 'system' || typeof window === 'undefined') return;
@@ -2066,19 +2051,15 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     changeDayTheme('paper');
     changeNightTheme('amoled');
     changeRememberDocTheme(true);
-    changeReadingWarmth(0);
-    changeUltraDim(0);
     setShowMobileNavBar(true);
     saveMobileNavVisible(true);
   }, [
     changeDayTheme,
     changeFont,
     changeNightTheme,
-    changeReadingWarmth,
     changeRememberDocTheme,
     changeTheme,
     changeThemeSchedule,
-    changeUltraDim,
     changeViewMode
   ]);
 
@@ -2107,8 +2088,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     dayTheme,
     nightTheme,
     rememberDocTheme,
-    readingWarmth,
-    ultraDim,
     keepScreenAwake,
     arrivalGlowKey,
     viewMode,
@@ -2153,8 +2132,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     changeDayTheme,
     changeNightTheme,
     changeRememberDocTheme,
-    changeReadingWarmth,
-    changeUltraDim,
     changeKeepScreenAwake,
     changeLanguage,
     changeFont,

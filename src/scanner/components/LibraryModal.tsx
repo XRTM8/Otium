@@ -10,7 +10,6 @@ import {
 } from '../core/storage/documentLibrary';
 import type { DocumentCategory } from '../core/types';
 import { nativeSharePdf, nativeSavePdf, nativeOpenInOtium, nativeOpenUrl, nativeInstallApk } from '../core/nativeBridge';
-import { hasVaultPin, verifyVaultPin, setVaultPin, clearVaultPin, getVaultLockoutRemainingSeconds } from '../core/security';
 import type { UpdateCheckResult } from '../core/updater';
 import {
   checkForAppUpdates,
@@ -25,10 +24,6 @@ import {
   BookOpen,
   Clock,
   Search,
-  Lock,
-  Unlock,
-  ShieldCheck,
-  Delete,
   DownloadCloud,
   UploadCloud,
   CheckCircle2,
@@ -62,14 +57,6 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<DocumentCategory>('all');
 
-  // Cryptographic Vault PIN states
-  const [pinEnabled, setPinEnabled] = useState<boolean>(() => hasVaultPin());
-  const [enteredPin, setEnteredPin] = useState<string>('');
-  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => !hasVaultPin());
-  const [isSettingPin, setIsSettingPin] = useState<boolean>(false);
-  const [newPinDraft, setNewPinDraft] = useState<string>('');
-  const [pinError, setPinError] = useState<boolean>(false);
-  const [lockoutRemaining, setLockoutRemaining] = useState<number>(() => getVaultLockoutRemainingSeconds());
   const [toastMsg, setToastMsg] = useState<string>('');
   const backupInputRef = useRef<HTMLInputElement>(null);
 
@@ -80,23 +67,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   const [updateError, setUpdateError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (lockoutRemaining <= 0) return;
-    const interval = setInterval(() => {
-      const rem = getVaultLockoutRemainingSeconds();
-      setLockoutRemaining(rem);
-      if (rem <= 0) clearInterval(interval);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [lockoutRemaining]);
-
-  useEffect(() => {
     if (isOpen) {
-      const hasPin = hasVaultPin();
-      setPinEnabled(hasPin);
-      setIsUnlocked(!hasPin);
-      setLockoutRemaining(getVaultLockoutRemainingSeconds());
-      setEnteredPin('');
-      setPinError(false);
       loadDocs();
     }
   }, [isOpen]);
@@ -192,78 +163,10 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
     }
   };
 
-  const handlePinDigit = async (digit: string) => {
-    if (!isSettingPin && lockoutRemaining > 0) {
-      triggerHaptic(40);
-      return;
-    }
-    triggerHaptic(10);
-    if (isSettingPin) {
-      if (newPinDraft.length < 4) {
-        const next = newPinDraft + digit;
-        setNewPinDraft(next);
-        if (next.length === 4) {
-          await setVaultPin(next);
-          setPinEnabled(true);
-          setIsSettingPin(false);
-          setIsUnlocked(true);
-          setNewPinDraft('');
-          setLockoutRemaining(0);
-          triggerHaptic(25);
-        }
-      }
-      return;
-    }
-
-    if (enteredPin.length < 4) {
-      const next = enteredPin + digit;
-      setEnteredPin(next);
-      if (next.length === 4) {
-        const isValid = await verifyVaultPin(next);
-        if (isValid) {
-          setIsUnlocked(true);
-          setEnteredPin('');
-          setLockoutRemaining(0);
-          triggerHaptic(25);
-        } else {
-          const rem = getVaultLockoutRemainingSeconds();
-          if (rem > 0) {
-            setLockoutRemaining(rem);
-          }
-          setPinError(true);
-          triggerHaptic(40);
-          setTimeout(() => {
-            setEnteredPin('');
-            setPinError(false);
-          }, 600);
-        }
-      }
-    }
-  };
-
-  const handlePinBackspace = () => {
-    triggerHaptic(10);
-    if (isSettingPin) {
-      setNewPinDraft((prev) => prev.slice(0, -1));
-    } else {
-      setEnteredPin((prev) => prev.slice(0, -1));
-    }
-  };
-
-  const handleRemovePin = () => {
-    triggerHaptic(20);
-    clearVaultPin();
-    setPinEnabled(false);
-    setIsUnlocked(true);
-    setIsSettingPin(false);
-    setLockoutRemaining(0);
-  };
-
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setIsSettingPin(false);
         onClose();
       }
     };
@@ -282,145 +185,11 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
     return matchesCategory && (matchesTitle || matchesOcr);
   });
 
-  // Vault Locked PIN Screen
-  if (!isUnlocked || isSettingPin) {
-    const currentCode = isSettingPin ? newPinDraft : enteredPin;
-    return (
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={isSettingPin ? 'إعداد رمز الأمان' : 'الخزنة المحمية برمز PIN'}
-        className="fixed inset-0 z-50 bg-black/90 backdrop-blur-2xl flex flex-col justify-between p-6 select-none animate-in fade-in duration-200"
-      >
-        <div className="flex items-center justify-between pt-8">
-          <span className="text-xs text-gray-400 font-semibold uppercase font-arabic">
-            {isSettingPin ? 'إعداد رمز الأمان' : 'الخزنة المحمية برمز PIN'}
-          </span>
-          <button
-            onClick={() => {
-              setIsSettingPin(false);
-              onClose();
-            }}
-            className="p-2 rounded-full glass-button text-gray-400"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* PIN Center Display */}
-        <div className="flex flex-col items-center justify-center text-center my-auto font-arabic">
-          <div className="w-16 h-16 rounded-3xl bg-accent/10 border border-accent/30 flex items-center justify-center mb-4 shadow-xl">
-            {isSettingPin ? (
-              <ShieldCheck className="w-8 h-8 text-accent" />
-            ) : (
-              <Lock className="w-8 h-8 text-accent" />
-            )}
-          </div>
-
-          <h3 className="text-lg font-bold text-white mb-1">
-            {isSettingPin ? 'تعيين رمز PIN من 4 أرقام' : 'أدخل رمز PIN لفتح الخزنة'}
-          </h3>
-          <p className="text-xs text-gray-400 max-w-xs mb-8">
-            {isSettingPin
-              ? 'اختر رمزاً من 4 أرقام لقفل وحماية المستندات المحفوظة محلياً على هذا الجهاز.'
-              : 'يتم حماية وتأمين مستنداتك محلياً على جهازك برمز مرور لحفظ خصوصيتك.'}
-          </p>
-
-          {/* 4 Dots Indicator */}
-          <div className={`flex items-center gap-4 ${pinError ? 'animate-shake' : ''}`}>
-            {[0, 1, 2, 3].map((idx) => {
-              const isFilled = currentCode.length > idx;
-              return (
-                <div
-                  key={idx}
-                  className={`w-4 h-4 rounded-full border-2 transition-all ${
-                    pinError
-                      ? 'border-red-500 bg-red-500/50'
-                      : isFilled
-                      ? 'border-accent bg-accent shadow-md shadow-accent/50 scale-110'
-                      : 'border-white/20 bg-transparent'
-                  }`}
-                />
-              );
-            })}
-          </div>
-
-          {lockoutRemaining > 0 ? (
-            <div className="flex items-center gap-2 mt-4 px-3.5 py-1.5 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-medium animate-in fade-in">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>
-                {lang === 'ar'
-                  ? `تم حظر المحاولات مؤقتاً (${lockoutRemaining} ثانية)`
-                  : `Too many attempts. Locked for ${lockoutRemaining}s`}
-              </span>
-            </div>
-          ) : pinError ? (
-            <span className="text-xs text-red-400 font-semibold mt-3 animate-in fade-in">
-              {lang === 'ar' ? 'رمز PIN غير صحيح. حاول مجدداً.' : 'Incorrect PIN. Try again.'}
-            </span>
-          ) : null}
-        </div>
-
-        {/* Tactile Numeric Keypad */}
-        <div className="w-full max-w-xs mx-auto flex flex-col gap-3 pb-8">
-          {[
-            ['1', '2', '3'],
-            ['4', '5', '6'],
-            ['7', '8', '9'],
-          ].map((row, rIdx) => (
-            <div key={rIdx} className="flex justify-around">
-              {row.map((digit) => (
-                <button
-                  key={digit}
-                  disabled={lockoutRemaining > 0}
-                  onClick={() => handlePinDigit(digit)}
-                  className="w-18 h-18 rounded-full glass-button text-2xl font-semibold text-white active:scale-90 transition-transform shadow-md disabled:opacity-40 disabled:pointer-events-none"
-                >
-                  {digit}
-                </button>
-              ))}
-            </div>
-          ))}
-
-          <div className="flex justify-around items-center">
-            <div className="w-18 h-18 flex items-center justify-center">
-              {isSettingPin ? (
-                <button
-                  onClick={() => setIsSettingPin(false)}
-                  className="text-xs text-gray-400 underline"
-                >
-                  Cancel
-                </button>
-              ) : null}
-            </div>
-
-            <button
-              disabled={lockoutRemaining > 0}
-              onClick={() => handlePinDigit('0')}
-              className="w-18 h-18 rounded-full glass-button text-2xl font-semibold text-white active:scale-90 transition-transform shadow-md disabled:opacity-40 disabled:pointer-events-none"
-            >
-              0
-            </button>
-
-            <button
-              disabled={lockoutRemaining > 0}
-              onClick={handlePinBackspace}
-              className="w-18 h-18 rounded-full glass-button flex items-center justify-center text-gray-300 active:scale-90 transition-transform disabled:opacity-40 disabled:pointer-events-none"
-            >
-              <Delete className="w-6 h-6" />
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Vault Unlocked Document Library
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={lang === 'ar' ? 'خزنة المستندات' : 'Document Vault'}
+      aria-label={lang === 'ar' ? 'مكتبة المستندات' : 'Document Library'}
       className="fixed inset-0 z-50 bg-[#07090e]/95 backdrop-blur-2xl flex flex-col justify-between select-none animate-in fade-in duration-200"
     >
       {/* Top Header Bar with Safe Area Inset */}
@@ -436,7 +205,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
             <span className="text-xs font-black tracking-widest text-white">OTIUM</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-sm font-bold text-gray-200">{lang === 'ar' ? 'خزنة المستندات' : 'Document Vault'}</span>
+            <span className="text-sm font-bold text-gray-200">{lang === 'ar' ? 'مكتبة المستندات' : 'Document Library'}</span>
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent/15 text-accent font-black border border-accent/25">
               {documents.length}
             </span>
@@ -449,7 +218,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
             <button
               onClick={handleExportBackup}
               className="fluid-press p-2 rounded-full glass-button text-gray-300 active:text-accent cursor-pointer"
-              title={lang === 'ar' ? 'نسخ احتياطي للخزنة (.otiumvault)' : 'Backup vault (.otiumvault)'}
+              title={lang === 'ar' ? 'نسخ احتياطي للمستندات (.otiumvault)' : 'Backup documents (.otiumvault)'}
             >
               <DownloadCloud className="w-4 h-4" />
             </button>
@@ -463,29 +232,6 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
           >
             <UploadCloud className="w-4 h-4" />
           </button>
-
-          {/* PIN Lock Management */}
-          {pinEnabled ? (
-            <button
-              onClick={handleRemovePin}
-              className="fluid-press p-2 rounded-full glass-button text-accent cursor-pointer"
-              title={lang === 'ar' ? 'القفل برمز PIN مفعّل (انقر للتعطيل)' : 'PIN lock enabled (click to remove)'}
-            >
-              <Lock className="w-4 h-4" />
-            </button>
-          ) : (
-            <button
-              onClick={() => {
-                triggerHaptic(15);
-                setIsSettingPin(true);
-                setNewPinDraft('');
-              }}
-              className="fluid-press p-2 rounded-full glass-button text-gray-400 active:text-accent cursor-pointer"
-              title={lang === 'ar' ? 'قفل الخزنة برمز PIN' : 'Lock vault with PIN'}
-            >
-              <Unlock className="w-4 h-4" />
-            </button>
-          )}
 
           {/* About & Updates Modal Trigger */}
           <button
@@ -599,7 +345,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
             <p className="text-xs text-gray-400 mt-1.5 max-w-xs leading-relaxed font-arabic">
               {searchQuery
                 ? (lang === 'ar' ? 'جرب البحث بكلمة أخرى أو اسم مختلف.' : 'Try a different search keyword.')
-                : (lang === 'ar' ? 'عند مسح المستندات وتصديرها كملف PDF، سيتم حفظها تلقائياً هنا في الخزنة للوصول السريع والمشاركة.' : 'Scanned documents exported as PDF will be safely saved in this vault for quick access.')}
+                : (lang === 'ar' ? 'عند مسح المستندات وتصديرها كملف PDF، سيتم حفظها تلقائياً هنا في مكتبة المستندات للوصول السريع والمشاركة.' : 'Scanned documents exported as PDF will be safely saved in this library for quick access.')}
             </p>
 
             <button

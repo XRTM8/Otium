@@ -66,10 +66,6 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader, mobile =
         onRememberDocThemeChange={reader.changeRememberDocTheme}
         keepScreenAwake={reader.keepScreenAwake}
         onKeepScreenAwakeChange={reader.changeKeepScreenAwake}
-        readingWarmth={reader.readingWarmth}
-        onReadingWarmthChange={reader.changeReadingWarmth}
-        ultraDim={reader.ultraDim}
-        onUltraDimChange={reader.changeUltraDim}
         onResetDefaults={reader.resetDefaults}
         onExportBackup={reader.exportBackup}
         onImportBackup={reader.importBackup}
