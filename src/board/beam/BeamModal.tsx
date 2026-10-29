@@ -25,7 +25,8 @@ import {
   arrayBufferToBase64,
   beamService,
   formatRoomCode,
-  generateRoomCode,
+  generateNewReceiverRoomCode,
+  getPersistentReceiverRoomCode,
   getRecentRooms,
   saveRecentRoom,
   type BeamConnectionStatus
@@ -54,17 +55,19 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     const role = beamService.getRole();
     if (role === 'receiver') return 'receive';
     if (role === 'sender') return 'remote';
-    if (reader.doc && typeof window !== 'undefined' && window.innerWidth >= 768) return 'receive';
+    if (!reader.doc && typeof window !== 'undefined' && window.innerWidth >= 768) return 'receive';
     return 'send';
   });
   const [targetRoomCode, setTargetRoomCode] = useState('');
-  const [receiverRoomCode] = useState(() => {
+  const [receiverRoomCode, setReceiverRoomCode] = useState(() => {
     const existing = beamService.getConnectedRoom();
     if (existing && beamService.getRole() === 'receiver') {
       return existing;
     }
-    return generateRoomCode();
+    return getPersistentReceiverRoomCode();
   });
+  const [connectedRemotePeer, setConnectedRemotePeer] = useState<string | null>(null);
+  const hasAutoBeamedRef = useRef(false);
   const [isSending, setIsSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
   const [connectedRoom, setConnectedRoom] = useState<string | null>(() => beamService.getConnectedRoom());
@@ -192,13 +195,23 @@ export const BeamModal: React.FC<BeamModalProps> = ({
         if (msg.docTitle) setRemoteDocTitle(msg.docTitle);
         if (typeof msg.pageNumber === 'number') setRemotePage(msg.pageNumber);
         if (typeof msg.totalPages === 'number') setRemoteTotal(msg.totalPages);
+
+        // Auto-beam active lecture to board if board is currently empty
+        if (reader.doc && (!msg.docTitle || msg.totalPages === 0) && !hasAutoBeamedRef.current) {
+          hasAutoBeamedRef.current = true;
+          const target = connectedRoom || targetRoomCode;
+          if (target) {
+            void handleBeamDocument(target);
+          }
+        }
       }
 
-      // 3. When handshake arrives in receiver mode, announce state immediately
+      // 3. When handshake arrives in receiver mode, announce state immediately & record peer
       if (
         msg.type === 'BEAM_HANDSHAKE' &&
         beamService.isMatchingRoom(msg.roomCode, receiverRoomCode)
       ) {
+        setConnectedRemotePeer(msg.senderName || (lang === 'ar' ? 'الهاتف' : 'Remote'));
         beamService.announceState(
           receiverRoomCode,
           reader.docTitle || '',
@@ -210,6 +223,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
       // 4. When disconnect arrives from either peer, reset remote state cleanly
       if (msg.type === 'BEAM_DISCONNECT') {
         setIsReceiverAcknowledged(false);
+        setConnectedRemotePeer(null);
         setConnectedRoom(null);
       }
     });
@@ -469,7 +483,15 @@ export const BeamModal: React.FC<BeamModalProps> = ({
       void reader.openFile(file);
       const docName = file.name.replace(/\.pdf$/i, '');
       beamService.announceState(receiverRoomCode, docName, 1, 1);
+      onSetBoardOpen(true);
+      onClose();
     }
+  };
+
+  const handleRegenerateCode = () => {
+    const newCode = generateNewReceiverRoomCode();
+    setReceiverRoomCode(newCode);
+    beamService.startReceiver(newCode);
   };
 
   useEffect(() => {
@@ -851,20 +873,69 @@ export const BeamModal: React.FC<BeamModalProps> = ({
         {/* Tab 2: Receiver Screen Mode (Smartboard Display) */}
         {activeTab === 'receive' && (
           <div className="p-5 flex flex-col items-center justify-center space-y-3.5 text-center">
-            {/* Minimal Prompt */}
-            <div className="space-y-0.5">
-              <h4 className="text-xs font-bold text-ink">
-                {lang === 'ar' ? 'وجّه كاميرا الهاتف نحو الرمز لبث المحاضرة' : 'Point phone camera at QR to beam'}
-              </h4>
-              <p className="text-[11px] text-ink-muted">
-                {lang === 'ar' ? 'أو افتح Otium بهاتفك واضغط بث' : 'Or open Otium on phone and tap Beam'}
-              </p>
-            </div>
+            {/* Visual Feedback: Remote Connected Successfully! */}
+            {connectedRemotePeer && (
+              <div className="w-full p-4 rounded-2xl bg-emerald-500/15 border-2 border-emerald-500/40 text-start space-y-2 animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                    <span>{lang === 'ar' ? `✅ متصل الآن بجهازك (${connectedRemotePeer})!` : `✅ Paired with ${connectedRemotePeer}!`}</span>
+                  </span>
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-300">
+                    {receiverRoomCode}
+                  </span>
+                </div>
+                <p className="text-xs text-ink leading-relaxed">
+                  {reader.doc
+                    ? (lang === 'ar'
+                        ? 'الملزمة جاهزة ومعروضة على السبورة، يمكنك تقليبها فوراً من هاتفك!'
+                        : 'Document is open; turn pages using your phone clicker!')
+                    : (lang === 'ar'
+                        ? 'السبورة جاهزة ومقترنة بهاتفك! بانتظار استلام الملزمة من هاتفك، أو اختر فتحها مباشرة من هذا الجهاز:'
+                        : 'Ready and paired! Waiting for document stream from phone, or open it directly here:')}
+                </p>
+                {reader.doc ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSetBoardOpen(true);
+                      onClose();
+                    }}
+                    className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-all"
+                  >
+                    <span>{lang === 'ar' ? '🚀 عرض المحاضرة الآن بملء الشاشة' : '🚀 Present Lecture Fullscreen'}</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => receiverFileInputRef.current?.click()}
+                    className="w-full py-2.5 px-3 rounded-xl bg-accent text-on-accent font-bold text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer hover:bg-accent-strong transition-all"
+                  >
+                    <FileUp className="w-3.5 h-3.5" />
+                    <span>{lang === 'ar' ? '⚡ فتح ملف الملزمة من هذا الجهاز فوراً' : '⚡ Open PDF on this device now'}</span>
+                  </button>
+                )}
+              </div>
+            )}
 
-            {/* QR Code */}
-            <div className="my-0.5 shadow-sm rounded-2xl p-1 bg-white border border-line">
-              <QrCodeView value={smartboardUrl} size={160} />
-            </div>
+            {/* Minimal Prompt (when no peer connected) */}
+            {!connectedRemotePeer && (
+              <div className="space-y-0.5">
+                <h4 className="text-xs font-bold text-ink">
+                  {lang === 'ar' ? 'وجّه كاميرا الهاتف نحو الرمز لبث المحاضرة' : 'Point phone camera at QR to beam'}
+                </h4>
+                <p className="text-[11px] text-ink-muted">
+                  {lang === 'ar' ? 'أو افتح Otium بهاتفك واضغط بث' : 'Or open Otium on phone and tap Beam'}
+                </p>
+              </div>
+            )}
+
+            {/* QR Code (hidden if already paired to reduce clutter) */}
+            {!connectedRemotePeer && (
+              <div className="my-0.5 shadow-sm rounded-2xl p-1 bg-white border border-line">
+                <QrCodeView value={smartboardUrl} size={160} />
+              </div>
+            )}
 
             {/* Code Badge */}
             <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-hover border border-line">
@@ -878,6 +949,14 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                 title={lang === 'ar' ? 'نسخ الرمز' : 'Copy Code'}
               >
                 {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+              <button
+                type="button"
+                onClick={handleRegenerateCode}
+                className="p-1 rounded-lg hover:bg-surface text-ink-muted hover:text-ink transition-colors cursor-pointer"
+                title={lang === 'ar' ? 'توليد رمز جديد' : 'Generate New Code'}
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
               </button>
             </div>
 

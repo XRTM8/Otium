@@ -4,7 +4,9 @@ import {
   base64ToArrayBuffer,
   beamService,
   formatRoomCode,
+  generateNewReceiverRoomCode,
   generateRoomCode,
+  getPersistentReceiverRoomCode,
   getRecentRooms,
   saveRecentRoom
 } from './beamService';
@@ -122,5 +124,17 @@ describe('Otium Smart Beam Service', () => {
 
     expect(beamService.getConnectedRoom()).toBeNull();
     expect(beamService.getRole()).toBeNull();
+  });
+
+  it('maintains persistent receiver room code across invocations and regenerates on request', () => {
+    const code1 = getPersistentReceiverRoomCode();
+    expect(code1).toMatch(/^OTM-\d{4}$/);
+
+    const code2 = getPersistentReceiverRoomCode();
+    expect(code2).toBe(code1);
+
+    const fresh = generateNewReceiverRoomCode();
+    expect(fresh).toMatch(/^OTM-\d{4}$/);
+    expect(getPersistentReceiverRoomCode()).toBe(fresh);
   });
 });

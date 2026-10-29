@@ -5,12 +5,38 @@ export type BeamConnectionStatus = 'disconnected' | 'connecting' | 'connected' |
 const BEAM_CHANNEL_NAME = 'otium_smart_beam_channel';
 const BEAM_STORAGE_KEY = 'otium_beam_last_event';
 const RECENT_ROOMS_KEY = 'otium_recent_beam_rooms';
+const RECEIVER_ROOM_KEY = 'otium_receiver_room_code';
 const CLOUD_RELAY_BASE = 'https://ntfy.sh';
 
 export function generateRoomCode(): string {
   // 4 easy numeric digits for effortless classroom read-out: OTM-XXXX
   const num = Math.floor(1000 + Math.random() * 9000);
   return `OTM-${num}`;
+}
+
+export function getPersistentReceiverRoomCode(): string {
+  if (typeof localStorage === 'undefined') return generateRoomCode();
+  try {
+    const saved = localStorage.getItem(RECEIVER_ROOM_KEY);
+    if (saved && /^OTM-\d{4,6}$/.test(saved)) {
+      return saved;
+    }
+    const fresh = generateRoomCode();
+    localStorage.setItem(RECEIVER_ROOM_KEY, fresh);
+    return fresh;
+  } catch {
+    return generateRoomCode();
+  }
+}
+
+export function generateNewReceiverRoomCode(): string {
+  const fresh = generateRoomCode();
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem(RECEIVER_ROOM_KEY, fresh);
+    } catch {}
+  }
+  return fresh;
 }
 
 export function formatRoomCode(code: string): string {
@@ -75,6 +101,9 @@ class BeamService {
   private role: 'receiver' | 'sender' | null = null;
   private connectionStatus: BeamConnectionStatus = 'disconnected';
   private statusListeners: Set<(status: BeamConnectionStatus) => void> = new Set();
+  private rtcPeer: RTCPeerConnection | null = null;
+  private rtcDataChannel: RTCDataChannel | null = null;
+  private isRtcSupported: boolean = typeof RTCPeerConnection !== 'undefined';
 
   constructor() {
     if (typeof window !== 'undefined' && typeof BroadcastChannel !== 'undefined') {
@@ -134,6 +163,7 @@ class BeamService {
     saveRecentRoom(formatted);
     this.listenToRoom(formatted);
     this.notifyStateListeners();
+    void this.initiateRtc(formatted);
   }
 
   public disconnect(): void {
@@ -145,6 +175,7 @@ class BeamService {
         timestamp: Date.now()
       });
     }
+    this.closeRtc();
     this.leaveRoom();
     this.connectedRoom = null;
     this.role = null;
@@ -421,6 +452,7 @@ class BeamService {
   }
 
   public leaveRoom() {
+    this.closeRtc();
     if (this.activeEventSource) {
       this.activeEventSource.close();
       this.activeEventSource = null;
@@ -428,6 +460,156 @@ class BeamService {
     this.activeRoomCode = null;
     this.connectionStatus = 'disconnected';
     this.notifyStatusListeners();
+  }
+
+  private closeRtc(): void {
+    if (this.rtcDataChannel) {
+      try {
+        this.rtcDataChannel.close();
+      } catch {}
+      this.rtcDataChannel = null;
+    }
+    if (this.rtcPeer) {
+      try {
+        this.rtcPeer.close();
+      } catch {}
+      this.rtcPeer = null;
+    }
+  }
+
+  private setupDataChannel(dc: RTCDataChannel): void {
+    this.rtcDataChannel = dc;
+    dc.onopen = () => {
+      console.log('⚡ Otium Beam: Local P2P DataChannel active across Wi-Fi!');
+    };
+    dc.onmessage = (event) => {
+      try {
+        const parsed = JSON.parse(event.data);
+        if (parsed && parsed.type && parsed.roomCode) {
+          this.notifyListeners(parsed);
+        }
+      } catch (err) {
+        console.debug('Error in P2P message parsing:', err);
+      }
+    };
+    dc.onclose = () => {
+      if (this.rtcDataChannel === dc) {
+        this.rtcDataChannel = null;
+      }
+    };
+  }
+
+  private async initiateRtc(roomCode: string): Promise<void> {
+    if (!this.isRtcSupported) return;
+    try {
+      this.closeRtc();
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      });
+      this.rtcPeer = pc;
+
+      const dc = pc.createDataChannel('otium_p2p_channel', { ordered: true });
+      this.setupDataChannel(dc);
+
+      pc.onicecandidate = (e) => {
+        if (e.candidate && this.connectedRoom) {
+          void this.sendRelayMessage({
+            type: 'BEAM_RTC_ICE',
+            roomCode: this.connectedRoom,
+            candidate: e.candidate.toJSON(),
+            timestamp: Date.now()
+          });
+        }
+      };
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      await this.sendRelayMessage({
+        type: 'BEAM_RTC_OFFER',
+        roomCode,
+        sdp: offer,
+        timestamp: Date.now()
+      });
+    } catch (err) {
+      console.debug('WebRTC initiate note:', err);
+    }
+  }
+
+  private async handleRtcOffer(msg: BeamMessage): Promise<void> {
+    if (!this.isRtcSupported || !msg.sdp) return;
+    try {
+      this.closeRtc();
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      });
+      this.rtcPeer = pc;
+
+      pc.ondatachannel = (e) => {
+        this.setupDataChannel(e.channel);
+      };
+
+      pc.onicecandidate = (e) => {
+        if (e.candidate && this.connectedRoom) {
+          void this.sendRelayMessage({
+            type: 'BEAM_RTC_ICE',
+            roomCode: this.connectedRoom,
+            candidate: e.candidate.toJSON(),
+            timestamp: Date.now()
+          });
+        }
+      };
+
+      await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      if (this.connectedRoom) {
+        await this.sendRelayMessage({
+          type: 'BEAM_RTC_ANSWER',
+          roomCode: this.connectedRoom,
+          sdp: answer,
+          timestamp: Date.now()
+        });
+      }
+    } catch (err) {
+      console.debug('WebRTC offer handle note:', err);
+    }
+  }
+
+  private async handleRtcAnswer(msg: BeamMessage): Promise<void> {
+    if (!this.isRtcSupported || !this.rtcPeer || !msg.sdp) return;
+    try {
+      if (this.rtcPeer.signalingState === 'have-local-offer') {
+        await this.rtcPeer.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+      }
+    } catch (err) {
+      console.debug('WebRTC answer handle note:', err);
+    }
+  }
+
+  private async handleRtcIce(msg: BeamMessage): Promise<void> {
+    if (!this.isRtcSupported || !this.rtcPeer || !msg.candidate) return;
+    try {
+      await this.rtcPeer.addIceCandidate(new RTCIceCandidate(msg.candidate));
+    } catch (err) {
+      console.debug('WebRTC ice candidate note:', err);
+    }
+  }
+
+  private async sendRelayMessage(msg: BeamMessage): Promise<void> {
+    const clean = msg.roomCode.trim().replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    const topic = `otium_beam_${clean}`;
+    try {
+      await fetch(`${CLOUD_RELAY_BASE}/${topic}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Title': 'Otium Beam'
+        },
+        body: JSON.stringify(msg)
+      });
+    } catch {}
   }
 
   private notifyListeners(msg: BeamMessage) {
@@ -439,6 +621,13 @@ class BeamService {
       this.connectionStatus = 'disconnected';
       this.notifyStatusListeners();
       this.notifyStateListeners();
+    }
+    if (msg.type === 'BEAM_RTC_OFFER' && this.role === 'receiver' && this.isMatchingRoom(msg.roomCode, this.connectedRoom || '')) {
+      void this.handleRtcOffer(msg);
+    } else if (msg.type === 'BEAM_RTC_ANSWER' && this.role === 'sender' && this.isMatchingRoom(msg.roomCode, this.connectedRoom || '')) {
+      void this.handleRtcAnswer(msg);
+    } else if (msg.type === 'BEAM_RTC_ICE' && this.isMatchingRoom(msg.roomCode, this.connectedRoom || '')) {
+      void this.handleRtcIce(msg);
     }
     for (const listener of this.listeners) {
       try {
@@ -458,6 +647,19 @@ class BeamService {
 
   public async broadcast(msg: BeamMessage) {
     this.notifyListeners(msg);
+
+    // 0. Direct Local Wi-Fi WebRTC P2P (instant < 1ms, zero internet / quota consumed)
+    if (
+      this.rtcDataChannel &&
+      this.rtcDataChannel.readyState === 'open' &&
+      !msg.type.startsWith('BEAM_RTC_')
+    ) {
+      try {
+        this.rtcDataChannel.send(JSON.stringify(msg));
+      } catch (err) {
+        console.debug('P2P channel send note, relay fallback active:', err);
+      }
+    }
 
     // 1. Local BroadcastChannel (instant < 5ms for local tabs/same device)
     if (this.broadcastChannel) {
