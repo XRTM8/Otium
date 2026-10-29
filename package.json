@@ -7,6 +7,7 @@
     "dev": "vite",
     "predev": "node scripts/copy-ocr-assets.mjs",
     "build": "tsc -b && vite build",
+    "postbuild": "node scripts/sync-docs.mjs",
     "prebuild": "node scripts/copy-ocr-assets.mjs",
     "lint": "oxlint",
     "test": "vitest run",

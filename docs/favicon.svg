@@ -1,0 +1,14 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Flat, high-contrast plate: crisp in light and dark taskbars, no glow or
+       gradients that could smear at 16px. -->
+  <rect width="512" height="512" rx="112" fill="#0B0906"/>
+  <rect x="2" y="2" width="508" height="508" rx="110" stroke="#F7D08A" stroke-opacity="0.16" stroke-width="4"/>
+
+  <!-- Otium folio mark -->
+  <g>
+    <path d="M256 198C222 176 182 169 147 173V338C182 334 222 341 256 363V198Z" fill="#F7D08A"/>
+    <path d="M256 198C290 176 330 169 365 173V338C330 334 290 341 256 363V198Z" fill="#F7D08A"/>
+    <path d="M256 204V357" stroke="#0B0906" stroke-width="11" stroke-linecap="round"/>
+    <path d="M178 218C204 217 229 221 245 231M178 250C204 249 229 253 245 263M334 218C308 217 283 221 267 231M334 250C308 249 283 253 267 263" stroke="#0B0906" stroke-width="8" stroke-linecap="round" opacity="0.38"/>
+  </g>
+</svg>

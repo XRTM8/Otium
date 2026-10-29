@@ -1,0 +1,113 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R 9 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 757 >>
+stream
+BT
+/F2 26 Tf
+50 760 Td
+(The Art of Vibe Reading) Tj
+/F1 14 Tf
+0 -30 Td
+(A Manifesto for Distraction-Free Immersion) Tj
+0 -50 Td
+/F1 12 Tf
+20 TL
+(Reading in the digital era has become fragmented.) Tj T*
+(Notifications, noisy toolbars, and heavy interfaces distract from thought.) Tj T*
+(A true reading application should fade into invisibility.) Tj T*
+(When you read, only the ideas and the typography should remain.) Tj T*
+T*
+(Explore the different ambient themes above:) Tj T*
+(- Warm Paper: soft ivory tones reminiscent of old book pages.) Tj T*
+(- Midnight: deep OLED contrast for late night focus.) Tj T*
+(- E-Ink: grayscale calmness inspired by digital paper.) Tj T*
+(- Focus Ruler: press R or click the icon to guide your eyes line by line.) Tj T*
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 8 0 R >>
+endobj
+8 0 obj
+<< /Length 606 >>
+stream
+BT
+/F2 26 Tf
+50 760 Td
+(Chapter II: The Geometry of Focus) Tj
+/F1 14 Tf
+0 -30 Td
+(Designing for Cognitive Flow) Tj
+0 -50 Td
+/F1 12 Tf
+20 TL
+(The human eye seeks rhythm when tracking lines across a page.) Tj T*
+(Too wide of a measure tires the gaze; too tight breaks the cadence.) Tj T*
+(By maintaining comfortable margins and calibrated line spacing,) Tj T*
+(reading transforms from a chore into a meditative ritual.) Tj T*
+T*
+(Notice how the interface dissolves while you scroll.) Tj T*
+(The top bar sleeps until summoned by your curiosity.) Tj T*
+(Zero telemetry, zero ads, zero subscriptions.) Tj T*
+ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 10 0 R >>
+endobj
+10 0 obj
+<< /Length 599 >>
+stream
+BT
+/F2 26 Tf
+50 760 Td
+(Chapter III: High Performance Simplicity) Tj
+/F1 14 Tf
+0 -30 Td
+(The Engineering Behind the Calm) Tj
+0 -50 Td
+/F1 12 Tf
+20 TL
+(Beneath this calm facade runs an industrial-grade rendering pipeline:) Tj T*
+(- Canvas Virtualization: renders only the active pages in view.) Tj T*
+(- HiDPI Retina pixel-ratio scaling for razor sharp letterforms.) Tj T*
+(- Instant state persistence: your last read page is never lost.) Tj T*
+(- Complete offline architecture: your documents never touch a cloud.) Tj T*
+T*
+(Drop any PDF file onto this window anytime to enjoy reading it.) Tj T*
+ET
+endstream
+endobj
+xref
+0 11
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000127 00000 n 
+0000000197 00000 n 
+0000000272 00000 n 
+0000000408 00000 n 
+0000001215 00000 n 
+0000001351 00000 n 
+0000002007 00000 n 
+0000002144 00000 n 
+trailer
+<< /Size 11 /Root 1 0 R >>
+startxref
+2794
+%%EOF
