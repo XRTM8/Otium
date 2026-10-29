@@ -8,6 +8,7 @@ import { markScrollActivity } from '../core/reader/renderScheduler';
 import { PdfPage } from './PdfPage';
 import { ErrorBoundary } from './ErrorBoundary';
 import { AnimatedCounter } from './AnimatedCounter';
+import { triggerHaptic } from '../core/utils/haptics';
 
 interface PageSlotProps {
   pageNum: number;
@@ -152,7 +153,8 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
     dualFlipDir,
     numberJumpDisplay,
     readingWarmth,
-    ultraDim
+    ultraDim,
+    scrollToPage
   } = reader;
 
   const [compactLandscape, setCompactLandscape] = useState(false);
@@ -161,6 +163,53 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
   const isRtl = lang === 'ar';
   const lastScrollPageRef = useRef<number>(currentPage);
   const scrollFrameRef = useRef<number | null>(null);
+
+  // Interactive precision scrubber state
+  const [scrubState, setScrubState] = useState<{ page: number; x: number } | null>(null);
+  const isScrubbingRef = useRef(false);
+
+  const calculateScrubPage = (clientX: number) => {
+    if (typeof window === 'undefined') return { page: 1, x: clientX };
+    const width = window.innerWidth;
+    const clampedX = Math.max(0, Math.min(width, clientX));
+    const ratio = clampedX / width;
+    const page = Math.min(numPages, Math.max(1, Math.round(ratio * numPages)));
+    return { page, x: clampedX };
+  };
+
+  const handleScrubberPointerDown = (e: React.PointerEvent) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    isScrubbingRef.current = true;
+    const { page, x } = calculateScrubPage(e.clientX);
+    setScrubState({ page, x });
+    triggerHaptic('selection');
+  };
+
+  const handleScrubberPointerMove = (e: React.PointerEvent) => {
+    if (!isScrubbingRef.current) return;
+    const { page, x } = calculateScrubPage(e.clientX);
+    setScrubState((prev) => {
+      if (prev && prev.page !== page) {
+        triggerHaptic('selection');
+      }
+      return { page, x };
+    });
+  };
+
+  const handleScrubberPointerUp = () => {
+    if (isScrubbingRef.current && scrubState) {
+      scrollToPage(scrubState.page);
+      triggerHaptic('light');
+    }
+    isScrubbingRef.current = false;
+    setScrubState(null);
+  };
+
+  const handleScrubberPointerLeave = () => {
+    if (!isScrubbingRef.current) {
+      setScrubState(null);
+    }
+  };
 
   useEffect(() => {
     if (!compact || typeof window === 'undefined') return;
@@ -382,7 +431,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
 
   return (
     <div className="relative flex-1 w-full h-full overflow-hidden flex flex-col">
-      {/* Reading progress for the current document with liquid glow head. */}
+      {/* Interactive reading progress & precision scrubber */}
       <div
         aria-hidden={isImmersive}
         role="progressbar"
@@ -390,23 +439,52 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
         aria-valuemin={1}
         aria-valuemax={Math.max(1, numPages)}
         aria-valuenow={currentPage}
-        className={`fixed top-0 inset-x-0 h-[2.5px] bg-line/40 z-40 pointer-events-none transition-opacity duration-300 ${
-          isImmersive ? 'opacity-0' : 'opacity-100'
+        onPointerDown={handleScrubberPointerDown}
+        onPointerMove={handleScrubberPointerMove}
+        onPointerUp={handleScrubberPointerUp}
+        onPointerLeave={handleScrubberPointerLeave}
+        className={`fixed top-0 inset-x-0 h-4 group cursor-pointer z-40 transition-opacity duration-300 flex items-start select-none ${
+          isImmersive ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       >
-        <div
-          className="h-full bg-accent relative transition-all duration-300 ease-out will-change-[width]"
-          style={{
-            width: `${(currentPage / Math.max(1, numPages)) * 100}%`,
-            transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)'
-          }}
-        >
-          {/* Subtle luminous leading glow */}
+        <div className="w-full h-[2.5px] group-hover:h-[4.5px] bg-line/40 transition-all duration-150 relative">
           <div
-            aria-hidden="true"
-            className="absolute -top-[1px] end-0 w-3 h-1 bg-accent rounded-full shadow-[0_0_8px_var(--accent)] opacity-85"
-          />
+            className="h-full bg-accent relative transition-all duration-300 ease-out will-change-[width]"
+            style={{
+              width: `${(currentPage / Math.max(1, numPages)) * 100}%`,
+              transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)'
+            }}
+          >
+            {/* Subtle luminous leading glow */}
+            <div
+              aria-hidden="true"
+              className="absolute -top-[1px] end-0 w-3 h-1 bg-accent rounded-full shadow-[0_0_8px_var(--accent)] opacity-85"
+            />
+          </div>
         </div>
+
+        {/* Floating Bubble Tooltip while scrubbing */}
+        {scrubState && (
+          <div
+            dir={lang === 'ar' ? 'rtl' : 'ltr'}
+            style={{
+              left: `${scrubState.x}px`,
+              transform: 'translateX(-50%)',
+              top: '12px'
+            }}
+            className="fixed pointer-events-none z-50 chrome-surface px-3 py-1 rounded-full shadow-2xl border border-line text-[11px] font-mono text-ink flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-100 backdrop-blur-md"
+          >
+            <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+            <span className="font-semibold text-accent font-sans">
+              {lang === 'ar' ? `صفحة ${scrubState.page}` : `Page ${scrubState.page}`}
+            </span>
+            <span className="text-ink-muted">/</span>
+            <span className="text-ink-muted">{numPages}</span>
+            <span className="text-[10px] text-accent font-mono font-semibold">
+              ({Math.round((scrubState.page / Math.max(1, numPages)) * 100)}%)
+            </span>
+          </div>
+        )}
       </div>
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {lang === 'ar'
@@ -727,11 +805,12 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
               ? (lang === 'ar' ? `صفحة ${currentPage} من ${numPages} - انقر لإظهار القوائم` : `Page ${currentPage} of ${numPages} - Click to show menus`)
               : (lang === 'ar' ? `صفحة ${currentPage} من ${numPages}` : `Page ${currentPage} of ${numPages}`)
           }
+          key={`page-pill-${reader.arrivalGlowKey || 0}`}
           className={`chrome-surface spring-press flex items-center gap-2 rounded-full px-3.5 py-1.5 font-mono text-[11px] text-ink shadow-xl backdrop-blur-xl border border-line-subtle select-none ${
             isImmersive
               ? 'cursor-pointer hover:bg-hover active:scale-95'
               : ''
-          }`}
+          } ${reader.arrivalGlowKey ? 'soft-arrival-glow' : ''}`}
         >
           {numberJumpDisplay ? (
             <span className="flex items-center gap-1.5 text-accent font-semibold font-mono">

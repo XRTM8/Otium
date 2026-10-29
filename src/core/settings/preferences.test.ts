@@ -16,7 +16,9 @@ import {
   saveReadingWarmth,
   loadUltraDim,
   saveUltraDim,
-  resolveScheduledTheme
+  resolveScheduledTheme,
+  loadKeepScreenAwake,
+  saveKeepScreenAwake
 } from './preferences';
 
 describe('Theme preferences & visual comfort', () => {
@@ -85,5 +87,13 @@ describe('Theme preferences & visual comfort', () => {
     expect(loadRememberDocTheme()).toBe(true);
     saveRememberDocTheme(false);
     expect(loadRememberDocTheme()).toBe(false);
+  });
+
+  it('manages keepScreenAwake preference (defaulting to true)', () => {
+    expect(loadKeepScreenAwake()).toBe(true);
+    saveKeepScreenAwake(false);
+    expect(loadKeepScreenAwake()).toBe(false);
+    saveKeepScreenAwake(true);
+    expect(loadKeepScreenAwake()).toBe(true);
   });
 });

@@ -19,6 +19,7 @@ const KEYS = {
   rememberDocTheme: 'otium_remember_doc_theme',
   readingWarmth: 'otium_reading_warmth',
   ultraDim: 'otium_ultra_dim',
+  keepScreenAwake: 'otium_keep_screen_awake',
   page: (title: string) => `otium_page_${title}`,
   legacyPage: (title: string) => `tirs_page_${title}`,
   docTheme: (docKey: string) => `otium_theme_${docKey}`
@@ -200,3 +201,13 @@ export function resolveScheduledTheme(
   }
   return manualTheme;
 }
+
+export function loadKeepScreenAwake(): boolean {
+  const saved = read(KEYS.keepScreenAwake);
+  return saved === null ? true : saved === 'true';
+}
+
+export function saveKeepScreenAwake(enabled: boolean): void {
+  write(KEYS.keepScreenAwake, String(enabled));
+}
+

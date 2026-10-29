@@ -18,6 +18,7 @@ import {
 import type { ThemeMode, ViewMode } from '../core/types';
 import type { Language } from '../core/i18n/translations';
 import { getTranslations } from '../core/i18n/translations';
+import { triggerHaptic } from '../core/utils/haptics';
 import { OtiumLogo } from './OtiumLogo';
 
 interface MobileToolbarProps {
@@ -405,8 +406,71 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
               onChange={(event) => setJumpValue(event.target.value)}
               onFocus={(event) => event.currentTarget.select()}
               aria-label={ar ? 'رقم الصفحة' : 'Page number'}
-              className="mt-3 w-full rounded-xl border border-line bg-hover-subtle px-3 py-2.5 text-center font-mono text-2xl text-ink outline-none focus:border-accent/60"
+              className="mt-3 w-full rounded-xl border border-line bg-hover-subtle px-3 py-2 text-center font-mono text-2xl text-ink outline-none focus:border-accent/60"
             />
+
+            {/* Quick interactive page scrubber */}
+            <div className="mt-3 px-1">
+              <input
+                type="range"
+                min={1}
+                max={totalPages}
+                value={Number(jumpValue) || currentPage}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setJumpValue(String(val));
+                  triggerHaptic('selection');
+                }}
+                className="w-full accent-accent cursor-pointer h-2 bg-line rounded-lg"
+              />
+              <div className="flex justify-between text-[10px] text-ink-muted font-mono mt-1">
+                <span>1</span>
+                <span className="text-accent font-semibold">
+                  {Math.round(((Number(jumpValue) || currentPage) / totalPages) * 100)}%
+                </span>
+                <span>{totalPages}</span>
+              </div>
+            </div>
+
+            {/* Quick offset buttons */}
+            <div className="mt-2.5 flex items-center justify-between gap-1.5 text-[11px] font-mono">
+              <button
+                type="button"
+                onClick={() => { setJumpValue('1'); triggerHaptic('selection'); }}
+                className="flex-1 py-1 rounded-lg bg-hover border border-line text-ink-muted hover:text-ink text-center"
+              >
+                {ar ? 'البداية' : '1'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const p = Math.max(1, (Number(jumpValue) || currentPage) - 10);
+                  setJumpValue(String(p));
+                  triggerHaptic('selection');
+                }}
+                className="flex-1 py-1 rounded-lg bg-hover border border-line text-ink-muted hover:text-ink text-center"
+              >
+                -10
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const p = Math.min(totalPages, (Number(jumpValue) || currentPage) + 10);
+                  setJumpValue(String(p));
+                  triggerHaptic('selection');
+                }}
+                className="flex-1 py-1 rounded-lg bg-hover border border-line text-ink-muted hover:text-ink text-center"
+              >
+                +10
+              </button>
+              <button
+                type="button"
+                onClick={() => { setJumpValue(String(totalPages)); triggerHaptic('selection'); }}
+                className="flex-1 py-1 rounded-lg bg-hover border border-line text-ink-muted hover:text-ink text-center"
+              >
+                {ar ? 'النهاية' : totalPages}
+              </button>
+            </div>
 
             <div className="mt-3 flex items-center gap-2">
               <button
@@ -450,6 +514,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
           <button
             type="button"
             onClick={() => {
+              triggerHaptic('light');
               if (ar) {
                 if (onNextPage) onNextPage();
                 else onPageChange(Math.min(totalPages, currentPage + 1));
@@ -480,6 +545,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
           <button
             type="button"
             onClick={() => {
+              triggerHaptic('light');
               if (ar) {
                 if (onPrevPage) onPrevPage();
                 else onPageChange(Math.max(1, currentPage - 1));
@@ -500,7 +566,10 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
 
           <button
             type="button"
-            onClick={onToggleBookmark}
+            onClick={() => {
+              triggerHaptic('light');
+              onToggleBookmark();
+            }}
             aria-label={isBookmarked ? t.removeBookmark : t.addBookmark}
             className={`fluid-press spring-press mobile-chrome-extra p-2 rounded-xl active:bg-hover-strong cursor-pointer ${
               isBookmarked ? 'text-highlight' : 'text-ink-muted'

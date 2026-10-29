@@ -25,6 +25,7 @@ import {
   clearAllStoredDocuments
 } from '../core/storage/documents';
 import { OtiumLogo } from './OtiumLogo';
+import { triggerHaptic } from '../core/utils/haptics';
 
 interface WelcomeScreenProps {
   currentTheme: ThemeMode;
@@ -302,6 +303,52 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             Otium
           </h1>
         </div>
+
+        {/* Quick Resume Hero Banner for most recent document */}
+        {recents.length > 0 && recents[0]?.available && (
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              triggerHaptic('medium');
+              onOpenRecent(recents[0]);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onOpenRecent(recents[0]);
+              }
+            }}
+            className="fluid-press w-full p-3.5 px-4 rounded-2xl chrome-surface border border-accent/30 hover:border-accent shadow-lg flex items-center justify-between gap-3 text-start cursor-pointer group transition-all duration-200"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-accent/15 border border-accent/30 flex items-center justify-center text-accent shrink-0 group-hover:scale-105 transition-transform">
+                <BookOpen className="w-5 h-5 text-accent" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-accent font-mono">
+                  {currentLang === 'ar' ? 'متابعة القراءة' : 'Resume Reading'}
+                </span>
+                <span className="text-xs sm:text-sm font-bold text-ink truncate group-hover:text-accent transition-colors">
+                  <bdi>{recents[0].name}</bdi>
+                </span>
+                <span className="text-[11px] text-ink-muted font-mono">
+                  {t.pageOf(recents[0].lastPage, recents[0].totalPages)}
+                  {recents[0].totalPages > 0 && (
+                    <span className="ml-1 text-accent font-semibold">
+                      ({Math.min(100, Math.round((recents[0].lastPage / recents[0].totalPages) * 100))}%)
+                    </span>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent text-on-accent text-xs font-semibold shrink-0 group-hover:bg-accent-strong shadow-xs transition-colors">
+              <span>{currentLang === 'ar' ? 'متابعة' : 'Resume'}</span>
+              <ArrowUpRight className="w-3.5 h-3.5 rtl:rotate-[-90deg]" />
+            </div>
+          </div>
+        )}
 
         {/* Dropzone Card with Theme Accent Borders & Icon Box */}
         <div

@@ -1271,6 +1271,23 @@ body[data-has-selection='true'] .textLayer {
   animation: rubberBounceEnd 320ms cubic-bezier(0.25, 1, 0.5, 1);
 }
 
+/* Soft Arrival Glow for navigation jumps and page scrub arrivals */
+@keyframes softArrivalPulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--accent);
+  }
+  30% {
+    box-shadow: 0 0 24px 4px var(--accent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.soft-arrival-glow {
+  animation: softArrivalPulse 650ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* World-Class Keyboard Focus & Accessibility */
 :focus-visible {
   outline: 2px solid var(--accent);

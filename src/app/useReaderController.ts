@@ -20,6 +20,8 @@ import {
 } from '../core/storage/documents';
 import { fingerprintDocument } from '../core/storage/documentIdentity';
 import { executeBackStep } from '../core/navigation/backHandler';
+import { triggerHaptic } from '../core/utils/haptics';
+import { acquireScreenWakeLock, releaseScreenWakeLock, setWakeLockEnabled } from '../core/utils/wakeLock';
 import { applyBackupJson, createBackupJson } from '../core/storage/backupService';
 import { mergeAnnotations, type RestoreSummary } from '../core/storage/backupFormat';
 import { mergeBookmarks } from '../core/storage/bookmarks';
@@ -55,6 +57,8 @@ import {
   loadUltraDim,
   saveUltraDim,
   resolveScheduledTheme,
+  loadKeepScreenAwake,
+  saveKeepScreenAwake,
   type ThemeScheduleMode
 } from '../core/settings/preferences';
 import { computeOptimalPageScale, measureRefreshRate } from '../core/reader/device';
@@ -177,6 +181,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const [rememberDocTheme, setRememberDocThemeState] = useState<boolean>(loadRememberDocTheme);
   const [readingWarmth, setReadingWarmthState] = useState<number>(loadReadingWarmth);
   const [ultraDim, setUltraDimState] = useState<number>(loadUltraDim);
+  const [keepScreenAwake, setKeepScreenAwakeState] = useState<boolean>(loadKeepScreenAwake);
+  const [arrivalGlowKey, setArrivalGlowKey] = useState<number>(0);
   const [theme, setTheme] = useState<ThemeMode>(() => {
     const saved = loadTheme();
     const sched = loadThemeSchedule();
@@ -451,6 +457,38 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     root.dir = lang === 'ar' ? 'rtl' : 'ltr';
   }, [lang]);
 
+  const changeKeepScreenAwake = useCallback((enabled: boolean) => {
+    setKeepScreenAwakeState(enabled);
+    saveKeepScreenAwake(enabled);
+    setWakeLockEnabled(enabled);
+    if (enabled && doc) {
+      void acquireScreenWakeLock();
+    } else {
+      void releaseScreenWakeLock();
+    }
+  }, [doc]);
+
+  // Keep screen awake while reading
+  useEffect(() => {
+    setWakeLockEnabled(keepScreenAwake);
+    if (doc && keepScreenAwake) {
+      void acquireScreenWakeLock();
+    } else {
+      void releaseScreenWakeLock();
+    }
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && doc && keepScreenAwake) {
+        void acquireScreenWakeLock();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      void releaseScreenWakeLock();
+    };
+  }, [doc, keepScreenAwake]);
+
   // Recolour every surface and tell the native shell to match.
   useEffect(() => {
     syncNativeTheme(theme);
@@ -563,6 +601,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       if (nextPage !== currentPage) {
         setDualFlipDir(nextPage > currentPage ? 'forward' : 'backward');
         setDualFlipKey((key) => key + 1);
+        setArrivalGlowKey((k) => k + 1);
       }
       setCurrentPage(nextPage);
 
@@ -630,6 +669,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const triggerBoundaryBounce = useCallback((position: 'start' | 'end') => {
     const el = scrollContainerRef.current;
     if (!el) return;
+    triggerHaptic('boundary');
     const cls = position === 'start' ? 'animate-bounce-start' : 'animate-bounce-end';
     el.classList.remove('animate-bounce-start', 'animate-bounce-end');
     void el.offsetWidth;
@@ -670,6 +710,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   }, [currentPage, scrollToPage, triggerBoundaryBounce, viewMode]);
 
   const changeTheme = useCallback((nextTheme: ThemeMode, persistDocument = true) => {
+    triggerHaptic('selection');
     saveTheme(nextTheme);
     if (persistDocument && docIdRef.current && rememberDocThemeRef.current) {
       saveDocumentTheme(docIdRef.current, nextTheme);
@@ -1355,6 +1396,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
   const toggleBookmark = useCallback(
     (pageNumber: number) => {
+      triggerHaptic('light');
       setBookmarks((current) => {
         const exists = current.some((bookmark) => bookmark.pageNumber === pageNumber);
         if (exists) {
@@ -2025,6 +2067,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     rememberDocTheme,
     readingWarmth,
     ultraDim,
+    keepScreenAwake,
+    arrivalGlowKey,
     viewMode,
     lang,
     fontFamily,
@@ -2069,6 +2113,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     changeRememberDocTheme,
     changeReadingWarmth,
     changeUltraDim,
+    changeKeepScreenAwake,
     changeLanguage,
     changeFont,
     changeViewMode,

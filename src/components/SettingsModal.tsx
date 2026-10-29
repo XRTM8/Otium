@@ -66,6 +66,8 @@ interface SettingsModalProps {
   onNightThemeChange?: (theme: ThemeMode) => void;
   rememberDocTheme?: boolean;
   onRememberDocThemeChange?: (enabled: boolean) => void;
+  keepScreenAwake?: boolean;
+  onKeepScreenAwakeChange?: (enabled: boolean) => void;
   readingWarmth?: number;
   onReadingWarmthChange?: (warmth: number) => void;
   ultraDim?: number;
@@ -235,6 +237,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onNightThemeChange,
   rememberDocTheme = true,
   onRememberDocThemeChange,
+  keepScreenAwake = true,
+  onKeepScreenAwakeChange,
   readingWarmth = 0,
   onReadingWarmthChange,
   ultraDim = 0,
@@ -727,6 +731,42 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       </select>
                     </div>
                   </div>
+                )}
+
+                {/* Keep Screen Awake While Reading Toggle */}
+                {onKeepScreenAwakeChange && (
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={keepScreenAwake}
+                    onClick={() => onKeepScreenAwakeChange(!keepScreenAwake)}
+                    className="flex w-full items-center gap-3 rounded-2xl border border-line-subtle bg-hover-subtle p-3 text-start transition-colors active:bg-hover cursor-pointer"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-semibold text-ink">
+                        {ar ? 'إبقاء الشاشة مضاءة أثناء القراءة' : 'Keep Screen Awake While Reading'}
+                      </div>
+                      <p className="mt-0.5 text-[10px] leading-relaxed text-ink-muted">
+                        {ar
+                          ? 'يمنع انطفاء الشاشة أو بهتان إضاءتها أثناء القراءة بهدوء، ويحرر القفل تلقائياً عند إغلاق الكتاب.'
+                          : 'Prevents display sleep or dimming while reading, releasing automatically when closed.'}
+                      </p>
+                    </div>
+                    <span
+                      aria-hidden="true"
+                      className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
+                        keepScreenAwake
+                          ? 'border-accent/50 bg-accent'
+                          : 'border-line-strong bg-hover-strong'
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all ${
+                          keepScreenAwake ? 'start-6' : 'start-0.5'
+                        }`}
+                      />
+                    </span>
+                  </button>
                 )}
 
                 {/* Remember Theme Per Book Toggle */}
