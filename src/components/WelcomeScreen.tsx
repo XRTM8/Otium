@@ -32,6 +32,7 @@ import {
 import { OtiumLogo } from './OtiumLogo';
 import { triggerHaptic } from '../core/utils/haptics';
 import { isTauriRuntime, openExternalLink } from '../platform/runtime';
+import { getCurrentVersion } from '../core/updates/currentVersion';
 
 interface WelcomeScreenProps {
   currentTheme: ThemeMode;
@@ -577,7 +578,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               className="group fluid-press px-3.5 py-1.5 rounded-full bg-surface border border-line hover:border-accent/50 shadow-sm flex items-center gap-2 text-xs font-medium text-ink hover:text-accent transition-all duration-200"
-              title={currentLang === 'ar' ? 'تحميل أحدث إصدار v1.8.4' : 'Download Latest Release v1.8.4'}
+              title={currentLang === 'ar' ? `تحميل أحدث إصدار v${getCurrentVersion()}` : `Download Latest Release v${getCurrentVersion()}`}
             >
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <Download className="w-3.5 h-3.5 text-accent" />
@@ -585,7 +586,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 {currentLang === 'ar' ? 'تحميل أحدث إصدار' : 'Download Latest'}
               </span>
               <span className="font-mono text-[10px] px-1.5 py-0.5 rounded-md bg-accent/10 text-accent font-semibold">
-                v1.8.4
+                v{getCurrentVersion()}
               </span>
               <ExternalLink className="w-3 h-3 text-ink-muted group-hover:text-accent opacity-70 group-hover:opacity-100 transition-opacity" />
             </a>

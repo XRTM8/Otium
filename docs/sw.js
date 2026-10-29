@@ -1,5 +1,5 @@
 // Otium Service Worker — 100% Offline Resilience for Smartboards & Classrooms
-const CACHE_NAME = 'otium-offline-v1.8.4';
+const CACHE_NAME = 'otium-offline-v1.8.5';
 const PRECACHE_URLS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', (event) => {
