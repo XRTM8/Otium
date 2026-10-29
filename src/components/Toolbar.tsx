@@ -33,6 +33,8 @@ interface ToolbarProps {
   currentPage: number;
   totalPages: number;
   zoom: number;
+  minZoom?: number;
+  maxZoom?: number;
   theme: ThemeMode;
   viewMode: ViewMode;
   currentLang: Language;
@@ -89,6 +91,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   currentPage,
   totalPages,
   zoom,
+  minZoom,
+  maxZoom,
   theme,
   viewMode,
   currentLang,
@@ -130,6 +134,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
   const t = getTranslations(currentLang);
   const ar = currentLang === 'ar';
+
+  const effectiveMinZoom = minZoom ?? 0.04;
+  const effectiveMaxZoom = maxZoom ?? 3.5;
+  const zoomStep = zoom < 0.4 ? Math.max(0.02, Number((zoom * 0.25).toFixed(2))) : 0.15;
 
   useEffect(() => {
     setRenameText(title);
@@ -474,7 +482,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <div className="flex items-center gap-0.5 rounded-lg bg-hover-subtle px-0.5">
             <button
               type="button"
-              onClick={() => onZoomChange(Math.max(0.5, Number((zoom - 0.15).toFixed(2))))}
+              onClick={() => onZoomChange(Math.max(effectiveMinZoom, Number((zoom - zoomStep).toFixed(2))))}
               title={t.zoomOut}
               aria-label={t.zoomOut}
               className="toolbar-icon"
@@ -486,7 +494,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </span>
             <button
               type="button"
-              onClick={() => onZoomChange(Math.min(3.5, Number((zoom + 0.15).toFixed(2))))}
+              onClick={() => onZoomChange(Math.min(effectiveMaxZoom, Number((zoom + zoomStep).toFixed(2))))}
               title={t.zoomIn}
               aria-label={t.zoomIn}
               className="toolbar-icon"
@@ -679,7 +687,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => onZoomChange(Math.max(0.5, Number((zoom - 0.15).toFixed(2))))}
+                  onClick={() => onZoomChange(Math.max(effectiveMinZoom, Number((zoom - zoomStep).toFixed(2))))}
                   className="toolbar-icon bg-surface-2"
                   aria-label={t.zoomOut}
                 >
@@ -690,7 +698,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 </span>
                 <button
                   type="button"
-                  onClick={() => onZoomChange(Math.min(3.5, Number((zoom + 0.15).toFixed(2))))}
+                  onClick={() => onZoomChange(Math.min(effectiveMaxZoom, Number((zoom + zoomStep).toFixed(2))))}
                   className="toolbar-icon bg-surface-2"
                   aria-label={t.zoomIn}
                 >

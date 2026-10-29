@@ -176,6 +176,8 @@ export const DesktopShell: React.FC = () => {
             currentPage={reader.currentPage}
             totalPages={reader.numPages}
             zoom={reader.zoom}
+            minZoom={reader.minZoom}
+            maxZoom={reader.maxZoom}
             theme={reader.theme}
             viewMode={reader.viewMode}
             currentLang={reader.lang}

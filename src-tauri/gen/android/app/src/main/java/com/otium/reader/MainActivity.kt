@@ -29,6 +29,7 @@ import org.json.JSONObject
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.RandomAccessFile
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
@@ -41,6 +42,8 @@ class MainActivity : TauriActivity() {
 
   private var pendingPdfBase64: String? = null
   private var pendingPdfName: String? = null
+  private var incomingPdfFile: File? = null
+  private var incomingPdfName: String? = null
   private var pendingExportContent: String? = null
   private var pendingExportMime: String? = null
   private var pendingBinaryBytes: ByteArray? = null
@@ -166,6 +169,54 @@ class MainActivity : TauriActivity() {
    * so the reader chooses where the file lands.
    */
   private inner class FileBridge {
+    @JavascriptInterface
+    fun getPendingDocumentInfo(): String {
+      val file = incomingPdfFile ?: return "{\"hasDocument\":false}"
+      if (!file.exists() || file.length() == 0L) {
+        return "{\"hasDocument\":false}"
+      }
+      val name = incomingPdfName ?: "document.pdf"
+      val size = file.length()
+      return JSONObject().apply {
+        put("hasDocument", true)
+        put("name", name)
+        put("size", size)
+      }.toString()
+    }
+
+    @JavascriptInterface
+    fun readPendingDocumentChunk(offset: Int, chunkSize: Int): String {
+      val file = incomingPdfFile ?: return ""
+      if (!file.exists()) return ""
+      val fileSize = file.length()
+      if (offset < 0 || offset >= fileSize) return ""
+
+      val toRead = Math.min(chunkSize.toLong(), fileSize - offset).toInt()
+      if (toRead <= 0) return ""
+
+      return try {
+        RandomAccessFile(file, "r").use { raf ->
+          raf.seek(offset.toLong())
+          val buffer = ByteArray(toRead)
+          raf.readFully(buffer)
+          Base64.encodeToString(buffer, Base64.NO_WRAP)
+        }
+      } catch (t: Throwable) {
+        t.printStackTrace()
+        ""
+      }
+    }
+
+    @JavascriptInterface
+    fun clearPendingDocument(): Boolean {
+      try {
+        incomingPdfFile?.delete()
+      } catch (_: Throwable) {}
+      incomingPdfFile = null
+      incomingPdfName = null
+      return true
+    }
+
     @JavascriptInterface
     fun saveTextFile(content: String, fileName: String, mimeType: String): Boolean {
       runOnUiThread {
@@ -609,6 +660,8 @@ class MainActivity : TauriActivity() {
   override fun onDestroy() {
     deliveryGeneration += 1
     mainHandler.removeCallbacksAndMessages(null)
+    try { incomingPdfFile?.delete() } catch (_: Throwable) {}
+    incomingPdfFile = null
     ttsBridge?.shutdown()
     ttsBridge = null
     appWebView = null
@@ -618,33 +671,55 @@ class MainActivity : TauriActivity() {
   private fun handlePdfIntent(intent: Intent?) {
     if (intent == null) return
 
-    val uris = extractPdfUris(intent)
+    val uris = try {
+      extractPdfUris(intent)
+    } catch (t: Throwable) {
+      t.printStackTrace()
+      emptyList()
+    }
     if (uris.isEmpty()) return
 
     val generation = ++intentGeneration
     val uri = uris.first()
 
     Thread {
-      val bytes = try {
-        contentResolver.openInputStream(uri)?.use { it.readBytes() }
-      } catch (e: Exception) {
-        e.printStackTrace()
-        null
-      }
+      try {
+        val fileName = resolveDisplayName(uri)
+        val tempFile = File(cacheDir, "incoming_opened_doc.pdf")
+        if (tempFile.exists()) tempFile.delete()
 
-      if (bytes == null || bytes.isEmpty()) return@Thread
+        // Memory-safe stream directly from content provider into internal cache (safe against Telegram OOM)
+        val copied = contentResolver.openInputStream(uri)?.use { input ->
+          FileOutputStream(tempFile).use { output ->
+            input.copyTo(output, bufferSize = 32 * 1024)
+          }
+        } ?: 0L
 
-      val fileName = resolveDisplayName(uri)
-      val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+        if (copied <= 0L || !tempFile.exists()) return@Thread
 
-      runOnUiThread {
-        if (generation != intentGeneration || isDestroyed) return@runOnUiThread
+        runOnUiThread {
+          if (generation != intentGeneration || isDestroyed) return@runOnUiThread
 
-        pendingPdfBase64 = base64
-        pendingPdfName = fileName
-        schedulePdfDelivery()
+          incomingPdfFile = tempFile
+          incomingPdfName = fileName
+          notifyWebIncomingPdf()
+        }
+      } catch (t: Throwable) {
+        t.printStackTrace()
       }
     }.start()
+  }
+
+  private fun notifyWebIncomingPdf() {
+    val webView = appWebView ?: return
+    webView.post {
+      try {
+        webView.evaluateJavascript(
+          "(function(){ try { if (window.__OTIUM_CHECK_INCOMING_PDF__) { window.__OTIUM_CHECK_INCOMING_PDF__(); return true; } } catch(e){} return false; })()",
+          null
+        )
+      } catch (_: Throwable) {}
+    }
   }
 
   private fun extractPdfUris(intent: Intent): List<Uri> {
@@ -731,6 +806,7 @@ class MainActivity : TauriActivity() {
   }
 
   private fun schedulePdfDelivery() {
+    notifyWebIncomingPdf()
     if (pendingPdfBase64 == null) return
 
     deliveryGeneration += 1

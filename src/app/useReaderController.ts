@@ -377,6 +377,17 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     );
   }, [basePageSize, chromeInset, viewMode]);
 
+  const getMinZoom = useCallback(() => {
+    const fit = lastFitScaleRef.current || getFitScale();
+    // Allow zooming down to at least 50% of the natural fit scale (down to 0.04) for giant scanned PDFs (CamScanner)
+    return Math.max(0.04, Math.min(0.5, Number((fit * 0.5).toFixed(2))));
+  }, [getFitScale]);
+
+  const getMaxZoom = useCallback(() => {
+    const fit = lastFitScaleRef.current || getFitScale();
+    return Math.max(3.5, Number((fit * 4.0).toFixed(2)));
+  }, [getFitScale]);
+
   const cachedScrollMetricsRef = useRef<{
     maxScrollX: number;
     maxScrollY: number;
@@ -891,10 +902,12 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       );
       const previousFit = lastFitScaleRef.current;
       lastFitScaleRef.current = fit;
+      const minZ = Math.max(0.04, Math.min(0.5, Number((fit * 0.5).toFixed(2))));
+      const maxZ = Math.max(3.5, Number((fit * 4.0).toFixed(2)));
       setZoom((current) =>
         current <= (previousFit || fit) * 1.08
           ? fit
-          : Math.min(3.5, Math.max(0.5, current))
+          : Math.min(maxZ, Math.max(minZ, current))
       );
       window.requestAnimationFrame(() => {
         scrollToRenderedPage(currentPageRef.current);
@@ -965,9 +978,12 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       if (event.ctrlKey) {
         event.preventDefault();
         captureZoomAnchor(event.clientX, event.clientY);
-        const delta = event.deltaY > 0 ? -0.1 : 0.1;
+        const minZ = getMinZoom();
+        const maxZ = getMaxZoom();
+        const step = Math.max(0.02, Math.min(0.15, Number(((lastFitScaleRef.current || 1.0) * 0.12).toFixed(2))));
+        const delta = event.deltaY > 0 ? -step : step;
         setZoom((current) =>
-          Math.min(3.5, Math.max(0.5, Number((current + delta).toFixed(2))))
+          Math.min(maxZ, Math.max(minZ, Number((current + delta).toFixed(2))))
         );
         if (ctrlWheelIdleTimerRef.current !== null) {
           window.clearTimeout(ctrlWheelIdleTimerRef.current);
@@ -1601,8 +1617,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       captureZoomAnchor(clientX, clientY);
       // Double-tap toggles between fit and roughly 2x fit. Any other zoom
       // level (including a pinch below fit) returns to fit first.
-      const nearFit = Math.abs(zoom - fit) <= Math.max(0.08, fit * 0.1);
-      const target = nearFit ? Math.min(3.5, Math.max(1.6, fit * 2)) : fit;
+      const nearFit = Math.abs(zoom - fit) <= Math.max(0.04, fit * 0.12);
+      const target = nearFit ? Math.min(getMaxZoom(), Number((fit * 2.0).toFixed(2))) : fit;
       if (Number.isFinite(target) && target > 0) {
         triggerHaptic('light');
         setZoom(Number(target.toFixed(2)));
@@ -1691,12 +1707,15 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         y: (event.touches[0].clientY + event.touches[1].clientY) / 2
       };
       const factor = distance / pinchStartDistRef.current;
+      const minZ = getMinZoom();
+      const maxZ = getMaxZoom();
       const targetZoom = Math.min(
-        3.5,
-        Math.max(0.5, Number((pinchStartZoomRef.current * factor).toFixed(2)))
+        maxZ,
+        Math.max(minZ, Number((pinchStartZoomRef.current * factor).toFixed(2)))
       );
       if (Number.isFinite(targetZoom) && targetZoom > 0 && Math.abs(targetZoom - zoom) >= 0.01) {
-        if (Math.abs(targetZoom - 1.0) < 0.03 && Math.abs(zoom - 1.0) >= 0.03) {
+        const fit = getFitScale();
+        if (Math.abs(targetZoom - fit) < Math.max(0.015, fit * 0.03) && Math.abs(zoom - fit) >= Math.max(0.015, fit * 0.03)) {
           if ('vibrate' in navigator) {
             try {
               navigator.vibrate(12);
@@ -1995,19 +2014,23 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
       if ((event.ctrlKey || event.metaKey) && (event.key === '=' || event.key === '+')) {
         event.preventDefault();
-        setZoom((current) => Math.min(2.5, current + 0.15));
+        const maxZ = getMaxZoom();
+        const step = Math.max(0.02, Math.min(0.15, Number(((lastFitScaleRef.current || 1.0) * 0.15).toFixed(2))));
+        setZoom((current) => Math.min(maxZ, Number((current + step).toFixed(2))));
         return;
       }
 
       if ((event.ctrlKey || event.metaKey) && (event.key === '-' || event.key === '_')) {
         event.preventDefault();
-        setZoom((current) => Math.max(0.5, current - 0.15));
+        const minZ = getMinZoom();
+        const step = Math.max(0.02, Math.min(0.15, Number(((lastFitScaleRef.current || 1.0) * 0.15).toFixed(2))));
+        setZoom((current) => Math.max(minZ, Number((current - step).toFixed(2))));
         return;
       }
 
       if ((event.ctrlKey || event.metaKey) && event.key === '0') {
         event.preventDefault();
-        setZoom(1.15);
+        setZoom(getFitScale());
         return;
       }
 
@@ -2087,18 +2110,24 @@ export function useReaderController(capabilities: ReaderCapabilities) {
           }
           break;
         case '+':
-        case '=':
+        case '=': {
           event.preventDefault();
-          setZoom((current) => Math.min(2.5, current + 0.15));
+          const maxZ = getMaxZoom();
+          const step = Math.max(0.02, Math.min(0.15, Number(((lastFitScaleRef.current || 1.0) * 0.15).toFixed(2))));
+          setZoom((current) => Math.min(maxZ, Number((current + step).toFixed(2))));
           break;
+        }
         case '-':
-        case '_':
+        case '_': {
           event.preventDefault();
-          setZoom((current) => Math.max(0.5, current - 0.15));
+          const minZ = getMinZoom();
+          const step = Math.max(0.02, Math.min(0.15, Number(((lastFitScaleRef.current || 1.0) * 0.15).toFixed(2))));
+          setZoom((current) => Math.max(minZ, Number((current - step).toFixed(2))));
           break;
+        }
         case '0':
           event.preventDefault();
-          setZoom(1.15);
+          setZoom(getFitScale());
           break;
         case 't': {
           event.preventDefault();
@@ -2208,6 +2237,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     numPages,
     currentPage,
     zoom,
+    minZoom: getMinZoom(),
+    maxZoom: getMaxZoom(),
     setZoom,
     theme,
     themeSchedule,

@@ -95,7 +95,8 @@ export function computeOptimalPageScale(
     const scaleByH = availH / pageHeight;
     const basis = shortViewport ? scaleByW : Math.min(scaleByW, scaleByH);
     // Fit so both pages fit within height and width without vertical/horizontal overflow
-    return Math.max(0.4, Math.min(1.8, Number(basis.toFixed(2))));
+    // Lowered minimum scale to 0.04 to gracefully support ultra-high-res scans (CamScanner 2000-4000pt)
+    return Math.max(0.04, Math.min(2.0, Number(basis.toFixed(2))));
   }
 
   if (mode === 'single') {
@@ -103,18 +104,19 @@ export function computeOptimalPageScale(
     const scaleByW = (availW - 16) / pageWidth;
     const scaleByH = (availH - 20) / pageHeight;
     const basis = shortViewport ? scaleByW : Math.min(scaleByW, scaleByH);
-    return Math.max(0.5, Math.min(2.2, Number(basis.toFixed(2))));
+    return Math.max(0.04, Math.min(2.5, Number(basis.toFixed(2))));
   }
 
   // Continuous vertical scroll: comfortable reading width
   if (containerWidth < 640) {
-    return Math.max(0.4, Math.min(1.2, Number((availW / pageWidth).toFixed(2))));
+    const scaleByW = availW / pageWidth;
+    return Math.max(0.04, Math.min(2.0, Number(scaleByW.toFixed(2))));
   } else if (containerWidth < 1200) {
     const targetW = Math.min(availW, 850);
-    return Math.max(0.6, Math.min(1.6, Number((targetW / pageWidth).toFixed(2))));
+    return Math.max(0.04, Math.min(2.0, Number((targetW / pageWidth).toFixed(2))));
   } else {
     // Large screens: optimal 850-950px column width for text legibility
     const targetW = Math.min(availW * 0.75, 960);
-    return Math.max(0.8, Math.min(1.8, Number((targetW / pageWidth).toFixed(2))));
+    return Math.max(0.04, Math.min(2.0, Number((targetW / pageWidth).toFixed(2))));
   }
 }

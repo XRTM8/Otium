@@ -33,7 +33,56 @@ export function registerIncomingDocumentHandler(handler: IncomingDocumentHandler
   const platform = getPlatformId();
 
   if (platform === 'android') {
-    const bridge = (base64: string, name: string) => {
+    let isReading = false;
+
+    // High-performance chunked reader from native cache file (safe against Telegram OOM on large booklets)
+    const checkIncomingFromNativeBridge = () => {
+      if (isReading) return;
+      try {
+        const otiumFile = (window as any).OtiumFile;
+        if (!otiumFile || typeof otiumFile.getPendingDocumentInfo !== 'function') return;
+
+        const infoStr = otiumFile.getPendingDocumentInfo();
+        if (!infoStr) return;
+
+        const info = JSON.parse(infoStr);
+        if (!info.hasDocument || !info.size || info.size <= 0) return;
+
+        isReading = true;
+        const totalSize = Number(info.size);
+        const name = info.name || 'document.pdf';
+        const CHUNK_SIZE = 512 * 1024; // 512KB safe binary chunks
+
+        const buffer = new ArrayBuffer(totalSize);
+        const uint8 = new Uint8Array(buffer);
+        let offset = 0;
+
+        while (offset < totalSize) {
+          const chunkBase64 = otiumFile.readPendingDocumentChunk(offset, CHUNK_SIZE);
+          if (!chunkBase64) break;
+          const binary = atob(chunkBase64);
+          const chunkLen = binary.length;
+          for (let i = 0; i < chunkLen; i++) {
+            uint8[offset + i] = binary.charCodeAt(i);
+          }
+          offset += chunkLen;
+        }
+
+        if (typeof otiumFile.clearPendingDocument === 'function') {
+          otiumFile.clearPendingDocument();
+        }
+
+        isReading = false;
+        if (offset === totalSize && totalSize > 0) {
+          handler({ data: buffer, name });
+        }
+      } catch (err) {
+        isReading = false;
+        console.error('Failed to read incoming PDF via Android native bridge:', err);
+      }
+    };
+
+    const legacyBridge = (base64: string, name: string) => {
       try {
         if (!base64 || typeof base64 !== 'string') return;
         handler({ data: decodeBase64(base64), name: name || 'document.pdf' });
@@ -42,12 +91,17 @@ export function registerIncomingDocumentHandler(handler: IncomingDocumentHandler
       }
     };
 
-    (window as unknown as Record<string, unknown>).__OTIUM_LOAD_PDF_BASE64__ = bridge;
+    (window as any).__OTIUM_CHECK_INCOMING_PDF__ = checkIncomingFromNativeBridge;
+    (window as any).__OTIUM_LOAD_PDF_BASE64__ = legacyBridge;
+
+    // Probe native bridge immediately on mount and after brief delay for cold launch
+    checkIncomingFromNativeBridge();
+    const probeTimer = window.setTimeout(checkIncomingFromNativeBridge, 250);
+
     return () => {
-      const target = window as unknown as Record<string, unknown>;
-      if (target.__OTIUM_LOAD_PDF_BASE64__ === bridge) {
-        delete target.__OTIUM_LOAD_PDF_BASE64__;
-      }
+      window.clearTimeout(probeTimer);
+      delete (window as any).__OTIUM_CHECK_INCOMING_PDF__;
+      delete (window as any).__OTIUM_LOAD_PDF_BASE64__;
     };
   }
 

@@ -440,7 +440,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
       <div
         ref={modalRef}
-        className="otium-panel relative z-10 flex max-h-[92vh] sm:max-h-[88vh] w-full max-w-lg sm:max-w-xl flex-col overflow-hidden rounded-t-[32px] sm:rounded-3xl p-5 text-ink sm:p-6 shadow-2xl mobile-sheet sm:fluid-pop"
+        className="otium-panel relative z-10 flex h-[82vh] max-h-[85vh] sm:h-[620px] sm:max-h-[88vh] w-full max-w-lg sm:max-w-xl flex-col overflow-hidden rounded-t-[32px] sm:rounded-3xl p-5 text-ink sm:p-6 shadow-2xl mobile-sheet sm:fluid-pop transition-[height] duration-200"
       >
         {/* Mobile handle indicator */}
         <div className="w-12 h-1.5 rounded-full bg-line-strong/50 mx-auto mb-3 sm:hidden shrink-0" />
@@ -468,12 +468,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
 
-        <div className="my-3 flex w-full shrink-0 gap-1.5 p-1 rounded-2xl bg-hover-subtle border border-line-subtle">
+        <div className="my-3 flex w-full shrink-0 gap-1 p-1 rounded-2xl bg-hover-subtle border border-line-subtle overflow-x-auto no-scrollbar">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`fluid-press flex-1 py-2 px-2 text-xs font-bold rounded-xl cursor-pointer text-center transition-all ${
+              className={`fluid-press flex-1 min-w-[56px] py-2 px-1 text-[11px] sm:text-xs font-bold rounded-xl cursor-pointer text-center transition-all truncate whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'bg-hover-strong text-ink border border-line-strong shadow-xs'
                   : 'text-ink-muted hover:text-ink hover:bg-hover border border-transparent'
@@ -484,9 +484,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto pr-1 py-1 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 py-1 space-y-4">
           {activeTab === 'fonts' && (
-            <div className="space-y-3">
+            <div className="space-y-3 animate-in fade-in-50 duration-150">
               <div className="flex items-center justify-between text-xs text-ink-muted px-1 font-mono">
                 <span>{t.fontsTitle}</span>
                 <span className="text-highlight text-[11px] font-sans">
@@ -536,7 +536,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           )}
 
           {activeTab === 'reading' && (
-            <div className="space-y-4">
+            <div className="space-y-4 animate-in fade-in-50 duration-150">
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-ink-muted block">
                   {t.defaultReadingMode}
@@ -823,7 +823,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           )}
 
           {activeTab === 'scanner' && (
-            <div className="space-y-3.5">
+            <div className="space-y-3.5 animate-in fade-in-50 duration-150">
               {/* Document Crop Framing */}
               <div className="rounded-2xl bg-hover-subtle border border-line-subtle p-3.5 space-y-2">
                 <div className="flex items-center gap-2">
@@ -920,7 +920,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           )}
 
           {activeTab === 'data' && (
-            <div className="space-y-3">
+            <div className="space-y-3 animate-in fade-in-50 duration-150">
               <div className="rounded-2xl border border-line-subtle bg-hover-subtle p-3.5 space-y-2">
                 <div className="flex items-center justify-between gap-2 text-xs">
                   <span className="flex items-center gap-1.5 font-semibold text-ink">
@@ -1046,7 +1046,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           )}
 
           {activeTab === 'about' && (
-            <div className="space-y-3">
+            <div className="space-y-3 animate-in fade-in-50 duration-150">
               <div className="rounded-2xl bg-hover-subtle border border-line-subtle p-4 flex items-center justify-between gap-3">
                 <div>
                   <div className="text-sm font-bold text-ink">Otium</div>
