@@ -456,6 +456,10 @@ export class BeamService {
 
   private maintenanceTimer: number | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private connectionTimer: ReturnType<typeof setTimeout> | null = null;
+  private pollTimer: ReturnType<typeof setTimeout> | null = null;
+  private relayCursor: string = SSE_SINCE;
+  private pollingGeneration: number | null = null;
   private reconnectAttempt = 0;
   private sourceGeneration = 0;
   private lastPeerSeen = 0;
@@ -545,7 +549,7 @@ export class BeamService {
 
     if (sameRoom) {
       this.connectedRoom = formatted;
-      if (force || !this.activeEventSource) {
+      if (force || (!this.activeEventSource && this.pollingGeneration === null)) {
         this.openEventSource();
       }
       this.startMaintenance();
@@ -584,7 +588,7 @@ export class BeamService {
 
     if (sameRoom) {
       this.connectedRoom = formatted;
-      if (force || !this.activeEventSource) {
+      if (force || (!this.activeEventSource && this.pollingGeneration === null)) {
         this.openEventSource();
       }
       this.startMaintenance();
@@ -770,8 +774,15 @@ export class BeamService {
     }
 
     this.sendingDocument = true;
+    let sendingSession: string | null = null;
+    const assertActive = () => {
+      if (!sendingSession || this.sessionId !== sendingSession || this.role !== 'sender') {
+        throw new Error('The transfer was cancelled.');
+      }
+    };
     try {
       this.startSender(roomCode);
+      sendingSession = this.sessionId;
       this.setLocalDocumentState(options.title, options.pageNumber, options.totalPages);
 
       this.updateTransfer({
@@ -786,6 +797,7 @@ export class BeamService {
       });
 
       const peerReady = await this.waitForPeer(PEER_WAIT_MS);
+      assertActive();
       if (!peerReady) {
         throw new BeamSendError(
           'peer-unreachable',
@@ -795,11 +807,14 @@ export class BeamService {
 
       this.updateTransfer({ phase: 'preparing', mode: 'p2p', progress: 2 });
       const channel = await this.waitForDataChannel(P2P_WAIT_MS);
+      assertActive();
       if (channel) {
         try {
           await this.sendFileOverDataChannel(options);
+          assertActive();
           return { mode: 'p2p' };
         } catch (error) {
+          assertActive();
           console.warn('P2P transfer failed, trying cloud relay:', error);
           this.updateTransfer({ phase: 'preparing', mode: 'relay', progress: 5 });
         }
@@ -813,8 +828,10 @@ export class BeamService {
       }
 
       await this.sendFileOverRelay(options);
+      assertActive();
       return { mode: 'relay' };
     } catch (error) {
+      if (sendingSession !== this.sessionId) throw error;
       const message = error instanceof Error ? error.message : 'Document transfer failed.';
       this.updateTransfer({
         active: false,
@@ -1028,6 +1045,7 @@ export class BeamService {
   private listenToRoom(roomCode: string): void {
     const clean = roomCode.trim().replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     this.activeRoomCode = clean;
+    this.relayCursor = SSE_SINCE;
     this.openEventSource();
   }
 
@@ -1048,9 +1066,18 @@ export class BeamService {
         `${CLOUD_RELAY_BASE}/${topic}/sse?since=${SSE_SINCE}`
       );
       this.activeEventSource = source;
+      this.connectionTimer = setTimeout(() => {
+        if (generation !== this.sourceGeneration) return;
+        source.close();
+        this.activeEventSource = null;
+        this.setConnectionStatus('error');
+        void this.pollRoom(generation);
+      }, 15000);
 
       source.onopen = () => {
-        if (generation !== this.sourceGeneration) return;
+        if (generation !== this.sourceGeneration || this.activeEventSource !== source) return;
+        if (this.connectionTimer !== null) clearTimeout(this.connectionTimer);
+        this.connectionTimer = null;
         this.reconnectAttempt = 0;
         this.setConnectionStatus('connected');
         if (this.role === 'sender') {
@@ -1059,17 +1086,18 @@ export class BeamService {
       };
 
       source.onmessage = (event) => {
-        if (generation !== this.sourceGeneration) return;
-        void this.handleRelayEvent(event.data);
+        if (generation !== this.sourceGeneration || this.activeEventSource !== source) return;
+        void this.handleRelayEvent(event.data, generation);
       };
 
       source.onerror = () => {
-        if (generation !== this.sourceGeneration) return;
+        if (generation !== this.sourceGeneration || this.activeEventSource !== source) return;
+        if (this.connectionTimer !== null) clearTimeout(this.connectionTimer);
+        this.connectionTimer = null;
         this.setConnectionStatus('error');
-        if (source.readyState === EventSource.CLOSED) {
-          this.activeEventSource = null;
-          this.scheduleReconnect(generation);
-        }
+        source.close();
+        this.activeEventSource = null;
+        void this.pollRoom(generation);
       };
     } catch (error) {
       console.warn('Cloud EventSource signaling fallback:', error);
@@ -1080,6 +1108,11 @@ export class BeamService {
 
   private closeEventSource(): void {
     this.sourceGeneration += 1;
+    this.pollingGeneration = null;
+    if (this.pollTimer !== null) clearTimeout(this.pollTimer);
+    this.pollTimer = null;
+    if (this.connectionTimer !== null) clearTimeout(this.connectionTimer);
+    this.connectionTimer = null;
     if (this.reconnectTimer !== null) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -1090,6 +1123,40 @@ export class BeamService {
       } catch {}
       this.activeEventSource = null;
     }
+  }
+
+  // Some routers and WebViews buffer long-lived SSE responses. Short requests
+  // provide the same signaling protocol without requiring a streaming connection.
+  private async pollRoom(generation: number): Promise<void> {
+    if (generation !== this.sourceGeneration || !this.activeRoomCode) return;
+    this.pollingGeneration = generation;
+    try {
+      const topic = topicForRoom(this.activeRoomCode);
+      const response = await fetchWithTimeout(
+        `${CLOUD_RELAY_BASE}/${topic}/json?poll=1&since=${encodeURIComponent(this.relayCursor)}`,
+        undefined, 10000
+      );
+      if (generation !== this.sourceGeneration) return;
+      if (!response.ok) throw new Error(`Signaling returned HTTP ${response.status}`);
+      const body = await response.text();
+      if (generation !== this.sourceGeneration) return;
+      this.setConnectionStatus('connected');
+      this.reconnectAttempt = 0;
+      for (const line of body.split('\n')) {
+        if (generation !== this.sourceGeneration) return;
+        if (line.trim()) await this.handleRelayEvent(line, generation);
+      }
+    } catch {
+      if (generation !== this.sourceGeneration) return;
+      this.setConnectionStatus('error');
+      this.reconnectAttempt += 1;
+    }
+    if (generation !== this.sourceGeneration) return;
+    const delay = Math.min(30000, 5000 * 2 ** Math.min(3, this.reconnectAttempt));
+    this.pollTimer = setTimeout(() => {
+      this.pollTimer = null;
+      void this.pollRoom(generation);
+    }, delay);
   }
 
   private scheduleReconnect(generation: number): void {
@@ -1197,7 +1264,7 @@ export class BeamService {
     const sessionId =
       this.role === 'sender' ? this.sessionId : this.peerSessionId;
     if (!sessionId) return;
-    void this.publishMessage({
+    void this.broadcast({
       type: 'BEAM_DISCONNECT',
       roomCode: this.connectedRoom,
       sessionId,
@@ -1221,7 +1288,7 @@ export class BeamService {
     this.notifyStateListeners();
   }
 
-  private async handleRelayEvent(raw: string): Promise<void> {
+  private async handleRelayEvent(raw: string, generation = this.sourceGeneration): Promise<void> {
     let parsed: any;
     try {
       parsed = JSON.parse(raw);
@@ -1231,8 +1298,13 @@ export class BeamService {
     if (!parsed) return;
 
     const messages = await this.extractRelayMessages(parsed);
+    if (generation !== this.sourceGeneration) return;
     for (const message of messages) {
+      if (generation !== this.sourceGeneration) return;
       await this.handleIncoming(message, 'relay');
+    }
+    if (generation === this.sourceGeneration && parsed.event === 'message' && typeof parsed.id === 'string') {
+      this.relayCursor = parsed.id;
     }
   }
 
@@ -1551,7 +1623,7 @@ export class BeamService {
     if (!this.isRtcSupported) return null;
     const peer = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     peer.onicecandidate = (event) => {
-      if (!event.candidate || !this.connectedRoom) return;
+      if (peer !== this.rtcPeer || !event.candidate || !this.connectedRoom) return;
       const sessionId =
         this.role === 'sender' ? this.sessionId : this.peerSessionId;
       if (!sessionId) return;
@@ -1610,8 +1682,9 @@ export class BeamService {
       this.setupDataChannel(channel);
 
       const offer = await peer.createOffer();
+      if (peer !== this.rtcPeer) return;
       await peer.setLocalDescription(offer);
-      if (peer.signalingState === 'closed') return;
+      if (peer !== this.rtcPeer || peer.signalingState === 'closed') return;
       const description = peer.localDescription || offer;
 
       await this.broadcast({
@@ -1635,7 +1708,9 @@ export class BeamService {
     if (this.rtcPeer && this.lastOfferSdp === sdp) return;
     this.lastOfferSdp = sdp;
 
+    const earlyIce = this.queuedIce;
     this.closeRtc();
+    this.queuedIce = earlyIce;
     this.lastOfferSdp = sdp;
 
     try {
@@ -1643,19 +1718,21 @@ export class BeamService {
       if (!peer) return;
       this.rtcPeer = peer;
       this.remoteDescriptionSet = false;
-      this.queuedIce = [];
 
       peer.ondatachannel = (event) => {
+        if (peer !== this.rtcPeer) return;
         this.setupDataChannel(event.channel);
       };
 
       await peer.setRemoteDescription(new RTCSessionDescription(message.sdp));
+      if (peer !== this.rtcPeer) return;
       this.remoteDescriptionSet = true;
       await this.flushQueuedIce();
 
       const answer = await peer.createAnswer();
+      if (peer !== this.rtcPeer) return;
       await peer.setLocalDescription(answer);
-      if (peer.signalingState === 'closed') return;
+      if (peer !== this.rtcPeer || peer.signalingState === 'closed') return;
       const description = peer.localDescription || answer;
 
       await this.broadcast({
@@ -1723,9 +1800,8 @@ export class BeamService {
     };
 
     channel.onclose = () => {
-      if (this.rtcDataChannel === channel) {
-        this.rtcDataChannel = null;
-      }
+      if (this.rtcDataChannel !== channel) return;
+      this.rtcDataChannel = null;
       this.setPeerTransport(this.peerState.connected ? 'relay' : null);
     };
 
@@ -1734,6 +1810,7 @@ export class BeamService {
     };
 
     channel.onmessage = (event) => {
+      if (this.rtcDataChannel !== channel) return;
       void this.handleDataChannelPayload(event.data);
     };
   }
@@ -2066,8 +2143,13 @@ export class BeamService {
 
   private async sendFileOverRelay(options: SendDocumentOptions): Promise<void> {
     if (!this.connectedRoom) throw new Error('No active beam room.');
+    const session = this.sessionId;
+    const assertActive = () => {
+      if (!session || this.sessionId !== session) throw new Error('The transfer was cancelled.');
+    };
     const totalBytes = options.buffer.byteLength;
     const sha256 = await computeSha256(options.buffer);
+    assertActive();
     const transferId = randomId('t');
     const chunkCount = Math.ceil(totalBytes / RELAY_CHUNK_SIZE);
     const baseTopic = topicForRoom(this.connectedRoom);
@@ -2094,6 +2176,7 @@ export class BeamService {
       const topic = `${baseTopic}_${safeTopicPart(transferId)}_c${index}`;
       const filename = `${safeName}.part${index}`;
       const url = await this.putAttachment(topic, chunk, filename);
+      assertActive();
       chunks.push(url);
       this.updateTransfer({
         phase: 'transferring',
@@ -2265,6 +2348,9 @@ export class BeamService {
     ) {
       try {
         this.rtcDataChannel.send(JSON.stringify(outgoing));
+        // Once the direct channel is open, control traffic needs no relay.
+        // Heartbeats otherwise consume the public relay quota continuously.
+        return;
       } catch (error) {
         console.debug('P2P channel send note, relay fallback active:', error);
       }

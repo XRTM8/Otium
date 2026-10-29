@@ -3,6 +3,7 @@ import {
   arrayBufferToBase64,
   base64ToArrayBuffer,
   beamService,
+  BeamService,
   buildBeamLink,
   computeSha256,
   formatRoomCode,
@@ -140,6 +141,183 @@ describe('Otium Smart Beam binary helpers', () => {
 });
 
 describe('Otium Smart Beam session routing', () => {
+  it('transfers PDF bytes and waits for receiver confirmation over a direct channel', async () => {
+    const sender = new BeamService() as any;
+    const receiver = new BeamService() as any;
+    sender.connectedRoom = receiver.connectedRoom = 'OTM-1234';
+    sender.role = 'sender'; receiver.role = 'receiver';
+    sender.sessionId = receiver.peerSessionId = 'paired';
+    sender.rtcDataChannel = {
+      readyState: 'open', bufferedAmount: 0, close: vi.fn(),
+      send: (data: unknown) => { void receiver.handleDataChannelPayload(data); }
+    };
+    receiver.rtcDataChannel = {
+      readyState: 'open', close: vi.fn(),
+      send: (data: unknown) => { void sender.handleDataChannelPayload(data); }
+    };
+    const received = vi.fn();
+    receiver.subscribe(received);
+    try {
+      await sender.sendFileOverDataChannel({ buffer: pdfBuffer(), title: 'Test', pageNumber: 1, totalPages: 1, theme: 'midnight' });
+      expect(received).toHaveBeenCalledOnce();
+      const payload = received.mock.calls[0][0].payload;
+      expect(new Uint8Array(payload.pdfData)).toEqual(PDF_BYTES);
+      expect(sender.getTransferState().phase).toBe('done');
+    } finally { sender.disconnect(); receiver.disconnect(); }
+  });
+
+  it('does not start a relay upload after cancellation while waiting for a peer', async () => {
+    const service = beamService as any;
+    let release!: (ready: boolean) => void;
+    const waiting = vi.spyOn(service, 'waitForPeer').mockReturnValue(new Promise<boolean>(resolve => { release = resolve; }));
+    const relay = vi.spyOn(service, 'sendFileOverRelay');
+    try {
+      const pending = beamService.sendDocument({ roomCode: 'OTM-1234', buffer: pdfBuffer(), title: 'Test', pageNumber: 1, totalPages: 1, theme: 'midnight' });
+      const rejected = expect(pending).rejects.toThrow('cancelled');
+      beamService.disconnect();
+      release(true);
+      await rejected;
+      expect(relay).not.toHaveBeenCalled();
+      expect(beamService.getTransferState().phase).toBe('idle');
+    } finally { waiting.mockRestore(); relay.mockRestore(); }
+  });
+
+  it('preserves candidates delivered before the RTC offer', async () => {
+    const service = beamService as any;
+    const supported = service.isRtcSupported;
+    service.isRtcSupported = true;
+    beamService.startReceiver('OTM-1234');
+    service.peerSessionId = 'live';
+    const candidate = { candidate: 'candidate:early' };
+    const peer = {
+      setRemoteDescription: vi.fn().mockResolvedValue(undefined),
+      addIceCandidate: vi.fn().mockResolvedValue(undefined),
+      createAnswer: vi.fn().mockResolvedValue({ type: 'answer', sdp: 'answer' }),
+      setLocalDescription: vi.fn().mockResolvedValue(undefined), close: vi.fn()
+    };
+    const create = vi.spyOn(service, 'createPeerConnection').mockReturnValue(peer);
+    const broadcast = vi.spyOn(beamService, 'broadcast').mockResolvedValue(undefined);
+    vi.stubGlobal('RTCSessionDescription', class { constructor(value: unknown) { return value as any; } });
+    vi.stubGlobal('RTCIceCandidate', class { constructor(value: unknown) { return value as any; } });
+    try {
+      await service.handleRtcIce({ candidate });
+      await service.handleRtcOffer({ sessionId: 'live', sdp: { sdp: 'offer' } });
+      expect(peer.addIceCandidate).toHaveBeenCalledWith(candidate);
+      expect(broadcast).toHaveBeenCalledWith(expect.objectContaining({ type: 'BEAM_RTC_ANSWER' }));
+    } finally {
+      create.mockRestore(); broadcast.mockRestore();
+      service.isRtcSupported = supported;
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('ignores relay downloads that finish after cancellation', async () => {
+    const service = beamService as any;
+    beamService.startReceiver('OTM-1234');
+    let release!: (messages: BeamMessage[]) => void;
+    const extract = vi.spyOn(service, 'extractRelayMessages').mockReturnValue(
+      new Promise<BeamMessage[]>((resolve) => { release = resolve; })
+    );
+    const incoming = vi.spyOn(service, 'handleIncoming');
+    try {
+      const pending = service.handleRelayEvent('{}');
+      beamService.disconnect();
+      beamService.startReceiver('OTM-1234');
+      release([{ type: 'BEAM_HANDSHAKE', roomCode: 'OTM-1234', sessionId: 'old', timestamp: Date.now() }]);
+      await pending;
+      expect(incoming).not.toHaveBeenCalled();
+      expect(beamService.getPeerState().connected).toBe(false);
+    } finally { extract.mockRestore(); incoming.mockRestore(); }
+  });
+
+  it('polls buffered signaling and advances its cursor without replaying the cache', async () => {
+    vi.useFakeTimers();
+    const service = beamService as any;
+    service.activeRoomCode = 'otm1234';
+    service.connectedRoom = 'OTM-1234';
+    service.role = 'receiver';
+    service.relayCursor = '30s';
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, text: async () =>
+      JSON.stringify({ event: 'message', id: 'cursor-1', message: '{}' })
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      await service.pollRoom(service.sourceGeneration);
+      expect(beamService.getConnectionStatus()).toBe('connected');
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(fetchMock.mock.calls[1][0]).toContain('since=cursor-1');
+      beamService.disconnect();
+      await vi.advanceTimersByTimeAsync(10000);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      beamService.disconnect(); vi.unstubAllGlobals(); vi.useRealTimers();
+    }
+  });
+
+  it('times out a stalled signaling connection and ignores callbacks after cancel', () => {
+    vi.useFakeTimers();
+    const sources: any[] = [];
+    class FakeEventSource {
+      onopen: (() => void) | null = null;
+      onmessage: unknown = null;
+      onerror: unknown = null;
+      close = vi.fn();
+      constructor() { sources.push(this); }
+    }
+    vi.stubGlobal('EventSource', FakeEventSource);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, text: async () => '' }));
+    try {
+      beamService.startReceiver('OTM-1234');
+      expect(beamService.getConnectionStatus()).toBe('connecting');
+      vi.advanceTimersByTime(15000);
+      expect(beamService.getConnectionStatus()).toBe('error');
+      expect(sources[0].close).toHaveBeenCalled();
+      beamService.disconnect();
+      sources[0].onopen();
+      vi.advanceTimersByTime(30000);
+      expect(beamService.getConnectionStatus()).toBe('disconnected');
+      expect(sources).toHaveLength(1);
+    } finally {
+      beamService.disconnect();
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    }
+  });
+
+  it('sends disconnect over the direct channel before closing it', () => {
+    const service = beamService as any;
+    service.connectedRoom = 'OTM-1234';
+    service.role = 'sender';
+    service.sessionId = 'current-session';
+    const send = vi.fn();
+    const close = vi.fn();
+    service.rtcDataChannel = { readyState: 'open', send, close };
+
+    beamService.disconnect();
+
+    expect(send).toHaveBeenCalledOnce();
+    expect(JSON.parse(send.mock.calls[0][0])).toMatchObject({
+      type: 'BEAM_DISCONNECT', sessionId: 'current-session'
+    });
+    expect(close).toHaveBeenCalledOnce();
+    expect(beamService.getConnectionStatus()).toBe('disconnected');
+    expect(beamService.getPeerState().connected).toBe(false);
+  });
+
+  it('does not publish direct heartbeats to the cloud relay', async () => {
+    const service = beamService as any;
+    const publish = vi.spyOn(service, 'publishMessage');
+    service.rtcDataChannel = { readyState: 'open', send: vi.fn(), close: vi.fn() };
+    try {
+      await beamService.broadcast({
+        type: 'BEAM_PING', roomCode: 'OTM-1234', timestamp: Date.now()
+      });
+      expect(publish).not.toHaveBeenCalled();
+    } finally {
+      publish.mockRestore();
+    }
+  });
+
   it('manages sender and receiver roles and notifies state listeners', () => {
     const states: Array<{ room: string | null; role: string | null }> = [];
     const unsub = beamService.onStateChange((st) => states.push(st));
