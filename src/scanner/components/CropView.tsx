@@ -463,14 +463,14 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
       >
         <button
           onClick={onCancel}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-button text-gray-300 active:text-white"
+          className="fluid-press flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-button text-gray-300 active:text-white cursor-pointer"
           title="إلغاء / Cancel"
         >
           <X className="w-4 h-4" />
           <span className="text-xs">إلغاء</span>
         </button>
 
-        <span className="text-xs font-bold tracking-wide text-white font-arabic">
+        <span className="text-xs font-bold text-white font-arabic">
           تحديد أبعاد المستند
         </span>
 
@@ -478,7 +478,7 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
           <button
             onClick={handleUndo}
             disabled={undoStack.length === 0}
-            className="p-2 rounded-full glass-button text-gray-300 disabled:opacity-30 hover:text-white active:scale-90"
+            className="fluid-press p-2 rounded-full glass-button text-gray-300 disabled:opacity-30 hover:text-white cursor-pointer"
             title="تراجع / Undo"
           >
             <Undo2 className="w-3.5 h-3.5" />

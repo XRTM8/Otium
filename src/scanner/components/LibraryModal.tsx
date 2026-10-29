@@ -276,7 +276,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
     return (
       <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-2xl flex flex-col justify-between p-6 select-none animate-in fade-in duration-200">
         <div className="flex items-center justify-between pt-8">
-          <span className="text-xs text-gray-500 font-semibold tracking-wider uppercase font-arabic">
+          <span className="text-xs text-gray-400 font-semibold uppercase font-arabic">
             {isSettingPin ? 'إعداد رمز الأمان' : 'الخزنة المحمية برمز PIN'}
           </span>
           <button
@@ -505,18 +505,18 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
       {documents.length > 0 && (
         <div className="px-5 py-2.5">
           <div className="relative flex items-center">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 pointer-events-none" />
+            <Search className="w-4 h-4 text-gray-400 absolute start-3.5 pointer-events-none" />
             <input
               type="text"
               placeholder={lang === 'ar' ? 'البحث في المستندات بالاسم أو التاريخ...' : 'Search documents...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl py-2 pl-10 pr-8 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-accent/50 transition-colors"
+              className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl py-2 ps-10 pe-8 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-accent/50 transition-colors font-arabic"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 text-gray-400 text-xs hover:text-white cursor-pointer"
+                className="absolute end-3 text-gray-400 text-xs hover:text-white cursor-pointer"
               >
                 ✕
               </button>

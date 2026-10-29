@@ -193,7 +193,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             className="fluid-press flex items-center gap-1.5 px-3 py-1.5 rounded-full chrome-surface text-xs text-ink cursor-pointer"
           >
             <Globe className="w-3.5 h-3.5 text-ink-muted" />
-            <span className="font-mono text-[11px] font-semibold tracking-wider">
+            <span className={`text-[11px] font-semibold ${currentLang === 'ar' ? 'font-mono tracking-wider' : 'font-sans'}`}>
               {currentLang === 'ar' ? 'EN' : 'عربي'}
             </span>
           </button>
@@ -243,7 +243,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                   dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
                   className="chrome-surface absolute right-0 top-full mt-2 w-52 rounded-2xl p-1.5 z-50 text-ink fluid-pop shadow-2xl"
                 >
-                  <div className="text-[10px] uppercase font-mono px-2.5 py-1 text-ink-faint font-semibold tracking-wider">
+                  <div className={`text-[10px] uppercase px-2.5 py-1 text-ink-faint font-semibold ${currentLang === 'ar' ? 'font-sans' : 'font-mono tracking-wider'}`}>
                     {t.readingThemesTitle}
                   </div>
                   {themesList.map((th) => {

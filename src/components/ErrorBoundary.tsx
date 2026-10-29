@@ -74,7 +74,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <AlertTriangle className="w-8 h-8" />
           </div>
 
-          <h2 className="text-xl font-bold tracking-tight text-ink mb-2">
+          <h2 className="text-xl font-bold text-ink mb-2">
             حدث خطأ غير متوقع في العرض
           </h2>
           <p className="text-xs text-ink-muted max-w-md mb-6 leading-relaxed">

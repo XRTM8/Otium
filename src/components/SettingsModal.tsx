@@ -386,7 +386,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <Type className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm sm:text-base font-bold tracking-wide text-ink">
+              <h2 className={`text-sm sm:text-base font-bold text-ink ${ar ? '' : 'tracking-wide'}`}>
                 {t.settingsTitle}
               </h2>
               <p className="text-[11px] text-ink-muted font-sans">
@@ -444,7 +444,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       }`}
                     >
                       <div className="flex items-center justify-between w-full mb-1">
-                        <span className="text-sm font-bold tracking-wide">{font.name}</span>
+                        <span className="text-sm font-bold">{font.name}</span>
                         <div className="flex items-center gap-1.5">
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-hover text-ink-muted font-sans border border-line-subtle">
                             {font.badge}

@@ -247,7 +247,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
           className="fixed inset-x-2 top-16 z-50 mx-auto max-w-lg rounded-2xl chrome-surface p-3 text-ink space-y-3 fluid-pop shadow-2xl"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-ink-faint">
+            <span className={`text-[10px] uppercase text-ink-faint ${currentLang === 'ar' ? 'font-sans' : 'font-mono tracking-wider'}`}>
               {t.moreTools}
             </span>
             <button

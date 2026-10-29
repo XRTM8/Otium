@@ -762,7 +762,14 @@ export const CameraView: React.FC<CameraViewProps> = ({
             ) : pagesCount > 0 ? (
               <span className="text-accent font-semibold flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5 text-accent" />
-                <span>{pagesCount} صفحات مجمعة — التقط المزيد أو اضغط إنهاء</span>
+                <span>
+                  {pagesCount === 1
+                    ? 'صفحة واحدة ممسوحة'
+                    : pagesCount === 2
+                    ? 'صفحتان ممسوحتان'
+                    : `${pagesCount} صفحات مجمعة`}{' '}
+                  — التقط المزيد أو اضغط إنهاء
+                </span>
               </span>
             ) : (
               <span className="text-gray-300">وجّه الكاميرا نحو المستند ثم اضغط زر الالتقاط</span>

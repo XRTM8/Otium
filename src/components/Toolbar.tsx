@@ -289,7 +289,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               >
                 <div className="flex items-start justify-between gap-2 border-b border-line pb-2.5">
                   <div className="min-w-0 flex-1">
-                    <div className="text-[10px] font-mono uppercase tracking-wider text-ink-faint">
+                    <div className={`text-[10px] uppercase text-ink-faint ${ar ? 'font-sans' : 'font-mono tracking-wider'}`}>
                       {ar ? 'المستند الحالي' : 'Current Document'}
                     </div>
                     {isRenaming ? (
@@ -475,7 +475,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </button>
           </div>
 
-          <div className="segmented ml-0.5 hidden lg:inline-flex">
+          <div className="segmented ms-0.5 hidden lg:inline-flex">
             {VIEW_MODES.map((mode) => (
               <button
                 key={mode.id}
@@ -504,7 +504,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
             {showThemeMenu && (
               <div className="chrome-surface absolute right-0 top-full z-50 mt-2 w-52 rounded-2xl p-1.5 text-ink fluid-pop shadow-2xl">
-                <div className="px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
+                <div className={`px-2.5 py-1 text-[10px] font-semibold uppercase text-ink-faint ${ar ? 'font-sans' : 'font-mono tracking-wider'}`}>
                   {t.readingThemesTitle}
                 </div>
                 {themes.map((entry) => (

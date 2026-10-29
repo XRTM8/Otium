@@ -146,7 +146,7 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
           />
 
           {!hasDrawn && (
-            <p className="absolute pointer-events-none text-gray-400 text-xs font-medium tracking-wider">
+            <p className="absolute pointer-events-none text-gray-400 text-xs font-medium font-arabic">
               مرر إصبعك أو القلم للتوقيع هنا...
             </p>
           )}

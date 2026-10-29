@@ -145,10 +145,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   return (
     <div
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
-      className="fixed top-16 inset-x-4 sm:inset-x-auto sm:right-6 z-40 flex justify-center fluid-pop"
+      className="fixed top-16 inset-x-4 sm:inset-x-auto sm:end-6 z-40 flex justify-center fluid-pop"
     >
       <div className="chrome-surface flex w-full max-w-sm items-center gap-1.5 rounded-2xl p-1.5 text-xs text-ink sm:w-auto shadow-2xl">
-        <Search className="ml-1 w-3.5 h-3.5 text-ink-muted shrink-0" />
+        <Search className="ms-1 w-3.5 h-3.5 text-ink-muted shrink-0" />
         <input
           ref={inputRef}
           type="text"
@@ -163,13 +163,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             }
           }}
           placeholder={t.searchPlaceholder}
-          className="flex-1 rounded-lg bg-transparent px-1.5 py-1 text-xs text-ink outline-none placeholder:text-ink-faint focus:bg-hover-subtle sm:w-48"
+          className="flex-1 rounded-lg bg-transparent px-1.5 py-1 text-xs text-ink outline-none placeholder:text-ink-faint focus:bg-hover-subtle sm:w-48 font-sans"
         />
 
         {isSearching && <Loader2 className="w-3.5 h-3.5 animate-spin text-accent shrink-0" />}
 
         {!isSearching && query.trim().length >= 2 && results.length === 0 && (
-          <span className="font-mono text-[10px] text-ink-faint px-1 select-none">
+          <span className={`text-[10px] text-ink-faint px-1 select-none ${lang === 'ar' ? 'font-sans' : 'font-mono'}`}>
             {lang === 'ar' ? 'لا نتائج' : 'No results'}
           </span>
         )}
@@ -185,14 +185,14 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             <button
               onClick={prevMatch}
               title={lang === 'ar' ? 'النتيجة السابقة (Shift + Enter)' : 'Previous result (Shift + Enter)'}
-              className="toolbar-icon h-7 w-7"
+              className="toolbar-icon h-7 w-7 cursor-pointer"
             >
               <ChevronUp className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={nextMatch}
               title={lang === 'ar' ? 'النتيجة التالية (Enter)' : 'Next result (Enter)'}
-              className="toolbar-icon h-7 w-7"
+              className="toolbar-icon h-7 w-7 cursor-pointer"
             >
               <ChevronDown className="w-3.5 h-3.5" />
             </button>
@@ -201,7 +201,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
         <button
           onClick={onClose}
-          className="toolbar-icon"
+          className="toolbar-icon cursor-pointer"
+          title={lang === 'ar' ? 'إغلاق البحث' : 'Close search'}
         >
           <X className="w-3.5 h-3.5" />
         </button>

@@ -628,14 +628,14 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
           ) : (
             <button
               onClick={() => setIsEditingTitle(true)}
-              className="flex items-center gap-1 text-xs sm:text-sm font-bold tracking-wide text-white truncate max-w-full hover:text-accent"
+              className="flex items-center gap-1 text-xs sm:text-sm font-bold text-white truncate max-w-full hover:text-accent font-arabic"
               title="تعديل اسم المستند"
             >
               <span className="truncate">{docTitle}</span>
               <Edit3 className="w-3 h-3 text-accent opacity-80 shrink-0" />
             </button>
           )}
-          <span className="text-[10px] text-accent font-bold tracking-wider mt-0.5">
+          <span className="text-[10px] text-accent font-bold font-arabic mt-0.5">
             صفحة {safeIndex + 1} من {pages.length}
           </span>
         </div>
@@ -940,7 +940,9 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
               <svg
                 onPointerDown={(e) => {
                   e.preventDefault();
-                  (e.target as HTMLElement).setPointerCapture(e.pointerId);
+                  try {
+                    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+                  } catch {}
                   const rect = e.currentTarget.getBoundingClientRect();
                   const pt = { x: e.clientX - rect.left, y: e.clientY - rect.top };
                   setCurrentStroke([pt]);
@@ -951,7 +953,10 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                   const pt = { x: e.clientX - rect.left, y: e.clientY - rect.top };
                   setCurrentStroke((prev) => [...prev, pt]);
                 }}
-                onPointerUp={() => {
+                onPointerUp={(e) => {
+                  try {
+                    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+                  } catch {}
                   if (currentStroke.length > 0) {
                     setRedactionStrokes((prev) => [...prev, currentStroke]);
                     setCurrentStroke([]);

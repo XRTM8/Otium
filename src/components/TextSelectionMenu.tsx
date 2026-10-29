@@ -704,7 +704,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
           </div>
           <div className="mb-2 flex items-start gap-2">
             <div className="min-w-0 flex-1">
-              <div className="text-[10px] font-medium uppercase tracking-wide text-ink-faint">
+              <div className={`text-[10px] font-medium uppercase text-ink-faint ${lang === 'ar' ? 'font-sans' : 'tracking-wide'}`}>
                 {labels.selectedText}
               </div>
               <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-ink-muted">

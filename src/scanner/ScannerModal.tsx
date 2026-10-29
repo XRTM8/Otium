@@ -31,6 +31,13 @@ interface ScannerModalProps {
   onPdfGenerated: (file: File) => void;
 }
 
+function formatArabicPagesCount(count: number): string {
+  if (count === 1) return 'صفحة واحدة';
+  if (count === 2) return 'صفحتان ممسوحتان';
+  if (count >= 3 && count <= 10) return `${count} صفحات ممسوحة`;
+  return `${count} صفحة ممسوحة`;
+}
+
 export const ScannerModal: React.FC<ScannerModalProps> = ({
   isOpen,
   theme = 'midnight',
@@ -413,7 +420,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
             <div className="space-y-1">
               <h3 className="text-base font-bold text-white font-arabic">إغلاق جلسة المسح الضوئي؟</h3>
               <p className="text-xs text-gray-400 leading-relaxed font-arabic">
-                لديك <span className="text-accent font-bold">{pages.length}</span> {pages.length === 1 ? 'صفحة ممسوحة' : 'صفحات ممسوحة'}. هل تود حفظها كمسودة للمتابعة لاحقاً أم حذفها؟
+                لديك <span className="text-accent font-bold">{lang === 'ar' ? formatArabicPagesCount(pages.length) : `${pages.length} pages`}</span>. هل تود حفظها كمسودة للمتابعة لاحقاً أم حذفها؟
               </p>
             </div>
 
@@ -456,8 +463,8 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
             <p className="text-base font-bold text-white font-arabic">
               {lang === 'ar' ? 'جاري فتح المستند في القارئ...' : 'Opening in Reader...'}
             </p>
-            <p className="text-xs text-gray-400 font-mono">
-              {pages.length} {lang === 'ar' ? 'صفحات ممسوحة' : 'pages scanned'}
+            <p className={`text-xs text-gray-400 ${lang === 'ar' ? 'font-arabic' : 'font-mono'}`}>
+              {lang === 'ar' ? formatArabicPagesCount(pages.length) : `${pages.length} ${pages.length === 1 ? 'page' : 'pages'} scanned`}
             </p>
           </div>
         </div>

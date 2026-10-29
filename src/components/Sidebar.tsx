@@ -465,7 +465,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <span className="truncate flex-1 group-hover:text-highlight transition-colors font-sans">
                       {item.title}
                     </span>
-                    <span className="font-mono text-[10px] opacity-40 group-hover:opacity-80 shrink-0">
+                    <span className={`text-[10px] opacity-40 group-hover:opacity-80 shrink-0 ${ar ? 'font-sans' : 'font-mono'}`}>
                       {ar ? `ص ${item.pageNumber}` : `p. ${item.pageNumber}`}
                     </span>
                   </button>
@@ -620,7 +620,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         key={anno.id}
                         className="p-2.5 rounded-xl bg-hover-subtle border border-line-subtle hover:border-line transition-all text-start space-y-1 group"
                       >
-                        <div className="flex items-center justify-between text-[10px] text-ink-muted font-mono">
+                        <div className={`flex items-center justify-between text-[10px] text-ink-muted ${ar ? 'font-sans' : 'font-mono'}`}>
                           <button
                             onClick={() => {
                               onSelectPage(anno.pageNumber);
