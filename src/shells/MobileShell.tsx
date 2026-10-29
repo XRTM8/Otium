@@ -188,6 +188,7 @@ export const MobileShell: React.FC = () => {
         lang={reader.lang}
         theme={reader.theme}
         reader={reader}
+        formFactor="mobile"
         isBoardOpen={false}
         onSetBoardOpen={() => {}}
         onClose={() => setIsBeamOpen(false)}

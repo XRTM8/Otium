@@ -266,6 +266,7 @@ export const DesktopShell: React.FC = () => {
         lang={reader.lang}
         theme={reader.theme}
         reader={reader}
+        formFactor="desktop"
         isBoardOpen={isBoardOpen}
         onSetBoardOpen={setIsBoardOpen}
         onClose={() => setIsBeamOpen(false)}

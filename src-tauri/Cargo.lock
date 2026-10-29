@@ -2549,7 +2549,7 @@ dependencies = [
 
 [[package]]
 name = "otium"
-version = "1.8.11"
+version = "1.8.12"
 dependencies = [
  "log",
  "serde",

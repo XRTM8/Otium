@@ -22,55 +22,115 @@ import type { ThemeMode } from '../../core/types';
 import type { ReaderController } from '../../app/useReaderController';
 import { getDocumentFromStorage } from '../../core/storage/documents';
 import {
-  arrayBufferToBase64,
+  BeamSendError,
   beamService,
+  buildBeamLink,
   formatRoomCode,
   generateNewReceiverRoomCode,
   getPersistentReceiverRoomCode,
   getRecentRooms,
+  parseBeamLaunch,
   saveRecentRoom,
   type BeamConnectionStatus
 } from './beamService';
 import { QrCodeView } from './QrCodeView';
-import type { BeamMessage } from '../types';
+import type {
+  BeamMessage,
+  BeamPeerState,
+  BeamTransferState
+} from '../types';
 
 interface BeamModalProps {
   isOpen: boolean;
   lang: Language;
   theme?: ThemeMode;
   reader: ReaderController;
+  formFactor: 'desktop' | 'mobile';
   isBoardOpen?: boolean;
   onSetBoardOpen: (open: boolean) => void;
   onClose: () => void;
 }
 
+function describeBeamError(error: unknown, lang: Language): string {
+  const ar = lang === 'ar';
+  if (error instanceof BeamSendError) {
+    switch (error.code) {
+      case 'peer-unreachable':
+        return ar
+          ? 'لم تستجب السبورة حتى الآن. تأكد أن الحاسبة مفتوحة على نافذة «استقبال» وأن الرمز مطابق، ثم أعد المحاولة.'
+          : 'The receiver did not answer. Make sure the PC is on the Receiver tab with the same code, then retry.';
+      case 'too-large':
+        return ar
+          ? 'الملف أكبر من حد النقل السحابي. اجعل الهاتف والحاسبة على نفس شبكة الواي فاي أو هوتسبوت الهاتف حتى يتم النقل المباشر.'
+          : 'This PDF is too large for the cloud relay. Keep both devices on the same Wi-Fi or phone hotspot for the direct transfer.';
+      case 'busy':
+        return ar
+          ? 'هناك عملية نقل مستند جارية بالفعل. انتظر انتهاءها ثم أعد المحاولة.'
+          : 'Another document transfer is already running. Wait for it to finish, then retry.';
+      case 'invalid-document':
+        return ar
+          ? 'تعذر قراءة هذا الملف كملف PDF صالح.'
+          : 'This file could not be read as a valid PDF.';
+      default:
+        return error.message;
+    }
+  }
+  if (error instanceof Error && error.message) return error.message;
+  return ar ? 'تعذر إتمام النقل. أعد المحاولة.' : 'The transfer did not complete. Please retry.';
+}
+
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 MB';
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+
 export const BeamModal: React.FC<BeamModalProps> = ({
   isOpen,
   lang,
   reader,
+  formFactor,
   onSetBoardOpen,
   onClose
 }) => {
+  const launchRef = useRef(
+    parseBeamLaunch(
+      typeof window !== 'undefined' ? window.location.hash : '',
+      typeof window !== 'undefined' ? window.location.search : ''
+    )
+  );
+
   const [activeTab, setActiveTab] = useState<'send' | 'receive' | 'remote' | 'offline'>(() => {
     const role = beamService.getRole();
     if (role === 'receiver') return 'receive';
-    if (role === 'sender') return 'remote';
-    if (!reader.doc && typeof window !== 'undefined' && window.innerWidth >= 768) return 'receive';
+    if (role === 'sender') return beamService.getConnectedRoom() ? 'remote' : 'send';
+    if (launchRef.current.role === 'receiver') return 'receive';
+    if (launchRef.current.role === 'sender') return 'send';
+    // A large screen with no document is almost always the receiving board.
+    // Never infer this from window.innerWidth: a narrow desktop window used to
+    // become a sender and silently stopped listening for the phone.
+    if (!reader.doc && formFactor === 'desktop') return 'receive';
     return 'send';
   });
-  const [targetRoomCode, setTargetRoomCode] = useState('');
+  const [targetRoomCode, setTargetRoomCode] = useState(() => launchRef.current.room || '');
   const [receiverRoomCode, setReceiverRoomCode] = useState(() => {
     const existing = beamService.getConnectedRoom();
     if (existing && beamService.getRole() === 'receiver') {
       return existing;
     }
+    if (launchRef.current.role === 'receiver' && launchRef.current.room) {
+      return launchRef.current.room;
+    }
     return getPersistentReceiverRoomCode();
   });
-  const [connectedRemotePeer, setConnectedRemotePeer] = useState<string | null>(null);
   const hasAutoBeamedRef = useRef(false);
+  const launchAppliedRef = useRef(false);
+  const receiverRoomRef = useRef(receiverRoomCode);
+  receiverRoomRef.current = receiverRoomCode;
+
   const [isSending, setIsSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
-  const [connectedRoom, setConnectedRoom] = useState<string | null>(() => beamService.getConnectedRoom());
   const [copiedCode, setCopiedCode] = useState(false);
   const [recentRooms, setRecentRooms] = useState<string[]>([]);
   const [beamError, setBeamError] = useState<string | null>(null);
@@ -78,23 +138,61 @@ export const BeamModal: React.FC<BeamModalProps> = ({
   const [remotePage, setRemotePage] = useState<number>(() => reader.currentPage || 1);
   const [remoteTotal, setRemoteTotal] = useState<number>(() => reader.numPages || 0);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  const [connStatus, setConnStatus] = useState<BeamConnectionStatus>(() => beamService.getConnectionStatus());
-  const [isReceiverAcknowledged, setIsReceiverAcknowledged] = useState(false);
+  const [connStatus, setConnStatus] = useState<BeamConnectionStatus>(() =>
+    beamService.getConnectionStatus()
+  );
+  const [beamState, setBeamState] = useState<{
+    room: string | null;
+    role: 'receiver' | 'sender' | null;
+  }>(() => ({
+    room: beamService.getConnectedRoom(),
+    role: beamService.getRole()
+  }));
+  const [peer, setPeer] = useState<BeamPeerState>(() => beamService.getPeerState());
+  const [transfer, setTransfer] = useState<BeamTransferState>(() =>
+    beamService.getTransferState()
+  );
+
+  const connectedRoom = beamState.room;
+  const connectedRemotePeer =
+    beamState.role === 'receiver' && peer.connected
+      ? peer.peerName || (lang === 'ar' ? 'الهاتف' : 'Remote')
+      : null;
+  const isReceiverAcknowledged = beamState.role === 'sender' && peer.connected;
   const offlineFileInputRef = useRef<HTMLInputElement>(null);
   const beamFileInputRef = useRef<HTMLInputElement>(null);
   const receiverFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync beam connection state
+  // Sync beam connection, peer and transfer state.
   useEffect(() => {
     const unsubState = beamService.onStateChange((state) => {
-      setConnectedRoom(state.room);
+      setBeamState(state);
     });
     const unsubStatus = beamService.onConnectionStatusChange((status) => {
       setConnStatus(status);
     });
+    const unsubPeer = beamService.onPeerChange((state) => {
+      setPeer(state);
+      if (state.docTitle) setRemoteDocTitle(state.docTitle);
+      if (typeof state.pageNumber === 'number') setRemotePage(state.pageNumber);
+      if (typeof state.totalPages === 'number') setRemoteTotal(state.totalPages);
+    });
+    const unsubTransfer = beamService.onTransferProgress((state) => {
+      setTransfer(state);
+      if (state.active && state.direction === 'send') {
+        setUploadProgress(Math.round(state.progress));
+      } else {
+        setUploadProgress(null);
+      }
+      if (state.phase === 'error' && state.error) {
+        setBeamError(state.error);
+      }
+    });
     return () => {
       unsubState();
       unsubStatus();
+      unsubPeer();
+      unsubTransfer();
     };
   }, []);
 
@@ -112,20 +210,47 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     }
   }, [isOpen]);
 
-  // Check URL query params for auto-connect (e.g. from native phone camera QR scan)
+  // Read the role from the link. `role=receive` is the important one: a PC that
+  // opens a board link must start listening immediately, not open the send tab.
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      launchAppliedRef.current = false;
+      return;
+    }
+    if (launchAppliedRef.current) return;
+
+    let launch = launchRef.current;
     try {
-      const hash = window.location.hash;
-      const search = window.location.search;
-      const match = hash.match(/room=([A-Za-z0-9_-]+)/) || search.match(/room=([A-Za-z0-9_-]+)/);
-      if (match && match[1]) {
-        const room = match[1].toUpperCase();
-        setTargetRoomCode(room);
-        setActiveTab('send');
+      if (typeof window !== 'undefined' && typeof window.location !== 'undefined') {
+        launch = parseBeamLaunch(window.location.hash, window.location.search);
       }
     } catch {}
-  }, [isOpen]);
+    if (!launch.auto) return;
+    launchAppliedRef.current = true;
+
+    if (launch.room) {
+      setTargetRoomCode(launch.room);
+    }
+
+    if (launch.role === 'receiver') {
+      const room = launch.room || receiverRoomRef.current;
+      setReceiverRoomCode(room);
+      setActiveTab('receive');
+      beamService.startReceiver(room);
+      return;
+    }
+
+    if (launch.role === 'sender') {
+      setActiveTab('send');
+      return;
+    }
+
+    if (!reader.doc && formFactor === 'desktop' && launch.room) {
+      setReceiverRoomCode(launch.room);
+      setActiveTab('receive');
+      beamService.startReceiver(launch.room);
+    }
+  }, [isOpen, formFactor, reader.doc]);
 
   // Close on Escape key
   useEffect(() => {
@@ -141,95 +266,43 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Join cloud room when Receiver Tab is active
+  // Join the cloud room whenever the Receiver tab is active. The service is
+  // idempotent, so page changes and re-renders cannot tear down signaling.
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'receive') return;
+    beamService.setLocalDocumentState(
+      reader.docTitle || '',
+      reader.currentPage || 1,
+      reader.numPages || 0
+    );
+    beamService.startReceiver(receiverRoomCode);
+  }, [
+    isOpen,
+    activeTab,
+    receiverRoomCode,
+    reader.docTitle,
+    reader.currentPage,
+    reader.numPages
+  ]);
+
+  // Close the modal as soon as the receiver gets a document. The reader
+  // controller performs the actual load.
   useEffect(() => {
     if (!isOpen) return;
-    if (activeTab === 'receive') {
-      beamService.startReceiver(receiverRoomCode);
-    }
-  }, [isOpen, activeTab, receiverRoomCode]);
-
-  // Continuous handshake retry loop until receiver acknowledges
-  useEffect(() => {
-    if (!isOpen || activeTab !== 'remote' || !connectedRoom || isReceiverAcknowledged) return;
-
-    let retryCount = 0;
-    const maxRetries = 8;
-
-    const ping = () => {
-      if (retryCount >= maxRetries) return;
-      retryCount++;
-      void beamService.broadcast({
-        type: 'BEAM_HANDSHAKE',
-        roomCode: connectedRoom,
-        senderName: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
-        timestamp: Date.now()
-      });
-      beamService.queryReceiverState(connectedRoom);
-    };
-
-    ping();
-    const interval = setInterval(ping, 1500);
-
-    return () => clearInterval(interval);
-  }, [isOpen, activeTab, connectedRoom, isReceiverAcknowledged]);
-
-  // Subscribe to beam messages (receiver mode, payload receipt & remote state updates)
-  useEffect(() => {
-    const unsubscribe = beamService.subscribe(async (msg: BeamMessage) => {
-      // 1. When incoming payload matches our receiver room, activate split board and close modal
+    const unsubscribe = beamService.subscribe((msg: BeamMessage) => {
       if (
         msg.type === 'BEAM_PAYLOAD' &&
         msg.payload &&
-        beamService.isMatchingRoom(msg.roomCode, receiverRoomCode)
+        beamService.getRole() === 'receiver' &&
+        beamService.isMatchingRoom(msg.roomCode, receiverRoomRef.current)
       ) {
-        saveRecentRoom(receiverRoomCode);
+        saveRecentRoom(receiverRoomRef.current);
         onSetBoardOpen(true);
         onClose();
       }
-
-      // 2. When receiver announces its state, sync remote clicker view & confirm handshake
-      if (msg.type === 'BEAM_STATE_ANNOUNCE') {
-        setIsReceiverAcknowledged(true);
-        triggerHaptic();
-        if (msg.docTitle) setRemoteDocTitle(msg.docTitle);
-        if (typeof msg.pageNumber === 'number') setRemotePage(msg.pageNumber);
-        if (typeof msg.totalPages === 'number') setRemoteTotal(msg.totalPages);
-
-        // Auto-beam active lecture to board if board is currently empty
-        if (reader.doc && (!msg.docTitle || msg.totalPages === 0) && !hasAutoBeamedRef.current) {
-          hasAutoBeamedRef.current = true;
-          const target = connectedRoom || targetRoomCode;
-          if (target) {
-            void handleBeamDocument(target);
-          }
-        }
-      }
-
-      // 3. When handshake arrives in receiver mode, announce state immediately & record peer
-      if (
-        msg.type === 'BEAM_HANDSHAKE' &&
-        beamService.isMatchingRoom(msg.roomCode, receiverRoomCode)
-      ) {
-        setConnectedRemotePeer(msg.senderName || (lang === 'ar' ? 'الهاتف' : 'Remote'));
-        beamService.announceState(
-          receiverRoomCode,
-          reader.docTitle || '',
-          reader.currentPage || 1,
-          reader.numPages || 0
-        );
-      }
-
-      // 4. When disconnect arrives from either peer, reset remote state cleanly
-      if (msg.type === 'BEAM_DISCONNECT') {
-        setIsReceiverAcknowledged(false);
-        setConnectedRemotePeer(null);
-        setConnectedRoom(null);
-      }
     });
-
     return () => unsubscribe();
-  }, [receiverRoomCode, onSetBoardOpen, onClose]);
+  }, [isOpen, onSetBoardOpen, onClose]);
 
   // Stop camera helper
   const stopCamera = useCallback(() => {
@@ -244,17 +317,28 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     setIsScanningCamera(false);
   }, []);
 
-  // Send current book or custom file to Smartboard
+  // Send current book or custom file to the receiving board.
   const handleBeamDocument = useCallback(
     async (overrideCode?: string, overrideBuffer?: ArrayBuffer, overrideTitle?: string) => {
-      const raw = (overrideCode || targetRoomCode).trim();
+      const raw = (overrideCode || targetRoomCode || beamService.getConnectedRoom() || '').trim();
       const code = formatRoomCode(raw);
-      if (!code) return;
+      if (!code) {
+        setBeamError(
+          lang === 'ar'
+            ? 'يرجى إدخال رمز السبورة أولاً.'
+            : 'Please enter the board code first.'
+        );
+        return;
+      }
 
       setBeamError(null);
+      hasAutoBeamedRef.current = true;
 
       let buffer = overrideBuffer;
-      const title = overrideTitle || reader.docTitle || (lang === 'ar' ? 'المحاضرة' : 'Lecture Document');
+      const title =
+        overrideTitle ||
+        reader.docTitle ||
+        (lang === 'ar' ? 'المحاضرة' : 'Lecture Document');
       const pageNumber = reader.currentPage || 1;
       const totalPages = reader.numPages || 1;
 
@@ -268,138 +352,108 @@ export const BeamModal: React.FC<BeamModalProps> = ({
           if (!docBuf) throw new Error('Document buffer not found in storage');
           buffer = docBuf;
         } catch {
-          setBeamError(lang === 'ar' ? 'تعذر قراءة ملف المستند' : 'Failed to read document');
+          setBeamError(
+            lang === 'ar' ? 'تعذر قراءة ملف المستند' : 'Failed to read document'
+          );
           return;
         }
       }
 
+      if (!buffer || buffer.byteLength === 0) {
+        setBeamError(
+          lang === 'ar' ? 'ملف المستند فارغ.' : 'The selected document is empty.'
+        );
+        return;
+      }
+
       setIsSending(true);
       setSendSuccess(false);
-      setUploadProgress(15);
+      setBeamError(null);
 
       try {
-        const totalBytes = buffer.byteLength;
-        const SINGLE_LIMIT = 2 * 1024 * 1024; // 2MB
-
-        if (totalBytes <= SINGLE_LIMIT) {
-          setUploadProgress(40);
-          const pdfUrl = await beamService.uploadAttachment(code, buffer, `${title}.pdf`);
-          setUploadProgress(85);
-
-          const pdfBase64 = !pdfUrl && totalBytes < 500000 ? arrayBufferToBase64(buffer) : undefined;
-          if (!pdfUrl && !pdfBase64) {
-            throw new Error(
-              lang === 'ar'
-                ? 'تعذر رفع المستند إلى السحابة، تأكد من اتصال الإنترنت أو استخدم وضع "بدون إنترنت"'
-                : 'Failed to upload document to cloud relay. Check your connection or use Offline mode.'
-            );
-          }
-
-          const payloadMsg: BeamMessage = {
-            type: 'BEAM_PAYLOAD',
-            roomCode: code,
-            senderName: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
-            payload: {
-              title,
-              pageNumber,
-              totalPages,
-              theme: reader.theme,
-              pdfUrl: pdfUrl || undefined,
-              pdfBase64
-            },
-            timestamp: Date.now()
-          };
-
-          await beamService.broadcast(payloadMsg);
-        } else {
-          // Chunked upload for larger files (e.g. 5MB, 10MB+)
-          const chunkUrls = await beamService.uploadChunked(code, buffer, `${title}.pdf`, (p) => {
-            setUploadProgress(Math.min(95, Math.max(15, p)));
-          });
-
-          if (!chunkUrls || chunkUrls.length === 0) {
-            throw new Error(
-              lang === 'ar'
-                ? 'تعذر إرسال أجزاء الملف الكبير، يرجى استخدام وضع بدون إنترنت عبر فلاشة USB أو الهوتسبوت'
-                : 'Chunked upload failed. Please use Offline mode via USB or Wi-Fi hotspot.'
-            );
-          }
-
-          const payloadMsg: BeamMessage = {
-            type: 'BEAM_PAYLOAD',
-            roomCode: code,
-            senderName: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
-            payload: {
-              title,
-              pageNumber,
-              totalPages,
-              theme: reader.theme,
-              chunks: chunkUrls,
-              totalSize: totalBytes
-            },
-            timestamp: Date.now()
-          };
-
-          await beamService.broadcast(payloadMsg);
-        }
-
-        beamService.startSender(code);
-        beamService.broadcastPageChange(pageNumber);
-
-        setConnectedRoom(code);
+        await beamService.sendDocument({
+          roomCode: code,
+          buffer,
+          title,
+          pageNumber,
+          totalPages,
+          theme: reader.theme
+        });
         setSendSuccess(true);
-        setIsSending(false);
-        setUploadProgress(null);
-
-        // Transition to remote presentation mode
+        setTargetRoomCode(code);
         setTimeout(() => {
           setActiveTab('remote');
-        }, 300);
-      } catch (err: any) {
-        console.error('Failed to beam document:', err);
+        }, 250);
+      } catch (error) {
+        console.error('Failed to beam document:', error);
+        setBeamError(describeBeamError(error, lang));
+      } finally {
         setIsSending(false);
-        setUploadProgress(null);
-        setBeamError(
-          err?.message ||
-          (lang === 'ar' ? 'تعذر إرسال المستند، تأكد من الرمز وحاول مجدداً' : 'Failed to beam document')
-        );
       }
     },
     [targetRoomCode, reader, lang]
   );
 
-  // Quick remote pairing (Automatically beams document if one is loaded!)
+  // Quick remote pairing. The service retries the handshake continuously, so
+  // there is no 8-attempt limit and no need for duplicate QUERY messages.
   const handlePairAsRemote = useCallback(
     (overrideCode?: string) => {
       const raw = (overrideCode || targetRoomCode).trim();
       const code = formatRoomCode(raw);
-      if (!code) return;
+      if (!code) {
+        setBeamError(
+          lang === 'ar'
+            ? 'يرجى إدخال رمز السبورة أولاً.'
+            : 'Please enter the board code first.'
+        );
+        return;
+      }
 
       setBeamError(null);
+      hasAutoBeamedRef.current = true;
 
-      // If document is open on this device, automatically beam it so board actually displays it!
       if (reader.doc) {
         void handleBeamDocument(code);
         return;
       }
 
-      setIsReceiverAcknowledged(false);
       beamService.startSender(code);
-      void beamService.broadcast({
-        type: 'BEAM_HANDSHAKE',
-        roomCode: code,
-        senderName: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
-        timestamp: Date.now()
-      });
-      beamService.queryReceiverState(code);
-      setConnectedRoom(code);
+      setTargetRoomCode(code);
       setSendSuccess(true);
       setTimeout(() => {
         setActiveTab('remote');
       }, 200);
     },
-    [targetRoomCode, reader.doc, handleBeamDocument]
+    [targetRoomCode, reader.doc, handleBeamDocument, lang]
   );
+
+  // Auto-beam the active lecture when a paired receiver reports that it has no
+  // document open. Runs once per pairing; manual re-beam remains available.
+  useEffect(() => {
+    if (
+      !isOpen ||
+      beamState.role !== 'sender' ||
+      !peer.connected ||
+      peer.docTitle ||
+      !reader.doc ||
+      hasAutoBeamedRef.current
+    ) {
+      return;
+    }
+    const target = beamState.room || targetRoomCode;
+    if (!target) return;
+    hasAutoBeamedRef.current = true;
+    void handleBeamDocument(target);
+  }, [
+    isOpen,
+    beamState.role,
+    beamState.room,
+    peer.connected,
+    peer.docTitle,
+    reader.doc,
+    targetRoomCode,
+    handleBeamDocument
+  ]);
 
   // File picker handler to beam a file directly without opening it first
   const handleBeamFileDirect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -421,6 +475,15 @@ export const BeamModal: React.FC<BeamModalProps> = ({
   // Camera QR Code Scanner Execution
   const startCameraScanner = async () => {
     setCameraError(null);
+    if (typeof window === 'undefined' || !('BarcodeDetector' in window)) {
+      setCameraError(
+        lang === 'ar'
+          ? 'متصفح هذا الجهاز لا يدعم مسح QR. اكتب الرمز الظاهر على السبورة يدوياً.'
+          : 'This browser cannot scan QR codes. Type the code shown on the board instead.'
+      );
+      setIsScanningCamera(false);
+      return;
+    }
     setIsScanningCamera(true);
 
     try {
@@ -434,33 +497,33 @@ export const BeamModal: React.FC<BeamModalProps> = ({
         await videoRef.current.play();
       }
 
-      // Check if native BarcodeDetector is available
-      if ('BarcodeDetector' in window) {
-        const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
-        const scanLoop = async () => {
-          if (!videoRef.current || !mediaStreamRef.current) return;
-          try {
-            const barcodes = await detector.detect(videoRef.current);
-            if (barcodes.length > 0) {
-              const raw = barcodes[0].rawValue || '';
-              const match = raw.match(/room=([A-Za-z0-9_-]+)/) || raw.match(/(OTM-[A-Za-z0-9_-]+)/i) || raw.match(/([0-9]{4,6})/);
-              const detected = match ? match[1].toUpperCase() : raw.toUpperCase();
-              if (detected) {
-                stopCamera();
-                setTargetRoomCode(detected);
-                if (reader.doc) {
-                  void handleBeamDocument(detected);
-                } else {
-                  handlePairAsRemote(detected);
-                }
-                return;
+      const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
+      const scanLoop = async () => {
+        if (!videoRef.current || !mediaStreamRef.current) return;
+        try {
+          const barcodes = await detector.detect(videoRef.current);
+          if (barcodes.length > 0) {
+            const raw = barcodes[0].rawValue || '';
+            const match =
+              raw.match(/room=([A-Za-z0-9_-]+)/) ||
+              raw.match(/(OTM-[A-Za-z0-9_-]+)/i) ||
+              raw.match(/([0-9]{4,6})/);
+            const detected = match ? match[1].toUpperCase() : raw.toUpperCase();
+            if (detected) {
+              stopCamera();
+              setTargetRoomCode(detected);
+              if (reader.doc) {
+                void handleBeamDocument(detected);
+              } else {
+                handlePairAsRemote(detected);
               }
+              return;
             }
-          } catch {}
-          scanAnimFrameRef.current = requestAnimationFrame(scanLoop);
-        };
+          }
+        } catch {}
         scanAnimFrameRef.current = requestAnimationFrame(scanLoop);
-      }
+      };
+      scanAnimFrameRef.current = requestAnimationFrame(scanLoop);
     } catch (err: any) {
       console.warn('Camera access error:', err);
       setCameraError(lang === 'ar' ? 'تعذر تشغيل الكاميرا، يمكنك كتابة الكود يدوياً' : 'Camera inaccessible, enter code manually');
@@ -480,19 +543,27 @@ export const BeamModal: React.FC<BeamModalProps> = ({
   const handleReceiverFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // The reader controller announces the document/page after it has loaded.
+      // Announcing immediately here used to send page 1 with the old document.
       void reader.openFile(file);
-      const docName = file.name.replace(/\.pdf$/i, '');
-      beamService.announceState(receiverRoomCode, docName, 1, 1);
       onSetBoardOpen(true);
       onClose();
     }
   };
 
   const handleRegenerateCode = () => {
+    beamService.disconnect();
     const newCode = generateNewReceiverRoomCode();
     setReceiverRoomCode(newCode);
+    setBeamError(null);
     beamService.startReceiver(newCode);
   };
+
+  useEffect(() => {
+    if (!isOpen) {
+      stopCamera();
+    }
+  }, [isOpen, stopCamera]);
 
   useEffect(() => {
     return () => {
@@ -514,8 +585,10 @@ export const BeamModal: React.FC<BeamModalProps> = ({
   const activePage = reader.doc ? reader.currentPage : remotePage;
   const activeTotal = reader.doc ? reader.numPages : remoteTotal;
 
-  // Remote clicker controls (works seamlessly with or without local document loaded!)
+  // Remote clicker controls. Send exactly one absolute page command: the old
+  // code sent BEAM_STEP + BEAM_PAGE_CHANGE, which double-advanced the receiver.
   const handleRemoteNext = useCallback(() => {
+    if (!isReceiverAcknowledged) return;
     if (activeTotal > 0 && activePage >= activeTotal) return;
     triggerHaptic();
     const nextPage = activePage + 1;
@@ -524,18 +597,11 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     } else {
       setRemotePage(nextPage);
     }
-    if (connectedRoom) {
-      beamService.sendStep('next');
-      void beamService.broadcast({
-        type: 'BEAM_PAGE_CHANGE',
-        roomCode: connectedRoom,
-        pageNumber: nextPage,
-        timestamp: Date.now()
-      });
-    }
-  }, [activeTotal, activePage, reader, connectedRoom, triggerHaptic]);
+    beamService.broadcastPageChange(nextPage);
+  }, [activeTotal, activePage, reader, isReceiverAcknowledged, triggerHaptic]);
 
   const handleRemotePrev = useCallback(() => {
+    if (!isReceiverAcknowledged) return;
     if (activeTotal > 0 && activePage <= 1) return;
     triggerHaptic();
     const prevPage = Math.max(1, activePage - 1);
@@ -544,16 +610,8 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     } else {
       setRemotePage(prevPage);
     }
-    if (connectedRoom) {
-      beamService.sendStep('prev');
-      void beamService.broadcast({
-        type: 'BEAM_PAGE_CHANGE',
-        roomCode: connectedRoom,
-        pageNumber: prevPage,
-        timestamp: Date.now()
-      });
-    }
-  }, [activeTotal, activePage, reader, connectedRoom, triggerHaptic]);
+    beamService.broadcastPageChange(prevPage);
+  }, [activeTotal, activePage, reader, isReceiverAcknowledged, triggerHaptic]);
 
   // Keyboard navigation when remote tab is active
   useEffect(() => {
@@ -577,7 +635,26 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  const smartboardUrl = `https://is.gd/otium#/beam?room=${receiverRoomCode}`;
+  const transferPhaseText = (() => {
+    if (!transfer.active && transfer.phase !== 'finalizing') return null;
+    const ar = lang === 'ar';
+    if (transfer.phase === 'waiting-peer') {
+      return ar ? 'بانتظار استجابة السبورة…' : 'Waiting for the receiver…';
+    }
+    if (transfer.phase === 'preparing') {
+      return ar ? 'جارٍ تجهيز الاتصال المباشر…' : 'Preparing the direct connection…';
+    }
+    if (transfer.phase === 'finalizing') {
+      return ar ? 'جارٍ التحقق من الملف…' : 'Verifying the file…';
+    }
+    if (transfer.phase === 'transferring') {
+      const channel = transfer.mode === 'p2p' ? (ar ? 'P2P مباشر' : 'Direct P2P') : ar ? 'سحابة' : 'Cloud';
+      return `${channel} · ${transfer.progress}%`;
+    }
+    return null;
+  })();
+
+  const smartboardUrl = buildBeamLink(receiverRoomCode, 'sender');
 
   if (!isOpen) return null;
 
@@ -670,7 +747,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
             <span>{lang === 'ar' ? 'بدون إنترنت' : 'Offline'}</span>
           </button>
 
-          {connectedRoom && (
+          {beamState.role === 'sender' && connectedRoom && (
             <button
               type="button"
               onClick={() => {
@@ -806,6 +883,33 @@ export const BeamModal: React.FC<BeamModalProps> = ({
               </div>
             )}
 
+            {transfer.active && transfer.direction === 'send' && (
+              <div className="p-3 rounded-2xl bg-accent/10 border border-accent/25 space-y-2 text-start animate-in fade-in duration-150">
+                <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-accent">
+                  <span className="flex items-center gap-1.5">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>{transferPhaseText || (lang === 'ar' ? 'جارٍ الإرسال…' : 'Sending…')}</span>
+                  </span>
+                  <span className="font-mono">
+                    {formatBytes(transfer.bytesTransferred)} / {formatBytes(transfer.totalBytes)}
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-accent/15 overflow-hidden">
+                  <div
+                    className="h-full bg-accent rounded-full transition-all duration-200"
+                    style={{ width: `${Math.max(2, transfer.progress)}%` }}
+                  />
+                </div>
+                {transfer.phase === 'waiting-peer' && (
+                  <p className="text-[10px] text-ink-muted leading-tight">
+                    {lang === 'ar'
+                      ? 'تأكد أن الحاسبة مفتوحة على نافذة «استقبال» بنفس الرمز. سيتم الاتصال تلقائياً.'
+                      : 'Keep the PC on the Receiver tab with the same code. Pairing retries automatically.'}
+                  </p>
+                )}
+              </div>
+            )}
+
             {beamError && (
               <div className="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-danger-ink text-xs font-sans text-center">
                 {beamError}
@@ -837,8 +941,8 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                       <Send className="w-3.5 h-3.5" />
                     )}
                     <span>
-                      {uploadProgress !== null
-                        ? `${uploadProgress}%`
+                      {transferPhaseText
+                        ? transferPhaseText
                         : lang === 'ar' ? 'بث ومزامنة للسبورة فوراً' : 'Beam & Sync to Smartboard'}
                     </span>
                   </button>
@@ -915,6 +1019,35 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                     <span>{lang === 'ar' ? '⚡ فتح ملف الملزمة من هذا الجهاز فوراً' : '⚡ Open PDF on this device now'}</span>
                   </button>
                 )}
+              </div>
+            )}
+
+            {transfer.active && transfer.direction === 'receive' && (
+              <div className="w-full p-3 rounded-2xl bg-accent/10 border border-accent/25 space-y-2 text-start animate-in fade-in duration-150">
+                <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-accent">
+                  <span className="flex items-center gap-1.5">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>
+                      {transferPhaseText ||
+                        (lang === 'ar' ? 'جارٍ استلام الملزمة…' : 'Receiving the document…')}
+                    </span>
+                  </span>
+                  <span className="font-mono">
+                    {formatBytes(transfer.bytesTransferred)} / {formatBytes(transfer.totalBytes)}
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-accent/15 overflow-hidden">
+                  <div
+                    className="h-full bg-accent rounded-full transition-all duration-200"
+                    style={{ width: `${Math.max(2, transfer.progress)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {beamError && (
+              <div className="w-full p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-danger-ink text-xs font-sans text-start">
+                {beamError}
               </div>
             )}
 
@@ -1144,8 +1277,6 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                 type="button"
                 onClick={() => {
                   beamService.disconnect();
-                  setConnectedRoom(null);
-                  setIsReceiverAcknowledged(false);
                   setActiveTab('send');
                 }}
                 className="text-[11px] text-danger-ink hover:underline cursor-pointer"

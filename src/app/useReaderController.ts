@@ -1203,7 +1203,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     };
   }, [handleBackStep]);
 
-  const loadPdfData = async (data: ArrayBuffer, title: string) => {
+  const loadPdfData = async (data: ArrayBuffer, title: string, startPage?: number) => {
     if (!data || data.byteLength === 0) {
       setDocumentError(lang === 'ar' ? 'الملف المحدد فارغ.' : 'The selected file is empty.');
       return;
@@ -1333,8 +1333,16 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
       const savedPage = loadLastPage(documentId, title);
       const savedOffset = loadScrollOffset(documentId);
+      const requestedPage =
+        typeof startPage === 'number' && Number.isFinite(startPage)
+          ? Math.round(startPage)
+          : 0;
       const initialPage =
-        savedPage > 0 && savedPage <= opened.numPages ? savedPage : 1;
+        requestedPage > 0 && requestedPage <= opened.numPages
+          ? requestedPage
+          : savedPage > 0 && savedPage <= opened.numPages
+            ? savedPage
+            : 1;
       pendingScrollPageRef.current = initialPage > 1 || savedOffset > 0 ? initialPage : null;
       pendingScrollOffsetRef.current = savedOffset > 0 ? savedOffset : null;
       setCurrentPage(initialPage);
@@ -1477,7 +1485,33 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
   // 1. Broadcast page flip when connected as Otium Beam sender (e.g. mobile remote)
   const lastBroadcastedPageRef = useRef<number | null>(null);
-  const lastBeamedPayloadRef = useRef<{ title: string; time: number } | null>(null);
+  const handledPayloadIdsRef = useRef<Set<string>>(new Set());
+  const beamLoadingRef = useRef(false);
+  const pendingBeamPageRef = useRef<number | null>(null);
+
+  const beamSyncRef = useRef({
+    docTitle,
+    currentPage,
+    numPages,
+    lang,
+    scrollToPage,
+    goToNextPage,
+    goToPrevPage,
+    changeTheme
+  });
+  useEffect(() => {
+    beamSyncRef.current = {
+      docTitle,
+      currentPage,
+      numPages,
+      lang,
+      scrollToPage,
+      goToNextPage,
+      goToPrevPage,
+      changeTheme
+    };
+  });
+
   useEffect(() => {
     if (beamState.role === 'sender' && beamState.room) {
       if (lastBroadcastedPageRef.current !== currentPage) {
@@ -1489,43 +1523,55 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     }
   }, [currentPage, beamState.role, beamState.room]);
 
-  // 2. Handle incoming Otium Beam sync when connected as receiver (e.g. PC / Smartboard)
+  // 2. Handle incoming Otium Beam sync when connected as receiver (e.g. PC / Smartboard).
+  // The subscription itself only depends on the room/role; the latest reader
+  // callbacks are read through a ref so page flips never tear it down.
   useEffect(() => {
     if (!beamState.room || beamState.role !== 'receiver') return;
 
     const currentRoom = beamState.room;
-
-    // Immediately announce current state to any waiting remotes upon becoming receiver
-    if (docTitle) {
-      beamService.announceState(currentRoom, docTitle, currentPage, numPages);
+    const initialSync = beamSyncRef.current;
+    if (initialSync.docTitle) {
+      beamService.announceState(
+        currentRoom,
+        initialSync.docTitle,
+        initialSync.currentPage,
+        initialSync.numPages
+      );
     }
 
     const unsubscribe = beamService.subscribe(async (msg: BeamMessage) => {
       if (!beamService.isMatchingRoom(msg.roomCode, currentRoom)) return;
+      const sync = beamSyncRef.current;
 
       if (msg.type === 'BEAM_PAGE_CHANGE' && typeof msg.pageNumber === 'number') {
-        scrollToPage(msg.pageNumber);
+        if (beamLoadingRef.current) {
+          pendingBeamPageRef.current = msg.pageNumber;
+        } else {
+          sync.scrollToPage(msg.pageNumber);
+        }
       } else if (msg.type === 'BEAM_STEP') {
         if (msg.direction === 'next') {
-          goToNextPage();
+          sync.goToNextPage();
         } else if (msg.direction === 'prev') {
-          goToPrevPage();
+          sync.goToPrevPage();
         }
-      } else if (msg.type === 'BEAM_QUERY_STATE' || msg.type === 'BEAM_HANDSHAKE') {
-        beamService.announceState(currentRoom, docTitle, currentPage, numPages);
       } else if (msg.type === 'BEAM_PAYLOAD') {
         const payloadTitle = msg.payload?.title || 'Beamed Document';
-        const now = Date.now();
-        if (
-          lastBeamedPayloadRef.current &&
-          lastBeamedPayloadRef.current.title === payloadTitle &&
-          now - lastBeamedPayloadRef.current.time < 2000
-        ) {
-          return;
+        const payloadKey =
+          msg.payload?.transferId ||
+          msg.msgId ||
+          `${payloadTitle}:${msg.timestamp}`;
+        if (handledPayloadIdsRef.current.has(payloadKey)) return;
+        handledPayloadIdsRef.current.add(payloadKey);
+        if (handledPayloadIdsRef.current.size > 40) {
+          const oldest = handledPayloadIdsRef.current.values().next().value;
+          if (typeof oldest === 'string') handledPayloadIdsRef.current.delete(oldest);
         }
-        lastBeamedPayloadRef.current = { title: payloadTitle, time: now };
 
         try {
+          beamLoadingRef.current = true;
+          pendingBeamPageRef.current = null;
           setIsLoading(true);
           let buffer: ArrayBuffer | null = null;
           if (msg.payload?.pdfData) {
@@ -1537,48 +1583,41 @@ export function useReaderController(capabilities: ReaderCapabilities) {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             buffer = await res.arrayBuffer();
           } else if (msg.payload?.chunks && msg.payload.chunks.length > 0) {
-            const chunkBuffers = await Promise.all(
-              msg.payload.chunks.map(async (url) => {
-                const res = await fetch(url);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                return await res.arrayBuffer();
-              })
+            buffer = await beamService.downloadRelayChunks(
+              msg.payload.chunks,
+              msg.payload.totalSize,
+              msg.payload.sha256
             );
-            const totalBytes = chunkBuffers.reduce((sum, b) => sum + b.byteLength, 0);
-            const merged = new Uint8Array(totalBytes);
-            let offset = 0;
-            for (const b of chunkBuffers) {
-              merged.set(new Uint8Array(b), offset);
-              offset += b.byteLength;
-            }
-            buffer = merged.buffer;
           }
 
-          if (buffer) {
-            await loadPdfData(buffer, payloadTitle);
-            if (msg.payload?.pageNumber) {
-              scrollToPage(msg.payload.pageNumber);
-            }
-            if (msg.payload?.theme) {
-              changeTheme(msg.payload.theme);
-            }
-            beamService.announceState(
-              currentRoom,
-              payloadTitle,
-              msg.payload?.pageNumber || 1,
-              msg.payload?.totalPages || 1
-            );
-          } else {
+          if (!buffer) {
             throw new Error('No PDF payload found');
           }
+
+          await loadDocumentRef.current(
+            buffer,
+            payloadTitle,
+            msg.payload?.pageNumber
+          );
+          if (msg.payload?.theme) {
+            sync.changeTheme(msg.payload.theme);
+          }
+          beamService.announceState(
+            currentRoom,
+            payloadTitle,
+            msg.payload?.pageNumber || 1,
+            msg.payload?.totalPages || 1
+          );
         } catch (err) {
           console.error('Failed to load beamed PDF in reader:', err);
           setIsLoading(false);
           setDocumentError(
-            lang === 'ar'
+            sync.lang === 'ar'
               ? 'تعذر تحميل المستند المبثوث من الهاتف. تحقق من الاتصال وحاول مجدداً.'
               : 'Failed to load beamed document from phone. Check connection and retry.'
           );
+        } finally {
+          beamLoadingRef.current = false;
         }
       }
     });
@@ -1586,7 +1625,15 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     return () => {
       unsubscribe();
     };
-  }, [beamState.room, beamState.role, docTitle, currentPage, numPages, scrollToPage, goToNextPage, goToPrevPage, changeTheme]);
+  }, [beamState.room, beamState.role]);
+
+  // Apply a page command that arrived while the beamed PDF was still loading.
+  useEffect(() => {
+    if (beamLoadingRef.current || pendingBeamPageRef.current === null) return;
+    const page = pendingBeamPageRef.current;
+    pendingBeamPageRef.current = null;
+    scrollToPage(page);
+  }, [isLoading, numPages, docId, scrollToPage]);
 
   // Keep remote clickers announced whenever page or document changes on PC
   useEffect(() => {

@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Otium",
-  "version": "1.8.11",
+  "version": "1.8.12",
   "identifier": "com.otium.reader",
   "build": {
     "frontendDist": "../dist",
@@ -28,7 +28,7 @@
     "security": {
       "csp": {
         "default-src": "'self'",
-        "connect-src": "'self' ipc: http://ipc.localhost https://github.com https://*.githubusercontent.com https://cdn.jsdelivr.net",
+        "connect-src": "'self' ipc: http://ipc.localhost https://github.com https://*.githubusercontent.com https://cdn.jsdelivr.net https://ntfy.sh https://*.ntfy.sh",
         "font-src": "'self' data:",
         "img-src": "'self' data: blob:",
         "media-src": "'self' blob: data: mediastream:",
@@ -43,7 +43,7 @@
       },
       "devCsp": {
         "default-src": "'self'",
-        "connect-src": "'self' ipc: http://ipc.localhost https://github.com https://*.githubusercontent.com https://cdn.jsdelivr.net http://localhost:5173 ws://localhost:5173",
+        "connect-src": "'self' ipc: http://ipc.localhost https://github.com https://*.githubusercontent.com https://cdn.jsdelivr.net https://ntfy.sh https://*.ntfy.sh http://localhost:5173 ws://localhost:5173",
         "font-src": "'self' data:",
         "img-src": "'self' data: blob:",
         "media-src": "'self' blob: data: mediastream:",
