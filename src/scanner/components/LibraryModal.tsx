@@ -259,6 +259,18 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
     setLockoutRemaining(0);
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsSettingPin(false);
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const filteredDocs = documents.filter((doc) => {
@@ -274,7 +286,12 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   if (!isUnlocked || isSettingPin) {
     const currentCode = isSettingPin ? newPinDraft : enteredPin;
     return (
-      <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-2xl flex flex-col justify-between p-6 select-none animate-in fade-in duration-200">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={isSettingPin ? 'إعداد رمز الأمان' : 'الخزنة المحمية برمز PIN'}
+        className="fixed inset-0 z-50 bg-black/90 backdrop-blur-2xl flex flex-col justify-between p-6 select-none animate-in fade-in duration-200"
+      >
         <div className="flex items-center justify-between pt-8">
           <span className="text-xs text-gray-400 font-semibold uppercase font-arabic">
             {isSettingPin ? 'إعداد رمز الأمان' : 'الخزنة المحمية برمز PIN'}
@@ -400,7 +417,12 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
 
   // Vault Unlocked Document Library
   return (
-    <div className="fixed inset-0 z-50 bg-[#07090e]/95 backdrop-blur-2xl flex flex-col justify-between select-none animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={lang === 'ar' ? 'خزنة المستندات' : 'Document Vault'}
+      className="fixed inset-0 z-50 bg-[#07090e]/95 backdrop-blur-2xl flex flex-col justify-between select-none animate-in fade-in duration-200"
+    >
       {/* Top Header Bar with Safe Area Inset */}
       <div
         style={{

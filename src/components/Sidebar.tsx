@@ -275,6 +275,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
     settleSheet(false);
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const isCurrentPageBookmarked = bookmarks.some((b) => b.pageNumber === currentPage);
@@ -282,6 +293,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <div
+      role={isSheet ? 'dialog' : 'region'}
+      aria-modal={isSheet ? 'true' : undefined}
+      aria-label={lang === 'ar' ? 'فهرس وملاحظات المستند' : 'Document Outline and Notes'}
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
       className={
         isSheet

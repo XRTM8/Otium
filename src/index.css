@@ -1058,7 +1058,28 @@ body[data-has-selection='true'] .textLayer {
   -webkit-touch-callout: none;
 }
 
+/* World-Class Keyboard Focus & Accessibility */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button:focus:not(:focus-visible),
+[role="button"]:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Universal Reduced Motion Accessibility */
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
   .segmented > button,
   .action-chip,
   .paged-arrow,
@@ -1068,11 +1089,44 @@ body[data-has-selection='true'] .textLayer {
 
   .mobile-sheet,
   .selection-bar-mobile {
-    animation: none;
+    animation: none !important;
   }
 
   .mobile-chrome-shell {
-    transition: none;
+    transition: none !important;
+  }
+}
+
+/* World-Class Print Optimization */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+  }
+
+  .chrome-surface,
+  .otium-panel,
+  .toolbar-icon,
+  .action-chip,
+  header,
+  footer,
+  aside,
+  [role="dialog"],
+  .selection-overlay {
+    display: none !important;
+  }
+
+  .reader-viewport {
+    overflow: visible !important;
+    position: static !important;
+  }
+
+  .pdf-page-slot {
+    page-break-after: always !important;
+    break-after: page !important;
+    box-shadow: none !important;
+    border: none !important;
   }
 }
 

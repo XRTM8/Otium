@@ -417,7 +417,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                     </div>
                     <div className="flex flex-col min-w-0 gap-1 text-start">
                       <span className={`truncate font-medium text-xs sm:text-sm text-ink ${style.fileHoverText} transition-colors`}>
-                        {r.name}
+                        <bdi>{r.name}</bdi>
                       </span>
                       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-ink-muted font-mono">
                         <span className="font-sans font-medium text-ink-muted">

@@ -296,6 +296,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     };
   }, [activeTab, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const formatBytes = (bytes: number) => {
@@ -374,6 +385,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={t.settingsTitle}
       dir={ar ? 'rtl' : 'ltr'}
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 select-none"
     >

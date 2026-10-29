@@ -70,6 +70,8 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader, mobile =
 
       {reader.documentError && (
         <div
+          role="alert"
+          aria-live="assertive"
           dir={reader.lang === 'ar' ? 'rtl' : 'ltr'}
           className="chrome-surface fixed bottom-20 inset-x-3 z-50 flex items-start gap-2.5 rounded-2xl px-3.5 py-3 text-xs text-danger-ink sm:bottom-6 sm:inset-x-auto sm:end-6"
         >
@@ -87,7 +89,11 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader, mobile =
       )}
 
       {reader.isLoading && (
-        <div className="fixed inset-0 z-50 bg-scrim backdrop-blur-xs flex flex-col items-center justify-center text-ink select-none">
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed inset-0 z-50 bg-scrim backdrop-blur-xs flex flex-col items-center justify-center text-ink select-none"
+        >
           <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mb-3" />
           <span className={`text-xs uppercase text-highlight ${reader.lang === 'ar' ? 'font-sans font-bold' : 'font-mono tracking-widest'}`}>
             {reader.lang === 'ar' ? 'أوتيوم • جاري تجهيز المستند...' : 'OTIUM • LOADING DOCUMENT'}
@@ -99,6 +105,9 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader, mobile =
           )}
         </div>
       )}
+
+      {/* Screen reader live announcements container */}
+      <div id="a11y-live-announcer" role="status" aria-live="polite" aria-atomic="true" className="sr-only" />
     </>
   );
 };

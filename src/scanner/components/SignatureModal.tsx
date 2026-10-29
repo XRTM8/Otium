@@ -52,6 +52,17 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
     }
   }, [penColor, lineWidth, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const getCanvasCoords = (e: React.PointerEvent) => {
@@ -122,7 +133,13 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col justify-end sm:justify-center items-center p-4 select-none fluid-fade" dir="rtl">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="التوقيع الرقمي"
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col justify-end sm:justify-center items-center p-4 select-none fluid-fade"
+      dir="rtl"
+    >
       <div className="w-full max-w-lg bg-[#121212] border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 fluid-pop">
         {/* Header */}
         <div className="flex items-center justify-between">

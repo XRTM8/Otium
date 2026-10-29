@@ -213,7 +213,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             dir="auto"
             className="fluid-press flex-1 min-w-0 truncate text-start px-2 py-1 rounded-lg text-[11px] font-medium text-ink-muted hover:text-ink hover:bg-hover-subtle cursor-pointer"
           >
-            {title}
+            <bdi>{title}</bdi>
           </button>
 
           <button

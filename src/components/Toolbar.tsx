@@ -274,7 +274,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 : 'text-ink-muted hover:bg-hover-subtle hover:text-ink'
             }`}
           >
-            {title}
+            <bdi>{title}</bdi>
           </button>
 
           {showInspector && (
@@ -329,7 +329,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     ) : (
                       <div className="flex items-center gap-1 mt-0.5 group">
                         <span className="truncate font-semibold text-xs text-ink" title={title}>
-                          {title}
+                          <bdi>{title}</bdi>
                         </span>
                         {onRenameTitle && (
                           <button

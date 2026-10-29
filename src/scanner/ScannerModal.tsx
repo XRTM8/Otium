@@ -326,6 +326,9 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={lang === 'ar' ? 'ماسح المستندات الضوئي' : 'Document Scanner'}
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
       className={`fixed inset-0 z-50 bg-[#07090e] text-white flex flex-col select-none overflow-hidden animate-in fade-in zoom-in-[0.985] duration-250 ease-out theme-${theme}`}
     >

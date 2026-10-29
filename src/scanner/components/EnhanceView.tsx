@@ -660,7 +660,9 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
               className="flex items-center gap-1 text-xs sm:text-sm font-bold text-white truncate max-w-full hover:text-accent font-arabic"
               title="تعديل اسم المستند"
             >
-              <span className="truncate">{docTitle}</span>
+              <span className="truncate">
+                <bdi>{docTitle}</bdi>
+              </span>
               <Edit3 className="w-3 h-3 text-accent opacity-80 shrink-0" />
             </button>
           )}

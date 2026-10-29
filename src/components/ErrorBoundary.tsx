@@ -69,7 +69,11 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-screen w-full bg-[var(--app-bg)] text-ink flex flex-col items-center justify-center p-6 text-center select-none font-sans">
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="min-h-screen w-full bg-[var(--app-bg)] text-ink flex flex-col items-center justify-center p-6 text-center select-none font-sans"
+        >
           <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-6 text-highlight">
             <AlertTriangle className="w-8 h-8" />
           </div>

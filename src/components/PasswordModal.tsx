@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Lock, Eye, EyeOff, X, KeyRound } from 'lucide-react';
 import type { Language } from '../core/i18n/translations';
 import { getTranslations } from '../core/i18n/translations';
@@ -24,6 +24,17 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const t = getTranslations(lang);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onCancel();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onCancel]);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -36,6 +47,9 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={t.passwordRequired}
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none"
     >
