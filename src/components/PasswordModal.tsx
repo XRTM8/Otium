@@ -25,19 +25,50 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousActiveElementRef = useRef<HTMLElement | null>(null);
   const t = getTranslations(lang);
 
   useEffect(() => {
     if (!isOpen) {
       setPassword('');
+      if (previousActiveElementRef.current && typeof previousActiveElementRef.current.focus === 'function') {
+        previousActiveElementRef.current.focus();
+        previousActiveElementRef.current = null;
+      }
       return;
     }
+
+    previousActiveElementRef.current = document.activeElement as HTMLElement | null;
     const timer = window.setTimeout(() => inputRef.current?.focus(), 50);
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
         onCancel();
+        return;
+      }
+
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -73,7 +104,10 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
     >
       <div className="fixed inset-0 bg-scrim fluid-fade" onClick={onCancel} />
 
-      <div className="otium-panel relative z-10 flex w-full max-w-sm flex-col items-center p-6 text-center text-ink fluid-pop shadow-2xl">
+      <div
+        ref={modalRef}
+        className="otium-panel relative z-10 flex w-full max-w-sm flex-col items-center p-6 text-center text-ink fluid-pop shadow-2xl"
+      >
         <button
           onClick={onCancel}
           aria-label={lang === 'ar' ? 'إغلاق' : 'Close'}

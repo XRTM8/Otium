@@ -542,6 +542,9 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
         onDoubleClick={(e) => {
+          if ((e.target as HTMLElement)?.closest('button, input, textarea, a, select, [role="button"], [role="menuitem"]')) {
+            return;
+          }
           const sel = typeof window !== 'undefined' ? window.getSelection()?.toString().trim() : '';
           if (!sel && handleDoubleTap) {
             handleDoubleTap(e.clientX, e.clientY);

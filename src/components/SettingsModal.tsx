@@ -296,13 +296,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     };
   }, [activeTab, isOpen]);
 
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousActiveElementRef = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      if (previousActiveElementRef.current && typeof previousActiveElementRef.current.focus === 'function') {
+        previousActiveElementRef.current.focus();
+        previousActiveElementRef.current = null;
+      }
+      return;
+    }
+
+    previousActiveElementRef.current = document.activeElement as HTMLElement | null;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
         onClose();
+        return;
+      }
+
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -404,7 +438,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     >
       <div className="fixed inset-0 bg-scrim fluid-fade backdrop-blur-xs" onClick={onClose} />
 
-      <div className="otium-panel relative z-10 flex max-h-[92vh] sm:max-h-[88vh] w-full max-w-lg sm:max-w-xl flex-col overflow-hidden rounded-t-[32px] sm:rounded-3xl p-5 text-ink sm:p-6 shadow-2xl mobile-sheet sm:fluid-pop">
+      <div
+        ref={modalRef}
+        className="otium-panel relative z-10 flex max-h-[92vh] sm:max-h-[88vh] w-full max-w-lg sm:max-w-xl flex-col overflow-hidden rounded-t-[32px] sm:rounded-3xl p-5 text-ink sm:p-6 shadow-2xl mobile-sheet sm:fluid-pop"
+      >
         {/* Mobile handle indicator */}
         <div className="w-12 h-1.5 rounded-full bg-line-strong/50 mx-auto mb-3 sm:hidden shrink-0" />
 
