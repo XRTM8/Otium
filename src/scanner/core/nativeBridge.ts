@@ -46,22 +46,23 @@ async function nativeShareFile(
   title?: string,
   mimeType?: string
 ): Promise<void> {
+  const safeFilename = sanitizeFilename(filename);
   const resolvedMime = mimeType || blob.type || 'application/octet-stream';
 
   if (window.OtiumNative?.shareFile) {
     try {
       const base64 = await blobToBase64(blob);
-      window.OtiumNative.shareFile(base64, filename, resolvedMime);
+      window.OtiumNative.shareFile(base64, safeFilename, resolvedMime);
       return;
     } catch (e) {
       console.warn('Native shareFile failed, falling back:', e);
     }
   }
 
-  if (window.OtiumNative?.sharePdf && filename.endsWith('.pdf')) {
+  if (window.OtiumNative?.sharePdf && safeFilename.endsWith('.pdf')) {
     try {
       const base64 = await blobToBase64(blob);
-      window.OtiumNative.sharePdf(base64, filename);
+      window.OtiumNative.sharePdf(base64, safeFilename);
       return;
     } catch (e) {
       console.warn('Native sharePdf failed, falling back:', e);
@@ -69,12 +70,12 @@ async function nativeShareFile(
   }
 
   // Web Share fallback
-  const file = new File([blob], filename, { type: resolvedMime });
+  const file = new File([blob], safeFilename, { type: resolvedMime });
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
       await navigator.share({
         files: [file],
-        title: title || filename,
+        title: title || safeFilename,
         text: `تمت المشاركة من Otium`,
       });
       return;
@@ -85,7 +86,7 @@ async function nativeShareFile(
   }
 
   // Fallback download
-  downloadBlob(blob, filename);
+  downloadBlob(blob, safeFilename);
 }
 
 export async function nativeSharePdf(blob: Blob, filename: string, title?: string): Promise<void> {
@@ -105,28 +106,29 @@ async function nativeSaveFile(
   filename: string,
   mimeType?: string
 ): Promise<boolean> {
+  const safeFilename = sanitizeFilename(filename);
   const resolvedMime = mimeType || blob.type || 'application/octet-stream';
 
   if (window.OtiumNative?.saveFileToDownloads) {
     try {
       const base64 = await blobToBase64(blob);
-      return window.OtiumNative.saveFileToDownloads(base64, filename, resolvedMime);
+      return window.OtiumNative.saveFileToDownloads(base64, safeFilename, resolvedMime);
     } catch (e) {
       console.warn('Native saveFileToDownloads failed, falling back:', e);
     }
   }
 
-  if (window.OtiumNative?.savePdfToDownloads && filename.endsWith('.pdf')) {
+  if (window.OtiumNative?.savePdfToDownloads && safeFilename.endsWith('.pdf')) {
     try {
       const base64 = await blobToBase64(blob);
-      return window.OtiumNative.savePdfToDownloads(base64, filename);
+      return window.OtiumNative.savePdfToDownloads(base64, safeFilename);
     } catch (e) {
       console.warn('Native savePdfToDownloads failed, falling back:', e);
     }
   }
 
   // Web download fallback
-  downloadBlob(blob, filename);
+  downloadBlob(blob, safeFilename);
   return true;
 }
 
@@ -207,14 +209,61 @@ export async function nativePrintPdf(blob: Blob, filename: string): Promise<void
 }
 
 /**
- * Validates that an external URL is strictly HTTP or HTTPS to prevent javascript:, data:, or file: injection exploits.
+ * Sanitizes a filename to prevent path traversal (../), null byte injection,
+ * and invalid filesystem control characters across Windows, Android, and Linux.
+ */
+export function sanitizeFilename(filename: string, defaultName = 'document'): string {
+  if (!filename || typeof filename !== 'string') return defaultName;
+  const clean = filename
+    .replace(/[\x00-\x1f\x7f]/g, '')
+    .replace(/[/\\]+/g, '_')
+    .replace(/\.{2,}/g, '_')
+    .replace(/[?%*:|"<>]/g, '_')
+    .trim();
+  const stripped = clean.replace(/^[._ -]+/, '');
+  return stripped.length > 0 ? stripped.slice(0, 255) : defaultName;
+}
+
+/**
+ * Validates that an external URL is strictly HTTP or HTTPS and contains no
+ * dangerous schemes, embedded credentials, or malicious protocols.
  */
 export function isSafeUrl(rawUrl: string): boolean {
   if (!rawUrl || typeof rawUrl !== 'string') return false;
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return false;
+
+  const lower = trimmed.toLowerCase();
+  if (
+    lower.startsWith('javascript:') ||
+    lower.startsWith('data:') ||
+    lower.startsWith('file:') ||
+    lower.startsWith('vbscript:') ||
+    lower.startsWith('blob:')
+  ) {
+    return false;
+  }
+
   try {
     const base = typeof window !== 'undefined' && window?.location?.href ? window.location.href : 'http://localhost';
-    const parsed = new URL(rawUrl, base);
-    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+    const parsed = new URL(trimmed, base);
+
+    // Strict protocol check: only http: and https:
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      return false;
+    }
+
+    // Must have a valid non-empty hostname
+    if (!parsed.hostname || parsed.hostname.length === 0) {
+      return false;
+    }
+
+    // Disallow embedded user credentials (e.g. https://user:pass@evil.com)
+    if (parsed.username || parsed.password) {
+      return false;
+    }
+
+    return true;
   } catch {
     return false;
   }
@@ -228,9 +277,10 @@ export function nativeInstallApk(apkUrl: string, filename: string): void {
     console.warn('Blocked unsafe APK URL:', apkUrl);
     return;
   }
+  const safeFilename = sanitizeFilename(filename, 'update.apk');
   if (typeof window !== 'undefined' && window.OtiumNative && (window.OtiumNative as any).downloadAndInstallApk) {
     try {
-      (window.OtiumNative as any).downloadAndInstallApk(apkUrl, filename);
+      (window.OtiumNative as any).downloadAndInstallApk(apkUrl, safeFilename);
       return;
     } catch (e) {
       console.warn('Native downloadAndInstallApk failed, falling back to browser:', e);

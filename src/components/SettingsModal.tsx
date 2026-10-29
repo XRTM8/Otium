@@ -352,6 +352,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handleImport = async (file: File) => {
     if (!onImportBackup || dataBusy) return;
+    if (file.size > 15 * 1024 * 1024) {
+      setDataNotice({
+        tone: 'error',
+        text: ar
+          ? 'حجم ملف النسخة الاحتياطية كبير جداً (الحد الأقصى 15 ميجابايت).'
+          : 'Backup file exceeds maximum permitted size (15MB).'
+      });
+      return;
+    }
     setDataBusy('import');
     setDataNotice(null);
     try {

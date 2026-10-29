@@ -115,4 +115,23 @@ describe('backup format', () => {
     expect(updated?.pageNumber).toBe(5);
     expect(merged[0].pageNumber).toBe(1);
   });
+
+  it('rejects oversized backup text exceeding the 15MB limit', () => {
+    const hugePayload = ' '.repeat(16 * 1024 * 1024);
+    expect(() => parseBackupFile(hugePayload)).toThrow(BackupValidationError);
+  });
+
+  it('neutralizes prototype pollution payloads during backup parsing', () => {
+    const maliciousPayload = JSON.stringify({
+      format: 'otium-backup',
+      version: 1,
+      __proto__: { polluted: 'danger' },
+      constructor: { hacked: true },
+      documents: []
+    });
+
+    const parsed = parseBackupFile(maliciousPayload);
+    expect(parsed.format).toBe('otium-backup');
+    expect((Object.prototype as any).polluted).toBeUndefined();
+  });
 });

@@ -5,6 +5,7 @@
  */
 
 import type { DocumentCategory } from '../types';
+import { isPdfBuffer } from '../../../core/pdf/document';
 
 const DB_NAME = 'otium_scan_library';
 const STORE_NAME = 'documents';
@@ -160,33 +161,93 @@ export async function exportVaultBackup(): Promise<Blob> {
 
 /**
  * Restores document library from an uploaded .otiumvault backup package.
+ * Implements strict size gating, JSON prototype pollution prevention,
+ * and binary PDF magic byte header verification.
  */
 export async function restoreVaultBackup(backupBlob: Blob): Promise<number> {
+  if (backupBlob.size > 200 * 1024 * 1024) {
+    throw new Error('حجم ملف النسخة الاحتياطية كبير جداً (الحد الأقصى 200 ميجابايت)');
+  }
+
   const text = await backupBlob.text();
-  const envelope = JSON.parse(text) as VaultBackupEnvelope;
+  let envelope: VaultBackupEnvelope;
+  try {
+    envelope = JSON.parse(text, (key, value) => {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+        return undefined;
+      }
+      return value;
+    }) as VaultBackupEnvelope;
+  } catch {
+    throw new Error('ملف النسخة الاحتياطية ليس بتنسيق JSON صالح');
+  }
 
   const acceptedApps = ['Otium', 'Otium Scan'];
-  if (!acceptedApps.includes(envelope.app) || !Array.isArray(envelope.documents)) {
+  if (
+    !envelope ||
+    typeof envelope !== 'object' ||
+    !acceptedApps.includes(envelope.app) ||
+    !Array.isArray(envelope.documents)
+  ) {
     throw new Error('Invalid or corrupted .otiumvault backup file');
+  }
+
+  if (envelope.documents.length > 500) {
+    throw new Error('النسخة الاحتياطية تحتوي على عدد مستندات يتجاوز الحد المسموح به (500 مستند)');
   }
 
   let restoredCount = 0;
   for (const item of envelope.documents) {
-    const byteChars = atob(item.pdfBase64);
-    const byteNumbers = new Uint8Array(byteChars.length);
-    for (let i = 0; i < byteChars.length; i++) {
-      byteNumbers[i] = byteChars.charCodeAt(i);
+    if (!item || typeof item !== 'object' || typeof item.pdfBase64 !== 'string') {
+      continue;
     }
-    const pdfBlob = new Blob([byteNumbers], { type: 'application/pdf' });
 
-    await saveDocumentToLibrary({
-      id: item.id || `doc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      title: item.title,
-      pageCount: item.pageCount,
-      thumbnail: item.thumbnail,
-      pdfBlob,
-    });
-    restoredCount++;
+    try {
+      const byteChars = atob(item.pdfBase64);
+      if (byteChars.length > 100 * 1024 * 1024) {
+        continue;
+      }
+
+      const byteNumbers = new Uint8Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) {
+        byteNumbers[i] = byteChars.charCodeAt(i);
+      }
+
+      // Verify PDF magic header
+      if (!isPdfBuffer(byteNumbers.buffer)) {
+        continue;
+      }
+
+      const pdfBlob = new Blob([byteNumbers], { type: 'application/pdf' });
+      const safeTitle = (typeof item.title === 'string' ? item.title : 'مستند مستعاد')
+        .replace(/[\x00-\x1f\x7f]/g, '')
+        .trim()
+        .slice(0, 256) || 'مستند مستعاد';
+
+      const safeId = (typeof item.id === 'string' && item.id.trim() ? item.id : `doc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`)
+        .replace(/[\x00-\x1f\x7f]/g, '')
+        .slice(0, 128);
+
+      const safeThumb = typeof item.thumbnail === 'string' && item.thumbnail.startsWith('data:image/')
+        ? item.thumbnail
+        : '';
+
+      const safePageCount = Number.isFinite(item.pageCount) && item.pageCount > 0
+        ? Math.min(10000, Math.round(item.pageCount))
+        : 1;
+
+      await saveDocumentToLibrary({
+        id: safeId,
+        title: safeTitle,
+        pageCount: safePageCount,
+        thumbnail: safeThumb,
+        pdfBlob,
+      });
+      restoredCount++;
+    } catch {
+      // Skip invalid or corrupted individual document entry
+      continue;
+    }
   }
 
   return restoredCount;

@@ -1,3 +1,5 @@
+import { sanitizeFilename } from '../scanner/core/nativeBridge';
+
 export type SaveTextOutcome = 'native-picker' | 'download' | 'unavailable';
 
 interface NativeFileBridge {
@@ -16,11 +18,13 @@ export async function saveTextFile(
 ): Promise<SaveTextOutcome> {
   if (typeof window === 'undefined') return 'unavailable';
 
+  const safeFileName = sanitizeFilename(fileName, 'otium-export.txt');
+
   // Support Android native FileBridge directly (works in Tauri Android and standalone APK WebView)
   const bridge = (window as Window & { OtiumFile?: NativeFileBridge }).OtiumFile;
   if (bridge?.saveTextFile) {
     try {
-      const opened = bridge.saveTextFile(content, fileName, mimeType);
+      const opened = bridge.saveTextFile(content, safeFileName, mimeType);
       if (opened !== false) return 'native-picker';
     } catch {
       // Fall through to the download path if the picker cannot open.
@@ -32,7 +36,7 @@ export async function saveTextFile(
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = fileName;
+    link.download = safeFileName;
     link.rel = 'noopener';
     document.body.appendChild(link);
     link.click();

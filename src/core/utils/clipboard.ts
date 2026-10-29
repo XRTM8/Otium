@@ -21,8 +21,9 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
   }
 
   // 2. Fallback using temporary textarea + execCommand
+  let textArea: HTMLTextAreaElement | null = null;
   try {
-    const textArea = document.createElement('textarea');
+    textArea = document.createElement('textarea');
     textArea.value = text;
     textArea.style.position = 'fixed';
     textArea.style.left = '-9999px';
@@ -32,10 +33,12 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
     document.body.appendChild(textArea);
     textArea.focus();
     textArea.select();
-    const successful = document.execCommand('copy');
-    document.body.removeChild(textArea);
-    return successful;
+    return document.execCommand('copy');
   } catch {
     return false;
+  } finally {
+    if (textArea && textArea.parentNode) {
+      textArea.parentNode.removeChild(textArea);
+    }
   }
 }

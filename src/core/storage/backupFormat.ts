@@ -92,20 +92,23 @@ export function sanitiseBackupDocument(raw: unknown): BackupDocument | null {
   if (!Number.isFinite(value.totalPages) || (value.totalPages as number) < 1) return null;
 
   const totalPages = Math.min(100_000, Math.round(value.totalPages as number));
-  const annotations = Array.isArray(value.annotations)
-    ? value.annotations
-        .map(normalizeAnnotation)
-        .filter((annotation): annotation is TextAnnotation => annotation !== null)
-    : [];
-  const bookmarks = Array.isArray(value.bookmarks)
-    ? value.bookmarks
-        .map((bookmark) => sanitiseBookmark(bookmark, totalPages))
-        .filter((bookmark): bookmark is BookmarkItem => bookmark !== null)
-    : [];
+  const rawAnnotations = Array.isArray(value.annotations) ? value.annotations.slice(0, 2000) : [];
+  const annotations = rawAnnotations
+    .map(normalizeAnnotation)
+    .filter((annotation): annotation is TextAnnotation => annotation !== null);
+
+  const rawBookmarks = Array.isArray(value.bookmarks) ? value.bookmarks.slice(0, 500) : [];
+  const bookmarks = rawBookmarks
+    .map((bookmark) => sanitiseBookmark(bookmark, totalPages))
+    .filter((bookmark): bookmark is BookmarkItem => bookmark !== null);
+
+  const cleanId = value.id.trim().replace(/[\x00-\x1f\x7f]/g, '').slice(0, 128);
+  const cleanName = value.name.trim().replace(/[\x00-\x1f\x7f]/g, '').slice(0, 256);
+  if (!cleanId || !cleanName) return null;
 
   return {
-    id: value.id.trim().slice(0, 256),
-    name: value.name.trim().slice(0, 512),
+    id: cleanId,
+    name: cleanName,
     totalPages,
     lastPage: clampPage(value.lastPage, totalPages),
     lastOpened: Number.isFinite(value.lastOpened) ? (value.lastOpened as number) : Date.now(),
@@ -156,9 +159,22 @@ export function serialiseBackupFile(file: BackupFile): string {
 }
 
 export function parseBackupFile(text: string): BackupFile {
+  if (typeof text !== 'string' || text.length > 15 * 1024 * 1024) {
+    throw new BackupValidationError(
+      'invalid-format',
+      'The backup exceeds the maximum permitted size of 15MB.'
+    );
+  }
+
   let raw: unknown;
   try {
-    raw = JSON.parse(text);
+    raw = JSON.parse(text, (key, value) => {
+      // Prevent prototype pollution via malicious JSON keys
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+        return undefined;
+      }
+      return value;
+    });
   } catch {
     throw new BackupValidationError('invalid-json', 'The backup is not valid JSON.');
   }

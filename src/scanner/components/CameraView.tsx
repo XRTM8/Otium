@@ -603,15 +603,29 @@ export const CameraView: React.FC<CameraViewProps> = ({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    // Filter valid raster images (strictly exclude SVGs to prevent XML/script injection vectors, limit size to 50MB)
+    const validImageFiles = Array.from(files).filter((file) => {
+      const isImage = file.type.startsWith('image/') && file.type !== 'image/svg+xml';
+      const isUnderLimit = file.size <= 50 * 1024 * 1024;
+      return isImage && isUnderLimit;
+    });
+
+    if (validImageFiles.length === 0) {
+      setCaptureToast('⚠️ الملفات المحددة غير صالحة (يُشترط صور JPEG/PNG/WebP بحجم أقل من 50 ميجابايت)');
+      setTimeout(() => setCaptureToast(''), 3000);
+      e.target.value = '';
+      return;
+    }
+
     // Support importing multiple photos from gallery at once
-    const isMulti = files.length > 1 || scanMode === 'batch';
-    Array.from(files).forEach((file, index) => {
+    const isMulti = validImageFiles.length > 1 || scanMode === 'batch';
+    validImageFiles.forEach((file, index) => {
       const reader = new FileReader();
       reader.onload = () => {
         if (typeof reader.result === 'string') {
           onCapture(reader.result, isMulti);
-          if (index === files.length - 1) {
-            setCaptureToast(`✓ تم استيراد ${files.length} صورة من المعرض`);
+          if (index === validImageFiles.length - 1) {
+            setCaptureToast(`✓ تم استيراد ${validImageFiles.length} صورة من المعرض`);
             setTimeout(() => setCaptureToast(''), 2200);
           }
         }
