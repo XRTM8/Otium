@@ -1,10 +1,14 @@
 /**
  * Cryptographic Security Engine for Otium Scan Vault.
- * Uses SHA-256 with Device-Bound Salt to prevent plaintext PIN exposure.
+ * Uses SHA-256 with Device-Bound Salt to prevent plaintext PIN exposure,
+ * constant-time string comparison to prevent timing side-channels,
+ * and progressive exponential back-off rate limiting to prevent brute-force attacks.
  */
 
 const SALT_KEY = 'otium_vault_salt';
 const HASH_KEY = 'otium_vault_hash';
+const FAIL_COUNT_KEY = 'otium_vault_fail_count';
+const LOCKOUT_KEY = 'otium_vault_lockout_until';
 
 function getOrCreateDeviceSalt(): string {
   let salt = localStorage.getItem(SALT_KEY);
@@ -41,24 +45,83 @@ async function hashPin(pin: string): Promise<string> {
   return `h_${hash}`;
 }
 
+export function getVaultLockoutRemainingSeconds(): number {
+  if (typeof localStorage === 'undefined') return 0;
+  const rawLockout = localStorage.getItem(LOCKOUT_KEY);
+  if (!rawLockout) return 0;
+  const lockoutUntil = parseInt(rawLockout, 10);
+  if (Number.isNaN(lockoutUntil)) {
+    localStorage.removeItem(LOCKOUT_KEY);
+    return 0;
+  }
+  const diff = lockoutUntil - Date.now();
+  if (diff <= 0) {
+    localStorage.removeItem(LOCKOUT_KEY);
+    return 0;
+  }
+  return Math.ceil(diff / 1000);
+}
+
+export function recordVaultFailedAttempt(): { locked: boolean; remainingSeconds: number; attempts: number } {
+  if (typeof localStorage === 'undefined') return { locked: false, remainingSeconds: 0, attempts: 0 };
+  const currentFails = parseInt(localStorage.getItem(FAIL_COUNT_KEY) || '0', 10) + 1;
+  localStorage.setItem(FAIL_COUNT_KEY, currentFails.toString());
+
+  if (currentFails >= 5) {
+    // Progressive lockout: 30s at 5-7, 60s at 8-9, 120s at 10+
+    let lockoutDurationMs = 30000;
+    if (currentFails >= 10) {
+      lockoutDurationMs = 120000;
+    } else if (currentFails >= 8) {
+      lockoutDurationMs = 60000;
+    }
+    const lockoutUntil = Date.now() + lockoutDurationMs;
+    localStorage.setItem(LOCKOUT_KEY, lockoutUntil.toString());
+    return { locked: true, remainingSeconds: Math.ceil(lockoutDurationMs / 1000), attempts: currentFails };
+  }
+
+  return { locked: false, remainingSeconds: 0, attempts: currentFails };
+}
+
+export function resetVaultFailedAttempts(): void {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.removeItem(FAIL_COUNT_KEY);
+  localStorage.removeItem(LOCKOUT_KEY);
+}
+
 export async function setVaultPin(pin: string): Promise<void> {
   const hashed = await hashPin(pin);
   localStorage.setItem(HASH_KEY, hashed);
   localStorage.removeItem('otium_vault_pin');
+  resetVaultFailedAttempts();
 }
 
 export async function verifyVaultPin(pin: string): Promise<boolean> {
+  // If actively locked out, reject immediately to prevent brute-forcing
+  if (getVaultLockoutRemainingSeconds() > 0) {
+    return false;
+  }
+
   const storedHash = localStorage.getItem(HASH_KEY);
   if (!storedHash) {
     const legacy = localStorage.getItem('otium_vault_pin');
     if (legacy && constantTimeEqual(legacy, pin)) {
       await setVaultPin(pin);
+      resetVaultFailedAttempts();
       return true;
     }
+    recordVaultFailedAttempt();
     return false;
   }
+
   const currentHash = await hashPin(pin);
-  return constantTimeEqual(currentHash, storedHash);
+  const isValid = constantTimeEqual(currentHash, storedHash);
+  if (isValid) {
+    resetVaultFailedAttempts();
+  } else {
+    recordVaultFailedAttempt();
+  }
+  return isValid;
 }
 
 function constantTimeEqual(a: string, b: string): boolean {
@@ -79,4 +142,5 @@ export function hasVaultPin(): boolean {
 export function clearVaultPin(): void {
   localStorage.removeItem(HASH_KEY);
   localStorage.removeItem('otium_vault_pin');
+  resetVaultFailedAttempts();
 }

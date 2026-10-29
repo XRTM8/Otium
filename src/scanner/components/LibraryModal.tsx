@@ -10,7 +10,7 @@ import {
 } from '../core/storage/documentLibrary';
 import type { DocumentCategory } from '../core/types';
 import { nativeSharePdf, nativeSavePdf, nativeOpenInOtium, nativeOpenUrl, nativeInstallApk } from '../core/nativeBridge';
-import { hasVaultPin, verifyVaultPin, setVaultPin, clearVaultPin } from '../core/security';
+import { hasVaultPin, verifyVaultPin, setVaultPin, clearVaultPin, getVaultLockoutRemainingSeconds } from '../core/security';
 import type { UpdateCheckResult } from '../core/updater';
 import {
   checkForAppUpdates,
@@ -69,6 +69,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   const [isSettingPin, setIsSettingPin] = useState<boolean>(false);
   const [newPinDraft, setNewPinDraft] = useState<string>('');
   const [pinError, setPinError] = useState<boolean>(false);
+  const [lockoutRemaining, setLockoutRemaining] = useState<number>(() => getVaultLockoutRemainingSeconds());
   const [toastMsg, setToastMsg] = useState<string>('');
   const backupInputRef = useRef<HTMLInputElement>(null);
 
@@ -79,10 +80,21 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   const [updateError, setUpdateError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (lockoutRemaining <= 0) return;
+    const interval = setInterval(() => {
+      const rem = getVaultLockoutRemainingSeconds();
+      setLockoutRemaining(rem);
+      if (rem <= 0) clearInterval(interval);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lockoutRemaining]);
+
+  useEffect(() => {
     if (isOpen) {
       const hasPin = hasVaultPin();
       setPinEnabled(hasPin);
       setIsUnlocked(!hasPin);
+      setLockoutRemaining(getVaultLockoutRemainingSeconds());
       setEnteredPin('');
       setPinError(false);
       loadDocs();
@@ -181,6 +193,10 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   };
 
   const handlePinDigit = async (digit: string) => {
+    if (!isSettingPin && lockoutRemaining > 0) {
+      triggerHaptic(40);
+      return;
+    }
     triggerHaptic(10);
     if (isSettingPin) {
       if (newPinDraft.length < 4) {
@@ -192,6 +208,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
           setIsSettingPin(false);
           setIsUnlocked(true);
           setNewPinDraft('');
+          setLockoutRemaining(0);
           triggerHaptic(25);
         }
       }
@@ -206,8 +223,13 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
         if (isValid) {
           setIsUnlocked(true);
           setEnteredPin('');
+          setLockoutRemaining(0);
           triggerHaptic(25);
         } else {
+          const rem = getVaultLockoutRemainingSeconds();
+          if (rem > 0) {
+            setLockoutRemaining(rem);
+          }
           setPinError(true);
           triggerHaptic(40);
           setTimeout(() => {
@@ -234,6 +256,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
     setPinEnabled(false);
     setIsUnlocked(true);
     setIsSettingPin(false);
+    setLockoutRemaining(0);
   };
 
   if (!isOpen) return null;
@@ -305,11 +328,20 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
             })}
           </div>
 
-          {pinError && (
+          {lockoutRemaining > 0 ? (
+            <div className="flex items-center gap-2 mt-4 px-3.5 py-1.5 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-medium animate-in fade-in">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>
+                {lang === 'ar'
+                  ? `تم حظر المحاولات مؤقتاً (${lockoutRemaining} ثانية)`
+                  : `Too many attempts. Locked for ${lockoutRemaining}s`}
+              </span>
+            </div>
+          ) : pinError ? (
             <span className="text-xs text-red-400 font-semibold mt-3 animate-in fade-in">
-              Incorrect PIN. Try again.
+              {lang === 'ar' ? 'رمز PIN غير صحيح. حاول مجدداً.' : 'Incorrect PIN. Try again.'}
             </span>
-          )}
+          ) : null}
         </div>
 
         {/* Tactile Numeric Keypad */}
@@ -323,8 +355,9 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
               {row.map((digit) => (
                 <button
                   key={digit}
+                  disabled={lockoutRemaining > 0}
                   onClick={() => handlePinDigit(digit)}
-                  className="w-18 h-18 rounded-full glass-button text-2xl font-semibold text-white active:scale-90 transition-transform shadow-md"
+                  className="w-18 h-18 rounded-full glass-button text-2xl font-semibold text-white active:scale-90 transition-transform shadow-md disabled:opacity-40 disabled:pointer-events-none"
                 >
                   {digit}
                 </button>
@@ -345,15 +378,17 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
             </div>
 
             <button
+              disabled={lockoutRemaining > 0}
               onClick={() => handlePinDigit('0')}
-              className="w-18 h-18 rounded-full glass-button text-2xl font-semibold text-white active:scale-90 transition-transform shadow-md"
+              className="w-18 h-18 rounded-full glass-button text-2xl font-semibold text-white active:scale-90 transition-transform shadow-md disabled:opacity-40 disabled:pointer-events-none"
             >
               0
             </button>
 
             <button
+              disabled={lockoutRemaining > 0}
               onClick={handlePinBackspace}
-              className="w-18 h-18 rounded-full glass-button flex items-center justify-center text-gray-300 active:scale-90 transition-transform"
+              className="w-18 h-18 rounded-full glass-button flex items-center justify-center text-gray-300 active:scale-90 transition-transform disabled:opacity-40 disabled:pointer-events-none"
             >
               <Delete className="w-6 h-6" />
             </button>

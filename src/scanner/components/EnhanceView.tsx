@@ -13,7 +13,7 @@ import { dewarpBookCurvature } from '../core/geometry';
 import { performOcr, terminateOcrWorker } from '../core/ocr/ocrEngine';
 import { detectBarcodesFromCanvas } from '../core/barcode';
 import type { DetectedBarcode } from '../core/barcode';
-import { nativeSharePdf, nativeSavePdf, nativeOpenInOtium, nativeSaveImage, nativePrintPdf } from '../core/nativeBridge';
+import { isSafeUrl, nativeSharePdf, nativeSavePdf, nativeOpenInOtium, nativeSaveImage, nativePrintPdf } from '../core/nativeBridge';
 import { SignatureModal } from './SignatureModal';
 import { OtiumLogo } from './OtiumLogo';
 import {
@@ -904,11 +904,11 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
                 >
                   <Copy className="w-3.5 h-3.5" />
                 </button>
-                {detectedBarcodes[0].rawValue.startsWith('http') && (
+                {isSafeUrl(detectedBarcodes[0].rawValue) && (
                   <a
                     href={detectedBarcodes[0].rawValue}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className="p-1.5 rounded-lg glass-button text-accent hover:text-white"
                     title="Open link"
                   >

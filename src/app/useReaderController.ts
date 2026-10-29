@@ -10,7 +10,7 @@ import type {
 } from '../core/types';
 import type { Language } from '../core/i18n/translations';
 import type { RecentDocItem } from '../core/storage/documents';
-import { openPdf } from '../core/pdf/document';
+import { isPdfBuffer, openPdf } from '../core/pdf/document';
 import {
   adoptLegacyDocumentRecord,
   getDocumentFromStorage,
@@ -929,6 +929,15 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const loadPdfData = async (data: ArrayBuffer, title: string) => {
     if (!data || data.byteLength === 0) {
       setDocumentError(lang === 'ar' ? 'الملف المحدد فارغ.' : 'The selected file is empty.');
+      return;
+    }
+
+    if (!isPdfBuffer(data)) {
+      setDocumentError(
+        lang === 'ar'
+          ? 'الملف المحدد تالف أو ليس مستند PDF صالحاً.'
+          : 'The selected file is corrupt or not a valid PDF document.'
+      );
       return;
     }
 

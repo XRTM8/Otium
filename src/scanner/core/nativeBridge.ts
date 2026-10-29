@@ -193,7 +193,7 @@ export async function nativePrintPdf(blob: Blob, filename: string): Promise<void
           iframe.focus();
           iframe.contentWindow?.print();
         } catch {
-          window.open(url, '_blank');
+          window.open(url, '_blank', 'noopener,noreferrer');
         }
       }, 300);
     };
@@ -207,9 +207,27 @@ export async function nativePrintPdf(blob: Blob, filename: string): Promise<void
 }
 
 /**
+ * Validates that an external URL is strictly HTTP or HTTPS to prevent javascript:, data:, or file: injection exploits.
+ */
+export function isSafeUrl(rawUrl: string): boolean {
+  if (!rawUrl || typeof rawUrl !== 'string') return false;
+  try {
+    const base = typeof window !== 'undefined' && window?.location?.href ? window.location.href : 'http://localhost';
+    const parsed = new URL(rawUrl, base);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Downloads and installs APK directly via native Android DownloadManager & PackageInstaller
  */
 export function nativeInstallApk(apkUrl: string, filename: string): void {
+  if (!isSafeUrl(apkUrl)) {
+    console.warn('Blocked unsafe APK URL:', apkUrl);
+    return;
+  }
   if (typeof window !== 'undefined' && window.OtiumNative && (window.OtiumNative as any).downloadAndInstallApk) {
     try {
       (window.OtiumNative as any).downloadAndInstallApk(apkUrl, filename);
@@ -225,6 +243,11 @@ export function nativeInstallApk(apkUrl: string, filename: string): void {
  * Opens an external URL or APK download in the system browser or package installer
  */
 export function nativeOpenUrl(url: string): void {
+  if (!isSafeUrl(url)) {
+    console.warn('Blocked unsafe URL navigation:', url);
+    return;
+  }
+
   if (typeof window !== 'undefined' && window.OtiumNative && (window.OtiumNative as any).openExternalUrl) {
     try {
       (window.OtiumNative as any).openExternalUrl(url);
@@ -233,7 +256,7 @@ export function nativeOpenUrl(url: string): void {
       console.warn('Native openExternalUrl failed:', e);
     }
   }
-  window.open(url, '_blank');
+  window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 /**

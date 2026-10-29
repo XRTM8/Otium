@@ -31,11 +31,36 @@ export interface PdfOpenHandle {
 const DEFAULT_PAGE_SIZE: PdfPageSize = { width: 595, height: 842 };
 
 /**
+ * Validates that an ArrayBuffer contains a valid PDF header (%PDF- within the first 1024 bytes).
+ * According to ISO 32000-1 §7.5.2, the %PDF- header may be preceded by up to 1024 bytes of comments/metadata.
+ */
+export function isPdfBuffer(data: ArrayBuffer): boolean {
+  if (!data || data.byteLength < 5) return false;
+  const bytes = new Uint8Array(data, 0, Math.min(data.byteLength, 1024));
+  for (let i = 0; i <= bytes.length - 5; i++) {
+    if (
+      bytes[i] === 0x25 && // %
+      bytes[i + 1] === 0x50 && // P
+      bytes[i + 2] === 0x44 && // D
+      bytes[i + 3] === 0x46 && // F
+      bytes[i + 4] === 0x2d // -
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Opens a PDF with the same resource configuration on every platform.
  * The returned loading task is exposed so the caller can cancel a password
  * prompt or discard a superseded document.
  */
 export function openPdf(data: ArrayBuffer, options: OpenPdfOptions): PdfOpenHandle {
+  if (!isPdfBuffer(data)) {
+    throw new Error('الملف المحدد ليس ملف PDF صالحاً (Missing %PDF- header)');
+  }
+
   const baseUrl = typeof window === 'undefined' ? '' : window.location.origin;
   const loadingTask = pdfjsLib.getDocument({
     data,
@@ -43,7 +68,8 @@ export function openPdf(data: ArrayBuffer, options: OpenPdfOptions): PdfOpenHand
     cMapPacked: true,
     standardFontDataUrl: `${baseUrl}/standard_fonts/`,
     wasmUrl: `${baseUrl}/wasm/`,
-    enableXfa: true
+    enableXfa: true,
+    stopAtErrors: false
   });
 
   loadingTask.onPassword = (callback: (password: string) => void, reason: number) => {
