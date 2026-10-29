@@ -63,7 +63,7 @@ export function getCanvasPixelRatio(limit?: number): number {
   const isMobile =
     (typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches) ||
     (typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
-  const maxLimit = limit ?? (isMobile ? 1.85 : 2);
+  const maxLimit = limit ?? (isMobile ? 2.5 : 2.5);
   return Math.min(maxLimit, Math.max(1, raw));
 }
 

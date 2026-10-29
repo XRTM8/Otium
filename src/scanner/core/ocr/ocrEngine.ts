@@ -25,10 +25,13 @@ function workerOptions() {
   return {
     workerPath: `${base}/worker.min.js`,
     corePath: `${base}/core`,
+    langPath: `${base}/tessdata`,
   };
 }
 
 export function isOcrLanguageCached(lang: string = 'ara+eng'): boolean {
+  // Arabic and English traineddata models are bundled locally with Otium
+  if (lang === 'ara+eng' || lang === 'ara' || lang === 'eng') return true;
   if (typeof localStorage === 'undefined') return false;
   return localStorage.getItem(`${OCR_CACHE_KEY_PREFIX}${lang}`) === 'true';
 }

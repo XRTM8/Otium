@@ -1,8 +1,10 @@
 import React, { Suspense, useEffect, useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Upload } from 'lucide-react';
 import { useReaderController } from '../app/useReaderController';
 import { getThemeBackground } from '../app/themeBackground';
 import { registerBackHandler } from '../core/navigation/backHandler';
+import { isTauriRuntime } from '../platform/runtime';
+import { invoke } from '@tauri-apps/api/core';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { ReaderOverlays } from '../components/ReaderOverlays';
 import { ReaderWorkspace } from '../components/ReaderWorkspace';
@@ -19,6 +21,7 @@ const preloadScanner = () => import('../scanner/ScannerModal');
 export const DesktopShell: React.FC = () => {
   const reader = useReaderController({ keyboard: true, dragDrop: true });
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isDraggingOverWindow, setIsDraggingOverWindow] = useState(false);
 
   // Fallback Escape / back handler while scanner modal is active or lazy-loading
   useEffect(() => {
@@ -28,6 +31,89 @@ export const DesktopShell: React.FC = () => {
       return true;
     });
   }, [isScannerOpen]);
+
+  // Window-level Drag and Drop with full visual dropzone overlay
+  useEffect(() => {
+    let dragCounter = 0;
+
+    const handleDragEnter = (e: DragEvent) => {
+      e.preventDefault();
+      dragCounter++;
+      if (e.dataTransfer && (e.dataTransfer.types.includes('Files') || e.dataTransfer.files.length > 0)) {
+        setIsDraggingOverWindow(true);
+      }
+    };
+
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = 'copy';
+      }
+    };
+
+    const handleDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      dragCounter--;
+      if (dragCounter <= 0) {
+        dragCounter = 0;
+        setIsDraggingOverWindow(false);
+      }
+    };
+
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      dragCounter = 0;
+      setIsDraggingOverWindow(false);
+      const file = e.dataTransfer?.files?.[0];
+      if (file && (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))) {
+        void reader.openFile(file);
+      }
+    };
+
+    window.addEventListener('dragenter', handleDragEnter);
+    window.addEventListener('dragover', handleDragOver);
+    window.addEventListener('dragleave', handleDragLeave);
+    window.addEventListener('drop', handleDrop);
+
+    // Tauri native OS file drop event listener
+    let tauriUnlisten: (() => void) | undefined;
+    if (isTauriRuntime()) {
+      void import('@tauri-apps/api/webview').then(({ getCurrentWebview }) => {
+        void getCurrentWebview().onDragDropEvent((event) => {
+          const payload = event.payload;
+          if (payload.type === 'enter' || payload.type === 'over') {
+            setIsDraggingOverWindow(true);
+          } else if (payload.type === 'leave') {
+            setIsDraggingOverWindow(false);
+          } else if (payload.type === 'drop') {
+            setIsDraggingOverWindow(false);
+            const filePath = payload.paths?.[0];
+            if (filePath && (filePath.toLowerCase().endsWith('.pdf') || !filePath.includes('.'))) {
+              void invoke<ArrayBuffer | number[]>('read_pdf_bytes', { path: filePath })
+                .then((bytes) => {
+                  const data = bytes instanceof ArrayBuffer ? bytes : new Uint8Array(bytes as number[]).buffer;
+                  const name = filePath.split(/[/\\]/).pop() || 'document.pdf';
+                  void reader.loadDocumentBytes(data, name);
+                })
+                .catch((err) => {
+                  console.error('Failed to read dropped file in Tauri:', err);
+                });
+            }
+          }
+        }).then((fn) => {
+          tauriUnlisten = fn;
+        });
+      });
+    }
+
+    return () => {
+      window.removeEventListener('dragenter', handleDragEnter);
+      window.removeEventListener('dragover', handleDragOver);
+      window.removeEventListener('dragleave', handleDragLeave);
+      window.removeEventListener('drop', handleDrop);
+      if (tauriUnlisten) tauriUnlisten();
+    };
+  }, [reader.openFile, reader.loadDocumentBytes]);
 
   // Preload scanner code during idle moments so opening is instantaneous
   useEffect(() => {
@@ -171,6 +257,30 @@ export const DesktopShell: React.FC = () => {
           </ErrorBoundary>
         )}
       </Suspense>
+
+      {/* Full-Window Drag and Drop Frosted Overlay */}
+      {isDraggingOverWindow && (
+        <div
+          dir={reader.lang === 'ar' ? 'rtl' : 'ltr'}
+          className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center bg-black/60 backdrop-blur-md select-none animate-in fade-in duration-200"
+        >
+          <div className="flex flex-col items-center justify-center p-8 sm:p-12 rounded-3xl border-2 border-dashed border-accent bg-surface/90 shadow-2xl space-y-4 max-w-md mx-4 animate-scale-in text-center">
+            <div className="w-20 h-20 rounded-3xl bg-accent/20 border border-accent/40 flex items-center justify-center text-accent animate-bounce shadow-lg">
+              <Upload className="w-10 h-10" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-xl font-bold text-ink">
+                {reader.lang === 'ar' ? 'أفلت ملف الـ PDF هنا لفتحه فوراً' : 'Drop your PDF here to open immediately'}
+              </h3>
+              <p className="text-xs text-ink-muted">
+                {reader.lang === 'ar'
+                  ? 'يدعم جميع كتب ووثائق PDF بجودة فائقة'
+                  : 'Supports all PDF documents and books in pristine quality'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

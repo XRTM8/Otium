@@ -1,4 +1,4 @@
-import type { ThemeMode, ViewMode } from '../types';
+import type { ReadingDirection, ThemeMode, ViewMode } from '../types';
 import type { Language } from '../i18n/translations';
 
 const THEMES: ThemeMode[] = ['paper', 'midnight', 'eink', 'amber', 'pure', 'amoled', 'parchment', 'sakura', 'forest', 'nordic'];
@@ -20,6 +20,7 @@ const KEYS = {
   readingWarmth: 'otium_reading_warmth',
   ultraDim: 'otium_ultra_dim',
   keepScreenAwake: 'otium_keep_screen_awake',
+  readingDirection: 'otium_reading_direction',
   page: (title: string) => `otium_page_${title}`,
   legacyPage: (title: string) => `tirs_page_${title}`,
   docTheme: (docKey: string) => `otium_theme_${docKey}`
@@ -209,5 +210,16 @@ export function loadKeepScreenAwake(): boolean {
 
 export function saveKeepScreenAwake(enabled: boolean): void {
   write(KEYS.keepScreenAwake, String(enabled));
+}
+
+const DIRECTIONS: ReadingDirection[] = ['auto', 'rtl', 'ltr'];
+
+export function loadReadingDirection(): ReadingDirection {
+  const saved = read(KEYS.readingDirection);
+  return DIRECTIONS.includes(saved as ReadingDirection) ? (saved as ReadingDirection) : 'auto';
+}
+
+export function saveReadingDirection(direction: ReadingDirection): void {
+  write(KEYS.readingDirection, direction);
 }
 

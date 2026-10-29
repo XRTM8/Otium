@@ -16,6 +16,8 @@ export interface Translations {
   };
   dropzoneTitle: string;
   dropzoneSubtitle: string;
+  dropzoneTitleTouch: string;
+  dropzoneSubtitleTouch: string;
   openSample: string;
   savedDocs: string;
   clearAll: string;
@@ -69,6 +71,8 @@ const translations: Record<Language, Translations> = {
     },
     dropzoneTitle: 'اسحب وأفلت ملف PDF هنا',
     dropzoneSubtitle: 'أو انقر للاستعراض من جهازك',
+    dropzoneTitleTouch: 'فتح مستند PDF',
+    dropzoneSubtitleTouch: 'انقر لاختيار كتاب أو ملف من جهازك',
     openSample: 'المستند النموذجي',
     savedDocs: 'الملفات المحفوظة',
     clearAll: 'مسح الكل',
@@ -120,6 +124,8 @@ const translations: Record<Language, Translations> = {
     },
     dropzoneTitle: 'Drag & drop a PDF file here',
     dropzoneSubtitle: 'or click to browse from your device',
+    dropzoneTitleTouch: 'Open PDF Document',
+    dropzoneSubtitleTouch: 'Tap to choose a book or file from your device',
     openSample: 'Open Sample Document',
     savedDocs: 'Saved Documents',
     clearAll: 'Clear All',

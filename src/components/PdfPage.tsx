@@ -46,12 +46,12 @@ const PAGE_BACKGROUND: Record<ThemeMode, string> = {
 };
 
 const THEME_FILTERS: Partial<Record<ThemeMode, string>> = {
-  amoled: 'invert(1) hue-rotate(180deg) contrast(1.12) brightness(0.92)',
-  midnight: 'invert(0.92) hue-rotate(185deg) contrast(1.02) brightness(0.94)',
-  amber: 'invert(0.90) sepia(0.55) hue-rotate(-15deg) contrast(1.03) brightness(0.94)',
-  forest: 'invert(0.92) sepia(0.35) hue-rotate(90deg) contrast(1.04) brightness(0.94)',
-  nordic: 'invert(0.92) hue-rotate(175deg) contrast(1.05) brightness(0.92)',
-  eink: 'grayscale(1) contrast(1.18) brightness(0.97)'
+  amoled: 'invert(1) hue-rotate(180deg)',
+  midnight: 'invert(0.92) hue-rotate(185deg) contrast(1.02) brightness(0.96)',
+  amber: 'invert(0.90) sepia(0.55) hue-rotate(-15deg) contrast(1.02) brightness(0.96)',
+  forest: 'invert(0.92) sepia(0.35) hue-rotate(90deg) contrast(1.02) brightness(0.96)',
+  nordic: 'invert(0.92) hue-rotate(175deg) contrast(1.02) brightness(0.94)',
+  eink: 'grayscale(1) contrast(1.08) brightness(0.98)'
 };
 
 function themeFilter(theme: ThemeMode): string | null {
@@ -113,8 +113,8 @@ function drawAnnotationLayer(
   dark: boolean
 ): void {
   const ratio = Math.min(
-    getCanvasPixelRatio(1.5),
-    Math.sqrt(2_500_000 / Math.max(1, width * height))
+    getCanvasPixelRatio(2.5),
+    Math.sqrt(3_600_000 / Math.max(1, width * height))
   );
   const backingWidth = Math.max(1, Math.round(width * ratio));
   const backingHeight = Math.max(1, Math.round(height * ratio));
@@ -133,8 +133,8 @@ function drawAnnotationLayer(
     const rects = normalizeAnnotationRects(annotation.rects);
 
     if (annotation.type === 'underline') {
-      context.strokeStyle = `rgba(${red}, ${green}, ${blue}, 0.88)`;
-      context.lineWidth = 1.8;
+      context.strokeStyle = `rgba(${red}, ${green}, ${blue}, 0.92)`;
+      context.lineWidth = 2.2;
       context.lineCap = 'round';
       for (const rect of rects) {
         const x = rect.xPct * width;
@@ -153,12 +153,11 @@ function drawAnnotationLayer(
       const rectWidth = rect.widthPct * width;
       const rectHeight = rect.heightPct * height;
 
-      // A very narrow marker gradient reads as a physical highlighter rather
-      // than a flat translucent rectangle, without needing a blur filter.
+      // Clean physical highlighter gradient without blur or muddy halos
       const gradient = context.createLinearGradient(0, y, 0, y + rectHeight);
-      gradient.addColorStop(0, `rgba(${red}, ${green}, ${blue}, ${dark ? 0.46 : 0.52})`);
-      gradient.addColorStop(0.65, `rgba(${red}, ${green}, ${blue}, ${dark ? 0.36 : 0.43})`);
-      gradient.addColorStop(1, `rgba(${red}, ${green}, ${blue}, ${dark ? 0.3 : 0.36})`);
+      gradient.addColorStop(0, `rgba(${red}, ${green}, ${blue}, ${dark ? 0.65 : 0.48})`);
+      gradient.addColorStop(0.65, `rgba(${red}, ${green}, ${blue}, ${dark ? 0.55 : 0.40})`);
+      gradient.addColorStop(1, `rgba(${red}, ${green}, ${blue}, ${dark ? 0.45 : 0.32})`);
       context.fillStyle = gradient;
 
       const radius = Math.min(3, rectHeight / 2);
@@ -652,25 +651,16 @@ const PdfPageView: React.FC<PdfPageProps> = ({
         />
       )}
 
-      {(theme === 'paper' || theme === 'parchment' || theme === 'sakura') && (
-        <div
-          className={`paper-overlay ${
-            theme === 'parchment'
-              ? 'paper-overlay-parchment'
-              : theme === 'sakura'
-                ? 'paper-overlay-sakura'
-                : 'paper-overlay-book'
-          }`}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* One canvas per page replaces the old blended div per line. */}
+      {/* High-definition annotation canvas isolated from background filters */}
       <canvas
         ref={annotationCanvasRef}
         aria-hidden="true"
         className="absolute inset-0 z-[8] pointer-events-none"
-        style={{ width: `${dimensions.width}px`, height: `${dimensions.height}px` }}
+        style={{
+          width: `${dimensions.width}px`,
+          height: `${dimensions.height}px`,
+          mixBlendMode: isDark ? 'screen' : 'multiply'
+        }}
       />
 
       {/*

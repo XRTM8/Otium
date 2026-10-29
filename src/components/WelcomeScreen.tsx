@@ -34,7 +34,7 @@ interface WelcomeScreenProps {
   onToggleLanguage: () => void;
   onOpenSettings?: () => void;
   onOpenFile: (file: File) => void;
-  onOpenSample: () => void;
+  onOpenSample?: () => void;
   onOpenRecent: (doc: RecentDocItem) => void;
   onOpenScanner?: () => void;
 }
@@ -46,7 +46,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onToggleLanguage,
   onOpenSettings,
   onOpenFile,
-  onOpenSample,
   onOpenRecent,
   onOpenScanner
 }) => {
@@ -68,16 +67,32 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
   const themesList: { id: ThemeMode; label: string; dot: string }[] = [
     { id: 'paper', label: t.themes.paper, dot: '#d4c5a9' },
-    { id: 'midnight', label: t.themes.midnight, dot: '#38bdf8' },
     { id: 'amoled', label: t.themes.amoled, dot: '#10b981' },
+    { id: 'eink', label: t.themes.eink, dot: '#a3a3a3' },
+    { id: 'midnight', label: t.themes.midnight, dot: '#38bdf8' },
+    { id: 'amber', label: t.themes.amber, dot: '#f59e0b' },
+    { id: 'sakura', label: t.themes.sakura, dot: '#f472b6' },
     { id: 'forest', label: t.themes.forest, dot: '#34d399' },
     { id: 'nordic', label: t.themes.nordic, dot: '#60a5fa' },
     { id: 'parchment', label: t.themes.parchment, dot: '#d97706' },
-    { id: 'amber', label: t.themes.amber, dot: '#f59e0b' },
-    { id: 'eink', label: t.themes.eink, dot: '#a3a3a3' },
-    { id: 'pure', label: t.themes.pure, dot: '#818cf8' },
-    { id: 'sakura', label: t.themes.sakura, dot: '#f472b6' }
+    { id: 'pure', label: t.themes.pure, dot: '#818cf8' }
   ];
+
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const checkMobile = () => {
+      const isTouch =
+        window.matchMedia('(max-width: 768px)').matches ||
+        window.matchMedia('(pointer: coarse)').matches ||
+        /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      setIsMobileDevice(isTouch);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const activeThemeMeta = themesList.find((th) => th.id === currentTheme) || themesList[0];
 
@@ -368,10 +383,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
           <div className="space-y-1">
             <div className="text-sm font-semibold text-ink">
-              {t.dropzoneTitle}
+              {isMobileDevice ? t.dropzoneTitleTouch : t.dropzoneTitle}
             </div>
             <div className="text-xs text-ink-muted">
-              {t.dropzoneSubtitle}
+              {isMobileDevice ? t.dropzoneSubtitleTouch : t.dropzoneSubtitle}
             </div>
           </div>
 
@@ -384,24 +399,15 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           />
         </div>
 
-        {/* Quick Actions: Companion Scanner & Sample Document */}
-        <div className="flex flex-wrap items-center justify-center gap-2.5 w-full">
+        {/* Quick Action: Companion Scanner */}
+        <div className="flex items-center justify-center gap-2.5 w-full">
           <button
             onClick={handleLaunchScanner}
             title={currentLang === 'ar' ? 'مسح كتاب أو مستند ورقي ضوئياً إلى ملف PDF' : 'Scan document with camera to PDF'}
-            className="btn-secondary px-4 py-2 text-xs sm:text-sm cursor-pointer shadow-sm"
+            className="btn-secondary px-5 py-2.5 text-xs sm:text-sm cursor-pointer shadow-sm rounded-2xl flex items-center gap-2"
           >
             <ScanLine className="w-4 h-4 text-accent" />
-            <span>{currentLang === 'ar' ? 'مسح مستند بالكاميرا' : 'Scan with Camera'}</span>
-          </button>
-
-          <button
-            onClick={onOpenSample}
-            className="fluid-press flex items-center gap-2 px-4 py-2 rounded-xl border border-line bg-surface/60 hover:bg-surface text-ink-muted hover:text-ink text-xs sm:text-sm font-medium shadow-sm cursor-pointer group"
-          >
-            <BookOpen className="w-4 h-4 text-accent" />
-            <span>{t.openSample}</span>
-            <ArrowUpRight className={`w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition-all ${currentLang === 'ar' ? 'group-hover:-translate-x-0.5' : 'group-hover:translate-x-0.5'} group-hover:-translate-y-0.5`} />
+            <span className="font-semibold">{currentLang === 'ar' ? 'مسح مستند بالكاميرا' : 'Scan with Camera'}</span>
           </button>
         </div>
 

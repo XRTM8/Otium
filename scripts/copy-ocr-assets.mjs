@@ -49,6 +49,9 @@ function shouldCopy(src, dst) {
 }
 
 mkdirSync(coreTarget, { recursive: true });
+const tessdataTarget = path.join(target, 'tessdata');
+mkdirSync(tessdataTarget, { recursive: true });
+
 const workerDest = path.join(target, 'worker.min.js');
 if (shouldCopy(workerSource, workerDest)) {
   copyFileSync(workerSource, workerDest);
@@ -66,6 +69,30 @@ for (const file of coreFiles) {
   }
 }
 
+// Ensure offline OCR language models (Arabic + English) are bundled
+const ocrModels = ['ara', 'eng'];
+for (const lang of ocrModels) {
+  const gzFile = path.join(tessdataTarget, `${lang}.traineddata.gz`);
+  const rawFile = path.join(tessdataTarget, `${lang}.traineddata`);
+  if (!existsSync(gzFile) || statSync(gzFile).size < 10000) {
+    console.log(`Downloading offline OCR model: ${lang}.traineddata.gz...`);
+    try {
+      const res = await fetch(`https://raw.githubusercontent.com/naptha/tessdata/gh-pages/4.0.0_fast/${lang}.traineddata.gz`);
+      if (res.ok) {
+        const buffer = Buffer.from(await res.arrayBuffer());
+        const { writeFileSync } = await import('node:fs');
+        const { gunzipSync } = await import('node:zlib');
+        writeFileSync(gzFile, buffer);
+        if (!existsSync(rawFile) || statSync(rawFile).size < 10000) {
+          writeFileSync(rawFile, gunzipSync(buffer));
+        }
+      }
+    } catch (err) {
+      console.warn(`Warning: Could not fetch ${lang} traineddata over network:`, err);
+    }
+  }
+}
+
 console.log(
-  `OCR engine staged in public/tesseract (worker + ${coreFiles.length} WASM core variants).`
+  `OCR engine staged in public/tesseract (worker + ${coreFiles.length} WASM core variants + offline models).`
 );

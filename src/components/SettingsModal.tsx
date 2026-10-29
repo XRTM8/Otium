@@ -435,11 +435,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       aria-modal="true"
       aria-label={t.settingsTitle}
       dir={ar ? 'rtl' : 'ltr'}
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 select-none"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-5 select-none"
     >
-      <div className="fixed inset-0 bg-scrim fluid-fade" onClick={onClose} />
+      <div className="fixed inset-0 bg-scrim fluid-fade backdrop-blur-xs" onClick={onClose} />
 
-      <div className="otium-panel relative z-10 flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden p-5 text-ink sm:p-6 fluid-pop shadow-2xl">
+      <div className="otium-panel relative z-10 flex max-h-[92vh] sm:max-h-[88vh] w-full max-w-lg sm:max-w-xl flex-col overflow-hidden rounded-t-[32px] sm:rounded-3xl p-5 text-ink sm:p-6 shadow-2xl mobile-sheet sm:fluid-pop">
+        {/* Mobile handle indicator */}
+        <div className="w-12 h-1.5 rounded-full bg-line-strong/50 mx-auto mb-3 sm:hidden shrink-0" />
+
         <div className="flex items-center justify-between pb-4 border-b border-line shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-accent/15 border border-accent/25 flex items-center justify-center text-accent">
@@ -468,10 +471,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`fluid-press flex-1 py-2 px-2 text-xs font-bold rounded-xl cursor-pointer text-center ${
+              className={`fluid-press flex-1 py-2 px-2 text-xs font-bold rounded-xl cursor-pointer text-center transition-all ${
                 activeTab === tab.id
-                  ? 'bg-accent text-on-accent shadow-md shadow-accent/20'
-                  : 'text-ink-muted hover:text-ink hover:bg-hover'
+                  ? 'bg-hover-strong text-ink border border-line-strong shadow-xs'
+                  : 'text-ink-muted hover:text-ink hover:bg-hover border border-transparent'
               }`}
             >
               <span>{tab.label}</span>
@@ -1023,7 +1026,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       ? 'border-emerald-500/30 text-success-ink bg-emerald-500/10'
                       : 'border-line-subtle text-ink-muted'
                   }`}>
-                    {ocrCached ? (ar ? 'جاهز محلياً' : 'Ready') : (ar ? 'غير مخزّن' : 'Not Cached')}
+                    {ocrCached ? (ar ? 'جاهز ومدمج محلياً' : 'Ready (Bundled)') : (ar ? 'غير مخزّن' : 'Not Cached')}
                   </span>
                 </div>
                 <p className="text-[11px] text-ink-muted leading-relaxed">
@@ -1031,7 +1034,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ? 'يستخرج النصوص العربية والإنجليزية من المستندات والصور محلياً 100% عبر Tesseract المدمج دون أي اتصال بالسحابة.'
                     : 'Extracts Arabic & English text from documents locally via on-device Tesseract engine.'}
                 </p>
-                {!ocrCached && (
+                {ocrCached ? (
+                  <div className="pt-1">
+                    <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-success-ink text-xs font-medium">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>{ar ? 'حزمة اللغات (العربية والإنجليزية) مدمجة في التطبيق وجاهزة للعمل أوفلاين فوراً.' : 'Arabic & English language packs are pre-bundled and 100% offline ready.'}</span>
+                    </div>
+                  </div>
+                ) : (
                   <div className="pt-1">
                     <button
                       type="button"

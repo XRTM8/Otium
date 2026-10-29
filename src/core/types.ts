@@ -4,6 +4,8 @@ export type FontFamilyId = 'tajawal' | 'cairo' | 'amiri' | 'almarai' | 'ibm' | '
 
 export type ViewMode = 'continuous' | 'single' | 'dual';
 
+export type ReadingDirection = 'auto' | 'rtl' | 'ltr';
+
 export interface TocItem {
   title: string;
   pageNumber: number;

@@ -717,7 +717,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
             className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/60 hover:bg-black/90 border border-white/15 text-xs font-bold text-gray-200 active:scale-95 transition-transform shadow-lg cursor-pointer"
             title="خزنة المستندات المحفوظة"
           >
-            <OtiumLogo size={16} className="text-accent shrink-0" />
+            <OtiumLogo size={16} className="text-white shrink-0" />
             <span className="text-xs">الخزنة</span>
           </button>
         </div>
@@ -753,7 +753,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
             onClick={toggleTorch}
             className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
               torchOn
-                ? 'bg-accent/20 text-accent border border-accent/50 shadow-lg shadow-accent/20'
+                ? 'bg-amber-400/20 text-amber-300 border border-amber-400/50 shadow-lg shadow-amber-500/20'
                 : 'bg-black/60 hover:bg-black/90 text-gray-300 border border-white/15'
             } active:scale-90`}
             title="فلاش الكاميرا"
@@ -954,7 +954,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
         </div>
       </div>
 
-      {/* Mode Switcher Bar — Positioned above shutter dock like CamScanner */}
+      {/* Mode Switcher Bar — Positioned above shutter dock like Pro Camera */}
       <div className="relative z-20 flex justify-center py-2.5 px-4 bg-gradient-to-t from-[#07090e] via-[#07090e]/90 to-transparent">
         <div className="flex items-center p-1 rounded-full bg-white/[0.08] border border-white/[0.1] shadow-lg">
           <button
@@ -964,7 +964,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
             }}
             className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
               scanMode === 'batch'
-                ? 'bg-accent text-on-accent shadow-lg shadow-accent/30'
+                ? 'bg-white text-black shadow-lg shadow-white/20'
                 : 'text-gray-300 hover:text-white'
             }`}
           >
@@ -979,7 +979,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
             }}
             className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
               scanMode === 'single'
-                ? 'bg-accent text-on-accent shadow-lg shadow-accent/30'
+                ? 'bg-white text-black shadow-lg shadow-white/20'
                 : 'text-gray-300 hover:text-white'
             }`}
           >
@@ -995,7 +995,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
             }}
             className={`flex items-center gap-1 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
               scanMode === 'idcard'
-                ? 'bg-accent text-on-accent shadow-lg shadow-accent/30'
+                ? 'bg-white text-black shadow-lg shadow-white/20'
                 : 'text-gray-300 hover:text-white'
             }`}
           >
@@ -1056,16 +1056,22 @@ export const CameraView: React.FC<CameraViewProps> = ({
             className={`relative flex items-center justify-center w-20 h-20 rounded-full border-2 p-1.5 active:scale-90 transition-all disabled:opacity-50 cursor-pointer shadow-2xl ${
               autoCapture && stabilityProgress > 0
                 ? 'border-emerald-400 shadow-emerald-500/30'
-                : 'border-white/30'
+                : 'border-white/70 hover:border-white shadow-black/80'
             }`}
             title="التقاط صورة"
           >
             <div
-              className={`w-full h-full rounded-full flex items-center justify-center shadow-lg transition-colors ${
-                autoCapture && stabilityProgress > 0 ? 'bg-emerald-500' : 'bg-accent'
+              className={`w-full h-full rounded-full flex items-center justify-center shadow-lg transition-all ${
+                autoCapture && stabilityProgress > 0 ? 'bg-emerald-500' : 'bg-white hover:bg-white/95'
               }`}
             >
-              <div className={`w-7 h-7 rounded-full bg-black/30 ${capturing ? 'animate-ping' : ''}`} />
+              <div
+                className={`w-14 h-14 rounded-full border border-black/10 flex items-center justify-center ${
+                  capturing ? 'scale-90 bg-gray-200' : ''
+                }`}
+              >
+                <div className="w-3 h-3 rounded-full bg-black/20" />
+              </div>
             </div>
           </button>
         </div>
@@ -1080,20 +1086,20 @@ export const CameraView: React.FC<CameraViewProps> = ({
             className="flex flex-col items-center gap-1 active:scale-90 transition-transform group cursor-pointer"
             title="إنهاء ومراجعة ملف الـ PDF"
           >
-            <div className="relative w-14 h-14 rounded-2xl border-2 border-accent bg-black overflow-hidden shadow-xl ring-2 ring-accent/30">
+            <div className="relative w-14 h-14 rounded-2xl border-2 border-emerald-500/80 bg-black overflow-hidden shadow-xl ring-2 ring-emerald-500/30">
               {lastThumbnail ? (
                 <img src={lastThumbnail} alt="Page preview" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-black/40">
-                  <FileText className="w-6 h-6 text-accent" />
+                  <FileText className="w-6 h-6 text-emerald-400" />
                 </div>
               )}
               {/* Count badge */}
-              <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-accent text-on-accent text-xs font-black flex items-center justify-center ring-2 ring-black">
+              <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 text-white text-xs font-black flex items-center justify-center ring-2 ring-black shadow-md">
                 {pagesCount}
               </div>
             </div>
-            <span className="text-[11px] font-bold text-accent font-arabic flex items-center gap-1">
+            <span className="text-[11px] font-bold text-emerald-400 font-arabic flex items-center gap-1">
               <span>إنهاء ومراجعة</span>
               <ArrowLeft className="w-3 h-3" />
             </span>

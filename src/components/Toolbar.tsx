@@ -58,15 +58,15 @@ interface ToolbarProps {
 
 const THEME_DOTS: Record<ThemeMode, string> = {
   paper: '#d4c5a9',
-  midnight: '#38bdf8',
   amoled: '#10b981',
+  eink: '#9ca3af',
+  midnight: '#38bdf8',
+  amber: '#f59e0b',
+  sakura: '#f472b6',
   forest: '#34d399',
   nordic: '#60a5fa',
   parchment: '#d97706',
-  amber: '#f59e0b',
-  eink: '#9ca3af',
-  pure: '#f8fafc',
-  sakura: '#f472b6'
+  pure: '#f8fafc'
 };
 
 const VIEW_MODES: { id: ViewMode; icon: React.ReactNode; key: keyof ReturnType<typeof getTranslations> }[] = [
@@ -574,124 +574,142 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           title={t.moreTools}
           aria-label={t.moreTools}
           aria-expanded={showMoreMobile}
-          className={`toolbar-icon lg:hidden ${showMoreMobile ? 'bg-hover text-ink' : ''}`}
+          className={`toolbar-icon ${showMoreMobile ? 'bg-hover text-ink' : ''}`}
         >
           <MoreHorizontal className="w-4 h-4" />
         </button>
       </div>
 
       {showMoreMobile && (
-        <div className="chrome-surface pointer-events-auto mt-2 flex w-[min(22rem,calc(100vw-1rem))] flex-col gap-3 rounded-2xl p-3 text-ink lg:hidden animate-in fade-in zoom-in-95 duration-150">
-          <div className="flex items-center justify-between gap-2 rounded-xl bg-hover-subtle px-2.5 py-2">
-            <span className="text-[11px] font-medium text-ink-muted">{t.zoomLevel}</span>
-            <div className="flex items-center gap-1.5">
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-transparent"
+            onClick={() => setShowMoreMobile(false)}
+          />
+          <div className="chrome-surface pointer-events-auto absolute end-3 top-full mt-2 flex w-[min(23rem,calc(100vw-1rem))] flex-col gap-3 rounded-2xl p-3.5 text-ink z-50 shadow-2xl fluid-pop">
+            <div className="flex items-center justify-between gap-2 rounded-xl bg-hover-subtle px-2.5 py-2">
+              <span className="text-[11px] font-medium text-ink-muted">{t.zoomLevel}</span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => onZoomChange(Math.max(0.5, Number((zoom - 0.15).toFixed(2))))}
+                  className="toolbar-icon bg-surface-2"
+                  aria-label={t.zoomOut}
+                >
+                  <ZoomOut className="w-4 h-4" />
+                </button>
+                <span className="w-9 text-center font-mono text-xs text-ink">
+                  {Math.round(zoom * 100)}%
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onZoomChange(Math.min(3.5, Number((zoom + 0.15).toFixed(2))))}
+                  className="toolbar-icon bg-surface-2"
+                  aria-label={t.zoomIn}
+                >
+                  <ZoomIn className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-5 gap-1.5">
               <button
                 type="button"
-                onClick={() => onZoomChange(Math.max(0.5, Number((zoom - 0.15).toFixed(2))))}
-                className="toolbar-icon bg-surface-2"
-                aria-label={t.zoomOut}
+                onClick={onToggleBookmark}
+                className={`flex flex-col items-center gap-1.5 rounded-xl border px-1 py-2 text-[10px] transition-colors ${
+                  isBookmarked
+                    ? 'border-accent/40 bg-accent/10 text-accent'
+                    : 'border-line-subtle bg-hover-subtle text-ink-muted'
+                }`}
               >
-                <ZoomOut className="w-4 h-4" />
+                <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-current' : ''}`} />
+                <span>{ar ? 'إشارة' : 'Bookmark'}</span>
               </button>
-              <span className="w-9 text-center font-mono text-xs text-ink">
-                {Math.round(zoom * 100)}%
-              </span>
+
               <button
                 type="button"
-                onClick={() => onZoomChange(Math.min(3.5, Number((zoom + 0.15).toFixed(2))))}
-                className="toolbar-icon bg-surface-2"
-                aria-label={t.zoomIn}
+                onClick={() =>
+                  onViewModeChange(
+                    viewMode === 'continuous' ? 'dual' : viewMode === 'dual' ? 'single' : 'continuous'
+                  )
+                }
+                className="flex flex-col items-center gap-1.5 rounded-xl border border-line-subtle bg-hover-subtle px-1 py-2 text-[10px] text-ink-muted transition-colors"
               >
-                <ZoomIn className="w-4 h-4" />
+                {VIEW_MODES.find((mode) => mode.id === viewMode)?.icon}
+                <span>
+                  {viewMode === 'continuous'
+                    ? ar ? 'مستمر' : 'Scroll'
+                    : viewMode === 'dual'
+                      ? ar ? 'صفحتين' : 'Spread'
+                      : ar ? 'مفردة' : 'Single'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={onToggleFullscreen}
+                className="flex flex-col items-center gap-1.5 rounded-xl border border-line-subtle bg-hover-subtle px-1 py-2 text-[10px] text-ink-muted transition-colors"
+              >
+                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                <span>{t.fullscreen.split(' ')[0]}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onToggleSettings();
+                  setShowMoreMobile(false);
+                }}
+                className="flex flex-col items-center gap-1.5 rounded-xl border border-line-subtle bg-hover-subtle px-1 py-2 text-[10px] text-accent transition-colors"
+              >
+                <Settings2 className="w-4 h-4" />
+                <span>{t.settingsTitle.split(' ')[0]}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenScanner?.();
+                  setShowMoreMobile(false);
+                }}
+                className="flex flex-col items-center gap-1.5 rounded-xl border border-line-subtle bg-hover-subtle px-1 py-2 text-[10px] text-accent transition-colors"
+              >
+                <ScanLine className="w-4 h-4" />
+                <span>{ar ? 'سكانر' : 'Scan'}</span>
               </button>
             </div>
-          </div>
 
-          <div className="grid grid-cols-5 gap-1.5">
-            <button
-              type="button"
-              onClick={onToggleBookmark}
-              className={`flex flex-col items-center gap-1.5 rounded-xl border px-1 py-2 text-[10px] transition-colors ${
-                isBookmarked
-                  ? 'border-accent/40 bg-accent/10 text-accent'
-                  : 'border-line-subtle bg-hover-subtle text-ink-muted'
-              }`}
-            >
-              <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-current' : ''}`} />
-              <span>{ar ? 'إشارة' : 'Bookmark'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                onViewModeChange(
-                  viewMode === 'continuous' ? 'dual' : viewMode === 'dual' ? 'single' : 'continuous'
-                )
-              }
-              className="flex flex-col items-center gap-1.5 rounded-xl border border-line-subtle bg-hover-subtle px-1 py-2 text-[10px] text-ink-muted transition-colors"
-            >
-              {VIEW_MODES.find((mode) => mode.id === viewMode)?.icon}
-              <span>
-                {viewMode === 'continuous'
-                  ? ar ? 'مستمر' : 'Scroll'
-                  : viewMode === 'dual'
-                    ? ar ? 'صفحتين' : 'Spread'
-                    : ar ? 'مفردة' : 'Single'}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={onToggleFullscreen}
-              className="flex flex-col items-center gap-1.5 rounded-xl border border-line-subtle bg-hover-subtle px-1 py-2 text-[10px] text-ink-muted transition-colors"
-            >
-              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-              <span>{t.fullscreen.split(' ')[0]}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                onToggleSettings();
-                setShowMoreMobile(false);
-              }}
-              className="flex flex-col items-center gap-1.5 rounded-xl border border-line-subtle bg-hover-subtle px-1 py-2 text-[10px] text-accent transition-colors"
-            >
-              <Settings2 className="w-4 h-4" />
-              <span>{t.settingsTitle.split(' ')[0]}</span>
-            </button>
-          </div>
-
-          <div className="space-y-1.5 border-t border-line-subtle pt-2">
-            <div className="font-mono text-[10px] text-ink-muted">{t.readingThemesTitle}</div>
-            <div className="grid grid-cols-4 gap-1.5">
-              {themes.map((entry) => {
-                const selected = theme === entry.id;
-                return (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    onClick={() => {
-                      onThemeChange(entry.id);
-                      setShowMoreMobile(false);
-                    }}
-                    className={`flex items-center gap-1.5 rounded-xl border px-1.5 py-1.5 text-[10px] transition-colors ${
-                      selected
-                        ? 'border-accent bg-accent/10 text-ink font-medium'
-                        : 'border-line-subtle bg-hover-subtle text-ink-muted'
-                    }`}
-                  >
-                    <span
-                      className="h-2.5 w-2.5 shrink-0 rounded-full border border-black/20"
-                      style={{ backgroundColor: entry.dot }}
-                    />
-                    <span className="truncate">{entry.label}</span>
-                  </button>
-                );
-              })}
+            <div className="space-y-1.5 border-t border-line-subtle pt-2">
+              <div className="font-mono text-[10px] text-ink-muted">{t.readingThemesTitle}</div>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+                {themes.slice(0, 6).map((entry) => {
+                  const selected = theme === entry.id;
+                  return (
+                    <button
+                      key={entry.id}
+                      type="button"
+                      onClick={() => {
+                        onThemeChange(entry.id);
+                        setShowMoreMobile(false);
+                      }}
+                      className={`flex items-center gap-1.5 rounded-xl border px-1.5 py-1.5 text-[10px] transition-colors ${
+                        selected
+                          ? 'border-accent bg-accent/10 text-ink font-medium'
+                          : 'border-line-subtle bg-hover-subtle text-ink-muted'
+                      }`}
+                    >
+                      <span
+                        className="h-2.5 w-2.5 shrink-0 rounded-full border border-black/20"
+                        style={{ backgroundColor: entry.dot }}
+                      />
+                      <span className="truncate">{entry.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

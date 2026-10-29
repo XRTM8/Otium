@@ -50,15 +50,15 @@ interface MobileToolbarProps {
 
 const THEMES: { id: ThemeMode; dot: string }[] = [
   { id: 'paper', dot: '#d4c5a9' },
-  { id: 'midnight', dot: '#38bdf8' },
   { id: 'amoled', dot: '#10b981' },
+  { id: 'eink', dot: '#9ca3af' },
+  { id: 'midnight', dot: '#38bdf8' },
+  { id: 'amber', dot: '#f59e0b' },
+  { id: 'sakura', dot: '#f472b6' },
   { id: 'forest', dot: '#34d399' },
   { id: 'nordic', dot: '#60a5fa' },
   { id: 'parchment', dot: '#d97706' },
-  { id: 'amber', dot: '#f59e0b' },
-  { id: 'eink', dot: '#9ca3af' },
-  { id: 'pure', dot: '#f8fafc' },
-  { id: 'sakura', dot: '#f472b6' }
+  { id: 'pure', dot: '#f8fafc' }
 ];
 
 const VIEW_MODES: ViewMode[] = ['continuous', 'dual', 'single'];

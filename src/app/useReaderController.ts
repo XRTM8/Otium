@@ -4,6 +4,7 @@ import type { PDFDocumentLoadingTask, PDFDocumentProxy } from 'pdfjs-dist';
 import type {
   BookmarkItem,
   FontFamilyId,
+  ReadingDirection,
   TextAnnotation,
   ThemeMode,
   ViewMode
@@ -59,6 +60,8 @@ import {
   resolveScheduledTheme,
   loadKeepScreenAwake,
   saveKeepScreenAwake,
+  loadReadingDirection,
+  saveReadingDirection,
   type ThemeScheduleMode
 } from '../core/settings/preferences';
 import { computeOptimalPageScale, measureRefreshRate } from '../core/reader/device';
@@ -144,6 +147,18 @@ function describeDocumentError(error: unknown, lang?: Language): string {
   return ar ? 'تعذر فتح هذا المستند.' : 'Could not open this document.';
 }
 
+function detectIsArabicScript(text: string): boolean {
+  if (!text) return false;
+  const arabicRegex = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g;
+  const arabicMatches = text.match(arabicRegex);
+  const arabicCount = arabicMatches ? arabicMatches.length : 0;
+  const latinRegex = /[a-zA-Z]/g;
+  const latinMatches = text.match(latinRegex);
+  const latinCount = latinMatches ? latinMatches.length : 0;
+  if (arabicCount === 0 && latinCount === 0) return false;
+  return arabicCount > latinCount;
+}
+
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return (
@@ -206,6 +221,14 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const [fontFamily, setFontFamily] = useState<FontFamilyId>(getSavedFont);
   const [showMobileNavBar, setShowMobileNavBar] = useState<boolean>(loadMobileNavVisible);
   const [isImmersive, setIsImmersive] = useState(false);
+  const [readingDirection, setReadingDirection] = useState<ReadingDirection>(loadReadingDirection);
+  const [detectedDocIsRtl, setDetectedDocIsRtl] = useState<boolean>(false);
+  const docIsRtl = readingDirection === 'rtl' ? true : readingDirection === 'ltr' ? false : detectedDocIsRtl;
+
+  const changeReadingDirection = useCallback((dir: ReadingDirection) => {
+    setReadingDirection(dir);
+    saveReadingDirection(dir);
+  }, []);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -1242,6 +1265,21 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       setIsImmersive(false);
       setDocumentError(null);
 
+      // Detect language / reading direction of document
+      void (async () => {
+        try {
+          const firstPage = await opened.doc.getPage(1);
+          const textContent = await firstPage.getTextContent();
+          const pageText = textContent.items
+            .map((item: any) => ('str' in item ? item.str : ''))
+            .join(' ');
+          const combined = `${title} ${pageText}`;
+          setDetectedDocIsRtl(detectIsArabicScript(combined));
+        } catch {
+          setDetectedDocIsRtl(detectIsArabicScript(title));
+        }
+      })();
+
       if (opened.basePageSize.width && opened.basePageSize.height && typeof window !== 'undefined') {
         const fit = computeOptimalPageScale(
           opened.basePageSize.width,
@@ -1363,6 +1401,10 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       console.error('Error loading sample:', error);
     }
   }, [lang]);
+
+  const loadDocumentBytes = useCallback(async (data: ArrayBuffer, name: string) => {
+    await loadPdfData(data, name);
+  }, []);
 
   const openRecent = useCallback(async (recent: RecentDocItem) => {
     if (recent.name === SAMPLE_DOCUMENT_NAME) {
@@ -2137,7 +2179,11 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     setIsSidebarOpen,
     setIsSearchOpen,
     setIsSettingsOpen,
-    resetDefaults
+    resetDefaults,
+    docIsRtl,
+    readingDirection,
+    changeReadingDirection,
+    loadDocumentBytes
   };
 }
 

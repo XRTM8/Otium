@@ -161,6 +161,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
   const [showScrubberPill, setShowScrubberPill] = useState(false);
   const scrubberTimeoutRef = useRef<number | null>(null);
   const isRtl = lang === 'ar';
+  const docIsRtl = reader.docIsRtl;
   const lastScrollPageRef = useRef<number>(currentPage);
   const scrollFrameRef = useRef<number | null>(null);
 
@@ -380,7 +381,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
   const pagedAnimation =
     !isDraggingTouch && dualFlipKey > 0
       ? `pagedTurn${
-          isRtl
+          docIsRtl
             ? dualFlipDir === 'forward'
               ? 'Backward'
               : 'Forward'
@@ -392,7 +393,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
   const dualAnimation =
     !isDraggingTouch && dualFlipKey > 0
       ? `dualPageFlip${
-          isRtl
+          docIsRtl
             ? dualFlipDir === 'forward'
               ? 'Backward'
               : 'Forward'
@@ -402,11 +403,9 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
         } 260ms cubic-bezier(0.16, 1, 0.3, 1) both`
       : undefined;
 
-  // In an Arabic book odd pages sit on the right, so the first page of a
-  // spread is on the right for odd numbers and on the left for even ones.
-  // Keeping the parity correct means a page jump to page 2 still reads as a
-  // proper two-page spread instead of mirroring the wrong pair.
-  const reverseSpread = isRtl && currentPage % 2 === 1;
+  // Odd pages sit on the right in Arabic / RTL books and on the left in Latin / LTR books.
+  // Using docIsRtl guarantees English books in Arabic UI are never mirrored or reversed.
+  const reverseSpread = docIsRtl && currentPage % 2 === 1;
 
   // Anchored scrolling (page search, outline, mode switch) must land below the
   // floating toolbar instead of underneath it.
