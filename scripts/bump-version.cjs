@@ -43,7 +43,7 @@ if (fs.existsSync(cargoLockPath)) {
 const updaterPath = 'src/scanner/core/updater.ts';
 if (fs.existsSync(updaterPath)) {
   let updater = fs.readFileSync(updaterPath, 'utf8');
-  updater = updater.replace(/APP_CURRENT_VERSION\s*=\s*'[^']+'/, `APP_CURRENT_VERSION = '${targetVersion}'`);
+  updater = updater.replace(/APP_CURRENT_VERSION\s*=\s*(?:'[^']+'|getCurrentVersion\(\))/, `APP_CURRENT_VERSION = '${targetVersion}'`);
   fs.writeFileSync(updaterPath, updater, 'utf8');
 }
 
