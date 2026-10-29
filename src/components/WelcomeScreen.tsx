@@ -31,7 +31,7 @@ import {
 } from '../core/storage/documents';
 import { OtiumLogo } from './OtiumLogo';
 import { triggerHaptic } from '../core/utils/haptics';
-import { openExternalLink } from '../platform/runtime';
+import { isTauriRuntime, openExternalLink } from '../platform/runtime';
 
 interface WelcomeScreenProps {
   currentTheme: ThemeMode;
@@ -563,8 +563,9 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           </div>
         )}
 
-        {/* Sovereign Bottom Dock: Latest Release & Instagram MA.XRT */}
-        <div className="w-full pt-6 pb-2 border-t border-line/60 flex flex-col items-center gap-3 text-ink select-none animate-in fade-in duration-300">
+        {/* Sovereign Bottom Dock (Web Browser Only): Latest Release & Instagram MA.XRT */}
+        {!isTauriRuntime() && (
+          <div className="w-full pt-6 pb-2 border-t border-line/60 flex flex-col items-center gap-3 text-ink select-none animate-in fade-in duration-300">
           {/* Latest Release & Download Links */}
           <div className="flex flex-wrap items-center justify-center gap-2">
             <a
@@ -647,6 +648,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             </a>
           </div>
         </div>
+        )}
 
       </div>
     </div>
