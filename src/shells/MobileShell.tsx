@@ -39,7 +39,7 @@ export const MobileShell: React.FC = () => {
 
   return (
     <div
-      className={`relative w-full h-screen overflow-hidden flex flex-col font-sans transition-colors duration-300 theme-${reader.theme}`}
+      className={`relative w-full h-screen overflow-hidden flex flex-col font-sans theme-${reader.theme}`}
       style={{ backgroundColor: getThemeBackground(reader.theme), height: '100dvh' }}
     >
       {!reader.doc ? (

@@ -43,7 +43,7 @@ import {
 import { computeOptimalPageScale, measureRefreshRate } from '../core/reader/device';
 import { clearSearchTextCache } from '../core/search/documentSearch';
 import { registerIncomingDocumentHandler } from '../platform/incomingDocument';
-import { syncNativeTheme } from '../platform/theme';
+import { applyDomTheme, syncNativeTheme } from '../platform/theme';
 import { syncNativeImmersive } from '../platform/ui';
 import { stopTts } from '../platform/tts';
 
@@ -608,8 +608,29 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   }, [currentPage, scrollToPage, viewMode]);
 
   const changeTheme = useCallback((nextTheme: ThemeMode) => {
-    setTheme(nextTheme);
     saveTheme(nextTheme);
+
+    const doc = (typeof document !== 'undefined' ? document : null) as unknown as {
+      startViewTransition?: (callback: () => void | Promise<void>) => {
+        finished: Promise<void>;
+        ready: Promise<void>;
+        updateCallbackDone: Promise<void>;
+      };
+    } | null;
+
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+
+    if (doc && typeof doc.startViewTransition === 'function' && !prefersReducedMotion) {
+      doc.startViewTransition(() => {
+        setTheme(nextTheme);
+        applyDomTheme(nextTheme);
+      });
+    } else {
+      setTheme(nextTheme);
+      applyDomTheme(nextTheme);
+    }
   }, []);
 
   const changeLanguage = useCallback(() => {
