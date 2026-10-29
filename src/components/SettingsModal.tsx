@@ -33,7 +33,7 @@ import type { RestoreSummary } from '../core/storage/backupFormat';
 import { getStorageSummary, type StorageSummary } from '../core/storage/documents';
 import type { SaveTextOutcome } from '../platform/saveFile';
 import { getUpdateAdapter } from '../platform/updates';
-import { getPlatformLabel } from '../platform/runtime';
+import { getPlatformLabel, openExternalLink } from '../platform/runtime';
 import { isOcrLanguageCached, preloadOcrLanguage } from '../scanner/core/ocr/ocrEngine';
 import type { CropMode } from '../scanner/core/types';
 
@@ -1101,9 +1101,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="pt-2 flex flex-col gap-2">
                 <a
                   href="https://github.com/XRTM8/Otium/releases/latest"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    void openExternalLink('https://github.com/XRTM8/Otium/releases/latest');
+                  }}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full flex items-center justify-between p-2.5 rounded-2xl bg-hover-subtle hover:bg-hover border border-line-subtle text-xs text-ink transition-colors"
+                  className="w-full flex items-center justify-between p-2.5 rounded-2xl bg-hover-subtle hover:bg-hover border border-line-subtle text-xs text-ink transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
                     <Download className="w-4 h-4 text-accent" />
@@ -1114,9 +1118,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                 <a
                   href="https://instagram.com/ma.xrt"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    void openExternalLink('https://instagram.com/ma.xrt');
+                  }}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full flex items-center justify-between p-2.5 rounded-2xl bg-hover-subtle hover:bg-hover border border-line-subtle text-xs text-ink transition-colors"
+                  className="w-full flex items-center justify-between p-2.5 rounded-2xl bg-hover-subtle hover:bg-hover border border-line-subtle text-xs text-ink transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-pink-500" viewBox="0 0 24 24" fill="currentColor">

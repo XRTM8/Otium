@@ -31,6 +31,7 @@ import {
 } from '../core/storage/documents';
 import { OtiumLogo } from './OtiumLogo';
 import { triggerHaptic } from '../core/utils/haptics';
+import { openExternalLink } from '../platform/runtime';
 
 interface WelcomeScreenProps {
   currentTheme: ThemeMode;
@@ -568,6 +569,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           <div className="flex flex-wrap items-center justify-center gap-2">
             <a
               href="https://github.com/XRTM8/Otium/releases/latest"
+              onClick={(e) => {
+                e.preventDefault();
+                void openExternalLink('https://github.com/XRTM8/Otium/releases/latest');
+              }}
               target="_blank"
               rel="noopener noreferrer"
               className="group fluid-press px-3.5 py-1.5 rounded-full bg-surface border border-line hover:border-accent/50 shadow-sm flex items-center gap-2 text-xs font-medium text-ink hover:text-accent transition-all duration-200"
@@ -588,6 +593,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             <div className="flex items-center gap-1.5">
               <a
                 href="https://github.com/XRTM8/Otium/releases/latest"
+                onClick={(e) => {
+                  e.preventDefault();
+                  void openExternalLink('https://github.com/XRTM8/Otium/releases/latest');
+                }}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-2.5 py-1.5 rounded-full bg-hover-subtle hover:bg-hover border border-line-subtle text-[11px] text-ink-muted hover:text-ink font-medium flex items-center gap-1.5 transition-colors"
@@ -598,6 +607,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               </a>
               <a
                 href="https://github.com/XRTM8/Otium/releases/latest"
+                onClick={(e) => {
+                  e.preventDefault();
+                  void openExternalLink('https://github.com/XRTM8/Otium/releases/latest');
+                }}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-2.5 py-1.5 rounded-full bg-hover-subtle hover:bg-hover border border-line-subtle text-[11px] text-ink-muted hover:text-ink font-medium flex items-center gap-1.5 transition-colors"
@@ -613,6 +626,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           <div className="flex items-center gap-2">
             <a
               href="https://instagram.com/ma.xrt"
+              onClick={(e) => {
+                e.preventDefault();
+                void openExternalLink('https://instagram.com/ma.xrt');
+              }}
               target="_blank"
               rel="noopener noreferrer"
               className="group fluid-press inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface/80 hover:bg-surface border border-line hover:border-pink-500/40 text-ink-muted hover:text-ink shadow-xs transition-all duration-200"

@@ -1,3 +1,5 @@
+import { openUrl } from '@tauri-apps/plugin-opener';
+
 export type PlatformId = 'windows' | 'android' | 'web';
 export type FormFactor = 'desktop' | 'mobile';
 
@@ -37,5 +39,24 @@ export function getPlatformLabel(platform: PlatformId = getPlatformId()): string
       return 'Windows';
     default:
       return 'Web';
+  }
+}
+
+/**
+ * Safely opens an external URL across Web, Windows, and Android.
+ * In Tauri native desktop/mobile apps, it uses the native system opener;
+ * in standard web browsers, it opens a secure new tab.
+ */
+export async function openExternalLink(url: string): Promise<void> {
+  if (isTauriRuntime()) {
+    try {
+      await openUrl(url);
+      return;
+    } catch (e) {
+      console.warn('Failed to open external URL via Tauri plugin-opener:', e);
+    }
+  }
+  if (typeof window !== 'undefined') {
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 }
