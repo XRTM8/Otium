@@ -77,6 +77,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
   const [connStatus, setConnStatus] = useState<BeamConnectionStatus>(() => beamService.getConnectionStatus());
   const offlineFileInputRef = useRef<HTMLInputElement>(null);
   const beamFileInputRef = useRef<HTMLInputElement>(null);
+  const receiverFileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync beam connection state
   useEffect(() => {
@@ -415,6 +416,15 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     }
   };
 
+  const handleReceiverFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      void reader.openFile(file);
+      const docName = file.name.replace(/\.pdf$/i, '');
+      beamService.announceState(receiverRoomCode, docName, 1, 1);
+    }
+  };
+
   useEffect(() => {
     return () => {
       stopCamera();
@@ -629,23 +639,23 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                 </span>
               </div>
             ) : (
-              <div className="px-3.5 py-2.5 rounded-2xl bg-hover-subtle border border-line flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <div className="text-[10px] text-accent font-semibold uppercase tracking-wider flex items-center gap-1.5">
-                    <Radio className="w-3 h-3 text-accent animate-pulse" />
-                    <span>{lang === 'ar' ? 'وضع ريموت التحكم الذكي' : 'Smart Remote Controller Mode'}</span>
-                  </div>
-                  <div className="text-xs font-bold truncate text-ink">
-                    {lang === 'ar' ? 'التحكم بالسبورة أو الحاسبة من هاتفك' : 'Control Smartboard / PC from your phone'}
-                  </div>
+              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-2 text-start">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400">
+                  <Radio className="w-3.5 h-3.5 animate-pulse text-amber-500" />
+                  <span>{lang === 'ar' ? 'لا يوجد ملف مفتوح حالياً على الهاتف' : 'No document open on phone'}</span>
                 </div>
+                <p className="text-[11px] text-ink-muted leading-tight">
+                  {lang === 'ar'
+                    ? 'اختر ملف الملزمة لبثها للسبورة، أو اتصل كريموت تحكم إذا كانت معروضة بالفعل على شاشة السبورة:'
+                    : 'Pick a PDF file to beam to smartboard, or pair as remote if already displayed on screen:'}
+                </p>
                 <button
                   type="button"
                   onClick={() => beamFileInputRef.current?.click()}
-                  className="px-2.5 py-1 rounded-xl bg-accent/15 hover:bg-accent/25 border border-accent/30 text-accent font-bold text-[11px] flex items-center gap-1 transition-all cursor-pointer shrink-0"
+                  className="w-full py-2 px-3 rounded-xl bg-accent text-on-accent font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs hover:bg-accent-strong transition-all cursor-pointer"
                 >
-                  <FileUp className="w-3 h-3" />
-                  <span>{lang === 'ar' ? 'اختيار ملف وبثه' : 'Pick & Beam File'}</span>
+                  <FileUp className="w-3.5 h-3.5" />
+                  <span>{lang === 'ar' ? '📂 اختيار ملف الملزمة وبثها الآن' : '📂 Select PDF & Beam to Board'}</span>
                 </button>
               </div>
             )}
@@ -742,45 +752,49 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                 placeholder="OTM-XXXX"
                 className="w-full px-3 py-2.5 rounded-2xl bg-hover border border-line font-mono text-sm font-bold text-center tracking-widest text-ink focus:outline-none focus:ring-2 focus:ring-accent"
               />
-              <div className={reader.doc ? "flex flex-col gap-2" : "grid grid-cols-2 gap-2"}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (reader.doc) {
-                      void handleBeamDocument();
-                    } else {
-                      beamFileInputRef.current?.click();
-                    }
-                  }}
-                  disabled={isSending || (!targetRoomCode.trim() && !reader.doc)}
-                  className={`py-3 px-3 rounded-2xl bg-accent text-on-accent font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:bg-accent-strong active:scale-98 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer ${reader.doc ? 'w-full' : ''}`}
-                >
-                  {isSending ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  ) : sendSuccess ? (
-                    <Check className="w-3.5 h-3.5" />
-                  ) : (
-                    <Send className="w-3.5 h-3.5" />
-                  )}
-                  <span>
-                    {uploadProgress !== null
-                      ? `${uploadProgress}%`
-                      : reader.doc
-                      ? lang === 'ar' ? 'بث ومزامنة للسبورة فوراً' : 'Beam & Sync to Smartboard'
-                      : lang === 'ar' ? 'اختيار ملف وبثه' : 'Pick File & Beam'}
-                  </span>
-                </button>
-
-                {!reader.doc && (
+              <div className="flex flex-col gap-2">
+                {reader.doc ? (
                   <button
                     type="button"
-                    onClick={() => handlePairAsRemote()}
-                    disabled={!targetRoomCode.trim()}
-                    className="py-2.5 px-3 rounded-2xl bg-hover border border-accent/40 text-accent font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-accent/15 active:scale-98 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
+                    onClick={() => void handleBeamDocument()}
+                    disabled={isSending || !targetRoomCode.trim()}
+                    className="w-full py-3 px-3 rounded-2xl bg-accent text-on-accent font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:bg-accent-strong active:scale-98 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
                   >
-                    <Radio className="w-3.5 h-3.5" />
-                    <span>{lang === 'ar' ? 'اقتران ريموت تحكم' : 'Pair as Remote'}</span>
+                    {isSending ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : sendSuccess ? (
+                      <Check className="w-3.5 h-3.5" />
+                    ) : (
+                      <Send className="w-3.5 h-3.5" />
+                    )}
+                    <span>
+                      {uploadProgress !== null
+                        ? `${uploadProgress}%`
+                        : lang === 'ar' ? 'بث ومزامنة للسبورة فوراً' : 'Beam & Sync to Smartboard'}
+                    </span>
                   </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => beamFileInputRef.current?.click()}
+                      disabled={isSending}
+                      className="w-full py-2.5 px-3 rounded-2xl bg-accent text-on-accent font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:bg-accent-strong active:scale-98 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
+                    >
+                      <FileUp className="w-3.5 h-3.5" />
+                      <span>{lang === 'ar' ? '📂 اختيار ملف وبثه للسبورة' : '📂 Select PDF & Beam to Board'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handlePairAsRemote()}
+                      disabled={!targetRoomCode.trim()}
+                      className="w-full py-2 px-3 rounded-2xl bg-hover border border-line hover:border-accent/40 text-ink text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-accent/15 active:scale-98 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
+                    >
+                      <Radio className="w-3.5 h-3.5 text-accent" />
+                      <span>{lang === 'ar' ? '📱 اقتران كريموت فقط (إذا كانت الملزمة مفتوحة بالسبورة)' : '📱 Pair as Remote Only (if PDF is on screen)'}</span>
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -825,6 +839,49 @@ export const BeamModal: React.FC<BeamModalProps> = ({
               <span>{lang === 'ar' ? 'رابط السبورة السريع:' : 'Quick link:'}</span>
               <strong className="text-accent underline">is.gd/otium</strong>
             </div>
+
+            {/* Direct Open PDF on this PC / Smartboard Card */}
+            {reader.doc ? (
+              <div className="w-full p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-start space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>{lang === 'ar' ? 'الملزمة معروضة وجاهزة للتحكم:' : 'Document ready for remote:'}</span>
+                  </span>
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                    {lang === 'ar' ? `ص ${reader.currentPage}/${reader.numPages}` : `p. ${reader.currentPage}/${reader.numPages}`}
+                  </span>
+                </div>
+                <div className="text-xs font-bold text-ink truncate">
+                  {reader.docTitle}
+                </div>
+                <p className="text-[10px] text-ink-muted leading-tight">
+                  {lang === 'ar'
+                    ? 'اكتب الرمز أعلاه في هاتفك للبدء بالتقليب فوراً كالريموت! 📱'
+                    : 'Enter code on your phone to turn pages wirelessly! 📱'}
+                </p>
+              </div>
+            ) : (
+              <div className="w-full p-3 rounded-2xl bg-hover-subtle border border-line text-start space-y-2">
+                <div className="flex items-center gap-1.5 text-ink font-bold text-xs">
+                  <FolderOpen className="w-4 h-4 text-accent" />
+                  <span>{lang === 'ar' ? 'حل فوري: فتح الملزمة على هذه الشاشة' : 'Instant: Open PDF on this screen'}</span>
+                </div>
+                <p className="text-[11px] text-ink-muted leading-tight">
+                  {lang === 'ar'
+                    ? 'إذا كانت الملزمة موجودة بحاسوبك أو فلاشة USB، افتحها هنا واستخدم الهاتف كريموت تحكم فقط (أسرع 100 مرة وبدون انتظار الرفع عبر النت).'
+                    : 'If you have the PDF on this PC or USB, open it here and use your phone as a wireless clicker.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => receiverFileInputRef.current?.click()}
+                  className="w-full py-2 px-3 rounded-xl bg-accent/15 hover:bg-accent/25 border border-accent/30 text-accent font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <FileUp className="w-3.5 h-3.5" />
+                  <span>{lang === 'ar' ? 'اختيار ملف الملزمة من هذا الجهاز ⚡' : 'Select PDF from this device ⚡'}</span>
+                </button>
+              </div>
+            )}
 
             {/* Connection Status Indicator */}
             <div className="flex items-center gap-1.5 text-[10px] text-ink-muted pt-1 border-t border-line w-full justify-center">
@@ -1065,6 +1122,15 @@ export const BeamModal: React.FC<BeamModalProps> = ({
           accept=".pdf,application/pdf"
           className="hidden"
           onChange={handleOfflineFile}
+        />
+
+        {/* Hidden File Input for Receiver PC Direct Opening */}
+        <input
+          ref={receiverFileInputRef}
+          type="file"
+          accept=".pdf,application/pdf"
+          className="hidden"
+          onChange={handleReceiverFile}
         />
       </div>
     </div>

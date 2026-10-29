@@ -335,7 +335,9 @@ class BeamService {
                 name === 'attachment.json' ||
                 name.endsWith('.json') ||
                 name === 'attachment.txt' ||
-                name.endsWith('.txt')
+                name.endsWith('.txt') ||
+                name === 'attachment.bin' ||
+                name.endsWith('.bin')
               ) {
                 try {
                   const res = await fetch(url);

@@ -63,4 +63,13 @@ if (fs.existsSync(propsPath)) {
   fs.writeFileSync(propsPath, props, 'utf8');
 }
 
+// 9. sw.js (PWA Service Worker cache version)
+for (const swPath of ['public/sw.js', 'docs/sw.js']) {
+  if (fs.existsSync(swPath)) {
+    let sw = fs.readFileSync(swPath, 'utf8');
+    sw = sw.replace(/const CACHE_NAME = 'otium-offline-v[^']+';/, `const CACHE_NAME = 'otium-offline-v${targetVersion}';`);
+    fs.writeFileSync(swPath, sw, 'utf8');
+  }
+}
+
 console.log(`Bumped Otium Reader to ${targetVersion}`);

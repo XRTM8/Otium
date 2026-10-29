@@ -1,4 +1,4 @@
-# Otium 1.8.7 — Smart Beam Board Fixes & Smooth Draggable Settings Sheet
+# Otium 1.8.8 — Smart Beam Board Fixes & Smooth Draggable Settings Sheet
 
 تحديث شامل ومهم لإصلاح منظومة البث الذكي للسبورة واللوحة التفاعلية (Smart Beam)، ودعم سحب مقبض الإعدادات للتكبير أو الإغلاق بسلاسة فائقة.
 

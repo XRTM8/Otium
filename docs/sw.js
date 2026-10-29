@@ -1,6 +1,6 @@
 // Otium Service Worker — 100% Offline Resilience for Smartboards & Classrooms
-const CACHE_NAME = 'otium-offline-v1.8.5';
-const PRECACHE_URLS = ['/', '/index.html', '/manifest.json'];
+const CACHE_NAME = 'otium-offline-v1.8.8';
+const PRECACHE_URLS = ['/', '/index.html', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -28,29 +28,41 @@ self.addEventListener('fetch', (event) => {
   // Skip external signaling APIs (like ntfy.sh or web sockets)
   if (url.origin !== self.location.origin) return;
 
-  // Stale-While-Revalidate: serve cached version immediately, fetch latest in background
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetchPromise = fetch(event.request)
+  // HTML navigation requests: Network First, fallback to cache for 100% offline support
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           }
           return networkResponse;
         })
         .catch(async () => {
+          const cached = await caches.match(event.request);
           if (cached) return cached;
-          if (event.request.mode === 'navigate') {
-            const fallback = (await caches.match('/index.html')) || (await caches.match('/'));
-            if (fallback) return fallback;
-          }
+          const fallback = (await caches.match('/index.html')) || (await caches.match('/'));
+          if (fallback) return fallback;
           return undefined;
-        });
+        })
+    );
+    return;
+  }
 
-      return cached || fetchPromise;
+  // Static assets (hashed JS, CSS, fonts, wasm): Cache First, fallback to network
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached;
+      return fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(() => undefined);
     })
   );
 });
