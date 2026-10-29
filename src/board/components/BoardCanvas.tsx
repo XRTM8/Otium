@@ -654,7 +654,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        className="absolute inset-0 cursor-crosshair z-10"
+        className="absolute inset-0 cursor-crosshair z-10 touch-none select-none"
       />
 
       {/* Floating Laser Trail Overlay */}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { TouchEvent as ReactTouchEvent } from 'react';
 import type { PDFDocumentLoadingTask, PDFDocumentProxy } from 'pdfjs-dist';
 import type {
@@ -182,7 +182,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const [numPages, setNumPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [zoom, setZoom] = useState(1.15);
-  const [, startZoomTransition] = useTransition();
 
   const [dualFlipKey, setDualFlipKey] = useState(0);
   const [dualFlipDir, setDualFlipDir] = useState<'forward' | 'backward'>('forward');
@@ -212,6 +211,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const [basePageSize, setBasePageSize] = useState({ width: 595, height: 842 });
   const [viewMode, setViewMode] = useState<ViewMode>(loadViewMode);
   const [lang, setLang] = useState<Language>(loadLanguage);
+  const langRef = useRef(lang);
+  langRef.current = lang;
   const [fontFamily, setFontFamily] = useState<FontFamilyId>(getSavedFont);
   const [showMobileNavBar, setShowMobileNavBar] = useState<boolean>(loadMobileNavVisible);
   const [isImmersive, setIsImmersive] = useState(false);
@@ -937,7 +938,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('pagehide', handlePageHide);
     };
-  }, [doc, basePageSize, chromeInset, viewMode]);
+  }, [doc, basePageSize, chromeInset, viewMode, scrollToRenderedPage]);
 
   // React registers wheel listeners as passive, so preventDefault inside
   // onWheel is ignored. This native listener owns paged wheel physics: a
@@ -1364,7 +1365,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
         void openFileRef.current(file);
       } else {
-        setDocumentError(lang === 'ar' ? 'يرجى اختيار ملف PDF صالح.' : 'Please select a valid PDF file.');
+        setDocumentError(langRef.current === 'ar' ? 'يرجى اختيار ملف PDF صالح.' : 'Please select a valid PDF file.');
       }
     };
 
@@ -1393,7 +1394,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
   const loadDocumentBytes = useCallback(async (data: ArrayBuffer, name: string) => {
     await loadPdfData(data, name);
-  }, []);
+  }, [loadPdfData]);
 
   const openRecent = useCallback(async (recent: RecentDocItem) => {
     if (recent.name === SAMPLE_DOCUMENT_NAME) {
@@ -1535,7 +1536,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         if (zoomAnchorRef.current === captured) clearZoomAnchor();
       }, ZOOM_ANIMATION_MS);
     },
-    [captureZoomAnchor, clearZoomAnchor, getFitScale, startZoomTransition, zoom]
+    [captureZoomAnchor, clearZoomAnchor, getFitScale, zoom]
   );
 
   const handleTouchStart = (event: ReactTouchEvent<HTMLDivElement>) => {

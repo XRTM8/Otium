@@ -92,6 +92,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
 
   // Sensor & Device States
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
+  const streamRef = useRef<MediaStream | null>(null);
   const isMuted = false;
   const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
 
@@ -147,6 +148,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
     }
 
     if (acquiredStream) {
+      streamRef.current = acquiredStream;
       setStream(acquiredStream);
       setHasPermission(true);
       if (videoRef.current) {
@@ -165,12 +167,11 @@ export const CameraView: React.FC<CameraViewProps> = ({
     const handleVisibilityChange = () => {
       if (document.hidden) {
         setTorchOn(false);
-        setStream((prev) => {
-          if (prev) {
-            prev.getTracks().forEach((t) => t.stop());
-          }
-          return null;
-        });
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((t) => t.stop());
+          streamRef.current = null;
+        }
+        setStream(null);
       } else {
         initCamera();
       }
@@ -180,12 +181,11 @@ export const CameraView: React.FC<CameraViewProps> = ({
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      setStream((prevStream) => {
-        if (prevStream) {
-          prevStream.getTracks().forEach((track) => track.stop());
-        }
-        return null;
-      });
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+      setStream(null);
     };
   }, [initCamera]);
 

@@ -1,5 +1,4 @@
 const fs = require('fs');
-const path = require('path');
 
 const targetVersion = process.argv[2] || '1.5.3';
 const numericCode = targetVersion.replace(/\D/g, '');
