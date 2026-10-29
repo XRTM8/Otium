@@ -31,6 +31,15 @@ export const MobileShell: React.FC = () => {
     });
   }, [isScannerOpen]);
 
+  // Hardware back handler for Otium Beam modal on mobile
+  React.useEffect(() => {
+    if (!isBeamOpen) return;
+    return registerBackHandler(() => {
+      setIsBeamOpen(false);
+      return true;
+    });
+  }, [isBeamOpen]);
+
   // Preload scanner chunk during idle moments so opening is 100% instant and lag-free
   React.useEffect(() => {
     let timer: any = null;

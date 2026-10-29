@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Lock, Eye, EyeOff, X, KeyRound } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Lock, Eye, EyeOff, X, KeyRound, Loader2 } from 'lucide-react';
 import type { Language } from '../core/i18n/translations';
 import { getTranslations } from '../core/i18n/translations';
 
@@ -7,6 +7,7 @@ interface PasswordModalProps {
   isOpen: boolean;
   docTitle: string;
   isIncorrect?: boolean;
+  isLoading?: boolean;
   onSubmit: (password: string) => void;
   onCancel: () => void;
   lang?: Language;
@@ -16,32 +17,49 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
   isOpen,
   docTitle,
   isIncorrect = false,
+  isLoading = false,
   onSubmit,
   onCancel,
   lang = 'ar'
 }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const t = getTranslations(lang);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      setPassword('');
+      return;
+    }
+    const timer = window.setTimeout(() => inputRef.current?.focus(), 50);
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
         onCancel();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen, onCancel]);
+
+  useEffect(() => {
+    if (isIncorrect) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [isIncorrect]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.trim().length > 0) {
+    if (password.trim().length > 0 && !isLoading) {
       onSubmit(password);
-      setPassword('');
     }
   };
 
@@ -59,7 +77,7 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
         <button
           onClick={onCancel}
           aria-label={lang === 'ar' ? 'إغلاق' : 'Close'}
-          className="toolbar-icon absolute left-4 top-4"
+          className="toolbar-icon absolute end-4 top-4"
         >
           <X className="w-4 h-4" />
         </button>
@@ -89,17 +107,18 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
         <form onSubmit={handleSubmit} className="w-full space-y-4">
           <div className="relative w-full">
             <input
+              ref={inputRef}
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••••••"
-              autoFocus
-              className="w-full rounded-2xl border border-line bg-hover-subtle px-4 py-2.5 text-center text-sm tracking-widest text-ink transition-colors placeholder:tracking-normal placeholder:text-ink-faint focus:border-accent focus:outline-hidden"
+              disabled={isLoading}
+              className="w-full rounded-2xl border border-line bg-hover-subtle px-4 py-2.5 text-center text-sm tracking-widest text-ink transition-colors placeholder:tracking-normal placeholder:text-ink-faint focus:border-accent focus:outline-hidden disabled:opacity-50"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink transition-colors cursor-pointer p-1"
+              className="absolute end-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink transition-colors cursor-pointer p-1"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -107,11 +126,15 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
 
           <button
             type="submit"
-            disabled={password.trim().length === 0}
+            disabled={password.trim().length === 0 || isLoading}
             className="btn-primary w-full px-4 py-2.5 text-xs disabled:opacity-40"
           >
-            <KeyRound className="w-4 h-4" />
-            <span>{t.unlockButton}</span>
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <KeyRound className="w-4 h-4" />
+            )}
+            <span>{isLoading ? (lang === 'ar' ? 'جاري فك التشفير...' : 'Unlocking...') : t.unlockButton}</span>
           </button>
         </form>
       </div>

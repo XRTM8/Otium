@@ -335,6 +335,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const wheelAccumRef = useRef(0);
   const wheelDirectionRef = useRef(0);
   const wheelIdleTimerRef = useRef<number | null>(null);
+  const ctrlWheelIdleTimerRef = useRef<number | null>(null);
   const lastFitScaleRef = useRef(0);
   const pageSaveTimerRef = useRef<number | null>(null);
   const lastSavedPageRef = useRef<{ title: string; page: number } | null>(null);
@@ -951,10 +952,18 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     const handleNativeWheel = (event: WheelEvent) => {
       if (event.ctrlKey) {
         event.preventDefault();
+        captureZoomAnchor(event.clientX, event.clientY);
         const delta = event.deltaY > 0 ? -0.1 : 0.1;
         setZoom((current) =>
           Math.min(3.5, Math.max(0.5, Number((current + delta).toFixed(2))))
         );
+        if (ctrlWheelIdleTimerRef.current !== null) {
+          window.clearTimeout(ctrlWheelIdleTimerRef.current);
+        }
+        ctrlWheelIdleTimerRef.current = window.setTimeout(() => {
+          ctrlWheelIdleTimerRef.current = null;
+          clearZoomAnchor();
+        }, 180);
         return;
       }
 
@@ -1010,10 +1019,22 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     };
 
     container.addEventListener('wheel', handleNativeWheel, { passive: false });
-    return () => container.removeEventListener('wheel', handleNativeWheel);
+    return () => {
+      container.removeEventListener('wheel', handleNativeWheel);
+      if (ctrlWheelIdleTimerRef.current !== null) {
+        window.clearTimeout(ctrlWheelIdleTimerRef.current);
+        ctrlWheelIdleTimerRef.current = null;
+      }
+      if (wheelIdleTimerRef.current !== null) {
+        window.clearTimeout(wheelIdleTimerRef.current);
+        wheelIdleTimerRef.current = null;
+      }
+    };
   }, [
     canScrollHorizontally,
     canScrollVertically,
+    captureZoomAnchor,
+    clearZoomAnchor,
     doc,
     goToNextPage,
     goToPrevPage,
@@ -1756,7 +1777,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       if (horizontal) {
         lastTapRef.current = null;
         cancelPendingSingleTap();
-        const next = lang === 'ar' ? movedX > 0 : movedX < 0;
+        const next = docIsRtl ? movedX > 0 : movedX < 0;
         if (next) goToNextPage();
         else goToPrevPage();
         return;
@@ -1974,8 +1995,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         case 'arrowright':
           event.preventDefault();
           if (viewMode === 'continuous') {
-            scrollContainerRef.current?.scrollBy({ top: lang === 'ar' ? -220 : 220, behavior: 'smooth' });
-          } else if (lang === 'ar') {
+            scrollContainerRef.current?.scrollBy({ top: docIsRtl ? -220 : 220, behavior: 'smooth' });
+          } else if (docIsRtl) {
             goToPrevPage();
           } else {
             goToNextPage();
@@ -1984,8 +2005,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         case 'arrowleft':
           event.preventDefault();
           if (viewMode === 'continuous') {
-            scrollContainerRef.current?.scrollBy({ top: lang === 'ar' ? 220 : -220, behavior: 'smooth' });
-          } else if (lang === 'ar') {
+            scrollContainerRef.current?.scrollBy({ top: docIsRtl ? 220 : -220, behavior: 'smooth' });
+          } else if (docIsRtl) {
             goToNextPage();
           } else {
             goToPrevPage();
@@ -2060,6 +2081,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     goToNextPage,
     goToPrevPage,
     handleToggleFullscreen,
+    docIsRtl,
     lang,
     numPages,
     scrollToPage,
@@ -2170,6 +2192,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     openSample,
     openRecent,
     closeDocument,
+    setDocumentError,
     clearDocumentError: () => setDocumentError(null),
     handlePageVisible,
     scrollToPage,

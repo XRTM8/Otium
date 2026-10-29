@@ -14,7 +14,7 @@ import type { BoardSnippet } from '../board/types';
 
 /** Windows shell: floating desktop toolbar, Otium Board split-screen studio, and Smart Beam. */
 export const DesktopShell: React.FC = () => {
-  const reader = useReaderController({ keyboard: true, dragDrop: true });
+  const reader = useReaderController({ keyboard: true, dragDrop: false });
   const [isBoardOpen, setIsBoardOpen] = useState(false);
   const [isBeamOpen, setIsBeamOpen] = useState(false);
   const [snippets, setSnippets] = useState<BoardSnippet[]>([]);
@@ -82,8 +82,11 @@ export const DesktopShell: React.FC = () => {
       dragCounter = 0;
       setIsDraggingOverWindow(false);
       const file = e.dataTransfer?.files?.[0];
-      if (file && (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))) {
+      if (!file) return;
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
         void reader.openFile(file);
+      } else {
+        reader.setDocumentError(reader.lang === 'ar' ? 'يرجى اختيار ملف PDF صالح.' : 'Please select a valid PDF file.');
       }
     };
 
@@ -105,16 +108,21 @@ export const DesktopShell: React.FC = () => {
           } else if (payload.type === 'drop') {
             setIsDraggingOverWindow(false);
             const filePath = payload.paths?.[0];
-            if (filePath && (filePath.toLowerCase().endsWith('.pdf') || !filePath.includes('.'))) {
-              void invoke<ArrayBuffer | number[]>('read_pdf_bytes', { path: filePath })
-                .then((bytes) => {
-                  const data = bytes instanceof ArrayBuffer ? bytes : new Uint8Array(bytes as number[]).buffer;
-                  const name = filePath.split(/[/\\]/).pop() || 'document.pdf';
-                  void reader.loadDocumentBytes(data, name);
-                })
-                .catch((err) => {
-                  console.error('Failed to read dropped file in Tauri:', err);
-                });
+            if (filePath) {
+              if (filePath.toLowerCase().endsWith('.pdf') || !filePath.includes('.')) {
+                void invoke<ArrayBuffer | number[]>('read_pdf_bytes', { path: filePath })
+                  .then((bytes) => {
+                    const data = bytes instanceof ArrayBuffer ? bytes : new Uint8Array(bytes as number[]).buffer;
+                    const name = filePath.split(/[/\\]/).pop() || 'document.pdf';
+                    void reader.loadDocumentBytes(data, name);
+                  })
+                  .catch((err) => {
+                    console.error('Failed to read dropped file in Tauri:', err);
+                    reader.setDocumentError(reader.lang === 'ar' ? 'تعذر فتح الملف المسحوب.' : 'Could not open dropped file.');
+                  });
+              } else {
+                reader.setDocumentError(reader.lang === 'ar' ? 'يرجى اختيار ملف PDF صالح.' : 'Please select a valid PDF file.');
+              }
             }
           }
         }).then((fn) => {

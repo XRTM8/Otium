@@ -317,6 +317,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                               }
                               setIsRenaming(false);
                             } else if (e.key === 'Escape') {
+                              e.preventDefault();
+                              e.stopPropagation();
                               setRenameText(title);
                               setIsRenaming(false);
                             }

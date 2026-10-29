@@ -57,6 +57,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
   const [connectedRoom, setConnectedRoom] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
   const [recentRooms, setRecentRooms] = useState<string[]>([]);
+  const [beamError, setBeamError] = useState<string | null>(null);
   const offlineFileInputRef = useRef<HTMLInputElement>(null);
 
   // Camera QR scanner state
@@ -93,6 +94,8 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
         onClose();
       }
     };
@@ -174,8 +177,10 @@ export const BeamModal: React.FC<BeamModalProps> = ({
       const code = (overrideCode || targetRoomCode).trim().toUpperCase();
       if (!code) return;
 
+      setBeamError(null);
+
       if (!reader.doc || !reader.docId) {
-        alert(lang === 'ar' ? 'يرجى فتح كتاب أولاً لبثه إلى السبورة' : 'Please open a document first');
+        setBeamError(lang === 'ar' ? 'يرجى فتح كتاب أولاً لبثه إلى السبورة' : 'Please open a document first');
         return;
       }
 
@@ -218,7 +223,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
       } catch (err) {
         console.error('Failed to beam document:', err);
         setIsSending(false);
-        alert(lang === 'ar' ? 'تعذر إرسال المستند، تأكد من الرمز وحاول مجدداً' : 'Failed to beam document');
+        setBeamError(lang === 'ar' ? 'تعذر إرسال المستند، تأكد من الرمز وحاول مجدداً' : 'Failed to beam document');
       }
     },
     [targetRoomCode, reader, lang]
@@ -557,6 +562,12 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {beamError && (
+              <div className="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-danger-ink text-xs font-sans text-center">
+                {beamError}
               </div>
             )}
 

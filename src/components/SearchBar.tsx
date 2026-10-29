@@ -159,6 +159,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               if (event.shiftKey) prevMatch();
               else nextMatch();
             } else if (event.key === 'Escape') {
+              event.preventDefault();
+              event.stopPropagation();
               onClose();
             }
           }}

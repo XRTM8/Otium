@@ -120,9 +120,11 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      onOpenFile(e.target.files[0]);
+    const file = e.target.files?.[0];
+    if (file) {
+      onOpenFile(file);
     }
+    e.target.value = '';
   };
 
   const handleLaunchScanner = () => {

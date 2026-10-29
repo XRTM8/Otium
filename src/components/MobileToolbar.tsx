@@ -125,7 +125,11 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
   useEffect(() => {
     if (!showJump) return;
     const close = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setShowJump(false);
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        setShowJump(false);
+      }
     };
     const handleBack = (e: Event) => {
       e.preventDefault();

@@ -74,6 +74,7 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader, mobile =
       <PasswordModal
         isOpen={reader.passwordModal.isOpen}
         isIncorrect={reader.passwordModal.isIncorrect}
+        isLoading={reader.isLoading}
         docTitle={reader.passwordModal.title}
         lang={reader.lang}
         onSubmit={reader.handlePasswordSubmit}
@@ -92,7 +93,7 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader, mobile =
           <button
             type="button"
             onClick={reader.clearDocumentError}
-            aria-label="Dismiss"
+            aria-label={reader.lang === 'ar' ? 'إغلاق التنبيه' : 'Dismiss notice'}
             className="toolbar-icon"
           >
             <X className="w-3.5 h-3.5" />

@@ -171,38 +171,6 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     return () => window.removeEventListener('mousedown', handleClickOutside);
   }, [isExportOpen]);
 
-  // Sync canvas size with high DPI pixel ratio
-  const syncCanvasDimensions = useCallback(() => {
-    const canvas = canvasRef.current;
-    const laserCanvas = laserCanvasRef.current;
-    const container = containerRef.current;
-    if (!canvas || !laserCanvas || !container) return;
-
-    const rect = container.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-
-    canvas.width = Math.round(rect.width * dpr);
-    canvas.height = Math.round(rect.height * dpr);
-    canvas.style.width = `${rect.width}px`;
-    canvas.style.height = `${rect.height}px`;
-
-    laserCanvas.width = Math.round(rect.width * dpr);
-    laserCanvas.height = Math.round(rect.height * dpr);
-    laserCanvas.style.width = `${rect.width}px`;
-    laserCanvas.style.height = `${rect.height}px`;
-
-    repaintAllStrokes();
-  }, [strokes, background]);
-
-  useLayoutEffect(() => {
-    syncCanvasDimensions();
-    const handleResize = () => {
-      syncCanvasDimensions();
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [syncCanvasDimensions]);
-
   // Repaint all vector strokes with Bézier curves
   const repaintAllStrokes = useCallback(() => {
     const canvas = canvasRef.current;
@@ -253,7 +221,57 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     }
 
     ctx.restore();
-  }, [strokes]);
+  }, [strokes, isDarkBg]);
+
+  // Sync canvas size with high DPI pixel ratio and observe container resizing
+  const syncCanvasDimensions = useCallback(() => {
+    const canvas = canvasRef.current;
+    const laserCanvas = laserCanvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !laserCanvas || !container) return;
+
+    const rect = container.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+    canvas.style.width = `${rect.width}px`;
+    canvas.style.height = `${rect.height}px`;
+
+    laserCanvas.width = Math.round(rect.width * dpr);
+    laserCanvas.height = Math.round(rect.height * dpr);
+    laserCanvas.style.width = `${rect.width}px`;
+    laserCanvas.style.height = `${rect.height}px`;
+
+    repaintAllStrokes();
+  }, [repaintAllStrokes]);
+
+  useLayoutEffect(() => {
+    syncCanvasDimensions();
+    const container = containerRef.current;
+    if (!container) return;
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        syncCanvasDimensions();
+      });
+      resizeObserver.observe(container);
+    }
+
+    const handleResize = () => {
+      syncCanvasDimensions();
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+    };
+  }, [syncCanvasDimensions]);
 
   useEffect(() => {
     repaintAllStrokes();
@@ -367,7 +385,9 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    canvas.setPointerCapture(e.pointerId);
+    try {
+      canvas.setPointerCapture(e.pointerId);
+    } catch {}
 
     const coords = getCanvasCoordinates(e);
 
@@ -483,9 +503,11 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     }
 
     const canvas = canvasRef.current;
-    if (canvas && canvas.hasPointerCapture(e.pointerId)) {
-      canvas.releasePointerCapture(e.pointerId);
-    }
+    try {
+      if (canvas && canvas.hasPointerCapture(e.pointerId)) {
+        canvas.releasePointerCapture(e.pointerId);
+      }
+    } catch {}
     isDrawingRef.current = false;
     currentPointsRef.current = [];
   };
@@ -613,7 +635,9 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
       x: e.clientX - snip.x,
       y: e.clientY - snip.y
     };
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
   };
 
   const handleSnippetPointerMove = (id: string, e: React.PointerEvent) => {

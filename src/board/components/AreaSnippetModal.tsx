@@ -28,6 +28,8 @@ export const AreaSnippetModal: React.FC<AreaSnippetModalProps> = ({
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
         onClose();
       }
     };
@@ -41,7 +43,9 @@ export const AreaSnippetModal: React.FC<AreaSnippetModalProps> = ({
     e.preventDefault();
     const overlay = overlayRef.current;
     if (!overlay) return;
-    overlay.setPointerCapture(e.pointerId);
+    try {
+      overlay.setPointerCapture(e.pointerId);
+    } catch {}
 
     const rect = overlay.getBoundingClientRect();
     const x = e.clientX - rect.left;

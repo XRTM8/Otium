@@ -452,6 +452,7 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
       ref={containerRef}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
       className="relative w-full h-full bg-[#07090e] flex flex-col justify-between overflow-hidden select-none font-sans touch-none"
     >
       {/* Top Action Bar with Safe Area Inset */}
