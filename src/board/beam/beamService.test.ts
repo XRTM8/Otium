@@ -3,14 +3,16 @@ import {
   arrayBufferToBase64,
   base64ToArrayBuffer,
   beamService,
-  generateRoomCode
+  generateRoomCode,
+  getRecentRooms,
+  saveRecentRoom
 } from './beamService';
 import type { BeamMessage } from '../types';
 
 describe('Otium Smart Beam Service', () => {
-  it('generates a clean 6-character room code with prefix', () => {
+  it('generates a clean 4-digit room code with prefix', () => {
     const code = generateRoomCode();
-    expect(code).toMatch(/^OTM-[2-9A-Z]{3}-[2-9A-Z]{3}$/);
+    expect(code).toMatch(/^OTM-\d{4}$/);
   });
 
   it('preserves binary byte integrity across base64 round-trip', () => {
@@ -40,5 +42,13 @@ describe('Otium Smart Beam Service', () => {
     expect(listener).toHaveBeenCalledWith(testMsg);
 
     unsubscribe();
+  });
+
+  it('saves and retrieves recent rooms in order', () => {
+    saveRecentRoom('OTM-1111');
+    saveRecentRoom('OTM-2222');
+    const recents = getRecentRooms();
+    expect(recents[0]).toBe('OTM-2222');
+    expect(recents).toContain('OTM-1111');
   });
 });

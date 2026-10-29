@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
+  Camera,
   Cast,
   Check,
   Copy,
+  History,
   Radio,
   RefreshCw,
   Send,
@@ -20,7 +22,9 @@ import {
   arrayBufferToBase64,
   base64ToArrayBuffer,
   beamService,
-  generateRoomCode
+  generateRoomCode,
+  getRecentRooms,
+  saveRecentRoom
 } from './beamService';
 import { QrCodeView } from './QrCodeView';
 import type { BeamMessage } from '../types';
@@ -49,6 +53,36 @@ export const BeamModal: React.FC<BeamModalProps> = ({
   const [sendSuccess, setSendSuccess] = useState(false);
   const [connectedRoom, setConnectedRoom] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [recentRooms, setRecentRooms] = useState<string[]>([]);
+
+  // Camera QR scanner state
+  const [isScanningCamera, setIsScanningCamera] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const scanAnimFrameRef = useRef<number | null>(null);
+
+  // Load recent rooms
+  useEffect(() => {
+    if (isOpen) {
+      setRecentRooms(getRecentRooms());
+    }
+  }, [isOpen]);
+
+  // Check URL query params for auto-connect (e.g. from native phone camera QR scan)
+  useEffect(() => {
+    if (!isOpen) return;
+    try {
+      const hash = window.location.hash;
+      const search = window.location.search;
+      const match = hash.match(/room=([A-Za-z0-9_-]+)/) || search.match(/room=([A-Za-z0-9_-]+)/);
+      if (match && match[1]) {
+        const room = match[1].toUpperCase();
+        setTargetRoomCode(room);
+        setActiveTab('send');
+      }
+    } catch {}
+  }, [isOpen]);
 
   // Close on Escape key
   useEffect(() => {
@@ -62,12 +96,26 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Subscribe to beam messages (for receiver mode & remote page syncing)
+  // Join cloud room when Receiver Tab is active
+  useEffect(() => {
+    if (!isOpen) return;
+    if (activeTab === 'receive') {
+      beamService.listenToRoom(receiverRoomCode);
+    }
+    return () => {
+      beamService.leaveRoom();
+    };
+  }, [isOpen, activeTab, receiverRoomCode]);
+
+  // Subscribe to beam messages (receiver mode & remote page syncing)
   useEffect(() => {
     const unsubscribe = beamService.subscribe(async (msg: BeamMessage) => {
       // Receiver Mode: Handle incoming payload
       if (activeTab === 'receive' && msg.type === 'BEAM_PAYLOAD' && msg.payload) {
-        if (msg.roomCode.toUpperCase() === receiverRoomCode.toUpperCase()) {
+        const cleanMsgRoom = msg.roomCode.trim().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        const cleanRecRoom = receiverRoomCode.trim().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
+        if (cleanMsgRoom === cleanRecRoom) {
           try {
             if (msg.payload.pdfBase64) {
               const buffer = base64ToArrayBuffer(msg.payload.pdfBase64);
@@ -79,6 +127,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                 reader.changeTheme(msg.payload.theme);
               }
             }
+            saveRecentRoom(receiverRoomCode);
             onSetBoardOpen(true);
             onClose();
           } catch (err) {
@@ -89,8 +138,12 @@ export const BeamModal: React.FC<BeamModalProps> = ({
 
       // Page Flipping Sync
       if (msg.type === 'BEAM_PAGE_CHANGE' && msg.pageNumber) {
-        if (connectedRoom && msg.roomCode.toUpperCase() === connectedRoom.toUpperCase()) {
-          reader.scrollToPage(msg.pageNumber);
+        if (connectedRoom) {
+          const cleanMsgRoom = msg.roomCode.trim().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+          const cleanConnRoom = connectedRoom.trim().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+          if (cleanMsgRoom === cleanConnRoom) {
+            reader.scrollToPage(msg.pageNumber);
+          }
         }
       }
     });
@@ -98,66 +151,134 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     return () => unsubscribe();
   }, [activeTab, receiverRoomCode, connectedRoom, reader, onSetBoardOpen, onClose]);
 
-  if (!isOpen) return null;
+  // Stop camera helper
+  const stopCamera = useCallback(() => {
+    if (scanAnimFrameRef.current) {
+      cancelAnimationFrame(scanAnimFrameRef.current);
+      scanAnimFrameRef.current = null;
+    }
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+    setIsScanningCamera(false);
+  }, []);
 
   // Send current book to Smartboard
-  const handleBeamDocument = async () => {
-    const code = targetRoomCode.trim().toUpperCase();
-    if (!code) return;
+  const handleBeamDocument = useCallback(
+    async (overrideCode?: string) => {
+      const code = (overrideCode || targetRoomCode).trim().toUpperCase();
+      if (!code) return;
 
-    if (!reader.doc || !reader.docId) {
-      alert(lang === 'ar' ? 'يرجى فتح كتاب أولاً لبثه إلى السبورة' : 'Please open a document first');
-      return;
-    }
-
-    setIsSending(true);
-    setSendSuccess(false);
-
-    try {
-      const buffer = await getDocumentFromStorage(reader.docId);
-      if (!buffer) {
-        throw new Error('Document buffer not found in storage');
+      if (!reader.doc || !reader.docId) {
+        alert(lang === 'ar' ? 'يرجى فتح كتاب أولاً لبثه إلى السبورة' : 'Please open a document first');
+        return;
       }
 
-      const base64 = arrayBufferToBase64(buffer);
+      setIsSending(true);
+      setSendSuccess(false);
 
-      const payloadMsg: BeamMessage = {
-        type: 'BEAM_PAYLOAD',
-        roomCode: code,
-        senderName: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
-        payload: {
-          title: reader.docTitle,
-          pageNumber: reader.currentPage,
-          totalPages: reader.numPages,
-          theme: reader.theme,
-          pdfBase64: base64
-        },
-        timestamp: Date.now()
-      };
+      try {
+        const buffer = await getDocumentFromStorage(reader.docId);
+        if (!buffer) {
+          throw new Error('Document buffer not found in storage');
+        }
 
-      beamService.broadcast(payloadMsg);
+        const base64 = arrayBufferToBase64(buffer);
 
-      setConnectedRoom(code);
-      setSendSuccess(true);
-      setIsSending(false);
+        const payloadMsg: BeamMessage = {
+          type: 'BEAM_PAYLOAD',
+          roomCode: code,
+          senderName: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
+          payload: {
+            title: reader.docTitle,
+            pageNumber: reader.currentPage,
+            totalPages: reader.numPages,
+            theme: reader.theme,
+            pdfBase64: base64
+          },
+          timestamp: Date.now()
+        };
 
-      // Transition to remote controller mode
-      setTimeout(() => {
-        setActiveTab('remote');
-      }, 500);
-    } catch (err) {
-      console.error('Failed to beam document:', err);
-      setIsSending(false);
-      alert(lang === 'ar' ? 'تعذر إرسال المستند، تأكد من الرمز وحاول مجدداً' : 'Failed to beam document');
+        await beamService.broadcast(payloadMsg);
+
+        saveRecentRoom(code);
+        setConnectedRoom(code);
+        setSendSuccess(true);
+        setIsSending(false);
+
+        // Transition to remote presentation mode
+        setTimeout(() => {
+          setActiveTab('remote');
+        }, 400);
+      } catch (err) {
+        console.error('Failed to beam document:', err);
+        setIsSending(false);
+        alert(lang === 'ar' ? 'تعذر إرسال المستند، تأكد من الرمز وحاول مجدداً' : 'Failed to beam document');
+      }
+    },
+    [targetRoomCode, reader, lang]
+  );
+
+  // Camera QR Code Scanner Execution
+  const startCameraScanner = async () => {
+    setCameraError(null);
+    setIsScanningCamera(true);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      mediaStreamRef.current = stream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+
+      // Check if native BarcodeDetector is available
+      if ('BarcodeDetector' in window) {
+        const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
+        const scanLoop = async () => {
+          if (!videoRef.current || !mediaStreamRef.current) return;
+          try {
+            const barcodes = await detector.detect(videoRef.current);
+            if (barcodes.length > 0) {
+              const raw = barcodes[0].rawValue || '';
+              // Extract room code if it's a URL or direct code
+              const match = raw.match(/room=([A-Za-z0-9_-]+)/) || raw.match(/(OTM-[A-Za-z0-9_-]+)/i) || raw.match(/([0-9]{4,6})/);
+              const detected = match ? match[1].toUpperCase() : raw.toUpperCase();
+              if (detected) {
+                stopCamera();
+                setTargetRoomCode(detected);
+                void handleBeamDocument(detected);
+                return;
+              }
+            }
+          } catch {}
+          scanAnimFrameRef.current = requestAnimationFrame(scanLoop);
+        };
+        scanAnimFrameRef.current = requestAnimationFrame(scanLoop);
+      }
+    } catch (err: any) {
+      console.warn('Camera access error:', err);
+      setCameraError(lang === 'ar' ? 'تعذر تشغيل الكاميرا، يمكنك كتابة الكود يدوياً' : 'Camera inaccessible, enter code manually');
+      setIsScanningCamera(false);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, [stopCamera]);
 
   // Remote clicker controls
   const handleRemoteNext = () => {
     const nextPage = Math.min(reader.numPages, reader.currentPage + 1);
     reader.goToNextPage();
     if (connectedRoom) {
-      beamService.broadcast({
+      void beamService.broadcast({
         type: 'BEAM_PAGE_CHANGE',
         roomCode: connectedRoom,
         pageNumber: nextPage,
@@ -170,7 +291,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     const prevPage = Math.max(1, reader.currentPage - 1);
     reader.goToPrevPage();
     if (connectedRoom) {
-      beamService.broadcast({
+      void beamService.broadcast({
         type: 'BEAM_PAGE_CHANGE',
         roomCode: connectedRoom,
         pageNumber: prevPage,
@@ -184,6 +305,12 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2000);
   };
+
+  const smartboardUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}${window.location.pathname}#/beam?room=${receiverRoomCode}`
+    : `https://otium.app/#/beam?room=${receiverRoomCode}`;
+
+  if (!isOpen) return null;
 
   return (
     <div
@@ -202,7 +329,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                 {lang === 'ar' ? 'البث اللحظي للسبورة الذكية' : 'Smart Beam to Board'}
               </h3>
               <p className="text-xs text-ink-muted">
-                {lang === 'ar' ? 'بروتوكول Otium Link فائق السرعة والأمان' : 'Otium Link Zero-Latency Protocol'}
+                {lang === 'ar' ? 'ربط فوري وتلقائي بدون سيرفر محلي' : 'Zero-Config Cloud & Local Relay'}
               </p>
             </div>
           </div>
@@ -220,7 +347,10 @@ export const BeamModal: React.FC<BeamModalProps> = ({
         <div className="flex items-center p-2 bg-surface/50 border-b border-line gap-1">
           <button
             type="button"
-            onClick={() => setActiveTab('send')}
+            onClick={() => {
+              stopCamera();
+              setActiveTab('send');
+            }}
             className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
               activeTab === 'send'
                 ? 'bg-accent text-on-accent shadow-sm'
@@ -233,7 +363,10 @@ export const BeamModal: React.FC<BeamModalProps> = ({
 
           <button
             type="button"
-            onClick={() => setActiveTab('receive')}
+            onClick={() => {
+              stopCamera();
+              setActiveTab('receive');
+            }}
             className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
               activeTab === 'receive'
                 ? 'bg-accent text-on-accent shadow-sm'
@@ -247,7 +380,10 @@ export const BeamModal: React.FC<BeamModalProps> = ({
           {connectedRoom && (
             <button
               type="button"
-              onClick={() => setActiveTab('remote')}
+              onClick={() => {
+                stopCamera();
+                setActiveTab('remote');
+              }}
               className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                 activeTab === 'remote'
                   ? 'bg-emerald-600 text-white shadow-sm animate-pulse'
@@ -262,7 +398,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
 
         {/* Tab 1: Send / Beam Document to Smartboard */}
         {activeTab === 'send' && (
-          <div className="p-6 space-y-5">
+          <div className="p-6 space-y-4">
             {reader.doc ? (
               <div className="p-3.5 rounded-2xl bg-hover-subtle border border-line flex items-center justify-between">
                 <div>
@@ -289,24 +425,79 @@ export const BeamModal: React.FC<BeamModalProps> = ({
               </div>
             )}
 
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-ink">
-                {lang === 'ar' ? 'أدخل رمز الغرفة الظاهر على السبورة الذكية:' : 'Enter Smartboard Room Code:'}
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={targetRoomCode}
-                  onChange={(e) => setTargetRoomCode(e.target.value.toUpperCase())}
-                  placeholder="OTM-XXX-XXX"
-                  className="flex-1 px-4 py-3 rounded-2xl bg-hover border border-line font-mono text-base font-bold text-center tracking-widest text-ink focus:outline-none focus:ring-2 focus:ring-accent"
-                />
+            {/* Camera Viewfinder (if scanning QR) */}
+            {isScanningCamera ? (
+              <div className="relative w-full h-56 rounded-2xl bg-black overflow-hidden border-2 border-accent flex flex-col items-center justify-center">
+                <video ref={videoRef} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 border-2 border-dashed border-accent/60 m-8 rounded-xl pointer-events-none animate-pulse" />
+                <div className="absolute bottom-2 px-3 py-1 bg-black/70 backdrop-blur-sm rounded-full text-[11px] text-white">
+                  {lang === 'ar' ? 'وجه الكاميرا نحو QR السبورة' : 'Point camera at Smartboard QR'}
+                </div>
+                <button
+                  type="button"
+                  onClick={stopCamera}
+                  className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
+            ) : (
+              <button
+                type="button"
+                onClick={startCameraScanner}
+                className="w-full py-3 px-4 rounded-2xl bg-accent/15 border border-accent/30 text-accent font-bold text-xs flex items-center justify-center gap-2 hover:bg-accent/25 active:scale-98 transition-all cursor-pointer"
+              >
+                <Camera className="w-4 h-4" />
+                <span>{lang === 'ar' ? '📷 مسح رمز السبورة بالكاميرا فوراً' : '📷 Scan Smartboard QR with Camera'}</span>
+              </button>
+            )}
+
+            {cameraError && (
+              <div className="text-[11px] text-amber-500 text-center">{cameraError}</div>
+            )}
+
+            {/* Recent Favorite Rooms / Quick Reconnect */}
+            {recentRooms.length > 0 && !isScanningCamera && (
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5 text-[11px] text-ink-muted">
+                  <History className="w-3.5 h-3.5" />
+                  <span>{lang === 'ar' ? 'قاعاتي السابقة (ربط بنقرة واحدة):' : 'Recent Classrooms:'}</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {recentRooms.map((room) => (
+                    <button
+                      key={room}
+                      type="button"
+                      onClick={() => {
+                        setTargetRoomCode(room);
+                        void handleBeamDocument(room);
+                      }}
+                      className="px-3 py-1 rounded-xl bg-hover border border-line text-xs font-mono font-semibold text-accent hover:bg-accent/15 hover:border-accent/40 active:scale-95 transition-all cursor-pointer"
+                    >
+                      ⚡ {room}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Manual Code Input */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-ink">
+                {lang === 'ar' ? 'أو أدخل رمز الغرفة الظاهر على السبورة:' : 'Or enter Room Code:'}
+              </label>
+              <input
+                type="text"
+                value={targetRoomCode}
+                onChange={(e) => setTargetRoomCode(e.target.value.toUpperCase())}
+                placeholder="OTM-XXXX"
+                className="w-full px-4 py-3 rounded-2xl bg-hover border border-line font-mono text-base font-bold text-center tracking-widest text-ink focus:outline-none focus:ring-2 focus:ring-accent"
+              />
             </div>
 
             <button
               type="button"
-              onClick={handleBeamDocument}
+              onClick={() => void handleBeamDocument()}
               disabled={isSending || !targetRoomCode.trim() || !reader.doc}
               className="w-full py-3.5 rounded-2xl bg-accent text-on-accent font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:bg-accent-strong active:scale-98 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
             >
@@ -339,19 +530,19 @@ export const BeamModal: React.FC<BeamModalProps> = ({
               </span>
               <h4 className="text-sm text-ink-muted">
                 {lang === 'ar'
-                  ? 'امسح الرمز أو أدخل كود الغرفة بهاتفك/حاسوبك'
-                  : 'Scan QR or enter this code on your device'}
+                  ? 'امسح الرمز بكاميرا هاتفك أو أدخل الكود لفتح المحاضرة'
+                  : 'Scan QR with phone camera or enter code to launch lecture'}
               </h4>
             </div>
 
-            {/* QR Code Display */}
+            {/* Authentic Standards-Compliant QR Code */}
             <div className="my-1">
-              <QrCodeView value={receiverRoomCode} size={150} />
+              <QrCodeView value={smartboardUrl} size={180} />
             </div>
 
             {/* Room Code with Copy */}
             <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-hover border border-line">
-              <span className="font-mono text-xl font-extrabold tracking-widest text-ink">
+              <span className="font-mono text-2xl font-extrabold tracking-widest text-ink">
                 {receiverRoomCode}
               </span>
               <button
@@ -367,7 +558,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
             {/* Pulsing Radar Waiting Status */}
             <div className="flex items-center gap-2 text-xs text-ink-muted">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-              <span>{lang === 'ar' ? 'بانتظار إرسال الكتاب من هاتفك…' : 'Waiting for incoming book…'}</span>
+              <span>{lang === 'ar' ? 'بانتظار إرسال الكتاب من هاتفك…' : 'Waiting for incoming lecture…'}</span>
             </div>
           </div>
         )}
