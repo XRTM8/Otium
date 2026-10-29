@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   Bookmark,
   BookOpen,
+  Cast,
   ChevronLeft,
   ChevronRight,
   Columns,
@@ -44,6 +45,7 @@ interface MobileToolbarProps {
   onToggleSearch: () => void;
   onOpenSidebar: () => void;
   onOpenScanner?: () => void;
+  onOpenBeam?: () => void;
   onOpenSettings: () => void;
   onCloseDocument: () => void;
 }
@@ -83,6 +85,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
   onToggleSearch,
   onOpenSidebar,
   onOpenScanner,
+  onOpenBeam,
   onOpenSettings,
   onCloseDocument
 }) => {
@@ -262,7 +265,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-5 gap-1">
+          <div className="grid grid-cols-3 gap-1.5">
             <button
               type="button"
               onClick={() => {
@@ -300,17 +303,33 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
               <span className="truncate">{t.pagesTab}</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                onOpenScanner?.();
-                setShowMenu(false);
-              }}
-              className="flex flex-col items-center gap-1 p-1.5 rounded-xl bg-accent/15 border border-accent/30 text-accent text-[10px] active:scale-95 transition-all cursor-pointer"
-            >
-              <ScanLine className="w-4 h-4 text-accent" />
-              <span className="truncate font-semibold">{ar ? 'الماسح' : 'Scanner'}</span>
-            </button>
+            {onOpenScanner && (
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenScanner();
+                  setShowMenu(false);
+                }}
+                className="flex flex-col items-center gap-1 p-1.5 rounded-xl bg-accent/15 border border-accent/30 text-accent text-[10px] active:scale-95 transition-all cursor-pointer"
+              >
+                <ScanLine className="w-4 h-4 text-accent" />
+                <span className="truncate font-semibold">{ar ? 'الماسح' : 'Scanner'}</span>
+              </button>
+            )}
+
+            {onOpenBeam && (
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenBeam();
+                  setShowMenu(false);
+                }}
+                className="flex flex-col items-center gap-1 p-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[10px] active:scale-95 transition-all cursor-pointer"
+              >
+                <Cast className="w-4 h-4" />
+                <span className="truncate font-semibold">{ar ? 'بث للسبورة' : 'Beam'}</span>
+              </button>
+            )}
 
             <button
               type="button"

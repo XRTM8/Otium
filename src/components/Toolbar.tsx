@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   Bookmark,
   BookOpen,
+  Cast,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -13,6 +14,7 @@ import {
   Minimize2,
   MoreHorizontal,
   Palette,
+  PenTool,
   ScanLine,
   Scroll,
   Search,
@@ -48,6 +50,10 @@ interface ToolbarProps {
   onToggleSearch: () => void;
   onToggleSettings: () => void;
   onOpenScanner?: () => void;
+  onToggleBoard?: () => void;
+  isBoardOpen?: boolean;
+  onOpenBeam?: () => void;
+  isBeaming?: boolean;
   onCloseDocument: () => void;
   onRenameTitle?: (newTitle: string) => void;
   annotationsCount?: number;
@@ -97,6 +103,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onToggleSearch,
   onToggleSettings,
   onOpenScanner,
+  onToggleBoard,
+  isBoardOpen = false,
+  onOpenBeam,
+  isBeaming = false,
   onCloseDocument,
   onRenameTitle,
   annotationsCount,
@@ -544,15 +554,57 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
 
-          <button
-            type="button"
-            onClick={onOpenScanner}
-            title={ar ? 'المسح الضوئي بالكاميرا (Ctrl+Shift+S)' : 'Scan Document (Ctrl+Shift+S)'}
-            aria-label={ar ? 'المسح الضوئي بالكاميرا' : 'Scan Document'}
-            className="toolbar-icon text-accent hover:text-accent"
-          >
-            <ScanLine className="w-3.5 h-3.5" />
-          </button>
+          {onToggleBoard && (
+            <button
+              type="button"
+              onClick={onToggleBoard}
+              title={
+                isBoardOpen
+                  ? (ar ? 'إغلاق السبورة الذكية' : 'Close Smartboard')
+                  : (ar ? 'السبورة الذكية وتعدد المهام (Otium Board)' : 'Smartboard & Multitasking')
+              }
+              aria-label={ar ? 'السبورة الذكية' : 'Smartboard'}
+              className={`toolbar-icon transition-all ${
+                isBoardOpen
+                  ? 'bg-accent/20 text-accent font-semibold ring-1 ring-accent/40 shadow-sm'
+                  : 'text-ink-muted hover:text-ink'
+              }`}
+            >
+              <PenTool className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {onOpenBeam && (
+            <button
+              type="button"
+              onClick={onOpenBeam}
+              title={
+                isBeaming
+                  ? (ar ? 'متصل بالسبورة الذكية (بث نشط)' : 'Connected to Smartboard')
+                  : (ar ? 'بث إلى السبورة الذكية (Smart Beam)' : 'Beam to Smartboard')
+              }
+              aria-label={ar ? 'بث إلى السبورة' : 'Smart Beam'}
+              className={`toolbar-icon transition-all ${
+                isBeaming
+                  ? 'bg-emerald-500/20 text-emerald-500 font-semibold ring-1 ring-emerald-500/40 shadow-sm'
+                  : 'text-ink-muted hover:text-ink'
+              }`}
+            >
+              <Cast className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {onOpenScanner && (
+            <button
+              type="button"
+              onClick={onOpenScanner}
+              title={ar ? 'المسح الضوئي بالكاميرا (Ctrl+Shift+S)' : 'Scan Document (Ctrl+Shift+S)'}
+              aria-label={ar ? 'المسح الضوئي بالكاميرا' : 'Scan Document'}
+              className="toolbar-icon text-accent hover:text-accent"
+            >
+              <ScanLine className="w-3.5 h-3.5" />
+            </button>
+          )}
 
           <button
             type="button"
@@ -666,17 +718,51 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 <span>{t.settingsTitle.split(' ')[0]}</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  onOpenScanner?.();
-                  setShowMoreMobile(false);
-                }}
-                className="flex flex-col items-center gap-1.5 rounded-xl border border-line-subtle bg-hover-subtle px-1 py-2 text-[10px] text-accent transition-colors"
-              >
-                <ScanLine className="w-4 h-4" />
-                <span>{ar ? 'سكانر' : 'Scan'}</span>
-              </button>
+              {onToggleBoard && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onToggleBoard();
+                    setShowMoreMobile(false);
+                  }}
+                  className={`flex flex-col items-center gap-1.5 rounded-xl border border-line-subtle px-1 py-2 text-[10px] transition-colors ${
+                    isBoardOpen ? 'bg-accent/20 text-accent font-semibold border-accent/40' : 'bg-hover-subtle text-ink'
+                  }`}
+                >
+                  <PenTool className="w-4 h-4" />
+                  <span>{ar ? 'السبورة' : 'Board'}</span>
+                </button>
+              )}
+
+              {onOpenBeam && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenBeam();
+                    setShowMoreMobile(false);
+                  }}
+                  className={`flex flex-col items-center gap-1.5 rounded-xl border border-line-subtle px-1 py-2 text-[10px] transition-colors ${
+                    isBeaming ? 'bg-emerald-500/20 text-emerald-500 font-semibold border-emerald-500/40' : 'bg-hover-subtle text-accent'
+                  }`}
+                >
+                  <Cast className="w-4 h-4" />
+                  <span>{ar ? 'بث للسبورة' : 'Beam'}</span>
+                </button>
+              )}
+
+              {onOpenScanner && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenScanner();
+                    setShowMoreMobile(false);
+                  }}
+                  className="flex flex-col items-center gap-1.5 rounded-xl border border-line-subtle bg-hover-subtle px-1 py-2 text-[10px] text-accent transition-colors"
+                >
+                  <ScanLine className="w-4 h-4" />
+                  <span>{ar ? 'سكانر' : 'Scan'}</span>
+                </button>
+              )}
             </div>
 
             <div className="space-y-1.5 border-t border-line-subtle pt-2">

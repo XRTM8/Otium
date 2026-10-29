@@ -9,6 +9,7 @@ import { ReaderOverlays } from '../components/ReaderOverlays';
 import { ReaderWorkspace } from '../components/ReaderWorkspace';
 import { TextSelectionMenu } from '../components/TextSelectionMenu';
 import { WelcomeScreen } from '../components/WelcomeScreen';
+import { BeamModal } from '../board/beam/BeamModal';
 
 const ScannerModal = React.lazy(() =>
   import('../scanner/ScannerModal').then((m) => ({ default: m.ScannerModal }))
@@ -19,6 +20,7 @@ const preloadScanner = () => import('../scanner/ScannerModal');
 export const MobileShell: React.FC = () => {
   const reader = useReaderController({ keyboard: false, dragDrop: false });
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isBeamOpen, setIsBeamOpen] = useState(false);
 
   // Fallback hardware back handler for mobile shell while scanner modal is active or lazy-loading
   React.useEffect(() => {
@@ -63,6 +65,7 @@ export const MobileShell: React.FC = () => {
           onOpenSample={reader.openSample}
           onOpenRecent={reader.openRecent}
           onOpenScanner={() => setIsScannerOpen(true)}
+          onOpenBeam={() => setIsBeamOpen(true)}
         />
       ) : (
         <>
@@ -87,6 +90,7 @@ export const MobileShell: React.FC = () => {
             onToggleSearch={() => reader.setIsSearchOpen((open) => !open)}
             onOpenSidebar={() => reader.setIsSidebarOpen(true)}
             onOpenScanner={() => setIsScannerOpen(true)}
+            onOpenBeam={() => setIsBeamOpen(true)}
             onOpenSettings={() => reader.setIsSettingsOpen(true)}
             onCloseDocument={reader.closeDocument}
           />
@@ -153,6 +157,17 @@ export const MobileShell: React.FC = () => {
           </ErrorBoundary>
         )}
       </Suspense>
+
+      {/* Otium Smart Beam Modal */}
+      <BeamModal
+        isOpen={isBeamOpen}
+        lang={reader.lang}
+        theme={reader.theme}
+        reader={reader}
+        isBoardOpen={false}
+        onSetBoardOpen={() => {}}
+        onClose={() => setIsBeamOpen(false)}
+      />
     </div>
   );
 };

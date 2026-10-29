@@ -4,6 +4,7 @@ import {
   Check,
   Copy,
   Highlighter,
+  Scissors,
   Search,
   StickyNote,
   Trash2,
@@ -32,6 +33,7 @@ interface TextSelectionMenuProps {
   annotations?: TextAnnotation[];
   onCopySuccess?: () => void;
   onSearchSelectedText?: (text: string) => void;
+  onClipToBoard?: (text: string, pageNumber: number) => void;
   lang?: Language;
   /** Touch shells get a reachable bottom bar instead of a floating popover. */
   mobile?: boolean;
@@ -65,6 +67,7 @@ const LABELS = {
     highlight: 'تظليل',
     underline: 'تسطير',
     highlightColor: 'اختر لون التظليل',
+    clipToBoard: 'قص للسبورة',
     copy: 'نسخ',
     copied: 'تم النسخ',
     note: 'ملاحظة',
@@ -87,6 +90,7 @@ const LABELS = {
     highlight: 'Highlight',
     underline: 'Underline',
     highlightColor: 'Highlight colour',
+    clipToBoard: 'Clip to Board',
     copy: 'Copy',
     copied: 'Copied',
     note: 'Note',
@@ -244,6 +248,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
   annotations = [],
   onCopySuccess,
   onSearchSelectedText,
+  onClipToBoard,
   lang = 'ar',
   mobile = false
 }) => {
@@ -847,6 +852,21 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
                 <StickyNote className="w-4 h-4" />
                 <span>{labels.note}</span>
               </button>
+
+              {onClipToBoard && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClipToBoard(selectionState.text, selectionState.pageNumber);
+                    clearSelection();
+                  }}
+                  className={`${actionClass} text-accent`}
+                  title={labels.clipToBoard}
+                >
+                  <Scissors className="w-4 h-4" />
+                  <span>{labels.clipToBoard}</span>
+                </button>
+              )}
 
               {onSearchSelectedText && (
                 <button type="button" onClick={handleSearch} className={actionClass} title={labels.search}>

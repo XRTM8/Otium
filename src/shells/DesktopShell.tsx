@@ -1,36 +1,53 @@
-import React, { Suspense, useEffect, useState } from 'react';
-import { AlertTriangle, Upload } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Upload } from 'lucide-react';
 import { useReaderController } from '../app/useReaderController';
 import { getThemeBackground } from '../app/themeBackground';
-import { registerBackHandler } from '../core/navigation/backHandler';
 import { isTauriRuntime } from '../platform/runtime';
 import { invoke } from '@tauri-apps/api/core';
-import { ErrorBoundary } from '../components/ErrorBoundary';
 import { ReaderOverlays } from '../components/ReaderOverlays';
-import { ReaderWorkspace } from '../components/ReaderWorkspace';
 import { TextSelectionMenu } from '../components/TextSelectionMenu';
 import { Toolbar } from '../components/Toolbar';
 import { WelcomeScreen } from '../components/WelcomeScreen';
+import { BoardSplitWorkspace } from '../board/components/BoardSplitWorkspace';
+import { BeamModal } from '../board/beam/BeamModal';
+import type { BoardSnippet } from '../board/types';
 
-const ScannerModal = React.lazy(() =>
-  import('../scanner/ScannerModal').then((m) => ({ default: m.ScannerModal }))
-);
-const preloadScanner = () => import('../scanner/ScannerModal');
-
-/** Windows shell: floating desktop toolbar, keyboard shortcuts and drag/drop. */
+/** Windows shell: floating desktop toolbar, Otium Board split-screen studio, and Smart Beam. */
 export const DesktopShell: React.FC = () => {
   const reader = useReaderController({ keyboard: true, dragDrop: true });
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isBoardOpen, setIsBoardOpen] = useState(false);
+  const [isBeamOpen, setIsBeamOpen] = useState(false);
+  const [snippets, setSnippets] = useState<BoardSnippet[]>([]);
   const [isDraggingOverWindow, setIsDraggingOverWindow] = useState(false);
 
-  // Fallback Escape / back handler while scanner modal is active or lazy-loading
-  useEffect(() => {
-    if (!isScannerOpen) return;
-    return registerBackHandler(() => {
-      setIsScannerOpen(false);
-      return true;
-    });
-  }, [isScannerOpen]);
+  // Snippet management for Otium Whiteboard
+  const handleAddSnippet = useCallback((snippet: BoardSnippet) => {
+    setSnippets((prev) => [...prev, snippet]);
+    setIsBoardOpen(true);
+  }, []);
+
+  const handleRemoveSnippet = useCallback((id: string) => {
+    setSnippets((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
+  const handleUpdateSnippetPosition = useCallback((id: string, x: number, y: number) => {
+    setSnippets((prev) => prev.map((s) => (s.id === id ? { ...s, x, y } : s)));
+  }, []);
+
+  const handleClipTextToBoard = useCallback((text: string, pageNumber: number) => {
+    const newSnippet: BoardSnippet = {
+      id: `snippet-txt-${Date.now()}`,
+      type: 'text',
+      content: text,
+      pageNumber,
+      x: 30,
+      y: 50,
+      width: 300,
+      height: 180,
+      createdAt: Date.now()
+    };
+    handleAddSnippet(newSnippet);
+  }, [handleAddSnippet]);
 
   // Window-level Drag and Drop with full visual dropzone overlay
   useEffect(() => {
@@ -115,30 +132,12 @@ export const DesktopShell: React.FC = () => {
     };
   }, [reader.openFile, reader.loadDocumentBytes]);
 
-  // Preload scanner code during idle moments so opening is instantaneous
-  useEffect(() => {
-    let timer: any = null;
-    if (typeof window !== 'undefined') {
-      const win = window as any;
-      if (typeof win.requestIdleCallback === 'function') {
-        win.requestIdleCallback(() => {
-          void preloadScanner();
-        });
-      } else {
-        timer = win.setTimeout(() => void preloadScanner(), 1500);
-      }
-    }
-    return () => {
-      if (timer !== null) clearTimeout(timer);
-    };
-  }, []);
-
+  // Global keyboard shortcuts: Ctrl+B / Cmd+B for Board toggle
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+Shift+S / Cmd+Shift+S: global quick toggle for the scanner.
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 's' || e.key === 'S')) {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
         e.preventDefault();
-        setIsScannerOpen((open) => !open);
+        setIsBoardOpen((open) => !open);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -160,7 +159,7 @@ export const DesktopShell: React.FC = () => {
           onOpenFile={reader.openFile}
           onOpenSample={reader.openSample}
           onOpenRecent={reader.openRecent}
-          onOpenScanner={() => setIsScannerOpen(true)}
+          onOpenBeam={() => setIsBeamOpen(true)}
         />
       ) : (
         <>
@@ -187,7 +186,9 @@ export const DesktopShell: React.FC = () => {
             onToggleSidebar={() => reader.setIsSidebarOpen(true)}
             onToggleSearch={() => reader.setIsSearchOpen((open) => !open)}
             onToggleSettings={() => reader.setIsSettingsOpen(true)}
-            onOpenScanner={() => setIsScannerOpen(true)}
+            onToggleBoard={() => setIsBoardOpen((open) => !open)}
+            isBoardOpen={isBoardOpen}
+            onOpenBeam={() => setIsBeamOpen(true)}
             onCloseDocument={reader.closeDocument}
             onRenameTitle={reader.renameDocument}
             annotationsCount={reader.annotations.length}
@@ -202,61 +203,33 @@ export const DesktopShell: React.FC = () => {
             annotations={reader.annotations}
             lang={reader.lang}
             onSearchSelectedText={reader.openSearchWithText}
+            onClipToBoard={handleClipTextToBoard}
           />
 
-          <ReaderWorkspace reader={reader} />
+          <BoardSplitWorkspace
+            reader={reader}
+            isBoardOpen={isBoardOpen}
+            onCloseBoard={() => setIsBoardOpen(false)}
+            snippets={snippets}
+            onAddSnippet={handleAddSnippet}
+            onRemoveSnippet={handleRemoveSnippet}
+            onUpdateSnippetPosition={handleUpdateSnippetPosition}
+          />
         </>
       )}
 
       <ReaderOverlays reader={reader} />
 
-      <Suspense fallback={null}>
-        {isScannerOpen && (
-          <ErrorBoundary
-            fallback={(_err, reset) => (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4 select-none backdrop-blur-sm">
-                <div className="chrome-surface flex max-w-sm flex-col items-center gap-3 rounded-2xl p-6 text-center text-ink shadow-2xl border border-line">
-                  <div className="w-12 h-12 rounded-xl bg-danger-ink/10 flex items-center justify-center text-danger-ink">
-                    <AlertTriangle className="w-6 h-6" />
-                  </div>
-                  <h3 className="font-bold text-sm">
-                    {reader.lang === 'ar' ? 'تعذر تشغيل الماسح الضوئي' : 'Scanner Error'}
-                  </h3>
-                  <p className="text-xs text-ink-muted leading-relaxed">
-                    {reader.lang === 'ar'
-                      ? 'حدث خطأ غير متوقع أثناء تشغيل الماسح. يمكنك إعادة المحاولة أو العودة للقارئ.'
-                      : 'An unexpected scanner error occurred. You can retry or return to the reader.'}
-                  </p>
-                  <div className="flex items-center gap-2 mt-2 w-full">
-                    <button
-                      type="button"
-                      onClick={() => setIsScannerOpen(false)}
-                      className="flex-1 px-3 py-2 rounded-xl bg-hover border border-line text-xs font-medium text-ink cursor-pointer hover:bg-hover-strong transition-colors"
-                    >
-                      {reader.lang === 'ar' ? 'العودة للقارئ' : 'Back to Reader'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={reset}
-                      className="flex-1 px-3 py-2 rounded-xl bg-accent text-on-accent text-xs font-medium cursor-pointer hover:bg-accent-strong transition-colors"
-                    >
-                      {reader.lang === 'ar' ? 'إعادة المحاولة' : 'Retry'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          >
-            <ScannerModal
-              isOpen={isScannerOpen}
-              theme={reader.theme}
-              lang={reader.lang}
-              onClose={() => setIsScannerOpen(false)}
-              onPdfGenerated={(file) => reader.openFile(file)}
-            />
-          </ErrorBoundary>
-        )}
-      </Suspense>
+      {/* Otium Smart Beam Modal */}
+      <BeamModal
+        isOpen={isBeamOpen}
+        lang={reader.lang}
+        theme={reader.theme}
+        reader={reader}
+        isBoardOpen={isBoardOpen}
+        onSetBoardOpen={setIsBoardOpen}
+        onClose={() => setIsBeamOpen(false)}
+      />
 
       {/* Full-Window Drag and Drop Frosted Overlay */}
       {isDraggingOverWindow && (

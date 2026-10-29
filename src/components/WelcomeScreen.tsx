@@ -3,6 +3,7 @@ import {
   ArrowUpRight,
   BookOpen,
   Calendar,
+  Cast,
   Check,
   ChevronDown,
   Clock,
@@ -37,6 +38,7 @@ interface WelcomeScreenProps {
   onOpenSample?: () => void;
   onOpenRecent: (doc: RecentDocItem) => void;
   onOpenScanner?: () => void;
+  onOpenBeam?: () => void;
 }
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
@@ -47,7 +49,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onOpenSettings,
   onOpenFile,
   onOpenRecent,
-  onOpenScanner
+  onOpenScanner,
+  onOpenBeam
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -399,17 +402,34 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           />
         </div>
 
-        {/* Quick Action: Companion Scanner */}
-        <div className="flex items-center justify-center gap-2.5 w-full">
-          <button
-            onClick={handleLaunchScanner}
-            title={currentLang === 'ar' ? 'مسح كتاب أو مستند ورقي ضوئياً إلى ملف PDF' : 'Scan document with camera to PDF'}
-            className="btn-secondary px-5 py-2.5 text-xs sm:text-sm cursor-pointer shadow-sm rounded-2xl flex items-center gap-2"
-          >
-            <ScanLine className="w-4 h-4 text-accent" />
-            <span className="font-semibold">{currentLang === 'ar' ? 'مسح مستند بالكاميرا' : 'Scan with Camera'}</span>
-          </button>
-        </div>
+        {/* Quick Actions: Companion Scanner & Smart Beam */}
+        {(onOpenScanner || onOpenBeam) && (
+          <div className="flex flex-wrap items-center justify-center gap-2.5 w-full">
+            {onOpenBeam && (
+              <button
+                type="button"
+                onClick={onOpenBeam}
+                title={currentLang === 'ar' ? 'بث إلى السبورة الذكية أو فتح كشاشة استقبال' : 'Smart Beam to Board or Receiver Mode'}
+                className="btn-secondary px-4 py-2.5 text-xs sm:text-sm cursor-pointer shadow-sm rounded-2xl flex items-center gap-2 hover:border-accent/40 hover:text-accent transition-colors"
+              >
+                <Cast className="w-4 h-4 text-accent" />
+                <span className="font-semibold">{currentLang === 'ar' ? 'بث واستقبال السبورة الذكية' : 'Smart Beam & Board'}</span>
+              </button>
+            )}
+
+            {onOpenScanner && (
+              <button
+                type="button"
+                onClick={handleLaunchScanner}
+                title={currentLang === 'ar' ? 'مسح كتاب أو مستند ورقي ضوئياً إلى ملف PDF' : 'Scan document with camera to PDF'}
+                className="btn-secondary px-4 py-2.5 text-xs sm:text-sm cursor-pointer shadow-sm rounded-2xl flex items-center gap-2"
+              >
+                <ScanLine className="w-4 h-4 text-accent" />
+                <span className="font-semibold">{currentLang === 'ar' ? 'مسح مستند بالكاميرا' : 'Scan with Camera'}</span>
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Stored Recent Files with Theme-aware styling */}
         {recents.length > 0 && (
