@@ -1152,7 +1152,9 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                 <>
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
                   <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                    {lang === 'ar' ? 'وضع الاستقبال نشط ومستعد لاستقبال هاتفك…' : 'Receiver active and ready…'}
+                    {peer.connected
+                      ? (lang === 'ar' ? 'الهاتف مرتبط' : 'Phone paired')
+                      : (lang === 'ar' ? 'خدمة الربط جاهزة — بانتظار الهاتف' : 'Signaling ready — waiting for phone')}
                   </span>
                 </>
               ) : connStatus === 'connecting' ? (
@@ -1170,7 +1172,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                   </span>
                   <button
                     type="button"
-                    onClick={() => beamService.startReceiver(receiverRoomCode)}
+                    onClick={() => beamService.startReceiver(receiverRoomCode, true)}
                     className="text-accent underline text-[10px] cursor-pointer"
                   >
                     {lang === 'ar' ? 'إعادة محاولة الاتصال' : 'Retry connection'}
