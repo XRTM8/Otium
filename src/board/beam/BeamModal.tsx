@@ -23,8 +23,8 @@ import type { ReaderController } from '../../app/useReaderController';
 import { getDocumentFromStorage } from '../../core/storage/documents';
 import {
   arrayBufferToBase64,
-  base64ToArrayBuffer,
   beamService,
+  formatRoomCode,
   generateRoomCode,
   getRecentRooms,
   saveRecentRoom
@@ -49,16 +49,34 @@ export const BeamModal: React.FC<BeamModalProps> = ({
   onSetBoardOpen,
   onClose
 }) => {
-  const [activeTab, setActiveTab] = useState<'send' | 'receive' | 'remote' | 'offline'>('send');
+  const [activeTab, setActiveTab] = useState<'send' | 'receive' | 'remote' | 'offline'>(() => {
+    const role = beamService.getRole();
+    if (role === 'receiver') return 'receive';
+    if (role === 'sender') return 'remote';
+    return 'send';
+  });
   const [targetRoomCode, setTargetRoomCode] = useState('');
-  const [receiverRoomCode] = useState(() => generateRoomCode());
+  const [receiverRoomCode] = useState(() => {
+    const existing = beamService.getConnectedRoom();
+    if (existing && beamService.getRole() === 'receiver') {
+      return existing;
+    }
+    return generateRoomCode();
+  });
   const [isSending, setIsSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
-  const [connectedRoom, setConnectedRoom] = useState<string | null>(null);
+  const [connectedRoom, setConnectedRoom] = useState<string | null>(() => beamService.getConnectedRoom());
   const [copiedCode, setCopiedCode] = useState(false);
   const [recentRooms, setRecentRooms] = useState<string[]>([]);
   const [beamError, setBeamError] = useState<string | null>(null);
   const offlineFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync beam connection state
+  useEffect(() => {
+    return beamService.onStateChange((state) => {
+      setConnectedRoom(state.room);
+    });
+  }, []);
 
   // Camera QR scanner state
   const [isScanningCamera, setIsScanningCamera] = useState(false);
@@ -107,56 +125,27 @@ export const BeamModal: React.FC<BeamModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     if (activeTab === 'receive') {
-      beamService.listenToRoom(receiverRoomCode);
+      beamService.startReceiver(receiverRoomCode);
     }
-    return () => {
-      beamService.leaveRoom();
-    };
   }, [isOpen, activeTab, receiverRoomCode]);
 
-  // Subscribe to beam messages (receiver mode & remote page syncing)
+  // Subscribe to beam messages (receiver mode & payload receipt)
   useEffect(() => {
     const unsubscribe = beamService.subscribe(async (msg: BeamMessage) => {
-      // Receiver Mode: Handle incoming payload
-      if (activeTab === 'receive' && msg.type === 'BEAM_PAYLOAD' && msg.payload) {
-        const cleanMsgRoom = msg.roomCode.trim().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-        const cleanRecRoom = receiverRoomCode.trim().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-
-        if (cleanMsgRoom === cleanRecRoom) {
-          try {
-            if (msg.payload.pdfBase64) {
-              const buffer = base64ToArrayBuffer(msg.payload.pdfBase64);
-              await reader.loadDocumentBytes(buffer, msg.payload.title);
-              if (msg.payload.pageNumber) {
-                reader.scrollToPage(msg.payload.pageNumber);
-              }
-              if (msg.payload.theme) {
-                reader.changeTheme(msg.payload.theme);
-              }
-            }
-            saveRecentRoom(receiverRoomCode);
-            onSetBoardOpen(true);
-            onClose();
-          } catch (err) {
-            console.error('Failed to load beamed PDF:', err);
-          }
-        }
-      }
-
-      // Page Flipping Sync
-      if (msg.type === 'BEAM_PAGE_CHANGE' && msg.pageNumber) {
-        if (connectedRoom) {
-          const cleanMsgRoom = msg.roomCode.trim().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-          const cleanConnRoom = connectedRoom.trim().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-          if (cleanMsgRoom === cleanConnRoom) {
-            reader.scrollToPage(msg.pageNumber);
-          }
-        }
+      // When incoming payload matches our receiver room, activate split board and close modal
+      if (
+        msg.type === 'BEAM_PAYLOAD' &&
+        msg.payload &&
+        beamService.isMatchingRoom(msg.roomCode, receiverRoomCode)
+      ) {
+        saveRecentRoom(receiverRoomCode);
+        onSetBoardOpen(true);
+        onClose();
       }
     });
 
     return () => unsubscribe();
-  }, [activeTab, receiverRoomCode, connectedRoom, reader, onSetBoardOpen, onClose]);
+  }, [receiverRoomCode, onSetBoardOpen, onClose]);
 
   // Stop camera helper
   const stopCamera = useCallback(() => {
@@ -174,7 +163,8 @@ export const BeamModal: React.FC<BeamModalProps> = ({
   // Send current book to Smartboard
   const handleBeamDocument = useCallback(
     async (overrideCode?: string) => {
-      const code = (overrideCode || targetRoomCode).trim().toUpperCase();
+      const raw = (overrideCode || targetRoomCode).trim();
+      const code = formatRoomCode(raw);
       if (!code) return;
 
       setBeamError(null);
@@ -193,25 +183,30 @@ export const BeamModal: React.FC<BeamModalProps> = ({
           throw new Error('Document buffer not found in storage');
         }
 
-        const base64 = arrayBufferToBase64(buffer);
+        const MAX_CLOUD_BYTES = 2.5 * 1024 * 1024;
+        if (buffer.byteLength <= MAX_CLOUD_BYTES) {
+          const base64 = arrayBufferToBase64(buffer);
 
-        const payloadMsg: BeamMessage = {
-          type: 'BEAM_PAYLOAD',
-          roomCode: code,
-          senderName: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
-          payload: {
-            title: reader.docTitle,
-            pageNumber: reader.currentPage,
-            totalPages: reader.numPages,
-            theme: reader.theme,
-            pdfBase64: base64
-          },
-          timestamp: Date.now()
-        };
+          const payloadMsg: BeamMessage = {
+            type: 'BEAM_PAYLOAD',
+            roomCode: code,
+            senderName: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
+            payload: {
+              title: reader.docTitle,
+              pageNumber: reader.currentPage,
+              totalPages: reader.numPages,
+              theme: reader.theme,
+              pdfBase64: base64
+            },
+            timestamp: Date.now()
+          };
 
-        await beamService.broadcast(payloadMsg);
+          await beamService.broadcast(payloadMsg);
+        }
 
-        saveRecentRoom(code);
+        beamService.startSender(code);
+        beamService.broadcastPageChange(reader.currentPage);
+
         setConnectedRoom(code);
         setSendSuccess(true);
         setIsSending(false);
@@ -219,7 +214,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
         // Transition to remote presentation mode
         setTimeout(() => {
           setActiveTab('remote');
-        }, 400);
+        }, 300);
       } catch (err) {
         console.error('Failed to beam document:', err);
         setIsSending(false);
@@ -227,6 +222,25 @@ export const BeamModal: React.FC<BeamModalProps> = ({
       }
     },
     [targetRoomCode, reader, lang]
+  );
+
+  // Quick remote pairing without re-uploading file
+  const handlePairAsRemote = useCallback(
+    (overrideCode?: string) => {
+      const raw = (overrideCode || targetRoomCode).trim();
+      const code = formatRoomCode(raw);
+      if (!code) return;
+
+      setBeamError(null);
+      beamService.startSender(code);
+      beamService.broadcastPageChange(reader.currentPage);
+      setConnectedRoom(code);
+      setSendSuccess(true);
+      setTimeout(() => {
+        setActiveTab('remote');
+      }, 200);
+    },
+    [targetRoomCode, reader.currentPage]
   );
 
   // Camera QR Code Scanner Execution
@@ -571,30 +585,42 @@ export const BeamModal: React.FC<BeamModalProps> = ({
               </div>
             )}
 
-            {/* Manual Code Input */}
-            <div className="flex items-center gap-2">
+            {/* Manual Code Input & Quick Actions */}
+            <div className="space-y-2">
               <input
                 type="text"
                 value={targetRoomCode}
                 onChange={(e) => setTargetRoomCode(e.target.value.toUpperCase())}
                 placeholder="OTM-XXXX"
-                className="flex-1 px-3 py-2.5 rounded-2xl bg-hover border border-line font-mono text-sm font-bold text-center tracking-widest text-ink focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2.5 rounded-2xl bg-hover border border-line font-mono text-sm font-bold text-center tracking-widest text-ink focus:outline-none focus:ring-2 focus:ring-accent"
               />
-              <button
-                type="button"
-                onClick={() => void handleBeamDocument()}
-                disabled={isSending || !targetRoomCode.trim() || !reader.doc}
-                className="px-5 py-2.5 rounded-2xl bg-accent text-on-accent font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:bg-accent-strong active:scale-98 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
-              >
-                {isSending ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                ) : sendSuccess ? (
-                  <Check className="w-3.5 h-3.5" />
-                ) : (
-                  <Send className="w-3.5 h-3.5" />
-                )}
-                <span>{lang === 'ar' ? 'بث' : 'Beam'}</span>
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleBeamDocument()}
+                  disabled={isSending || !targetRoomCode.trim() || !reader.doc}
+                  className="py-2.5 px-3 rounded-2xl bg-accent text-on-accent font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:bg-accent-strong active:scale-98 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
+                >
+                  {isSending ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : sendSuccess ? (
+                    <Check className="w-3.5 h-3.5" />
+                  ) : (
+                    <Send className="w-3.5 h-3.5" />
+                  )}
+                  <span>{lang === 'ar' ? 'بث ومزامنة' : 'Beam & Sync'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handlePairAsRemote()}
+                  disabled={!targetRoomCode.trim()}
+                  className="py-2.5 px-3 rounded-2xl bg-hover border border-accent/40 text-accent font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-accent/15 active:scale-98 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
+                >
+                  <Radio className="w-3.5 h-3.5" />
+                  <span>{lang === 'ar' ? 'اقتران ريموت تحكم' : 'Pair as Remote'}</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -641,8 +667,20 @@ export const BeamModal: React.FC<BeamModalProps> = ({
             {/* Pulsing Status */}
             <div className="flex items-center gap-1.5 text-[10px] text-ink-muted pt-1 border-t border-line w-full justify-center">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-              <span>{lang === 'ar' ? 'بانتظار الإرسال من هاتفك…' : 'Waiting for incoming beam…'}</span>
+              <span>{lang === 'ar' ? 'وضع الاستقبال نشط (بانتظار إرسال أو تحكم هاتفك)…' : 'Receiver active (waiting for remote or beam)…'}</span>
             </div>
+
+            {/* Stop Receiver Button */}
+            <button
+              type="button"
+              onClick={() => {
+                beamService.disconnect();
+                onClose();
+              }}
+              className="text-[11px] text-ink-muted hover:text-danger-ink underline cursor-pointer"
+            >
+              {lang === 'ar' ? 'إيقاف وضع الاستقبال' : 'Stop Receiving Mode'}
+            </button>
           </div>
         )}
 
@@ -716,15 +754,27 @@ export const BeamModal: React.FC<BeamModalProps> = ({
             <div className="flex items-center justify-between text-xs text-ink-muted px-1">
               <span className="flex items-center gap-1.5 text-emerald-500 font-semibold text-[11px]">
                 <Radio className="w-3 h-3 animate-pulse" />
-                <span>{lang === 'ar' ? 'متصل بالسبورة:' : 'Connected:'} <strong className="font-mono text-ink">{connectedRoom}</strong></span>
+                <span>{lang === 'ar' ? 'متصل بالسبورة / الحاسبة:' : 'Connected:'} <strong className="font-mono text-ink">{connectedRoom}</strong></span>
               </span>
               <button
                 type="button"
-                onClick={() => setConnectedRoom(null)}
+                onClick={() => {
+                  beamService.disconnect();
+                  setConnectedRoom(null);
+                  setActiveTab('send');
+                }}
                 className="text-[11px] text-danger-ink hover:underline cursor-pointer"
               >
                 {lang === 'ar' ? 'قطع الاتصال' : 'Disconnect'}
               </button>
+            </div>
+
+            {/* Seamless Reader Background Notice */}
+            <div className="p-2.5 rounded-2xl bg-accent/10 border border-accent/20 text-start text-[11px] text-ink leading-relaxed">
+              <span className="font-bold text-accent">💡 {lang === 'ar' ? 'تقليب مباشر:' : 'Live Page Turning:'} </span>
+              {lang === 'ar'
+                ? 'يمكنك إغلاق هذه النافذة وتصفح الملزمة بحرية من هاتفك (بالسحب أو الأسهم)، وستتحرك شاشة الحاسبة والسبورة معك فوراً!'
+                : 'You can close this modal and turn pages normally in Otium on your phone; your PC will follow in real-time!'}
             </div>
 
             {/* Slide Progress Bar */}

@@ -3,6 +3,7 @@ import {
   arrayBufferToBase64,
   base64ToArrayBuffer,
   beamService,
+  formatRoomCode,
   generateRoomCode,
   getRecentRooms,
   saveRecentRoom
@@ -13,6 +14,63 @@ describe('Otium Smart Beam Service', () => {
   it('generates a clean 4-digit room code with prefix', () => {
     const code = generateRoomCode();
     expect(code).toMatch(/^OTM-\d{4}$/);
+  });
+
+  it('formats raw codes and numbers into standardized OTM-XXXX', () => {
+    expect(formatRoomCode('5678')).toBe('OTM-5678');
+    expect(formatRoomCode('otm5678')).toBe('OTM-5678');
+    expect(formatRoomCode('OTM-5678')).toBe('OTM-5678');
+    expect(formatRoomCode(' room-123 ')).toBe('ROOM123');
+  });
+
+  it('accurately matches room codes case-insensitively ignoring dashes', () => {
+    expect(beamService.isMatchingRoom('otm-1234', 'OTM1234')).toBe(true);
+    expect(beamService.isMatchingRoom('OTM-4567', 'otm-4567')).toBe(true);
+    expect(beamService.isMatchingRoom('OTM-1111', 'OTM-2222')).toBe(false);
+  });
+
+  it('manages sender and receiver roles and notifies state listeners', () => {
+    const states: any[] = [];
+    const unsub = beamService.onStateChange((st) => states.push(st));
+
+    beamService.startReceiver('OTM-1234');
+    expect(beamService.getConnectedRoom()).toBe('OTM-1234');
+    expect(beamService.getRole()).toBe('receiver');
+
+    beamService.startSender('OTM-9999');
+    expect(beamService.getConnectedRoom()).toBe('OTM-9999');
+    expect(beamService.getRole()).toBe('sender');
+
+    beamService.disconnect();
+    expect(beamService.getConnectedRoom()).toBeNull();
+    expect(beamService.getRole()).toBeNull();
+
+    expect(states.length).toBeGreaterThanOrEqual(4);
+    unsub();
+  });
+
+  it('broadcasts page change only when in sender role with active room', () => {
+    const listener = vi.fn();
+    const unsub = beamService.subscribe(listener);
+
+    // Receiver should NOT broadcast page changes
+    beamService.startReceiver('OTM-1234');
+    beamService.broadcastPageChange(5);
+    expect(listener).not.toHaveBeenCalled();
+
+    // Sender DOES broadcast page change
+    beamService.startSender('OTM-1234');
+    beamService.broadcastPageChange(5);
+    expect(listener).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'BEAM_PAGE_CHANGE',
+        roomCode: 'OTM-1234',
+        pageNumber: 5
+      })
+    );
+
+    beamService.disconnect();
+    unsub();
   });
 
   it('preserves binary byte integrity across base64 round-trip', () => {

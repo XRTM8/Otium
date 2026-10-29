@@ -46,6 +46,10 @@ interface MobileToolbarProps {
   onOpenSidebar: () => void;
   onOpenScanner?: () => void;
   onOpenBeam?: () => void;
+  isBeaming?: boolean;
+  beamRoom?: string | null;
+  beamRole?: 'receiver' | 'sender' | null;
+  onDisconnectBeam?: () => void;
   onOpenSettings: () => void;
   onCloseDocument: () => void;
 }
@@ -86,6 +90,10 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
   onOpenSidebar,
   onOpenScanner,
   onOpenBeam,
+  isBeaming = false,
+  beamRoom,
+  beamRole,
+  onDisconnectBeam,
   onOpenSettings,
   onCloseDocument
 }) => {
@@ -226,6 +234,33 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             <bdi>{title}</bdi>
           </button>
 
+          {/* Active Beam Pill */}
+          {isBeaming && beamRoom && onOpenBeam && (
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-bold shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <button
+                type="button"
+                onClick={onOpenBeam}
+                className="hover:underline cursor-pointer"
+                title={ar
+                  ? `متصل بالقاعة ${beamRoom} (${beamRole === 'receiver' ? 'مستقبِل' : 'متحكّم'})`
+                  : `Connected to ${beamRoom} (${beamRole === 'receiver' ? 'Receiver' : 'Remote'})`}
+              >
+                {beamRoom}
+              </button>
+              {onDisconnectBeam && (
+                <button
+                  type="button"
+                  onClick={onDisconnectBeam}
+                  className="p-0.5 rounded-full hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 ml-0.5 cursor-pointer"
+                  title={ar ? 'قطع الاتصال' : 'Disconnect'}
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              )}
+            </div>
+          )}
+
           <button
             type="button"
             onClick={onToggleSearch}
@@ -328,10 +363,16 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
                   onOpenBeam();
                   setShowMenu(false);
                 }}
-                className="flex flex-col items-center gap-1 p-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[10px] active:scale-95 transition-all cursor-pointer"
+                className={`flex flex-col items-center gap-1 p-1.5 rounded-xl border text-[10px] active:scale-95 transition-all cursor-pointer ${
+                  isBeaming
+                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/40 ring-1 ring-emerald-500/30'
+                    : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                }`}
               >
                 <Cast className="w-4 h-4" />
-                <span className="truncate font-semibold">{ar ? 'بث للسبورة' : 'Beam'}</span>
+                <span className="truncate font-semibold">
+                  {isBeaming ? (beamRoom || (ar ? 'متصل' : 'Connected')) : (ar ? 'بث للسبورة' : 'Beam')}
+                </span>
               </button>
             )}
 

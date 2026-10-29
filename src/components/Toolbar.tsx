@@ -54,6 +54,9 @@ interface ToolbarProps {
   isBoardOpen?: boolean;
   onOpenBeam?: () => void;
   isBeaming?: boolean;
+  beamRoom?: string | null;
+  beamRole?: 'receiver' | 'sender' | null;
+  onDisconnectBeam?: () => void;
   onCloseDocument: () => void;
   onRenameTitle?: (newTitle: string) => void;
   annotationsCount?: number;
@@ -107,6 +110,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   isBoardOpen = false,
   onOpenBeam,
   isBeaming = false,
+  beamRoom,
+  beamRole,
+  onDisconnectBeam,
   onCloseDocument,
   onRenameTitle,
   annotationsCount,
@@ -577,23 +583,50 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           )}
 
           {onOpenBeam && (
-            <button
-              type="button"
-              onClick={onOpenBeam}
-              title={
-                isBeaming
-                  ? (ar ? 'متصل بالسبورة الذكية (بث نشط)' : 'Connected to Smartboard')
-                  : (ar ? 'بث إلى السبورة الذكية (Smart Beam)' : 'Beam to Smartboard')
-              }
-              aria-label={ar ? 'بث إلى السبورة' : 'Smart Beam'}
-              className={`toolbar-icon transition-all ${
-                isBeaming
-                  ? 'bg-emerald-500/20 text-emerald-500 font-semibold ring-1 ring-emerald-500/40 shadow-sm'
-                  : 'text-ink-muted hover:text-ink'
-              }`}
-            >
-              <Cast className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={onOpenBeam}
+                title={
+                  isBeaming
+                    ? (ar
+                        ? `متصل بالقاعة ${beamRoom || ''} (${beamRole === 'receiver' ? 'مستقبِل' : 'متحكّم'})`
+                        : `Connected to ${beamRoom || ''} (${beamRole === 'receiver' ? 'Receiver' : 'Remote'})`)
+                    : (ar ? 'بث إلى السبورة الذكية (Smart Beam)' : 'Beam to Smartboard')
+                }
+                aria-label={ar ? 'بث إلى السبورة' : 'Smart Beam'}
+                className={`toolbar-icon transition-all ${
+                  isBeaming
+                    ? 'bg-emerald-500/20 text-emerald-500 font-semibold ring-1 ring-emerald-500/40 shadow-sm'
+                    : 'text-ink-muted hover:text-ink'
+                }`}
+              >
+                <Cast className="w-3.5 h-3.5" />
+              </button>
+              {isBeaming && beamRoom && (
+                <div className="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <button
+                    type="button"
+                    onClick={onOpenBeam}
+                    className="hover:underline cursor-pointer"
+                    title={ar ? 'إدارة الاتصال' : 'Manage Beam'}
+                  >
+                    {beamRoom}
+                  </button>
+                  {onDisconnectBeam && (
+                    <button
+                      type="button"
+                      onClick={onDisconnectBeam}
+                      className="p-0.5 rounded-full hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 ml-0.5 cursor-pointer"
+                      title={ar ? 'قطع الاتصال' : 'Disconnect'}
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           )}
 
           {onOpenScanner && (

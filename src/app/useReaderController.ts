@@ -66,6 +66,8 @@ import { registerIncomingDocumentHandler } from '../platform/incomingDocument';
 import { applyDomTheme, syncNativeTheme } from '../platform/theme';
 import { syncNativeImmersive } from '../platform/ui';
 import { stopTts } from '../platform/tts';
+import { base64ToArrayBuffer, beamService } from '../board/beam/beamService';
+import type { BeamMessage } from '../board/types';
 
 export interface ReaderCapabilities {
   keyboard: boolean;
@@ -237,6 +239,16 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const [activeSearchPage, setActiveSearchPage] = useState<number | null>(null);
   const [annotations, setAnnotations] = useState<TextAnnotation[]>([]);
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
+  const [beamState, setBeamState] = useState<{ room: string | null; role: 'receiver' | 'sender' | null }>({
+    room: beamService.getConnectedRoom(),
+    role: beamService.getRole()
+  });
+
+  useEffect(() => {
+    return beamService.onStateChange((state) => {
+      setBeamState(state);
+    });
+  }, []);
   const [passwordModal, setPasswordModal] =
     useState<PasswordModalState>(EMPTY_PASSWORD_MODAL);
 
@@ -1447,6 +1459,50 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     await loadDocumentRef.current(data, recent.name);
   }, [lang, openSample]);
 
+  // 1. Broadcast page flip when connected as Otium Beam sender (e.g. mobile remote)
+  const lastBroadcastedPageRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (beamState.role === 'sender' && beamState.room) {
+      if (lastBroadcastedPageRef.current !== currentPage) {
+        lastBroadcastedPageRef.current = currentPage;
+        beamService.broadcastPageChange(currentPage);
+      }
+    } else {
+      lastBroadcastedPageRef.current = null;
+    }
+  }, [currentPage, beamState.role, beamState.room]);
+
+  // 2. Handle incoming Otium Beam sync when connected as receiver (e.g. PC / Smartboard)
+  useEffect(() => {
+    if (!beamState.room || beamState.role !== 'receiver') return;
+
+    const currentRoom = beamState.room;
+    const unsubscribe = beamService.subscribe(async (msg: BeamMessage) => {
+      if (!beamService.isMatchingRoom(msg.roomCode, currentRoom)) return;
+
+      if (msg.type === 'BEAM_PAGE_CHANGE' && typeof msg.pageNumber === 'number') {
+        scrollToPage(msg.pageNumber);
+      } else if (msg.type === 'BEAM_PAYLOAD' && msg.payload?.pdfBase64) {
+        try {
+          const buffer = base64ToArrayBuffer(msg.payload.pdfBase64);
+          await loadPdfData(buffer, msg.payload.title);
+          if (msg.payload.pageNumber) {
+            scrollToPage(msg.payload.pageNumber);
+          }
+          if (msg.payload.theme) {
+            changeTheme(msg.payload.theme);
+          }
+        } catch (err) {
+          console.error('Failed to load beamed PDF in reader:', err);
+        }
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [beamState.room, beamState.role, scrollToPage, changeTheme]);
+
   const toggleBookmark = useCallback(
     (pageNumber: number) => {
       triggerHaptic('light');
@@ -2232,7 +2288,10 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     docIsRtl,
     readingDirection,
     changeReadingDirection,
-    loadDocumentBytes
+    loadDocumentBytes,
+    beamRoom: beamState.room,
+    beamRole: beamState.role,
+    disconnectBeam: () => beamService.disconnect()
   };
 }
 

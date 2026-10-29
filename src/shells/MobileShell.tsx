@@ -100,6 +100,10 @@ export const MobileShell: React.FC = () => {
             onOpenSidebar={() => reader.setIsSidebarOpen(true)}
             onOpenScanner={() => setIsScannerOpen(true)}
             onOpenBeam={() => setIsBeamOpen(true)}
+            isBeaming={Boolean(reader.beamRoom)}
+            beamRoom={reader.beamRoom}
+            beamRole={reader.beamRole}
+            onDisconnectBeam={reader.disconnectBeam}
             onOpenSettings={() => reader.setIsSettingsOpen(true)}
             onCloseDocument={reader.closeDocument}
           />

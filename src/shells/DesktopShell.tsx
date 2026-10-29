@@ -197,6 +197,10 @@ export const DesktopShell: React.FC = () => {
             onToggleBoard={() => setIsBoardOpen((open) => !open)}
             isBoardOpen={isBoardOpen}
             onOpenBeam={() => setIsBeamOpen(true)}
+            isBeaming={Boolean(reader.beamRoom)}
+            beamRoom={reader.beamRoom}
+            beamRole={reader.beamRole}
+            onDisconnectBeam={reader.disconnectBeam}
             onCloseDocument={reader.closeDocument}
             onRenameTitle={reader.renameDocument}
             annotationsCount={reader.annotations.length}

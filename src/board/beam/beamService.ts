@@ -11,6 +11,17 @@ export function generateRoomCode(): string {
   return `OTM-${num}`;
 }
 
+export function formatRoomCode(code: string): string {
+  const clean = (code || '').trim().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  if (clean.startsWith('OTM') && clean.length > 3) {
+    return `OTM-${clean.slice(3)}`;
+  }
+  if (/^\d{4,6}$/.test(clean)) {
+    return `OTM-${clean}`;
+  }
+  return clean || '';
+}
+
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {
   let binary = '';
   const bytes = new Uint8Array(buffer);
@@ -55,8 +66,11 @@ export function saveRecentRoom(roomCode: string): void {
 class BeamService {
   private broadcastChannel: BroadcastChannel | null = null;
   private listeners: Set<(msg: BeamMessage) => void> = new Set();
+  private stateListeners: Set<(state: { room: string | null; role: 'receiver' | 'sender' | null }) => void> = new Set();
   private activeEventSource: EventSource | null = null;
   private activeRoomCode: string | null = null;
+  private connectedRoom: string | null = null;
+  private role: 'receiver' | 'sender' | null = null;
 
   constructor() {
     if (typeof window !== 'undefined' && typeof BroadcastChannel !== 'undefined') {
@@ -80,6 +94,78 @@ class BeamService {
         }
       });
     }
+  }
+
+  public normalizeRoom(code: string): string {
+    return (code || '').trim().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  }
+
+  public isMatchingRoom(a: string, b: string): boolean {
+    return this.normalizeRoom(a) === this.normalizeRoom(b);
+  }
+
+  public getConnectedRoom(): string | null {
+    return this.connectedRoom;
+  }
+
+  public getRole(): 'receiver' | 'sender' | null {
+    return this.role;
+  }
+
+  public startReceiver(roomCode: string): void {
+    const formatted = formatRoomCode(roomCode);
+    if (!formatted) return;
+    this.connectedRoom = formatted;
+    this.role = 'receiver';
+    saveRecentRoom(formatted);
+    this.listenToRoom(formatted);
+    this.notifyStateListeners();
+  }
+
+  public startSender(roomCode: string): void {
+    const formatted = formatRoomCode(roomCode);
+    if (!formatted) return;
+    this.connectedRoom = formatted;
+    this.role = 'sender';
+    saveRecentRoom(formatted);
+    this.listenToRoom(formatted);
+    this.notifyStateListeners();
+  }
+
+  public disconnect(): void {
+    this.leaveRoom();
+    this.connectedRoom = null;
+    this.role = null;
+    this.notifyStateListeners();
+  }
+
+  public onStateChange(callback: (state: { room: string | null; role: 'receiver' | 'sender' | null }) => void): () => void {
+    this.stateListeners.add(callback);
+    callback({ room: this.connectedRoom, role: this.role });
+    return () => {
+      this.stateListeners.delete(callback);
+    };
+  }
+
+  private notifyStateListeners(): void {
+    const state = { room: this.connectedRoom, role: this.role };
+    for (const listener of this.stateListeners) {
+      try {
+        listener(state);
+      } catch (err) {
+        console.error('Error in beam state listener:', err);
+      }
+    }
+  }
+
+  public broadcastPageChange(pageNumber: number): void {
+    if (!this.connectedRoom || this.role !== 'sender') return;
+    void this.broadcast({
+      type: 'BEAM_PAGE_CHANGE',
+      roomCode: this.connectedRoom,
+      pageNumber,
+      timestamp: Date.now()
+    });
   }
 
   /** Subscribes the current device to cloud events for a specific room */
@@ -112,6 +198,10 @@ class BeamService {
               this.notifyListeners(rawMsg);
             } catch {}
           }
+        };
+        es.onerror = (err) => {
+          // SSE auto-reconnects on temporary network hiccups
+          console.debug('Otium Beam SSE status:', err);
         };
         this.activeEventSource = es;
       } catch (err) {
