@@ -323,11 +323,14 @@ class BeamService {
         this.notifyStatusListeners();
 
         const topic = `otium_beam_${clean}`;
-        const es = new EventSource(`${CLOUD_RELAY_BASE}/${topic}/sse`);
+        const es = new EventSource(`${CLOUD_RELAY_BASE}/${topic}/sse?since=5m`);
 
         es.onopen = () => {
           this.connectionStatus = 'connected';
           this.notifyStatusListeners();
+          if (this.role === 'sender' && this.connectedRoom) {
+            this.queryReceiverState(this.connectedRoom);
+          }
         };
 
         es.onmessage = async (event) => {
@@ -335,7 +338,20 @@ class BeamService {
             const parsed = JSON.parse(event.data);
             if (!parsed) return;
 
-            // 1. If ntfy wrapped a large payload into attachment.json or uploaded direct PDF / attachment.txt
+            // 1. Direct control message JSON (instant < 1ms, zero secondary fetch)
+            if (parsed.message) {
+              try {
+                const innerMsg = JSON.parse(parsed.message);
+                if (innerMsg && innerMsg.type && innerMsg.roomCode) {
+                  this.notifyListeners(innerMsg);
+                  return;
+                }
+              } catch {
+                // If message isn't JSON string, continue to attachments
+              }
+            }
+
+            // 2. Binary attachment / PDF or fallback attachment.json
             if (parsed.attachment?.url) {
               const url = parsed.attachment.url;
               const name = (parsed.attachment.name || '').toLowerCase();
@@ -381,17 +397,6 @@ class BeamService {
                   timestamp: Date.now()
                 });
                 return;
-              }
-            }
-
-            // 2. Standard message string
-            if (parsed.message) {
-              try {
-                const innerMsg = JSON.parse(parsed.message);
-                this.notifyListeners(innerMsg);
-                return;
-              } catch {
-                // If message isn't JSON string, might be plain text notification
               }
             }
 
@@ -482,8 +487,7 @@ class BeamService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Title': 'Otium Beam',
-          'X-Filename': 'attachment.json'
+          'X-Title': 'Otium Beam'
         },
         body: JSON.stringify(msg)
       });

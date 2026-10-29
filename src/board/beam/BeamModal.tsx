@@ -54,6 +54,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     const role = beamService.getRole();
     if (role === 'receiver') return 'receive';
     if (role === 'sender') return 'remote';
+    if (reader.doc && typeof window !== 'undefined' && window.innerWidth >= 768) return 'receive';
     return 'send';
   });
   const [targetRoomCode, setTargetRoomCode] = useState('');
@@ -145,13 +146,30 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     }
   }, [isOpen, activeTab, receiverRoomCode]);
 
-  // Query remote receiver state when remote tab becomes active
+  // Continuous handshake retry loop until receiver acknowledges
   useEffect(() => {
-    if (!isOpen) return;
-    if (activeTab === 'remote' && connectedRoom) {
+    if (!isOpen || activeTab !== 'remote' || !connectedRoom || isReceiverAcknowledged) return;
+
+    let retryCount = 0;
+    const maxRetries = 8;
+
+    const ping = () => {
+      if (retryCount >= maxRetries) return;
+      retryCount++;
+      void beamService.broadcast({
+        type: 'BEAM_HANDSHAKE',
+        roomCode: connectedRoom,
+        senderName: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
+        timestamp: Date.now()
+      });
       beamService.queryReceiverState(connectedRoom);
-    }
-  }, [isOpen, activeTab, connectedRoom]);
+    };
+
+    ping();
+    const interval = setInterval(ping, 1500);
+
+    return () => clearInterval(interval);
+  }, [isOpen, activeTab, connectedRoom, isReceiverAcknowledged]);
 
   // Subscribe to beam messages (receiver mode, payload receipt & remote state updates)
   useEffect(() => {
@@ -170,6 +188,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
       // 2. When receiver announces its state, sync remote clicker view & confirm handshake
       if (msg.type === 'BEAM_STATE_ANNOUNCE') {
         setIsReceiverAcknowledged(true);
+        triggerHaptic();
         if (msg.docTitle) setRemoteDocTitle(msg.docTitle);
         if (typeof msg.pageNumber === 'number') setRemotePage(msg.pageNumber);
         if (typeof msg.totalPages === 'number') setRemoteTotal(msg.totalPages);

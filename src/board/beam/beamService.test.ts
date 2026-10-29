@@ -109,4 +109,18 @@ describe('Otium Smart Beam Service', () => {
     expect(recents[0]).toBe('OTM-2222');
     expect(recents).toContain('OTM-1111');
   });
+
+  it('automatically disconnects when BEAM_DISCONNECT is received for active room', () => {
+    beamService.startReceiver('OTM-5555');
+    expect(beamService.getConnectedRoom()).toBe('OTM-5555');
+
+    beamService.broadcast({
+      type: 'BEAM_DISCONNECT',
+      roomCode: 'OTM-5555',
+      timestamp: Date.now()
+    });
+
+    expect(beamService.getConnectedRoom()).toBeNull();
+    expect(beamService.getRole()).toBeNull();
+  });
 });
