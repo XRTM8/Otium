@@ -460,6 +460,8 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     try {
+      // Also open the document in the local reader so the presenter can see and navigate it.
+      void reader.openFile(file);
       const buf = await file.arrayBuffer();
       const code = targetRoomCode.trim() || connectedRoom || '';
       if (!code) {
@@ -469,6 +471,8 @@ export const BeamModal: React.FC<BeamModalProps> = ({
       void handleBeamDocument(code, buf, file.name.replace(/\.pdf$/i, ''));
     } catch {
       setBeamError(lang === 'ar' ? 'تعذر قراءة الملف المحدد' : 'Failed to read selected file');
+    } finally {
+      e.target.value = '';
     }
   };
 
