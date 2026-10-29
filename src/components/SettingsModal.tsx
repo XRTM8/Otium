@@ -36,6 +36,7 @@ import { getUpdateAdapter } from '../platform/updates';
 import { getPlatformLabel } from '../platform/runtime';
 import { isOcrLanguageCached, preloadOcrLanguage } from '../scanner/core/ocr/ocrEngine';
 import type { CropMode } from '../scanner/core/types';
+import { triggerHaptic } from '../core/utils/haptics';
 
 export type SettingsTab = 'fonts' | 'reading' | 'scanner' | 'data' | 'about';
 
@@ -257,6 +258,101 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     } catch {}
   };
 
+  // Draggable handle & expandable sheet state
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartYRef = useRef(0);
+  const currentDragOffsetRef = useRef(0);
+  const dragStartTimeRef = useRef(0);
+  const isDraggingActiveRef = useRef(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setIsExpanded(false);
+      setDragOffset(0);
+      setIsDragging(false);
+      isDraggingActiveRef.current = false;
+    }
+  }, [isOpen]);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    dragStartYRef.current = e.clientY;
+    currentDragOffsetRef.current = 0;
+    dragStartTimeRef.current = Date.now();
+    isDraggingActiveRef.current = true;
+    setIsDragging(true);
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDraggingActiveRef.current) return;
+    const deltaY = e.clientY - dragStartYRef.current;
+
+    let effectiveOffset = deltaY;
+    if (isExpanded) {
+      if (deltaY < 0) {
+        effectiveOffset = deltaY * 0.2; // Rubber banding against ceiling
+      }
+    } else {
+      if (deltaY < 0) {
+        effectiveOffset = deltaY * 0.4; // Soft resistance pulling up towards expand
+      }
+    }
+    currentDragOffsetRef.current = effectiveOffset;
+    setDragOffset(effectiveOffset);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!isDraggingActiveRef.current) return;
+    isDraggingActiveRef.current = false;
+    setIsDragging(false);
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
+
+    const deltaY = currentDragOffsetRef.current;
+    const elapsed = Math.max(1, Date.now() - dragStartTimeRef.current);
+    const velocity = deltaY / elapsed;
+
+    // 1. Drag down or flick down -> dismiss or collapse
+    if (deltaY > 110 || (deltaY > 40 && velocity > 0.4)) {
+      if (isExpanded && deltaY < 180 && velocity < 0.75) {
+        setIsExpanded(false);
+        setDragOffset(0);
+        triggerHaptic('light');
+        return;
+      }
+      triggerHaptic('medium');
+      onClose();
+      return;
+    }
+
+    // 2. Drag up or flick up -> expand / maximize
+    if (deltaY < -40 || (deltaY < -15 && velocity < -0.35)) {
+      if (!isExpanded) {
+        setIsExpanded(true);
+        triggerHaptic('light');
+      }
+      setDragOffset(0);
+      return;
+    }
+
+    // 3. Tap on handle (< 8px movement in short time) -> toggle expand
+    if (Math.abs(deltaY) < 8 && elapsed < 350) {
+      setIsExpanded((prev) => !prev);
+      triggerHaptic('light');
+      setDragOffset(0);
+      return;
+    }
+
+    // Snap back smoothly
+    setDragOffset(0);
+  };
+
   const handleDownloadOcr = async () => {
     setIsDownloadingOcr(true);
     setOcrProgress(0);
@@ -440,10 +536,50 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
       <div
         ref={modalRef}
-        className="otium-panel relative z-10 flex h-[82vh] max-h-[85vh] sm:h-[620px] sm:max-h-[88vh] w-full max-w-lg sm:max-w-xl flex-col overflow-hidden rounded-t-[32px] sm:rounded-3xl p-5 text-ink sm:p-6 shadow-2xl mobile-sheet sm:fluid-pop transition-[height] duration-200"
+        style={{
+          transform: dragOffset !== 0 ? `translate3d(0, ${dragOffset}px, 0)` : undefined,
+          opacity: dragOffset > 0 ? Math.max(0.35, 1 - dragOffset / 320) : 1,
+          transition: isDragging
+            ? 'none'
+            : 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease-out, height 0.28s cubic-bezier(0.16, 1, 0.3, 1), max-height 0.28s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}
+        className={`otium-panel relative z-10 flex w-full max-w-lg sm:max-w-xl flex-col overflow-hidden rounded-t-[32px] sm:rounded-3xl p-5 text-ink sm:p-6 shadow-2xl mobile-sheet sm:fluid-pop ${
+          isExpanded
+            ? 'h-[96vh] max-h-[96vh] sm:h-[720px] sm:max-h-[92vh]'
+            : 'h-[82vh] max-h-[85vh] sm:h-[620px] sm:max-h-[88vh]'
+        }`}
       >
-        {/* Mobile handle indicator */}
-        <div className="w-12 h-1.5 rounded-full bg-line-strong/50 mx-auto mb-3 sm:hidden shrink-0" />
+        {/* Draggable Handle with extended touch hit-target */}
+        <div
+          role="slider"
+          aria-label={ar ? 'مقبض سحب القائمة' : 'Sheet drag handle'}
+          aria-valuenow={isExpanded ? 100 : 50}
+          tabIndex={0}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          className="w-full py-2.5 -mt-3.5 mb-1 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none group shrink-0"
+          title={
+            ar
+              ? isExpanded
+                ? 'اسحب للأسفل لتصغير أو إغلاق القائمة'
+                : 'اسحب للأعلى للتكبير، أو للأسفل للإغلاق'
+              : isExpanded
+              ? 'Drag down to reduce or close'
+              : 'Drag up to expand, down to close'
+          }
+        >
+          <div
+            className={`h-1.5 rounded-full transition-all duration-200 ${
+              isDragging
+                ? 'w-16 bg-accent scale-y-125'
+                : isExpanded
+                ? 'w-14 bg-accent/80 group-hover:bg-accent'
+                : 'w-12 bg-line-strong/60 group-hover:w-14 group-hover:bg-line-strong'
+            }`}
+          />
+        </div>
 
         <div className="flex items-center justify-between pb-4 border-b border-line shrink-0">
           <div className="flex items-center gap-2.5">

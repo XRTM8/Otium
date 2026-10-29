@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import { beforeEach, vi } from 'vitest';
+import { beforeEach } from 'vitest';
 
 const values = new Map<string, string>();
 
@@ -18,13 +18,18 @@ const localStorageMock: Storage = {
   }
 };
 
-vi.stubGlobal('localStorage', localStorageMock);
-vi.stubGlobal('window', {
-  indexedDB: globalThis.indexedDB,
-  localStorage: localStorageMock,
-  setTimeout: globalThis.setTimeout.bind(globalThis),
-  clearTimeout: globalThis.clearTimeout.bind(globalThis)
-});
+(globalThis as any).localStorage = localStorageMock;
+if (typeof (globalThis as any).window === 'undefined') {
+  (globalThis as any).window = {
+    indexedDB: globalThis.indexedDB,
+    localStorage: localStorageMock,
+    setTimeout: globalThis.setTimeout.bind(globalThis),
+    clearTimeout: globalThis.clearTimeout.bind(globalThis)
+  };
+} else {
+  (globalThis as any).window.localStorage = localStorageMock;
+  (globalThis as any).window.indexedDB = globalThis.indexedDB;
+}
 
 beforeEach(() => {
   values.clear();

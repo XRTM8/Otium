@@ -1,5 +1,7 @@
 import type { BeamMessage } from '../types';
 
+export type BeamConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+
 const BEAM_CHANNEL_NAME = 'otium_smart_beam_channel';
 const BEAM_STORAGE_KEY = 'otium_beam_last_event';
 const RECENT_ROOMS_KEY = 'otium_recent_beam_rooms';
@@ -71,6 +73,8 @@ class BeamService {
   private activeRoomCode: string | null = null;
   private connectedRoom: string | null = null;
   private role: 'receiver' | 'sender' | null = null;
+  private connectionStatus: BeamConnectionStatus = 'disconnected';
+  private statusListeners: Set<(status: BeamConnectionStatus) => void> = new Set();
 
   constructor() {
     if (typeof window !== 'undefined' && typeof BroadcastChannel !== 'undefined') {
@@ -136,7 +140,31 @@ class BeamService {
     this.leaveRoom();
     this.connectedRoom = null;
     this.role = null;
+    this.connectionStatus = 'disconnected';
+    this.notifyStatusListeners();
     this.notifyStateListeners();
+  }
+
+  public getConnectionStatus(): BeamConnectionStatus {
+    return this.connectionStatus;
+  }
+
+  public onConnectionStatusChange(callback: (status: BeamConnectionStatus) => void): () => void {
+    this.statusListeners.add(callback);
+    callback(this.connectionStatus);
+    return () => {
+      this.statusListeners.delete(callback);
+    };
+  }
+
+  private notifyStatusListeners(): void {
+    for (const listener of this.statusListeners) {
+      try {
+        listener(this.connectionStatus);
+      } catch (err) {
+        console.error('Error in beam status listener:', err);
+      }
+    }
   }
 
   public onStateChange(callback: (state: { room: string | null; role: 'receiver' | 'sender' | null }) => void): () => void {
@@ -204,11 +232,14 @@ class BeamService {
   public async uploadAttachment(roomCode: string, buffer: ArrayBuffer, filename: string): Promise<string | null> {
     const clean = roomCode.trim().replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     const topic = `otium_beam_${clean}`;
+    const cleanName = filename.replace(/\.pdf$/i, '').trim() || 'document';
+    const safeFilename = encodeURIComponent(cleanName) + '.pdf';
     try {
-      const res = await fetch(`${CLOUD_RELAY_BASE}/${topic}?filename=${encodeURIComponent(filename)}`, {
+      const res = await fetch(`${CLOUD_RELAY_BASE}/${topic}?filename=${safeFilename}`, {
         method: 'PUT',
         headers: {
-          'Filename': filename
+          'Filename': safeFilename,
+          'Content-Type': 'application/pdf'
         },
         body: buffer
       });
@@ -233,13 +264,15 @@ class BeamService {
     const totalBytes = buffer.byteLength;
     const chunkCount = Math.ceil(totalBytes / CHUNK_SIZE);
     const urls: string[] = [];
+    const cleanName = filename.replace(/\.pdf$/i, '').trim() || 'document';
+    const safeName = encodeURIComponent(cleanName);
 
     for (let i = 0; i < chunkCount; i++) {
       const start = i * CHUNK_SIZE;
       const end = Math.min(start + CHUNK_SIZE, totalBytes);
       const chunk = buffer.slice(start, end);
       const chunkTopic = `otium_beam_${clean}_c${i}`;
-      const chunkName = `${encodeURIComponent(filename)}.part${i}`;
+      const chunkName = `${safeName}.part${i}`;
 
       try {
         const res = await fetch(`${CLOUD_RELAY_BASE}/${chunkTopic}?filename=${chunkName}`, {
@@ -278,32 +311,58 @@ class BeamService {
 
     if (typeof EventSource !== 'undefined') {
       try {
+        this.connectionStatus = 'connecting';
+        this.notifyStatusListeners();
+
         const topic = `otium_beam_${clean}`;
         const es = new EventSource(`${CLOUD_RELAY_BASE}/${topic}/sse`);
+
+        es.onopen = () => {
+          this.connectionStatus = 'connected';
+          this.notifyStatusListeners();
+        };
+
         es.onmessage = async (event) => {
           try {
             const parsed = JSON.parse(event.data);
             if (!parsed) return;
 
-            // 1. If ntfy wrapped a large payload into attachment.json or uploaded direct PDF
+            // 1. If ntfy wrapped a large payload into attachment.json or uploaded direct PDF / attachment.txt
             if (parsed.attachment?.url) {
               const url = parsed.attachment.url;
               const name = (parsed.attachment.name || '').toLowerCase();
-              if (name === 'attachment.json' || name.endsWith('.json')) {
+              if (
+                name === 'attachment.json' ||
+                name.endsWith('.json') ||
+                name === 'attachment.txt' ||
+                name.endsWith('.txt')
+              ) {
                 try {
                   const res = await fetch(url);
-                  const inner = await res.json();
-                  this.notifyListeners(inner);
-                  return;
+                  const text = await res.text();
+                  try {
+                    const inner = JSON.parse(text);
+                    if (inner && inner.type && inner.roomCode) {
+                      this.notifyListeners(inner);
+                      return;
+                    }
+                  } catch {}
                 } catch (err) {
-                  console.warn('Failed to fetch inner attachment.json:', err);
+                  console.warn('Failed to fetch inner attachment:', err);
                 }
-              } else if (name.endsWith('.pdf')) {
+              } else if (name.endsWith('.pdf') || name.includes('.pdf')) {
+                let docTitle = 'document';
+                try {
+                  const rawName = parsed.attachment.name || 'document';
+                  docTitle = decodeURIComponent(rawName).replace(/\.pdf$/i, '');
+                } catch {
+                  docTitle = (parsed.attachment.name || 'document').replace(/\.pdf$/i, '');
+                }
                 this.notifyListeners({
                   type: 'BEAM_PAYLOAD',
                   roomCode: this.activeRoomCode ? this.activeRoomCode.toUpperCase() : 'BEAM',
                   payload: {
-                    title: (parsed.attachment.name || 'document').replace(/\.pdf$/i, ''),
+                    title: docTitle,
                     pageNumber: 1,
                     totalPages: 1,
                     theme: 'midnight',
@@ -333,11 +392,14 @@ class BeamService {
           }
         };
         es.onerror = (err) => {
-          // SSE auto-reconnects on temporary network hiccups
+          this.connectionStatus = 'error';
+          this.notifyStatusListeners();
           console.debug('Otium Beam SSE status:', err);
         };
         this.activeEventSource = es;
       } catch (err) {
+        this.connectionStatus = 'error';
+        this.notifyStatusListeners();
         console.warn('Cloud EventSource signaling fallback:', err);
       }
     }
@@ -349,6 +411,8 @@ class BeamService {
       this.activeEventSource = null;
     }
     this.activeRoomCode = null;
+    this.connectionStatus = 'disconnected';
+    this.notifyStatusListeners();
   }
 
   private notifyListeners(msg: BeamMessage) {
@@ -400,7 +464,8 @@ class BeamService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Title': 'Otium Beam'
+          'X-Title': 'Otium Beam',
+          'X-Filename': 'attachment.json'
         },
         body: JSON.stringify(msg)
       });

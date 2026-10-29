@@ -27,7 +27,8 @@ import {
   formatRoomCode,
   generateRoomCode,
   getRecentRooms,
-  saveRecentRoom
+  saveRecentRoom,
+  type BeamConnectionStatus
 } from './beamService';
 import { QrCodeView } from './QrCodeView';
 import type { BeamMessage } from '../types';
@@ -73,14 +74,22 @@ export const BeamModal: React.FC<BeamModalProps> = ({
   const [remotePage, setRemotePage] = useState<number>(() => reader.currentPage || 1);
   const [remoteTotal, setRemoteTotal] = useState<number>(() => reader.numPages || 0);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [connStatus, setConnStatus] = useState<BeamConnectionStatus>(() => beamService.getConnectionStatus());
   const offlineFileInputRef = useRef<HTMLInputElement>(null);
   const beamFileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync beam connection state
   useEffect(() => {
-    return beamService.onStateChange((state) => {
+    const unsubState = beamService.onStateChange((state) => {
       setConnectedRoom(state.room);
     });
+    const unsubStatus = beamService.onConnectionStatusChange((status) => {
+      setConnStatus(status);
+    });
+    return () => {
+      unsubState();
+      unsubStatus();
+    };
   }, []);
 
   // Camera QR scanner state
@@ -222,6 +231,15 @@ export const BeamModal: React.FC<BeamModalProps> = ({
           const pdfUrl = await beamService.uploadAttachment(code, buffer, `${title}.pdf`);
           setUploadProgress(85);
 
+          const pdfBase64 = !pdfUrl && totalBytes < 500000 ? arrayBufferToBase64(buffer) : undefined;
+          if (!pdfUrl && !pdfBase64) {
+            throw new Error(
+              lang === 'ar'
+                ? 'تعذر رفع المستند إلى السحابة، تأكد من اتصال الإنترنت أو استخدم وضع "بدون إنترنت"'
+                : 'Failed to upload document to cloud relay. Check your connection or use Offline mode.'
+            );
+          }
+
           const payloadMsg: BeamMessage = {
             type: 'BEAM_PAYLOAD',
             roomCode: code,
@@ -232,7 +250,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
               totalPages,
               theme: reader.theme,
               pdfUrl: pdfUrl || undefined,
-              pdfBase64: !pdfUrl && totalBytes < 500000 ? arrayBufferToBase64(buffer) : undefined
+              pdfBase64
             },
             timestamp: Date.now()
           };
@@ -245,7 +263,11 @@ export const BeamModal: React.FC<BeamModalProps> = ({
           });
 
           if (!chunkUrls || chunkUrls.length === 0) {
-            throw new Error('Chunked upload failed');
+            throw new Error(
+              lang === 'ar'
+                ? 'تعذر إرسال أجزاء الملف الكبير، يرجى استخدام وضع بدون إنترنت عبر فلاشة USB أو الهوتسبوت'
+                : 'Chunked upload failed. Please use Offline mode via USB or Wi-Fi hotspot.'
+            );
           }
 
           const payloadMsg: BeamMessage = {
@@ -278,17 +300,20 @@ export const BeamModal: React.FC<BeamModalProps> = ({
         setTimeout(() => {
           setActiveTab('remote');
         }, 300);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to beam document:', err);
         setIsSending(false);
         setUploadProgress(null);
-        setBeamError(lang === 'ar' ? 'تعذر إرسال المستند، تأكد من الرمز وحاول مجدداً' : 'Failed to beam document');
+        setBeamError(
+          err?.message ||
+          (lang === 'ar' ? 'تعذر إرسال المستند، تأكد من الرمز وحاول مجدداً' : 'Failed to beam document')
+        );
       }
     },
     [targetRoomCode, reader, lang]
   );
 
-  // Quick remote pairing without re-uploading file (Works even without document open!)
+  // Quick remote pairing (Automatically beams document if one is loaded!)
   const handlePairAsRemote = useCallback(
     (overrideCode?: string) => {
       const raw = (overrideCode || targetRoomCode).trim();
@@ -296,19 +321,22 @@ export const BeamModal: React.FC<BeamModalProps> = ({
       if (!code) return;
 
       setBeamError(null);
-      beamService.startSender(code);
+
+      // If document is open on this device, automatically beam it so board actually displays it!
       if (reader.doc) {
-        beamService.broadcastPageChange(reader.currentPage);
-      } else {
-        beamService.queryReceiverState(code);
+        void handleBeamDocument(code);
+        return;
       }
+
+      beamService.startSender(code);
+      beamService.queryReceiverState(code);
       setConnectedRoom(code);
       setSendSuccess(true);
       setTimeout(() => {
         setActiveTab('remote');
       }, 200);
     },
-    [targetRoomCode, reader.doc, reader.currentPage]
+    [targetRoomCode, reader.doc, handleBeamDocument]
   );
 
   // File picker handler to beam a file directly without opening it first
@@ -714,7 +742,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                 placeholder="OTM-XXXX"
                 className="w-full px-3 py-2.5 rounded-2xl bg-hover border border-line font-mono text-sm font-bold text-center tracking-widest text-ink focus:outline-none focus:ring-2 focus:ring-accent"
               />
-              <div className="grid grid-cols-2 gap-2">
+              <div className={reader.doc ? "flex flex-col gap-2" : "grid grid-cols-2 gap-2"}>
                 <button
                   type="button"
                   onClick={() => {
@@ -725,7 +753,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                     }
                   }}
                   disabled={isSending || (!targetRoomCode.trim() && !reader.doc)}
-                  className="py-2.5 px-3 rounded-2xl bg-accent text-on-accent font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:bg-accent-strong active:scale-98 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
+                  className={`py-3 px-3 rounded-2xl bg-accent text-on-accent font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:bg-accent-strong active:scale-98 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer ${reader.doc ? 'w-full' : ''}`}
                 >
                   {isSending ? (
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -738,20 +766,22 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                     {uploadProgress !== null
                       ? `${uploadProgress}%`
                       : reader.doc
-                      ? lang === 'ar' ? 'بث ومزامنة' : 'Beam & Sync'
+                      ? lang === 'ar' ? 'بث ومزامنة للسبورة فوراً' : 'Beam & Sync to Smartboard'
                       : lang === 'ar' ? 'اختيار ملف وبثه' : 'Pick File & Beam'}
                   </span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => handlePairAsRemote()}
-                  disabled={!targetRoomCode.trim()}
-                  className="py-2.5 px-3 rounded-2xl bg-hover border border-accent/40 text-accent font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-accent/15 active:scale-98 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
-                >
-                  <Radio className="w-3.5 h-3.5" />
-                  <span>{lang === 'ar' ? 'اقتران ريموت تحكم' : 'Pair as Remote'}</span>
-                </button>
+                {!reader.doc && (
+                  <button
+                    type="button"
+                    onClick={() => handlePairAsRemote()}
+                    disabled={!targetRoomCode.trim()}
+                    className="py-2.5 px-3 rounded-2xl bg-hover border border-accent/40 text-accent font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-accent/15 active:scale-98 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
+                  >
+                    <Radio className="w-3.5 h-3.5" />
+                    <span>{lang === 'ar' ? 'اقتران ريموت تحكم' : 'Pair as Remote'}</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -796,10 +826,42 @@ export const BeamModal: React.FC<BeamModalProps> = ({
               <strong className="text-accent underline">is.gd/otium</strong>
             </div>
 
-            {/* Pulsing Status */}
+            {/* Connection Status Indicator */}
             <div className="flex items-center gap-1.5 text-[10px] text-ink-muted pt-1 border-t border-line w-full justify-center">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-              <span>{lang === 'ar' ? 'وضع الاستقبال نشط (بانتظار إرسال أو تحكم هاتفك)…' : 'Receiver active (waiting for remote or beam)…'}</span>
+              {connStatus === 'connected' ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                    {lang === 'ar' ? 'وضع الاستقبال نشط ومستعد لاستقبال هاتفك…' : 'Receiver active and ready…'}
+                  </span>
+                </>
+              ) : connStatus === 'connecting' ? (
+                <>
+                  <RefreshCw className="w-3 h-3 text-amber-500 animate-spin shrink-0" />
+                  <span className="text-amber-500 font-medium">
+                    {lang === 'ar' ? 'جارٍ الاتصال بالسحابة…' : 'Connecting to cloud…'}
+                  </span>
+                </>
+              ) : connStatus === 'error' ? (
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-rose-500 font-medium flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                    {lang === 'ar' ? 'تعذر الاتصال بالسحابة (تحقق من إنترنت القاعة أو استخدم وضع بدون إنترنت)' : 'Cloud connection failed (check network or use offline mode)'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => beamService.startReceiver(receiverRoomCode)}
+                    className="text-accent underline text-[10px] cursor-pointer"
+                  >
+                    {lang === 'ar' ? 'إعادة محاولة الاتصال' : 'Retry connection'}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-line-strong shrink-0" />
+                  <span>{lang === 'ar' ? 'غير متصل' : 'Disconnected'}</span>
+                </>
+              )}
             </div>
 
             {/* Stop Receiver Button */}
@@ -932,6 +994,27 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                 {activeDocTitle}
               </div>
             </div>
+
+            {/* Quick Action to Re-Beam / Push current Document */}
+            {reader.doc && connectedRoom && (
+              <button
+                type="button"
+                onClick={() => void handleBeamDocument(connectedRoom)}
+                disabled={isSending}
+                className="w-full py-2 px-3 rounded-xl bg-hover border border-line hover:border-accent/40 text-ink text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+              >
+                {isSending ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-accent" />
+                ) : (
+                  <Cast className="w-3.5 h-3.5 text-accent" />
+                )}
+                <span>
+                  {isSending
+                    ? (uploadProgress ? `${uploadProgress}%` : (lang === 'ar' ? 'جارٍ الإرسال...' : 'Sending...'))
+                    : (lang === 'ar' ? 'إعادة بث هذه الملزمة للسبورة فوراً 📡' : 'Re-beam this PDF to Smartboard 📡')}
+                </span>
+              </button>
+            )}
 
             {/* Tactile Blind-Flipping Buttons with Haptic Pulse */}
             <div className="grid grid-cols-2 gap-3">

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Upload } from 'lucide-react';
+import { Cast, Upload } from 'lucide-react';
 import { useReaderController } from '../app/useReaderController';
 import { getThemeBackground } from '../app/themeBackground';
 import { isTauriRuntime } from '../platform/runtime';
@@ -19,6 +19,17 @@ export const DesktopShell: React.FC = () => {
   const [isBeamOpen, setIsBeamOpen] = useState(false);
   const [snippets, setSnippets] = useState<BoardSnippet[]>([]);
   const [isDraggingOverWindow, setIsDraggingOverWindow] = useState(false);
+
+  // Automatically open Smart Beam if launched via QR room link (e.g. /#beam?room=OTM-XXXX)
+  useEffect(() => {
+    try {
+      const hash = window.location.hash || '';
+      const search = window.location.search || '';
+      if (hash.includes('room=') || hash.includes('beam') || search.includes('room=') || search.includes('beam')) {
+        setIsBeamOpen(true);
+      }
+    } catch {}
+  }, []);
 
   // Snippet management for Otium Whiteboard
   const handleAddSnippet = useCallback((snippet: BoardSnippet) => {
@@ -158,17 +169,32 @@ export const DesktopShell: React.FC = () => {
       style={{ backgroundColor: getThemeBackground(reader.theme) }}
     >
       {!reader.doc ? (
-        <WelcomeScreen
-          currentTheme={reader.theme}
-          currentLang={reader.lang}
-          onThemeChange={reader.changeTheme}
-          onToggleLanguage={reader.changeLanguage}
-          onOpenSettings={() => reader.setIsSettingsOpen(true)}
-          onOpenFile={reader.openFile}
-          onOpenSample={reader.openSample}
-          onOpenRecent={reader.openRecent}
-          onOpenBeam={() => setIsBeamOpen(true)}
-        />
+        <>
+          <WelcomeScreen
+            currentTheme={reader.theme}
+            currentLang={reader.lang}
+            onThemeChange={reader.changeTheme}
+            onToggleLanguage={reader.changeLanguage}
+            onOpenSettings={() => reader.setIsSettingsOpen(true)}
+            onOpenFile={reader.openFile}
+            onOpenSample={reader.openSample}
+            onOpenRecent={reader.openRecent}
+            onOpenBeam={() => setIsBeamOpen(true)}
+          />
+          {reader.isLoading && (
+            <div className="absolute inset-0 z-40 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center text-white select-none animate-in fade-in duration-200">
+              <div className="w-16 h-16 rounded-3xl bg-accent/25 border border-accent/40 flex items-center justify-center mb-4 text-accent animate-pulse shadow-lg">
+                <Cast className="w-8 h-8" />
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-white">
+                {reader.lang === 'ar' ? 'جارٍ استلام وعرض المحاضرة من الهاتف...' : 'Receiving beamed document from phone...'}
+              </h3>
+              <p className="text-xs text-white/75 mt-1.5 max-w-sm">
+                {reader.lang === 'ar' ? 'لحظات ويتم تشغيل الملزمة والسبورة الذكية تلقائياً' : 'Preparing slides and interactive board...'}
+              </p>
+            </div>
+          )}
+        </>
       ) : (
         <>
           <Toolbar

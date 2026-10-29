@@ -1477,6 +1477,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
   // 1. Broadcast page flip when connected as Otium Beam sender (e.g. mobile remote)
   const lastBroadcastedPageRef = useRef<number | null>(null);
+  const lastBeamedPayloadRef = useRef<{ title: string; time: number } | null>(null);
   useEffect(() => {
     if (beamState.role === 'sender' && beamState.room) {
       if (lastBroadcastedPageRef.current !== currentPage) {
@@ -1513,7 +1514,19 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       } else if (msg.type === 'BEAM_QUERY_STATE') {
         beamService.announceState(currentRoom, docTitle, currentPage, numPages);
       } else if (msg.type === 'BEAM_PAYLOAD') {
+        const payloadTitle = msg.payload?.title || 'Beamed Document';
+        const now = Date.now();
+        if (
+          lastBeamedPayloadRef.current &&
+          lastBeamedPayloadRef.current.title === payloadTitle &&
+          now - lastBeamedPayloadRef.current.time < 2000
+        ) {
+          return;
+        }
+        lastBeamedPayloadRef.current = { title: payloadTitle, time: now };
+
         try {
+          setIsLoading(true);
           let buffer: ArrayBuffer | null = null;
           if (msg.payload?.pdfData) {
             buffer = msg.payload.pdfData;
@@ -1521,11 +1534,13 @@ export function useReaderController(capabilities: ReaderCapabilities) {
             buffer = base64ToArrayBuffer(msg.payload.pdfBase64);
           } else if (msg.payload?.pdfUrl) {
             const res = await fetch(msg.payload.pdfUrl);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
             buffer = await res.arrayBuffer();
           } else if (msg.payload?.chunks && msg.payload.chunks.length > 0) {
             const chunkBuffers = await Promise.all(
               msg.payload.chunks.map(async (url) => {
                 const res = await fetch(url);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 return await res.arrayBuffer();
               })
             );
@@ -1540,7 +1555,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
           }
 
           if (buffer) {
-            await loadPdfData(buffer, msg.payload?.title || 'Beamed Document');
+            await loadPdfData(buffer, payloadTitle);
             if (msg.payload?.pageNumber) {
               scrollToPage(msg.payload.pageNumber);
             }
@@ -1549,13 +1564,21 @@ export function useReaderController(capabilities: ReaderCapabilities) {
             }
             beamService.announceState(
               currentRoom,
-              msg.payload?.title || 'Beamed Document',
+              payloadTitle,
               msg.payload?.pageNumber || 1,
               msg.payload?.totalPages || 1
             );
+          } else {
+            throw new Error('No PDF payload found');
           }
         } catch (err) {
           console.error('Failed to load beamed PDF in reader:', err);
+          setIsLoading(false);
+          setDocumentError(
+            lang === 'ar'
+              ? 'تعذر تحميل المستند المبثوث من الهاتف. تحقق من الاتصال وحاول مجدداً.'
+              : 'Failed to load beamed document from phone. Check connection and retry.'
+          );
         }
       }
     });

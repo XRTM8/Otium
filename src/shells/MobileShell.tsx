@@ -40,6 +40,17 @@ export const MobileShell: React.FC = () => {
     });
   }, [isBeamOpen]);
 
+  // Automatically open Smart Beam if launched via QR room link (e.g. /#beam?room=OTM-XXXX)
+  React.useEffect(() => {
+    try {
+      const hash = window.location.hash || '';
+      const search = window.location.search || '';
+      if (hash.includes('room=') || hash.includes('beam') || search.includes('room=') || search.includes('beam')) {
+        setIsBeamOpen(true);
+      }
+    } catch {}
+  }, []);
+
   // Preload scanner chunk during idle moments so opening is 100% instant and lag-free
   React.useEffect(() => {
     let timer: any = null;
