@@ -7,6 +7,7 @@ import type { ReaderController } from '../app/useReaderController';
 import { markScrollActivity } from '../core/reader/renderScheduler';
 import { PdfPage } from './PdfPage';
 import { ErrorBoundary } from './ErrorBoundary';
+import { AnimatedCounter } from './AnimatedCounter';
 
 interface PageSlotProps {
   pageNum: number;
@@ -381,7 +382,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
 
   return (
     <div className="relative flex-1 w-full h-full overflow-hidden flex flex-col">
-      {/* Reading progress for the current document. */}
+      {/* Reading progress for the current document with liquid glow head. */}
       <div
         aria-hidden={isImmersive}
         role="progressbar"
@@ -389,14 +390,23 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
         aria-valuemin={1}
         aria-valuemax={Math.max(1, numPages)}
         aria-valuenow={currentPage}
-        className={`fixed top-0 inset-x-0 h-[2px] bg-line z-40 pointer-events-none transition-opacity duration-300 ${
+        className={`fixed top-0 inset-x-0 h-[2.5px] bg-line/40 z-40 pointer-events-none transition-opacity duration-300 ${
           isImmersive ? 'opacity-0' : 'opacity-100'
         }`}
       >
         <div
-          className="h-full bg-accent transition-all duration-300"
-          style={{ width: `${(currentPage / Math.max(1, numPages)) * 100}%` }}
-        />
+          className="h-full bg-accent relative transition-all duration-300 ease-out will-change-[width]"
+          style={{
+            width: `${(currentPage / Math.max(1, numPages)) * 100}%`,
+            transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)'
+          }}
+        >
+          {/* Subtle luminous leading glow */}
+          <div
+            aria-hidden="true"
+            className="absolute -top-[1px] end-0 w-3 h-1 bg-accent rounded-full shadow-[0_0_8px_var(--accent)] opacity-85"
+          />
+        </div>
       </div>
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {lang === 'ar'
@@ -413,7 +423,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             tabIndex={isImmersive ? -1 : undefined}
             title={lang === 'ar' ? 'الصفحة السابقة' : 'Previous page'}
             aria-label={lang === 'ar' ? 'الصفحة السابقة' : 'Previous page'}
-            className={`paged-arrow fixed top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full text-ink disabled:opacity-0 transition-opacity duration-300 ${
+            className={`paged-arrow spring-press fixed top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full text-ink disabled:opacity-0 transition-opacity duration-300 ${
               isRtl ? 'right-2 sm:right-5' : 'left-2 sm:left-5'
             }`}
             style={
@@ -431,7 +441,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             tabIndex={isImmersive ? -1 : undefined}
             title={lang === 'ar' ? 'الصفحة التالية' : 'Next page'}
             aria-label={lang === 'ar' ? 'الصفحة التالية' : 'Next page'}
-            className={`paged-arrow fixed top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full text-ink disabled:opacity-0 transition-opacity duration-300 ${
+            className={`paged-arrow spring-press fixed top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full text-ink disabled:opacity-0 transition-opacity duration-300 ${
               isRtl ? 'left-2 sm:left-5' : 'right-2 sm:right-5'
             }`}
             style={
@@ -717,9 +727,9 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
               ? (lang === 'ar' ? `صفحة ${currentPage} من ${numPages} - انقر لإظهار القوائم` : `Page ${currentPage} of ${numPages} - Click to show menus`)
               : (lang === 'ar' ? `صفحة ${currentPage} من ${numPages}` : `Page ${currentPage} of ${numPages}`)
           }
-          className={`chrome-surface flex items-center gap-2 rounded-full px-3.5 py-1.5 font-mono text-[11px] text-ink shadow-xl backdrop-blur-xl border border-line-subtle select-none ${
+          className={`chrome-surface spring-press flex items-center gap-2 rounded-full px-3.5 py-1.5 font-mono text-[11px] text-ink shadow-xl backdrop-blur-xl border border-line-subtle select-none ${
             isImmersive
-              ? 'cursor-pointer hover:bg-hover active:scale-95 transition-transform'
+              ? 'cursor-pointer hover:bg-hover active:scale-95'
               : ''
           }`}
         >
@@ -731,12 +741,15 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             </span>
           ) : (
             <>
-              <span className="font-sans font-medium text-ink">
-                {lang === 'ar' ? `صفحة ${currentPage} من ${numPages}` : `Page ${currentPage} of ${numPages}`}
+              <span className="font-sans font-medium text-ink inline-flex items-center gap-1">
+                <span>{lang === 'ar' ? 'صفحة' : 'Page'}</span>
+                <AnimatedCounter value={currentPage} />
+                <span>{lang === 'ar' ? `من ${numPages}` : `of ${numPages}`}</span>
               </span>
               <span className="text-ink-faint text-[9px]">•</span>
-              <span className="text-accent font-semibold text-[10px]">
-                {Math.min(100, Math.round((currentPage / Math.max(1, numPages)) * 100))}%
+              <span className="text-accent font-semibold text-[10px] inline-flex items-center font-mono">
+                <AnimatedCounter value={Math.min(100, Math.round((currentPage / Math.max(1, numPages)) * 100))} />
+                <span>%</span>
               </span>
             </>
           )}

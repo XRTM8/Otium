@@ -502,11 +502,11 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             type="button"
             onClick={onToggleBookmark}
             aria-label={isBookmarked ? t.removeBookmark : t.addBookmark}
-            className={`fluid-press mobile-chrome-extra p-2 rounded-xl active:bg-hover-strong cursor-pointer ${
+            className={`fluid-press spring-press mobile-chrome-extra p-2 rounded-xl active:bg-hover-strong cursor-pointer ${
               isBookmarked ? 'text-highlight' : 'text-ink-muted'
             }`}
           >
-            <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-highlight' : ''}`} />
+            <Bookmark className={`w-4 h-4 transition-transform ${isBookmarked ? 'fill-highlight bookmark-pop' : ''}`} />
           </button>
 
           <button

@@ -448,9 +448,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             onClick={onToggleBookmark}
             title={isBookmarked ? t.removeBookmark : t.addBookmark}
             aria-label={isBookmarked ? t.removeBookmark : t.addBookmark}
-            className={`toolbar-icon ${isBookmarked ? 'text-highlight' : ''}`}
+            className={`toolbar-icon spring-press ${isBookmarked ? 'text-highlight' : ''}`}
           >
-            <Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-current' : ''}`} />
+            <Bookmark className={`w-3.5 h-3.5 transition-transform ${isBookmarked ? 'fill-current bookmark-pop' : ''}`} />
           </button>
 
           <div className="flex items-center gap-0.5 rounded-lg bg-hover-subtle px-0.5">

@@ -626,25 +626,47 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     [docId, persistVisiblePage]
   );
 
+  const triggerBoundaryBounce = useCallback((position: 'start' | 'end') => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const cls = position === 'start' ? 'animate-bounce-start' : 'animate-bounce-end';
+    el.classList.remove('animate-bounce-start', 'animate-bounce-end');
+    void el.offsetWidth;
+    el.classList.add(cls);
+    window.setTimeout(() => {
+      el.classList.remove(cls);
+    }, 350);
+  }, [scrollContainerRef]);
+
   const goToNextPage = useCallback(() => {
     if (viewMode === 'dual') {
       if (currentPage + 2 <= numPages) {
         scrollToPage(currentPage + 2);
       } else if (currentPage + 1 <= numPages) {
         scrollToPage(currentPage + 1);
+      } else {
+        triggerBoundaryBounce('end');
       }
     } else if (currentPage < numPages) {
       scrollToPage(currentPage + 1);
+    } else {
+      triggerBoundaryBounce('end');
     }
-  }, [currentPage, numPages, scrollToPage, viewMode]);
+  }, [currentPage, numPages, scrollToPage, triggerBoundaryBounce, viewMode]);
 
   const goToPrevPage = useCallback(() => {
     if (viewMode === 'dual') {
-      scrollToPage(Math.max(1, currentPage - 2));
+      if (currentPage > 1) {
+        scrollToPage(Math.max(1, currentPage - 2));
+      } else {
+        triggerBoundaryBounce('start');
+      }
     } else if (currentPage > 1) {
       scrollToPage(currentPage - 1);
+    } else {
+      triggerBoundaryBounce('start');
     }
-  }, [currentPage, scrollToPage, viewMode]);
+  }, [currentPage, scrollToPage, triggerBoundaryBounce, viewMode]);
 
   const changeTheme = useCallback((nextTheme: ThemeMode, persistDocument = true) => {
     saveTheme(nextTheme);

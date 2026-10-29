@@ -1150,6 +1150,127 @@ body[data-has-selection='true'] .textLayer {
   -webkit-touch-callout: none;
 }
 
+/* ==========================================================================
+   Fluid Smart Physics, Number Wheel & Spring Micro-Interactions (60/120fps)
+   ========================================================================== */
+
+/* Hydraulic spring press for tactile buttons */
+.spring-press {
+  transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 150ms ease-out, background-color 150ms ease-out;
+  will-change: transform;
+}
+.spring-press:active {
+  transform: scale(0.92);
+  transition-duration: 75ms;
+}
+
+@keyframes bookmarkPop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.32) rotate(-8deg); }
+  70% { transform: scale(0.92) rotate(3deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.bookmark-pop {
+  animation: bookmarkPop 380ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Number Wheel Counter Keyframes (Zero Reflows) */
+@keyframes counterEnterUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 80%, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes counterExitUp {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, -80%, 0);
+  }
+}
+
+@keyframes counterEnterDown {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -80%, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes counterExitDown {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, 80%, 0);
+  }
+}
+
+.animate-counter-enter-up {
+  animation: counterEnterUp 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-counter-exit-up {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  animation: counterExitUp 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-counter-enter-down {
+  animation: counterEnterDown 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-counter-exit-down {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  animation: counterExitDown 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* Rubber-band boundary bounce for document ends */
+@keyframes rubberBounceStart {
+  0% { transform: translate3d(0, 0, 0); }
+  40% { transform: translate3d(0, 16px, 0); }
+  75% { transform: translate3d(0, -4px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes rubberBounceEnd {
+  0% { transform: translate3d(0, 0, 0); }
+  40% { transform: translate3d(0, -16px, 0); }
+  75% { transform: translate3d(0, 4px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+.animate-bounce-start {
+  animation: rubberBounceStart 320ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.animate-bounce-end {
+  animation: rubberBounceEnd 320ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
 /* World-Class Keyboard Focus & Accessibility */
 :focus-visible {
   outline: 2px solid var(--accent);
