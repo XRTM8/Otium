@@ -616,6 +616,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     (pageNumber: number) => {
       const nextPage = Math.min(Math.max(1, pageNumber), Math.max(1, numPages));
       if (nextPage !== currentPage) {
+        triggerHaptic('selection');
         setDualFlipDir(nextPage > currentPage ? 'forward' : 'backward');
         setDualFlipKey((key) => key + 1);
         setArrivalGlowKey((k) => k + 1);
@@ -1612,8 +1613,15 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         3.5,
         Math.max(0.5, Number((pinchStartZoomRef.current * factor).toFixed(2)))
       );
-      if (Number.isFinite(targetZoom) && targetZoom > 0) {
-        startZoomTransition(() => setZoom(targetZoom));
+      if (Number.isFinite(targetZoom) && targetZoom > 0 && Math.abs(targetZoom - zoom) >= 0.01) {
+        if (Math.abs(targetZoom - 1.0) < 0.03 && Math.abs(zoom - 1.0) >= 0.03) {
+          if ('vibrate' in navigator) {
+            try {
+              navigator.vibrate(12);
+            } catch {}
+          }
+        }
+        setZoom(targetZoom);
       }
       return;
     }

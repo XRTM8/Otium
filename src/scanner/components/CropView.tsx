@@ -604,16 +604,15 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
             );
           })}
 
-        {/* Precision Magnifier Loupe with Theme Accent */}
+        {/* Precision Magnifier Loupe with Bespoke Optics */}
         {pointerPos && loupeTargetPt && (
           <div
             style={{
-              left: `${Math.max(68, Math.min(window.innerWidth - 68, pointerPos.x))}px`,
-              top: `${Math.max(68, Math.min(window.innerHeight - 68, pointerPos.y < 170 ? pointerPos.y + 115 : pointerPos.y - 115))}px`,
+              left: `${Math.max(74, Math.min(window.innerWidth - 74, pointerPos.x))}px`,
+              top: `${Math.max(74, Math.min(window.innerHeight - 74, pointerPos.y < 185 ? pointerPos.y + 125 : pointerPos.y - 125))}px`,
               transform: 'translate(-50%, -50%)',
-              borderColor: 'var(--accent, #38bdf8)'
             }}
-            className="fixed z-50 w-28 h-28 rounded-full border-4 overflow-hidden shadow-2xl bg-black pointer-events-none ring-4 ring-black/70 animate-in fade-in zoom-in-95 duration-100"
+            className="fixed z-50 w-32 h-32 rounded-full border-2 border-white/90 overflow-hidden shadow-[0_16px_40px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.2)] bg-black pointer-events-none ring-4 ring-black/75 animate-in fade-in zoom-in-95 duration-100"
           >
             <div
               style={{
@@ -621,14 +620,25 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
                 height: '100%',
                 backgroundImage: `url(${currentSrc})`,
                 backgroundSize: `${imageSize.width * 2.5}px ${imageSize.height * 2.5}px`,
-                backgroundPosition: `-${loupeTargetPt.x * 2.5 - 56}px -${loupeTargetPt.y * 2.5 - 56}px`,
+                backgroundPosition: `-${loupeTargetPt.x * 2.5 - 64}px -${loupeTargetPt.y * 2.5 - 64}px`,
                 backgroundRepeat: 'no-repeat',
               }}
             />
+            {/* Glass Specular Glare */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white/25 via-transparent to-black/35 pointer-events-none" />
+
+            {/* Precision Micro Crosshairs */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-full h-[1.5px] bg-accent/80 shadow-sm" />
-              <div className="absolute h-full w-[1.5px] bg-accent/80 shadow-sm" />
-              <div className="absolute w-3 h-3 rounded-full border-2 border-accent bg-accent/20" />
+              <div className="w-full h-[1px] bg-accent/90 shadow-[0_0_4px_rgba(56,189,248,0.8)]" />
+              <div className="absolute h-full w-[1px] bg-accent/90 shadow-[0_0_4px_rgba(56,189,248,0.8)]" />
+              <div className="absolute w-3.5 h-3.5 rounded-full border border-white/90 bg-accent/30 ring-1 ring-accent/60" />
+            </div>
+
+            {/* Magnification Badge */}
+            <div className="absolute top-1.5 inset-x-0 flex justify-center pointer-events-none">
+              <span className="px-1.5 py-0.2 rounded-full bg-black/70 backdrop-blur-md text-[9px] font-mono font-bold text-white/90 border border-white/20">
+                2.5×
+              </span>
             </div>
           </div>
         )}

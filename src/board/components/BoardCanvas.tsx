@@ -22,6 +22,7 @@ import {
 import type { BoardBackground, BoardPageData, BoardSnippet, BoardStroke, BoardTool, StrokePoint } from '../types';
 import type { Language } from '../../core/i18n/translations';
 import { exportAllPagesToPdf, exportPageToPng, type ExportableBoardPage } from '../utils/boardExport';
+import { recognizeGeometricShape } from '../utils/shapeRecognition';
 
 interface BoardCanvasProps {
   lang: Language;
@@ -77,6 +78,47 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   const [redoStack, setRedoStack] = useState<BoardStroke[][]>([]);
   const isDrawingRef = useRef(false);
   const currentPointsRef = useRef<StrokePoint[]>([]);
+
+  // Shape Recognition Draw & Hold refs
+  const shapeHoldTimerRef = useRef<number | null>(null);
+  const lastStationaryCoordRef = useRef<{ x: number; y: number } | null>(null);
+  const isShapeSnappedRef = useRef<boolean>(false);
+
+  const cancelShapeHoldTimer = useCallback(() => {
+    if (shapeHoldTimerRef.current !== null) {
+      window.clearTimeout(shapeHoldTimerRef.current);
+      shapeHoldTimerRef.current = null;
+    }
+  }, []);
+
+  const checkAndSnapShape = useCallback(() => {
+    if (!isDrawingRef.current || isShapeSnappedRef.current) return;
+    const pts = currentPointsRef.current;
+    if (pts.length < 5) return;
+
+    const recognized = recognizeGeometricShape(pts);
+    if (recognized) {
+      if ('vibrate' in navigator) {
+        try {
+          navigator.vibrate(18);
+        } catch {}
+      }
+      isShapeSnappedRef.current = true;
+      currentPointsRef.current = recognized.points;
+
+      setStrokes((prev) => {
+        if (prev.length === 0) return prev;
+        const last = prev[prev.length - 1];
+        return [...prev.slice(0, -1), { ...last, points: recognized.points }];
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      cancelShapeHoldTimer();
+    };
+  }, [cancelShapeHoldTimer]);
 
   // Laser pointer trailing particles
   const laserTrailRef = useRef<{ x: number; y: number; time: number }[]>([]);
@@ -342,6 +384,13 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
 
     isDrawingRef.current = true;
     currentPointsRef.current = [coords];
+    isShapeSnappedRef.current = false;
+    lastStationaryCoordRef.current = { x: coords.x, y: coords.y };
+    cancelShapeHoldTimer();
+
+    if (activeTool === 'pen' || activeTool === 'highlighter') {
+      shapeHoldTimerRef.current = window.setTimeout(checkAndSnapShape, 550);
+    }
 
     const newStroke: BoardStroke = {
       id: `stroke-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -380,6 +429,23 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
       return;
     }
 
+    if (isShapeSnappedRef.current) return;
+
+    // Reset hold timer if pointer moved significantly (> 12px)
+    if (lastStationaryCoordRef.current) {
+      const distMoved = Math.hypot(
+        coords.x - lastStationaryCoordRef.current.x,
+        coords.y - lastStationaryCoordRef.current.y
+      );
+      if (distMoved > 12) {
+        lastStationaryCoordRef.current = { x: coords.x, y: coords.y };
+        cancelShapeHoldTimer();
+        if (activeTool === 'pen' || activeTool === 'highlighter') {
+          shapeHoldTimerRef.current = window.setTimeout(checkAndSnapShape, 550);
+        }
+      }
+    }
+
     // Capture coalesced events if available (high-precision smartboard pens)
     const coalesced = (e.nativeEvent as any).getCoalescedEvents
       ? ((e.nativeEvent as any).getCoalescedEvents() as PointerEvent[])
@@ -395,6 +461,8 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
       pressure: pe.pressure || 0.5
     }));
 
+    currentPointsRef.current.push(...newPoints);
+
     setStrokes((prev) => {
       if (prev.length === 0) return prev;
       const last = prev[prev.length - 1];
@@ -407,6 +475,9 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    cancelShapeHoldTimer();
+    isShapeSnappedRef.current = false;
+
     if (stylusOnly && e.pointerType === 'touch') {
       return;
     }
