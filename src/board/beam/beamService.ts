@@ -137,6 +137,14 @@ class BeamService {
   }
 
   public disconnect(): void {
+    const room = this.connectedRoom;
+    if (room) {
+      void this.broadcast({
+        type: 'BEAM_DISCONNECT',
+        roomCode: room,
+        timestamp: Date.now()
+      });
+    }
     this.leaveRoom();
     this.connectedRoom = null;
     this.role = null;
@@ -419,6 +427,14 @@ class BeamService {
 
   private notifyListeners(msg: BeamMessage) {
     if (!msg || !msg.type || !msg.roomCode) return;
+    if (msg.type === 'BEAM_DISCONNECT' && this.connectedRoom && this.isMatchingRoom(msg.roomCode, this.connectedRoom)) {
+      this.leaveRoom();
+      this.connectedRoom = null;
+      this.role = null;
+      this.connectionStatus = 'disconnected';
+      this.notifyStatusListeners();
+      this.notifyStateListeners();
+    }
     for (const listener of this.listeners) {
       try {
         listener(msg);

@@ -1511,7 +1511,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         } else if (msg.direction === 'prev') {
           goToPrevPage();
         }
-      } else if (msg.type === 'BEAM_QUERY_STATE') {
+      } else if (msg.type === 'BEAM_QUERY_STATE' || msg.type === 'BEAM_HANDSHAKE') {
         beamService.announceState(currentRoom, docTitle, currentPage, numPages);
       } else if (msg.type === 'BEAM_PAYLOAD') {
         const payloadTitle = msg.payload?.title || 'Beamed Document';

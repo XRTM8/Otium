@@ -75,6 +75,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
   const [remoteTotal, setRemoteTotal] = useState<number>(() => reader.numPages || 0);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [connStatus, setConnStatus] = useState<BeamConnectionStatus>(() => beamService.getConnectionStatus());
+  const [isReceiverAcknowledged, setIsReceiverAcknowledged] = useState(false);
   const offlineFileInputRef = useRef<HTMLInputElement>(null);
   const beamFileInputRef = useRef<HTMLInputElement>(null);
   const receiverFileInputRef = useRef<HTMLInputElement>(null);
@@ -166,11 +167,31 @@ export const BeamModal: React.FC<BeamModalProps> = ({
         onClose();
       }
 
-      // 2. When receiver announces its state, sync remote clicker view
+      // 2. When receiver announces its state, sync remote clicker view & confirm handshake
       if (msg.type === 'BEAM_STATE_ANNOUNCE') {
+        setIsReceiverAcknowledged(true);
         if (msg.docTitle) setRemoteDocTitle(msg.docTitle);
         if (typeof msg.pageNumber === 'number') setRemotePage(msg.pageNumber);
         if (typeof msg.totalPages === 'number') setRemoteTotal(msg.totalPages);
+      }
+
+      // 3. When handshake arrives in receiver mode, announce state immediately
+      if (
+        msg.type === 'BEAM_HANDSHAKE' &&
+        beamService.isMatchingRoom(msg.roomCode, receiverRoomCode)
+      ) {
+        beamService.announceState(
+          receiverRoomCode,
+          reader.docTitle || '',
+          reader.currentPage || 1,
+          reader.numPages || 0
+        );
+      }
+
+      // 4. When disconnect arrives from either peer, reset remote state cleanly
+      if (msg.type === 'BEAM_DISCONNECT') {
+        setIsReceiverAcknowledged(false);
+        setConnectedRoom(null);
       }
     });
 
@@ -329,7 +350,14 @@ export const BeamModal: React.FC<BeamModalProps> = ({
         return;
       }
 
+      setIsReceiverAcknowledged(false);
       beamService.startSender(code);
+      void beamService.broadcast({
+        type: 'BEAM_HANDSHAKE',
+        roomCode: code,
+        senderName: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
+        timestamp: Date.now()
+      });
       beamService.queryReceiverState(code);
       setConnectedRoom(code);
       setSendSuccess(true);
@@ -1003,15 +1031,23 @@ export const BeamModal: React.FC<BeamModalProps> = ({
           <div className="p-5 space-y-4 text-center">
             {/* Connection Banner */}
             <div className="flex items-center justify-between text-xs text-ink-muted px-1">
-              <span className="flex items-center gap-1.5 text-emerald-500 font-semibold text-[11px]">
-                <Radio className="w-3 h-3 animate-pulse" />
-                <span>{lang === 'ar' ? 'متصل بالسبورة / الحاسبة:' : 'Connected:'} <strong className="font-mono text-ink">{connectedRoom}</strong></span>
-              </span>
+              {isReceiverAcknowledged ? (
+                <span className="flex items-center gap-1.5 text-emerald-500 font-semibold text-[11px]">
+                  <Radio className="w-3 h-3 animate-pulse text-emerald-500" />
+                  <span>{lang === 'ar' ? 'متصل فعلياً بالسبورة:' : 'Live Connected:'} <strong className="font-mono text-ink">{connectedRoom}</strong></span>
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 text-amber-500 font-semibold text-[11px]">
+                  <RefreshCw className="w-3 h-3 animate-spin text-amber-500" />
+                  <span>{lang === 'ar' ? 'بانتظار استجابة السبورة…' : 'Waiting for board…'} <strong className="font-mono text-ink">{connectedRoom}</strong></span>
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => {
                   beamService.disconnect();
                   setConnectedRoom(null);
+                  setIsReceiverAcknowledged(false);
                   setActiveTab('send');
                 }}
                 className="text-[11px] text-danger-ink hover:underline cursor-pointer"
@@ -1019,6 +1055,36 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                 {lang === 'ar' ? 'قطع الاتصال' : 'Disconnect'}
               </button>
             </div>
+
+            {/* Waiting for Board Hint */}
+            {!isReceiverAcknowledged && (
+              <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-start text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed">
+                <span>⚠️ {lang === 'ar' ? 'لم تستجب السبورة حتى الآن. تأكد أن المتصفح في الحاسبة مفتوح على نافذة "استقبال" وأن الرمز مطابق.' : 'Smartboard has not responded yet. Ensure PC browser is open on "Receiver" tab with matching code.'}</span>
+              </div>
+            )}
+
+            {/* Warning when Board has no PDF loaded */}
+            {isReceiverAcknowledged && !reader.doc && (!remoteDocTitle || remoteTotal === 0) && (
+              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-start space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400">
+                  <FolderOpen className="w-4 h-4 text-amber-500" />
+                  <span>{lang === 'ar' ? 'السبورة لا تعرض أي ملزمة حالياً!' : 'No document is open on Smartboard!'}</span>
+                </div>
+                <p className="text-[11px] text-ink-muted leading-tight">
+                  {lang === 'ar'
+                    ? 'الحاسبة متصلة لكن لم يتم فتح أي ملف عليها بعد. اختر ملف الملزمة من هاتفك لبثها وعرضها فوراً:'
+                    : 'Board is connected but has no file loaded. Pick a PDF on your phone to beam it now:'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => beamFileInputRef.current?.click()}
+                  className="w-full py-2 px-3 rounded-xl bg-accent text-on-accent font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs hover:bg-accent-strong transition-all"
+                >
+                  <FileUp className="w-3.5 h-3.5" />
+                  <span>{lang === 'ar' ? '📂 اختيار ملف الملزمة وبثها الآن' : '📂 Select PDF & Beam Now'}</span>
+                </button>
+              </div>
+            )}
 
             {/* Seamless Reader Background Notice */}
             <div className="p-2.5 rounded-2xl bg-accent/10 border border-accent/20 text-start text-[11px] text-ink leading-relaxed">
