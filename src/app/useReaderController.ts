@@ -1856,6 +1856,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     fontFamily,
     showMobileNavBar,
     isImmersive,
+    setIsImmersive,
     baseAspectRatio,
     basePageSize,
     isSidebarOpen,

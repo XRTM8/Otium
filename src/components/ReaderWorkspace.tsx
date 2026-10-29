@@ -137,6 +137,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
     searchQuery,
     activeSearchPage,
     isImmersive,
+    setIsImmersive,
     handlePageVisible,
     goToNextPage,
     goToPrevPage,
@@ -260,7 +261,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
   }, [viewMode, doc, currentPage, numPages, basePageSize, zoom, handlePageVisible, scrollContainerRef]);
 
   useEffect(() => {
-    if (!isImmersive) return;
+    if (isImmersive) return;
     setShowScrubberPill(true);
     if (scrubberTimeoutRef.current !== null) {
       window.clearTimeout(scrubberTimeoutRef.current);
@@ -377,31 +378,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
         : undefined;
 
   return (
-    <div
-      ref={scrollContainerRef}
-      dir="ltr"
-      role="main"
-      aria-label={lang === 'ar' ? 'مساحة قراءة المستند' : 'Document reading area'}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchCancel}
-      style={{
-        paddingTop: effectiveTopInset,
-        scrollPaddingTop: effectiveTopInset,
-        paddingBottom: bottomInset,
-        transition:
-          'padding-top 280ms cubic-bezier(0.22, 1, 0.36, 1), padding-bottom 280ms cubic-bezier(0.22, 1, 0.36, 1)',
-        ...(compact
-          ? {
-              paddingLeft: 'max(0.5rem, env(safe-area-inset-left, 0px))',
-              paddingRight: 'max(0.5rem, env(safe-area-inset-right, 0px))'
-            }
-          : {}),
-        touchAction: 'pan-x pan-y'
-      }}
-      className="reader-viewport flex-1 w-full h-full overflow-y-auto overflow-x-auto overscroll-contain pb-20 sm:pb-24 px-2 sm:px-4 relative"
-    >
+    <div className="relative flex-1 w-full h-full overflow-hidden flex flex-col">
       {/* Reading progress for the current document. */}
       <div
         aria-hidden={isImmersive}
@@ -465,6 +442,33 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
           </button>
         </>
       )}
+
+      {/* Main scrollable document viewport */}
+      <div
+        ref={scrollContainerRef}
+        dir="ltr"
+        role="main"
+        aria-label={lang === 'ar' ? 'مساحة قراءة المستند' : 'Document reading area'}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
+        style={{
+          paddingTop: effectiveTopInset,
+          scrollPaddingTop: effectiveTopInset,
+          paddingBottom: bottomInset,
+          transition:
+            'padding-top 280ms cubic-bezier(0.22, 1, 0.36, 1), padding-bottom 280ms cubic-bezier(0.22, 1, 0.36, 1)',
+          ...(compact
+            ? {
+                paddingLeft: 'max(0.5rem, env(safe-area-inset-left, 0px))',
+                paddingRight: 'max(0.5rem, env(safe-area-inset-right, 0px))'
+              }
+            : {}),
+          touchAction: 'pan-x pan-y'
+        }}
+        className="reader-viewport flex-1 w-full h-full overflow-y-auto overflow-x-auto overscroll-contain pb-20 sm:pb-24 px-2 sm:px-4 relative"
+      >
 
       {viewMode === 'continuous' ? (
         <div className="w-max min-w-full flex flex-col items-center">
@@ -667,25 +671,56 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
           </div>
         </div>
       )}
+      </div>
 
-      {/* Zen Minimal Reading Pill: Floats softly during scroll/flip/jump.
-          In immersive mode on mobile, placed cleanly at top-corner (top-4 end-4) so it NEVER
-          overlaps bottom menus, jump sheets, or page counters. */}
+      {/* Zen Minimal Reading Pill: Pinned cleanly outside the transformed scroll container so it never scrolls off.
+          In immersive mode ("وضع بدون قوائم"), it stays pinned at the top-corner across ALL pages (1 to N)
+          and acts as an interactive button to restore menus when tapped. */}
       <div
         dir={isRtl ? 'rtl' : 'ltr'}
-        className={`fixed z-30 pointer-events-none transition-all duration-200 ease-out ${
+        style={
+          isImmersive && compact
+            ? { top: 'max(0.75rem, calc(env(safe-area-inset-top, 0px) + 0.5rem))' }
+            : undefined
+        }
+        className={`fixed z-40 transition-all duration-200 ease-out ${
           compact
             ? isImmersive
-              ? 'top-4 end-4'
+              ? 'top-4 end-3 sm:end-4'
               : 'bottom-24 start-4'
-            : 'bottom-6 start-6'
+            : isImmersive
+              ? 'top-4 end-4 sm:end-6'
+              : 'bottom-6 start-6'
         } ${
-          (showScrubberPill || Boolean(numberJumpDisplay)) && (isImmersive || !compact)
-            ? 'opacity-100 translate-y-0 scale-100'
-            : 'opacity-0 translate-y-2 scale-90'
+          isImmersive || showScrubberPill || Boolean(numberJumpDisplay)
+            ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
+            : 'opacity-0 translate-y-2 scale-90 pointer-events-none'
         }`}
       >
-        <div className="chrome-surface flex items-center gap-2 rounded-full px-3.5 py-1.5 font-mono text-[11px] text-ink shadow-xl backdrop-blur-xl border border-line-subtle select-none">
+        <button
+          type="button"
+          onClick={() => {
+            if (isImmersive) {
+              setIsImmersive(false);
+            }
+          }}
+          disabled={!isImmersive && !numberJumpDisplay}
+          title={
+            isImmersive
+              ? (lang === 'ar' ? 'انقر لإظهار القوائم وأدوات المستند' : 'Click to show menus and document tools')
+              : (lang === 'ar' ? `صفحة ${currentPage} من ${numPages}` : `Page ${currentPage} of ${numPages}`)
+          }
+          aria-label={
+            isImmersive
+              ? (lang === 'ar' ? `صفحة ${currentPage} من ${numPages} - انقر لإظهار القوائم` : `Page ${currentPage} of ${numPages} - Click to show menus`)
+              : (lang === 'ar' ? `صفحة ${currentPage} من ${numPages}` : `Page ${currentPage} of ${numPages}`)
+          }
+          className={`chrome-surface flex items-center gap-2 rounded-full px-3.5 py-1.5 font-mono text-[11px] text-ink shadow-xl backdrop-blur-xl border border-line-subtle select-none ${
+            isImmersive
+              ? 'cursor-pointer hover:bg-hover active:scale-95 transition-transform'
+              : ''
+          }`}
+        >
           {numberJumpDisplay ? (
             <span className="flex items-center gap-1.5 text-accent font-semibold font-mono">
               <span>{lang === 'ar' ? 'انتقال إلى صفحة' : 'Jump to:'}</span>
@@ -703,7 +738,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
               </span>
             </>
           )}
-        </div>
+        </button>
       </div>
     </div>
   );
