@@ -6,6 +6,7 @@ import { LibraryModal } from './components/LibraryModal';
 import { SettingsModal } from '../components/SettingsModal';
 import type { Quad, ScannedPage, ScanStep } from './core/types';
 import { applyFilterAsync } from './core/filters';
+import { registerBackHandler } from '../core/navigation/backHandler';
 import {
   storePageToDisk,
   clearScanSession,
@@ -78,8 +79,6 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
     }, 350);
     return () => window.clearTimeout(timer);
   }, [pages, isOpen]);
-
-  if (!isOpen) return null;
 
   // Handle capture from camera or image file upload
   const handleCapture = (imageSrc: string, isBatchMode: boolean, detectedQuad?: Quad) => {
@@ -284,45 +283,58 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    const handleBack = (event: Event) => {
-      event.preventDefault();
+    const handleBack = (event?: Event) => {
+      if (event && event.cancelable) {
+        event.preventDefault();
+      }
       if (isLibraryOpen) {
         setIsLibraryOpen(false);
-        return;
+        return true;
       }
       if (isSettingsOpen) {
         setIsSettingsOpen(false);
-        return;
+        return true;
       }
       if (showCloseConfirmModal) {
         setShowCloseConfirmModal(false);
-        return;
+        return true;
       }
       if (step === 'crop') {
         handleCropCancel();
-        return;
+        return true;
       }
       if (step === 'review' && pages.length === 0) {
         setStep('camera');
-        return;
+        return true;
       }
       handleRequestClose();
+      return true;
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        handleBack(event);
+        event.preventDefault();
+        event.stopPropagation();
+        handleBack();
       }
     };
+
+    const unregisterBack = registerBackHandler(() => {
+      handleBack();
+      return true;
+    });
 
     window.addEventListener('otium:back', handleBack);
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
+      unregisterBack();
       window.removeEventListener('otium:back', handleBack);
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, isLibraryOpen, isSettingsOpen, showCloseConfirmModal, step, pages.length]);
+
+  if (!isOpen) return null;
 
   return (
     <div

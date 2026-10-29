@@ -2,6 +2,7 @@ import React, { Suspense, useEffect, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useReaderController } from '../app/useReaderController';
 import { getThemeBackground } from '../app/themeBackground';
+import { registerBackHandler } from '../core/navigation/backHandler';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { ReaderOverlays } from '../components/ReaderOverlays';
 import { ReaderWorkspace } from '../components/ReaderWorkspace';
@@ -18,6 +19,15 @@ const preloadScanner = () => import('../scanner/ScannerModal');
 export const DesktopShell: React.FC = () => {
   const reader = useReaderController({ keyboard: true, dragDrop: true });
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  // Fallback Escape / back handler while scanner modal is active or lazy-loading
+  useEffect(() => {
+    if (!isScannerOpen) return;
+    return registerBackHandler(() => {
+      setIsScannerOpen(false);
+      return true;
+    });
+  }, [isScannerOpen]);
 
   // Preload scanner code during idle moments so opening is instantaneous
   useEffect(() => {

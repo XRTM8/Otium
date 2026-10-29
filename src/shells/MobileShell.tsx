@@ -2,6 +2,7 @@ import React, { Suspense, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useReaderController } from '../app/useReaderController';
 import { getThemeBackground } from '../app/themeBackground';
+import { registerBackHandler } from '../core/navigation/backHandler';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { MobileToolbar } from '../components/MobileToolbar';
 import { ReaderOverlays } from '../components/ReaderOverlays';
@@ -18,6 +19,15 @@ const preloadScanner = () => import('../scanner/ScannerModal');
 export const MobileShell: React.FC = () => {
   const reader = useReaderController({ keyboard: false, dragDrop: false });
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  // Fallback hardware back handler for mobile shell while scanner modal is active or lazy-loading
+  React.useEffect(() => {
+    if (!isScannerOpen) return;
+    return registerBackHandler(() => {
+      setIsScannerOpen(false);
+      return true;
+    });
+  }, [isScannerOpen]);
 
   // Preload scanner chunk during idle moments so opening is 100% instant and lag-free
   React.useEffect(() => {

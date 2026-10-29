@@ -6,7 +6,9 @@
 
 import { nativeFetchUrl } from './nativeBridge';
 
-export const APP_CURRENT_VERSION = '1.7.0';
+import { getCurrentVersion } from '../../core/updates/currentVersion';
+
+export const APP_CURRENT_VERSION = getCurrentVersion();
 
 export interface ReleaseAsset {
   name: string;

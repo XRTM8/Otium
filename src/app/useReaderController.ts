@@ -19,6 +19,7 @@ import {
   updateDocumentPage
 } from '../core/storage/documents';
 import { fingerprintDocument } from '../core/storage/documentIdentity';
+import { executeBackStep } from '../core/navigation/backHandler';
 import { applyBackupJson, createBackupJson } from '../core/storage/backupService';
 import { mergeAnnotations, type RestoreSummary } from '../core/storage/backupFormat';
 import { mergeBookmarks } from '../core/storage/bookmarks';
@@ -1016,6 +1017,11 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   }, []);
 
   const handleBackStep = useCallback((): boolean => {
+    // 0. Check registered modal back handlers (e.g. ScannerModal) in LIFO order
+    if (executeBackStep()) {
+      return true;
+    }
+
     // 1. Give topmost menus/sheets a chance to handle the back action
     if (typeof window !== 'undefined') {
       const backEvent = new CustomEvent('otium:back', { cancelable: true });
