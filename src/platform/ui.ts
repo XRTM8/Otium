@@ -1,5 +1,3 @@
-import { getPlatformId, isTauriRuntime } from './runtime';
-
 interface NativeUiBridge {
   setImmersive?: (enabled: boolean) => void;
   openOtiumScan?: () => boolean;
@@ -11,7 +9,7 @@ interface NativeUiBridge {
  * Browser previews and Windows only hide the in-app chrome.
  */
 export function syncNativeImmersive(enabled: boolean): void {
-  if (!isTauriRuntime() || getPlatformId() !== 'android') return;
+  if (typeof window === 'undefined') return;
 
   try {
     const bridge = (window as Window & { OtiumUi?: NativeUiBridge }).OtiumUi;
@@ -27,16 +25,12 @@ export function syncNativeImmersive(enabled: boolean): void {
 export function launchOtiumScan(): boolean {
   if (typeof window === 'undefined') return false;
 
-  if (isTauriRuntime() && getPlatformId() === 'android') {
-    try {
-      const bridge = (window as Window & { OtiumUi?: NativeUiBridge }).OtiumUi;
-      return bridge?.openOtiumScan?.() ?? false;
-    } catch {
-      return false;
-    }
+  try {
+    const bridge = (window as Window & { OtiumUi?: NativeUiBridge }).OtiumUi;
+    return bridge?.openOtiumScan?.() ?? false;
+  } catch {
+    return false;
   }
-
-  return false;
 }
 
 /**
@@ -45,14 +39,10 @@ export function launchOtiumScan(): boolean {
 export function isOtiumScanAvailable(): boolean {
   if (typeof window === 'undefined') return false;
 
-  if (isTauriRuntime() && getPlatformId() === 'android') {
-    try {
-      const bridge = (window as Window & { OtiumUi?: NativeUiBridge }).OtiumUi;
-      return bridge?.isOtiumScanInstalled?.() ?? false;
-    } catch {
-      return false;
-    }
+  try {
+    const bridge = (window as Window & { OtiumUi?: NativeUiBridge }).OtiumUi;
+    return bridge?.isOtiumScanInstalled?.() ?? false;
+  } catch {
+    return false;
   }
-
-  return false;
 }

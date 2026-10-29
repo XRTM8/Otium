@@ -11,18 +11,24 @@ const FAIL_COUNT_KEY = 'otium_vault_fail_count';
 const LOCKOUT_KEY = 'otium_vault_lockout_until';
 
 function getOrCreateDeviceSalt(): string {
-  let salt = localStorage.getItem(SALT_KEY);
-  if (!salt) {
-    const array = new Uint8Array(16);
-    if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
-      window.crypto.getRandomValues(array);
-      salt = Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('');
-    } else {
-      salt = `fallback_salt_${Date.now()}_${Math.random()}`;
+  try {
+    let salt = localStorage.getItem(SALT_KEY);
+    if (!salt) {
+      const array = new Uint8Array(16);
+      if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
+        window.crypto.getRandomValues(array);
+        salt = Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('');
+      } else {
+        salt = `fallback_salt_${Date.now()}_${Math.random()}`;
+      }
+      try {
+        localStorage.setItem(SALT_KEY, salt);
+      } catch {}
     }
-    localStorage.setItem(SALT_KEY, salt);
+    return salt;
+  } catch {
+    return `fallback_salt_${Date.now()}`;
   }
-  return salt;
 }
 
 async function hashPin(pin: string): Promise<string> {
@@ -47,52 +53,68 @@ async function hashPin(pin: string): Promise<string> {
 
 export function getVaultLockoutRemainingSeconds(): number {
   if (typeof localStorage === 'undefined') return 0;
-  const rawLockout = localStorage.getItem(LOCKOUT_KEY);
-  if (!rawLockout) return 0;
-  const lockoutUntil = parseInt(rawLockout, 10);
-  if (Number.isNaN(lockoutUntil)) {
-    localStorage.removeItem(LOCKOUT_KEY);
+  try {
+    const rawLockout = localStorage.getItem(LOCKOUT_KEY);
+    if (!rawLockout) return 0;
+    const lockoutUntil = parseInt(rawLockout, 10);
+    if (Number.isNaN(lockoutUntil)) {
+      try {
+        localStorage.removeItem(LOCKOUT_KEY);
+      } catch {}
+      return 0;
+    }
+    const diff = lockoutUntil - Date.now();
+    if (diff <= 0) {
+      try {
+        localStorage.removeItem(LOCKOUT_KEY);
+      } catch {}
+      return 0;
+    }
+    return Math.ceil(diff / 1000);
+  } catch {
     return 0;
   }
-  const diff = lockoutUntil - Date.now();
-  if (diff <= 0) {
-    localStorage.removeItem(LOCKOUT_KEY);
-    return 0;
-  }
-  return Math.ceil(diff / 1000);
 }
 
 export function recordVaultFailedAttempt(): { locked: boolean; remainingSeconds: number; attempts: number } {
   if (typeof localStorage === 'undefined') return { locked: false, remainingSeconds: 0, attempts: 0 };
-  const currentFails = parseInt(localStorage.getItem(FAIL_COUNT_KEY) || '0', 10) + 1;
-  localStorage.setItem(FAIL_COUNT_KEY, currentFails.toString());
+  try {
+    const currentFails = parseInt(localStorage.getItem(FAIL_COUNT_KEY) || '0', 10) + 1;
+    localStorage.setItem(FAIL_COUNT_KEY, currentFails.toString());
 
-  if (currentFails >= 5) {
-    // Progressive lockout: 30s at 5-7, 60s at 8-9, 120s at 10+
-    let lockoutDurationMs = 30000;
-    if (currentFails >= 10) {
-      lockoutDurationMs = 120000;
-    } else if (currentFails >= 8) {
-      lockoutDurationMs = 60000;
+    if (currentFails >= 5) {
+      // Progressive lockout: 30s at 5-7, 60s at 8-9, 120s at 10+
+      let lockoutDurationMs = 30000;
+      if (currentFails >= 10) {
+        lockoutDurationMs = 120000;
+      } else if (currentFails >= 8) {
+        lockoutDurationMs = 60000;
+      }
+      const lockoutUntil = Date.now() + lockoutDurationMs;
+      localStorage.setItem(LOCKOUT_KEY, lockoutUntil.toString());
+      return { locked: true, remainingSeconds: Math.ceil(lockoutDurationMs / 1000), attempts: currentFails };
     }
-    const lockoutUntil = Date.now() + lockoutDurationMs;
-    localStorage.setItem(LOCKOUT_KEY, lockoutUntil.toString());
-    return { locked: true, remainingSeconds: Math.ceil(lockoutDurationMs / 1000), attempts: currentFails };
-  }
 
-  return { locked: false, remainingSeconds: 0, attempts: currentFails };
+    return { locked: false, remainingSeconds: 0, attempts: currentFails };
+  } catch {
+    return { locked: false, remainingSeconds: 0, attempts: 0 };
+  }
 }
 
 export function resetVaultFailedAttempts(): void {
   if (typeof localStorage === 'undefined') return;
-  localStorage.removeItem(FAIL_COUNT_KEY);
-  localStorage.removeItem(LOCKOUT_KEY);
+  try {
+    localStorage.removeItem(FAIL_COUNT_KEY);
+    localStorage.removeItem(LOCKOUT_KEY);
+  } catch {}
 }
 
 export async function setVaultPin(pin: string): Promise<void> {
   const hashed = await hashPin(pin);
-  localStorage.setItem(HASH_KEY, hashed);
-  localStorage.removeItem('otium_vault_pin');
+  try {
+    localStorage.setItem(HASH_KEY, hashed);
+    localStorage.removeItem('otium_vault_pin');
+  } catch {}
   resetVaultFailedAttempts();
 }
 
@@ -102,9 +124,14 @@ export async function verifyVaultPin(pin: string): Promise<boolean> {
     return false;
   }
 
-  const storedHash = localStorage.getItem(HASH_KEY);
+  let storedHash: string | null = null;
+  let legacy: string | null = null;
+  try {
+    storedHash = localStorage.getItem(HASH_KEY);
+    legacy = localStorage.getItem('otium_vault_pin');
+  } catch {}
+
   if (!storedHash) {
-    const legacy = localStorage.getItem('otium_vault_pin');
     if (legacy && constantTimeEqual(legacy, pin)) {
       await setVaultPin(pin);
       resetVaultFailedAttempts();
@@ -136,11 +163,17 @@ function constantTimeEqual(a: string, b: string): boolean {
 }
 
 export function hasVaultPin(): boolean {
-  return !!localStorage.getItem(HASH_KEY) || !!localStorage.getItem('otium_vault_pin');
+  try {
+    return !!localStorage.getItem(HASH_KEY) || !!localStorage.getItem('otium_vault_pin');
+  } catch {
+    return false;
+  }
 }
 
 export function clearVaultPin(): void {
-  localStorage.removeItem(HASH_KEY);
-  localStorage.removeItem('otium_vault_pin');
+  try {
+    localStorage.removeItem(HASH_KEY);
+    localStorage.removeItem('otium_vault_pin');
+  } catch {}
   resetVaultFailedAttempts();
 }

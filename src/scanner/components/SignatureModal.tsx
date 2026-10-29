@@ -68,7 +68,9 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
     e.preventDefault();
     const canvas = canvasRef.current;
     if (!canvas) return;
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

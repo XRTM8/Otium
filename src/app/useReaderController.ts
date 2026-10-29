@@ -435,13 +435,24 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     if (typeof document === 'undefined') return;
     const docWithVendor = document as any;
     const handleFullscreenChange = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement || docWithVendor.webkitFullscreenElement));
+      setIsFullscreen(
+        Boolean(
+          document.fullscreenElement ||
+          docWithVendor.webkitFullscreenElement ||
+          docWithVendor.mozFullScreenElement ||
+          docWithVendor.msFullscreenElement
+        )
+      );
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
     };
   }, []);
 
@@ -1563,14 +1574,27 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     if (typeof document === 'undefined') return;
     const docWithVendor = document as any;
     const root = document.documentElement as any;
-    const isFull = Boolean(document.fullscreenElement || docWithVendor.webkitFullscreenElement);
+    const isFull = Boolean(
+      document.fullscreenElement ||
+      docWithVendor.webkitFullscreenElement ||
+      docWithVendor.mozFullScreenElement ||
+      docWithVendor.msFullscreenElement
+    );
     if (!isFull) {
-      const request = root.requestFullscreen || root.webkitRequestFullscreen;
+      const request =
+        root.requestFullscreen ||
+        root.webkitRequestFullscreen ||
+        root.mozRequestFullScreen ||
+        root.msRequestFullscreen;
       if (typeof request === 'function') {
         void request.call(root).catch(() => {});
       }
     } else {
-      const exit = document.exitFullscreen || docWithVendor.webkitExitFullscreen;
+      const exit =
+        document.exitFullscreen ||
+        docWithVendor.webkitExitFullscreen ||
+        docWithVendor.mozCancelFullScreen ||
+        docWithVendor.msExitFullscreen;
       if (typeof exit === 'function') {
         void exit.call(document).catch(() => {});
       }

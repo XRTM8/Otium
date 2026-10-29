@@ -147,8 +147,13 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
     const query = window.matchMedia('(orientation: landscape) and (max-height: 540px)');
     const update = () => setCompactLandscape(query.matches);
     update();
-    query.addEventListener('change', update);
-    return () => query.removeEventListener('change', update);
+    if (typeof query.addEventListener === 'function') {
+      query.addEventListener('change', update);
+      return () => query.removeEventListener('change', update);
+    } else if (typeof (query as any).addListener === 'function') {
+      (query as any).addListener(update);
+      return () => (query as any).removeListener(update);
+    }
   }, []);
 
   const topOffset = compactLandscape
@@ -366,7 +371,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
               event.preventDefault();
               submitPageJump();
             }}
-            style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+            style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))' }}
             className="chrome-surface relative z-10 w-full max-w-sm rounded-2xl p-4 text-ink fluid-sheet sm:fluid-pop shadow-2xl"
           >
             <div className="flex items-center justify-between">

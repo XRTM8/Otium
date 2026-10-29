@@ -163,8 +163,13 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
     const query = window.matchMedia('(orientation: landscape) and (max-height: 540px)');
     const update = () => setCompactLandscape(query.matches);
     update();
-    query.addEventListener('change', update);
-    return () => query.removeEventListener('change', update);
+    if (typeof query.addEventListener === 'function') {
+      query.addEventListener('change', update);
+      return () => query.removeEventListener('change', update);
+    } else if (typeof (query as any).addListener === 'function') {
+      (query as any).addListener(update);
+      return () => (query as any).removeListener(update);
+    }
   }, [compact]);
 
   // Continuous mode owns page visibility. IntersectionObserver with a fixed

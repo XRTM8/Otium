@@ -16,6 +16,7 @@ import type { TocItem, BookmarkItem, TextAnnotation } from '../core/types';
 import type { Language } from '../core/i18n/translations';
 import { getTranslations } from '../core/i18n/translations';
 import { saveTextFile } from '../platform/saveFile';
+import { copyTextToClipboard } from '../core/utils/clipboard';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -547,7 +548,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               return `${i + 1}. [${ar ? 'صفحة' : 'page'} ${a.pageNumber}] "${a.text}"${note}`;
                             })
                             .join('\n\n');
-                          await navigator.clipboard.writeText(content);
+                          await copyTextToClipboard(content);
                           setCopiedAll(true);
                           setTimeout(() => setCopiedAll(false), 2000);
                         }}
@@ -732,7 +733,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {isSheet && (
-          <div className="shrink-0 border-t border-line-subtle px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="shrink-0 border-t border-line-subtle px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
             <button
               type="button"
               onClick={onClose}

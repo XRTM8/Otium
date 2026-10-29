@@ -24,6 +24,7 @@ import {
   type TtsHandle
 } from '../platform/tts';
 import { detectSpeechLanguage, prepareTextForSpeech } from '../core/tts/speechLanguage';
+import { copyTextToClipboard } from '../core/utils/clipboard';
 
 interface TextSelectionMenuProps {
   onAddAnnotation: (annotation: TextAnnotation) => void;
@@ -229,29 +230,7 @@ function pageElementFor(node: Node | null): HTMLElement | null {
 
 async function copyText(text: string): Promise<boolean> {
   const cleanText = normalizeCopiedArabicText(text);
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(cleanText);
-      return true;
-    }
-  } catch {
-    // Fall through to the legacy path (WebViews often block the async API).
-  }
-
-  try {
-    const area = document.createElement('textarea');
-    area.value = cleanText;
-    area.setAttribute('readonly', '');
-    area.style.position = 'fixed';
-    area.style.opacity = '0';
-    document.body.appendChild(area);
-    area.select();
-    const ok = document.execCommand('copy');
-    document.body.removeChild(area);
-    return ok;
-  } catch {
-    return false;
-  }
+  return copyTextToClipboard(cleanText);
 }
 
 /**
@@ -714,7 +693,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
       onContextMenu={(event) => event.preventDefault()}
       className={
         mobile
-          ? 'chrome-surface selection-bar-mobile fixed inset-x-0 bottom-0 z-[70] max-h-[78dvh] select-none overflow-y-auto rounded-t-3xl border-x-0 border-b-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2.5 text-ink shadow-2xl'
+          ? 'chrome-surface selection-bar-mobile fixed inset-x-0 bottom-0 z-[70] max-h-[78dvh] select-none overflow-y-auto rounded-t-3xl border-x-0 border-b-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-2.5 text-ink shadow-2xl'
           : 'chrome-surface fixed z-[70] w-[min(336px,calc(100vw-16px))] select-none rounded-2xl p-1.5 text-ink shadow-2xl fluid-pop'
       }
     >

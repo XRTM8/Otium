@@ -1,6 +1,6 @@
 import type { ThemeMode } from '../core/types';
 import { getThemeBackground } from '../app/themeBackground';
-import { getPlatformId, isTauriRuntime } from './runtime';
+import { isTauriRuntime } from './runtime';
 
 const LIGHT_THEMES: readonly ThemeMode[] = ['paper', 'parchment', 'eink', 'pure', 'sakura'];
 const ALL_THEMES: readonly ThemeMode[] = [
@@ -45,24 +45,28 @@ export function applyDomTheme(theme: ThemeMode): void {
  */
 export function syncNativeTheme(theme: ThemeMode): void {
   applyDomTheme(theme);
-  if (!isTauriRuntime()) return;
 
   const background = getThemeBackground(theme);
   const light = isLightTheme(theme);
 
-  if (getPlatformId() === 'android') {
+  // Android: status/navigation bar colour plus icon appearance via OtiumTheme bridge
+  if (typeof window !== 'undefined') {
     try {
       const bridge = (window as unknown as {
         OtiumTheme?: {
           setTheme?: (mode: string, background: string, lightTheme: boolean) => void;
         };
       }).OtiumTheme;
-      bridge?.setTheme?.(light ? 'light' : 'dark', background, light);
+      if (bridge?.setTheme) {
+        bridge.setTheme(light ? 'light' : 'dark', background, light);
+        return;
+      }
     } catch {
       // The native bridge is best-effort; the web UI is already themed.
     }
-    return;
   }
+
+  if (!isTauriRuntime()) return;
 
   void import('@tauri-apps/api/window')
     .then(({ getCurrentWindow }) => {

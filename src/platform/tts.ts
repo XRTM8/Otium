@@ -1,5 +1,3 @@
-import { getPlatformId, isTauriRuntime } from './runtime';
-
 /**
  * Speech adapter shared by the selection menu.
  *
@@ -49,7 +47,6 @@ function ttsWindow(): TtsWindow | null {
 }
 
 function nativeBridge(): NativeTtsBridge | null {
-  if (!isTauriRuntime() || getPlatformId() !== 'android') return null;
   const bridge = ttsWindow()?.OtiumTts;
   return bridge && typeof bridge.speak === 'function' ? bridge : null;
 }

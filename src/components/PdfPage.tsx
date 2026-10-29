@@ -273,6 +273,11 @@ const PdfPageView: React.FC<PdfPageProps> = ({
     const element = containerRef.current;
     if (!element) return;
 
+    if (typeof IntersectionObserver === 'undefined') {
+      setIsVisible(true);
+      return;
+    }
+
     const observer = new IntersectionObserver(
       (entries) => {
         setIsVisible(entries[0]?.isIntersecting ?? false);

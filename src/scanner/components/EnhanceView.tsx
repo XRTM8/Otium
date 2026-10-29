@@ -14,6 +14,7 @@ import { performOcr, terminateOcrWorker } from '../core/ocr/ocrEngine';
 import { detectBarcodesFromCanvas } from '../core/barcode';
 import type { DetectedBarcode } from '../core/barcode';
 import { isSafeUrl, nativeSharePdf, nativeSavePdf, nativeOpenInOtium, nativeSaveImage, nativePrintPdf } from '../core/nativeBridge';
+import { copyTextToClipboard } from '../../core/utils/clipboard';
 import { SignatureModal } from './SignatureModal';
 import { OtiumLogo } from './OtiumLogo';
 import {
@@ -893,9 +894,9 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     triggerHaptic(15);
-                    navigator.clipboard?.writeText(detectedBarcodes[0].rawValue);
+                    await copyTextToClipboard(detectedBarcodes[0].rawValue);
                     setToastMsg('Code copied to clipboard');
                     setTimeout(() => setToastMsg(''), 2000);
                   }}
