@@ -59,15 +59,6 @@ export const BeamModal: React.FC<BeamModalProps> = ({
   const [recentRooms, setRecentRooms] = useState<string[]>([]);
   const offlineFileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleOfflineFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      void reader.openFile(file);
-      onSetBoardOpen(true);
-      onClose();
-    }
-  };
-
   // Camera QR scanner state
   const [isScanningCamera, setIsScanningCamera] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -258,7 +249,6 @@ export const BeamModal: React.FC<BeamModalProps> = ({
             const barcodes = await detector.detect(videoRef.current);
             if (barcodes.length > 0) {
               const raw = barcodes[0].rawValue || '';
-              // Extract room code if it's a URL or direct code
               const match = raw.match(/room=([A-Za-z0-9_-]+)/) || raw.match(/(OTM-[A-Za-z0-9_-]+)/i) || raw.match(/([0-9]{4,6})/);
               const detected = match ? match[1].toUpperCase() : raw.toUpperCase();
               if (detected) {
@@ -277,6 +267,15 @@ export const BeamModal: React.FC<BeamModalProps> = ({
       console.warn('Camera access error:', err);
       setCameraError(lang === 'ar' ? 'تعذر تشغيل الكاميرا، يمكنك كتابة الكود يدوياً' : 'Camera inaccessible, enter code manually');
       setIsScanningCamera(false);
+    }
+  };
+
+  const handleOfflineFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      void reader.openFile(file);
+      onSetBoardOpen(true);
+      onClose();
     }
   };
 
@@ -319,59 +318,65 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  const smartboardUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}${window.location.pathname}#/beam?room=${receiverRoomCode}`
-    : `https://otium.app/#/beam?room=${receiverRoomCode}`;
+  const smartboardUrl = `https://is.gd/otium#/beam?room=${receiverRoomCode}`;
 
   if (!isOpen) return null;
 
   return (
     <div
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 select-none animate-in fade-in duration-200"
+      className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-0 sm:p-4 select-none animate-in fade-in duration-200 theme-${reader.theme}`}
     >
-      <div className="relative w-full max-w-lg rounded-3xl bg-surface border border-line shadow-2xl overflow-hidden flex flex-col text-ink">
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-line bg-hover-subtle">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-accent/20 border border-accent/40 flex items-center justify-center text-accent">
-              <Cast className="w-5 h-5" />
+      <div className="relative w-full sm:max-w-md max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-surface border-t sm:border border-line shadow-2xl flex flex-col text-ink animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200">
+        {/* Mobile Tactile Drag Indicator */}
+        <div className="sm:hidden w-10 h-1 rounded-full bg-line mx-auto mt-2.5 mb-0.5 opacity-60" />
+
+        {/* Minimalist Header */}
+        <div className="flex items-center justify-between px-5 pt-3.5 pb-3 border-b border-line bg-hover-subtle/50">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-accent/15 border border-accent/30 flex items-center justify-center text-accent">
+              <Cast className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-ink">
-                {lang === 'ar' ? 'البث اللحظي للسبورة الذكية' : 'Smart Beam to Board'}
+              <h3 className="text-sm font-bold text-ink leading-none">
+                {lang === 'ar' ? 'البث الذكي للسبورة' : 'Smart Beam'}
               </h3>
-              <p className="text-xs text-ink-muted">
-                {lang === 'ar' ? 'ربط فوري وتلقائي بدون سيرفر محلي' : 'Zero-Config Cloud & Local Relay'}
-              </p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-[10px] font-mono text-accent bg-accent/10 px-1.5 py-0.2 rounded-md font-bold">
+                  is.gd/otium
+                </span>
+                <span className="text-[10px] text-ink-muted">
+                  {lang === 'ar' ? 'ربط فوري' : 'Zero-config'}
+                </span>
+              </div>
             </div>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl hover:bg-hover text-ink-muted hover:text-ink transition-colors cursor-pointer"
+            className="p-1.5 rounded-xl hover:bg-hover text-ink-muted hover:text-ink transition-colors cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Mode Selector Tabs */}
-        <div className="flex items-center p-2 bg-surface/50 border-b border-line gap-1">
+        {/* Segmented Mode Selector Pills */}
+        <div className="flex items-center p-1.5 bg-hover-subtle/30 border-b border-line gap-1">
           <button
             type="button"
             onClick={() => {
               stopCamera();
               setActiveTab('send');
             }}
-            className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'send'
-                ? 'bg-accent text-on-accent shadow-sm'
+                ? 'bg-accent text-on-accent shadow-xs'
                 : 'text-ink-muted hover:text-ink hover:bg-hover'
             }`}
           >
-            <Smartphone className="w-4 h-4" />
-            <span>{lang === 'ar' ? 'بث إلى السبورة 📡' : 'Beam to Board 📡'}</span>
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>{lang === 'ar' ? 'بث للسبورة' : 'Beam'}</span>
           </button>
 
           <button
@@ -380,14 +385,14 @@ export const BeamModal: React.FC<BeamModalProps> = ({
               stopCamera();
               setActiveTab('receive');
             }}
-            className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'receive'
-                ? 'bg-accent text-on-accent shadow-sm'
+                ? 'bg-accent text-on-accent shadow-xs'
                 : 'text-ink-muted hover:text-ink hover:bg-hover'
             }`}
           >
-            <Tv className="w-4 h-4" />
-            <span>{lang === 'ar' ? 'استقبال كسبورة 📺' : 'Receiver Screen 📺'}</span>
+            <Tv className="w-3.5 h-3.5" />
+            <span>{lang === 'ar' ? 'استقبال' : 'Receiver'}</span>
           </button>
 
           <button
@@ -396,14 +401,14 @@ export const BeamModal: React.FC<BeamModalProps> = ({
               stopCamera();
               setActiveTab('offline');
             }}
-            className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'offline'
-                ? 'bg-amber-600 text-white shadow-sm'
+                ? 'bg-amber-600 text-white shadow-xs'
                 : 'text-ink-muted hover:text-ink hover:bg-hover'
             }`}
           >
-            <WifiOff className="w-4 h-4" />
-            <span>{lang === 'ar' ? 'بدون إنترنت 📴' : 'Offline 📴'}</span>
+            <WifiOff className="w-3.5 h-3.5" />
+            <span>{lang === 'ar' ? 'بدون نت' : 'Offline'}</span>
           </button>
 
           {connectedRoom && (
@@ -413,86 +418,102 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                 stopCamera();
                 setActiveTab('remote');
               }}
-              className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                 activeTab === 'remote'
-                  ? 'bg-emerald-600 text-white shadow-sm animate-pulse'
+                  ? 'bg-emerald-600 text-white shadow-xs animate-pulse'
                   : 'text-emerald-500 hover:bg-hover'
               }`}
             >
-              <Radio className="w-4 h-4" />
-              <span>{lang === 'ar' ? 'ريموت العرض 📱' : 'Clicker 📱'}</span>
+              <Radio className="w-3.5 h-3.5" />
+              <span>{lang === 'ar' ? 'الريموت' : 'Clicker'}</span>
             </button>
           )}
         </div>
 
-        {/* Tab 1: Send / Beam Document to Smartboard */}
+        {/* Tab 1: Send Mode (From Phone / Laptop) */}
         {activeTab === 'send' && (
-          <div className="p-6 space-y-4">
+          <div className="p-5 space-y-3.5">
+            {/* Active Book Pill */}
             {reader.doc ? (
-              <div className="p-3.5 rounded-2xl bg-hover-subtle border border-line flex items-center justify-between">
-                <div>
-                  <div className="text-[11px] text-accent font-semibold">
-                    {lang === 'ar' ? 'الكتاب الجاهز للبث' : 'Document to Beam'}
+              <div className="px-3.5 py-2.5 rounded-2xl bg-hover-subtle border border-line flex items-center justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] text-accent font-semibold uppercase tracking-wider">
+                    {lang === 'ar' ? 'الملف الجاهز للبث' : 'Ready Document'}
                   </div>
-                  <div className="text-sm font-bold truncate max-w-[260px] text-ink">
+                  <div className="text-xs font-bold truncate text-ink">
                     {reader.docTitle}
                   </div>
-                  <div className="text-xs text-ink-muted">
-                    {lang === 'ar'
-                      ? `الصفحة ${reader.currentPage} من ${reader.numPages}`
-                      : `Page ${reader.currentPage} of ${reader.numPages}`}
-                  </div>
                 </div>
-
-                <div className="px-2.5 py-1 rounded-full bg-accent/15 text-accent text-xs font-mono font-bold">
-                  PDF
-                </div>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-accent/15 text-accent shrink-0">
+                  {lang === 'ar' ? `ص ${reader.currentPage}` : `p. ${reader.currentPage}`}
+                </span>
               </div>
             ) : (
-              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-500 text-center">
-                {lang === 'ar' ? 'يرجى فتح كتاب أو مستند أولاً لبثه للسبورة' : 'Please open a document first'}
+              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-500 text-center font-medium">
+                {lang === 'ar' ? 'يرجى فتح ملف أولاً لبثه إلى السبورة' : 'Open a file first to beam'}
               </div>
             )}
 
+            {/* Concise 2-Step Minimal Instructions */}
+            <div className="grid grid-cols-2 gap-2 text-start p-2.5 rounded-2xl bg-hover-subtle/80 border border-line-subtle text-[11px]">
+              <div className="flex items-start gap-1.5">
+                <span className="w-4 h-4 rounded-full bg-accent/20 text-accent font-mono font-bold flex items-center justify-center shrink-0 text-[10px]">
+                  ١
+                </span>
+                <span className="text-ink-muted leading-tight">
+                  {lang === 'ar' ? 'على السبورة: افتح الرابط ' : 'On Board: Open '}
+                  <strong className="text-accent font-mono font-bold">is.gd/otium</strong>
+                </span>
+              </div>
+              <div className="flex items-start gap-1.5">
+                <span className="w-4 h-4 rounded-full bg-accent/20 text-accent font-mono font-bold flex items-center justify-center shrink-0 text-[10px]">
+                  ٢
+                </span>
+                <span className="text-ink-muted leading-tight">
+                  {lang === 'ar' ? 'امسح الـ QR أو اكتب الكود' : 'Scan QR or enter Code'}
+                </span>
+              </div>
+            </div>
+
             {/* Camera Viewfinder (if scanning QR) */}
             {isScanningCamera ? (
-              <div className="relative w-full h-56 rounded-2xl bg-black overflow-hidden border-2 border-accent flex flex-col items-center justify-center">
+              <div className="relative w-full h-48 rounded-2xl bg-black overflow-hidden border-2 border-accent flex flex-col items-center justify-center shadow-inner">
                 <video ref={videoRef} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 border-2 border-dashed border-accent/60 m-8 rounded-xl pointer-events-none animate-pulse" />
-                <div className="absolute bottom-2 px-3 py-1 bg-black/70 backdrop-blur-sm rounded-full text-[11px] text-white">
-                  {lang === 'ar' ? 'وجه الكاميرا نحو QR السبورة' : 'Point camera at Smartboard QR'}
+                <div className="absolute inset-0 border-2 border-dashed border-accent/70 m-6 rounded-xl pointer-events-none animate-pulse" />
+                <div className="absolute bottom-2 px-3 py-1 bg-black/75 backdrop-blur-sm rounded-full text-[10px] text-white">
+                  {lang === 'ar' ? 'وجّه الكاميرا نحو QR السبورة' : 'Point camera at Smartboard QR'}
                 </div>
                 <button
                   type="button"
                   onClick={stopCamera}
                   className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
             ) : (
               <button
                 type="button"
                 onClick={startCameraScanner}
-                className="w-full py-3 px-4 rounded-2xl bg-accent/15 border border-accent/30 text-accent font-bold text-xs flex items-center justify-center gap-2 hover:bg-accent/25 active:scale-98 transition-all cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-2xl bg-accent/15 border border-accent/30 text-accent font-bold text-xs flex items-center justify-center gap-2 hover:bg-accent/25 active:scale-98 transition-all cursor-pointer shadow-xs"
               >
                 <Camera className="w-4 h-4" />
-                <span>{lang === 'ar' ? '📷 مسح رمز السبورة بالكاميرا فوراً' : '📷 Scan Smartboard QR with Camera'}</span>
+                <span>{lang === 'ar' ? 'مسح رمز السبورة بالكاميرا فوراً' : 'Scan Smartboard QR with Camera'}</span>
               </button>
             )}
 
             {cameraError && (
-              <div className="text-[11px] text-amber-500 text-center">{cameraError}</div>
+              <div className="text-[10px] text-amber-500 text-center font-medium">{cameraError}</div>
             )}
 
             {/* Recent Favorite Rooms / Quick Reconnect */}
             {recentRooms.length > 0 && !isScanningCamera && (
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-1.5 text-[11px] text-ink-muted">
-                  <History className="w-3.5 h-3.5" />
-                  <span>{lang === 'ar' ? 'قاعاتي السابقة (ربط بنقرة واحدة):' : 'Recent Classrooms:'}</span>
+              <div className="space-y-1">
+                <div className="flex items-center gap-1 text-[10px] text-ink-muted">
+                  <History className="w-3 h-3" />
+                  <span>{lang === 'ar' ? 'القاعات السابقة:' : 'Recent Rooms:'}</span>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-1">
                   {recentRooms.map((room) => (
                     <button
                       key={room}
@@ -501,7 +522,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                         setTargetRoomCode(room);
                         void handleBeamDocument(room);
                       }}
-                      className="px-3 py-1 rounded-xl bg-hover border border-line text-xs font-mono font-semibold text-accent hover:bg-accent/15 hover:border-accent/40 active:scale-95 transition-all cursor-pointer"
+                      className="px-2.5 py-1 rounded-xl bg-hover border border-line text-[11px] font-mono font-semibold text-accent hover:bg-accent/15 hover:border-accent/40 active:scale-95 transition-all cursor-pointer"
                     >
                       ⚡ {room}
                     </button>
@@ -511,134 +532,190 @@ export const BeamModal: React.FC<BeamModalProps> = ({
             )}
 
             {/* Manual Code Input */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-ink">
-                {lang === 'ar' ? 'أو أدخل رمز الغرفة الظاهر على السبورة:' : 'Or enter Room Code:'}
-              </label>
+            <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={targetRoomCode}
                 onChange={(e) => setTargetRoomCode(e.target.value.toUpperCase())}
                 placeholder="OTM-XXXX"
-                className="w-full px-4 py-3 rounded-2xl bg-hover border border-line font-mono text-base font-bold text-center tracking-widest text-ink focus:outline-none focus:ring-2 focus:ring-accent"
+                className="flex-1 px-3 py-2.5 rounded-2xl bg-hover border border-line font-mono text-sm font-bold text-center tracking-widest text-ink focus:outline-none focus:ring-2 focus:ring-accent"
               />
+              <button
+                type="button"
+                onClick={() => void handleBeamDocument()}
+                disabled={isSending || !targetRoomCode.trim() || !reader.doc}
+                className="px-5 py-2.5 rounded-2xl bg-accent text-on-accent font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:bg-accent-strong active:scale-98 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
+              >
+                {isSending ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : sendSuccess ? (
+                  <Check className="w-3.5 h-3.5" />
+                ) : (
+                  <Send className="w-3.5 h-3.5" />
+                )}
+                <span>{lang === 'ar' ? 'بث' : 'Beam'}</span>
+              </button>
             </div>
-
-            <button
-              type="button"
-              onClick={() => void handleBeamDocument()}
-              disabled={isSending || !targetRoomCode.trim() || !reader.doc}
-              className="w-full py-3.5 rounded-2xl bg-accent text-on-accent font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:bg-accent-strong active:scale-98 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
-            >
-              {isSending ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>{lang === 'ar' ? 'جارٍ الإرسال إلى السبورة…' : 'Beaming to Board…'}</span>
-                </>
-              ) : sendSuccess ? (
-                <>
-                  <Check className="w-4 h-4" />
-                  <span>{lang === 'ar' ? 'تم الاتصال والبث بنجاح!' : 'Beamed Successfully!'}</span>
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4" />
-                  <span>{lang === 'ar' ? 'بث الكتاب للسبورة الآن 🚀' : 'Beam Document Now 🚀'}</span>
-                </>
-              )}
-            </button>
           </div>
         )}
 
-        {/* Tab 2: Receiver Mode (Smartboard Display) */}
+        {/* Tab 2: Receiver Screen Mode (Smartboard Display) */}
         {activeTab === 'receive' && (
-          <div className="p-6 flex flex-col items-center justify-center space-y-4 text-center">
-            <div className="space-y-1">
-              <span className="text-xs font-semibold text-accent uppercase tracking-wider">
-                {lang === 'ar' ? 'شاشة استقبال السبورة الذكية' : 'Smartboard Receiver Screen'}
-              </span>
-              <h4 className="text-sm text-ink-muted">
-                {lang === 'ar'
-                  ? 'امسح الرمز بكاميرا هاتفك أو أدخل الكود لفتح المحاضرة'
-                  : 'Scan QR with phone camera or enter code to launch lecture'}
+          <div className="p-5 flex flex-col items-center justify-center space-y-3.5 text-center">
+            {/* Minimal Prompt */}
+            <div className="space-y-0.5">
+              <h4 className="text-xs font-bold text-ink">
+                {lang === 'ar' ? 'وجّه كاميرا الهاتف نحو الرمز لبث المحاضرة' : 'Point phone camera at QR to beam'}
               </h4>
+              <p className="text-[11px] text-ink-muted">
+                {lang === 'ar' ? 'أو افتح أوتيوم بهاتفك واضغط بث 📡' : 'Or open Otium on phone and tap Beam 📡'}
+              </p>
             </div>
 
-            {/* Authentic Standards-Compliant QR Code */}
-            <div className="my-1">
-              <QrCodeView value={smartboardUrl} size={180} />
+            {/* QR Code */}
+            <div className="my-0.5 shadow-sm rounded-2xl p-1 bg-white border border-line">
+              <QrCodeView value={smartboardUrl} size={160} />
             </div>
 
-            {/* Room Code with Copy */}
-            <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-hover border border-line">
-              <span className="font-mono text-2xl font-extrabold tracking-widest text-ink">
+            {/* Code Badge */}
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-hover border border-line">
+              <span className="font-mono text-lg font-black tracking-widest text-accent">
                 {receiverRoomCode}
               </span>
               <button
                 type="button"
                 onClick={handleCopyCode}
-                className="p-1.5 rounded-xl hover:bg-surface text-ink-muted hover:text-ink transition-colors cursor-pointer"
+                className="p-1 rounded-lg hover:bg-surface text-ink-muted hover:text-ink transition-colors cursor-pointer"
                 title={lang === 'ar' ? 'نسخ الرمز' : 'Copy Code'}
               >
-                {copiedCode ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
               </button>
             </div>
 
-            {/* Pulsing Radar Waiting Status */}
-            <div className="flex items-center gap-2 text-xs text-ink-muted">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-              <span>{lang === 'ar' ? 'بانتظار إرسال الكتاب من هاتفك…' : 'Waiting for incoming lecture…'}</span>
+            {/* Quick URL reminder */}
+            <div className="text-[10px] text-ink-muted flex items-center gap-1 font-mono">
+              <span>{lang === 'ar' ? 'رابط السبورة السريع:' : 'Quick link:'}</span>
+              <strong className="text-accent underline">is.gd/otium</strong>
+            </div>
+
+            {/* Pulsing Status */}
+            <div className="flex items-center gap-1.5 text-[10px] text-ink-muted pt-1 border-t border-line w-full justify-center">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+              <span>{lang === 'ar' ? 'بانتظار الإرسال من هاتفك…' : 'Waiting for incoming beam…'}</span>
             </div>
           </div>
         )}
 
-        {/* Tab 3: Presentation Remote Clicker */}
+        {/* Tab 3: Offline Mode (No Internet in Classroom) */}
+        {activeTab === 'offline' && (
+          <div className="p-5 space-y-3 text-start">
+            {/* Banner */}
+            <div className="flex items-center gap-2 p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs">
+              <WifiOff className="w-4 h-4 shrink-0" />
+              <span className="font-semibold">
+                {lang === 'ar' ? 'يعمل التطبيق والسبورة 100% بدون إنترنت' : 'Otium works 100% offline'}
+              </span>
+            </div>
+
+            {/* Option 1: Open USB Flash */}
+            <div className="p-3 rounded-2xl bg-hover-subtle border border-line space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <FolderOpen className="w-4 h-4 text-accent" />
+                  <span className="text-xs font-bold text-ink">
+                    {lang === 'ar' ? 'فتح من فلاش ميموري USB أو الذاكرة' : 'Open from USB Flash or Storage'}
+                  </span>
+                </div>
+              </div>
+              <p className="text-[10px] text-ink-muted leading-tight">
+                {lang === 'ar'
+                  ? 'صل فلاشة USB بالسبورة وافتح الكتاب لتفعيل السبورة المنقسمة 50/50 فوراً.'
+                  : 'Plug USB drive into smartboard to launch PDF with side-by-side whiteboard.'}
+              </p>
+              <button
+                type="button"
+                onClick={() => offlineFileInputRef.current?.click()}
+                className="w-full py-2 px-3 rounded-xl bg-accent text-on-accent text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-accent-strong active:scale-98 transition-all cursor-pointer shadow-xs"
+              >
+                <FileUp className="w-3.5 h-3.5" />
+                <span>{lang === 'ar' ? 'اختيار ملف PDF من الجهاز / الفلاشة 📂' : 'Select PDF from USB 📂'}</span>
+              </button>
+            </div>
+
+            {/* Option 2: Mobile Hotspot */}
+            <div className="p-3 rounded-2xl bg-hover-subtle border border-line space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <Smartphone className="w-4 h-4 text-emerald-500" />
+                <span className="text-xs font-bold text-ink">
+                  {lang === 'ar' ? 'هوتسبوت الهاتف (شبكة محلية بدون رصيد)' : 'Mobile Hotspot (Local Wi-Fi)'}
+                </span>
+              </div>
+              <p className="text-[10px] text-ink-muted leading-relaxed">
+                {lang === 'ar'
+                  ? 'فعّل "نقطة الاتصال / Hotspot" بهاتفك واشبك السبورة عليها (بدون رصيد ولا نت) لنقل الملف بسرعة 100MB/s.'
+                  : 'Turn on phone hotspot and connect smartboard over local Wi-Fi with zero data.'}
+              </p>
+            </div>
+
+            {/* Offline Cache Notice */}
+            <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+              <Check className="w-3.5 h-3.5 shrink-0" />
+              <span>
+                {lang === 'ar'
+                  ? 'الموقع مثبت في ذاكرة المتصفح (PWA Cache) ويفتح دائماً أوفلاين.'
+                  : 'Cached locally in browser; opens anytime offline.'}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 4: Presentation Remote Clicker */}
         {activeTab === 'remote' && (
-          <div className="p-6 space-y-5 text-center">
+          <div className="p-5 space-y-4 text-center">
             <div className="flex items-center justify-between text-xs text-ink-muted px-1">
-              <span className="flex items-center gap-1.5 text-emerald-500 font-semibold">
-                <Radio className="w-3.5 h-3.5 animate-pulse" />
-                <span>{lang === 'ar' ? 'متصل بالسبورة:' : 'Connected:'} {connectedRoom}</span>
+              <span className="flex items-center gap-1.5 text-emerald-500 font-semibold text-[11px]">
+                <Radio className="w-3 h-3 animate-pulse" />
+                <span>{lang === 'ar' ? 'متصل:' : 'Connected:'} {connectedRoom}</span>
               </span>
               <button
                 type="button"
                 onClick={() => setConnectedRoom(null)}
-                className="text-xs text-danger-ink hover:underline cursor-pointer"
+                className="text-[11px] text-danger-ink hover:underline cursor-pointer"
               >
                 {lang === 'ar' ? 'قطع الاتصال' : 'Disconnect'}
               </button>
             </div>
 
-            {/* Current Page Display */}
-            <div className="p-4 rounded-3xl bg-hover-subtle border border-line space-y-1">
-              <div className="text-3xl font-black text-ink font-mono">
+            {/* Page Count */}
+            <div className="py-3 px-4 rounded-2xl bg-hover-subtle border border-line space-y-0.5">
+              <div className="text-2xl font-black text-ink font-mono">
                 {reader.currentPage} / {reader.numPages}
               </div>
-              <div className="text-xs text-ink-muted truncate max-w-xs mx-auto">
+              <div className="text-[11px] text-ink-muted truncate max-w-xs mx-auto">
                 {reader.docTitle}
               </div>
             </div>
 
-            {/* Large Tactile Flip Buttons */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Big Flip Buttons */}
+            <div className="grid grid-cols-2 gap-2.5">
               <button
                 type="button"
                 onClick={handleRemotePrev}
                 disabled={reader.currentPage <= 1}
-                className="py-6 rounded-2xl bg-hover border border-line hover:bg-hover-strong active:scale-95 text-ink font-bold text-sm flex flex-col items-center justify-center gap-2 cursor-pointer disabled:opacity-30 disabled:pointer-events-none transition-all"
+                className="py-5 rounded-2xl bg-hover border border-line hover:bg-hover-strong active:scale-95 text-ink font-bold text-xs flex flex-col items-center justify-center gap-1.5 cursor-pointer disabled:opacity-30 disabled:pointer-events-none transition-all shadow-xs"
               >
-                <ArrowRight className="w-6 h-6 rtl:rotate-0 ltr:rotate-180 text-accent" />
-                <span>{lang === 'ar' ? 'الصفحة السابقة' : 'Previous Page'}</span>
+                <ArrowRight className="w-5 h-5 rtl:rotate-0 ltr:rotate-180 text-accent" />
+                <span>{lang === 'ar' ? 'السابقة' : 'Previous'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleRemoteNext}
                 disabled={reader.currentPage >= reader.numPages}
-                className="py-6 rounded-2xl bg-accent text-on-accent hover:bg-accent-strong active:scale-95 font-bold text-sm flex flex-col items-center justify-center gap-2 cursor-pointer disabled:opacity-30 disabled:pointer-events-none shadow-lg transition-all"
+                className="py-5 rounded-2xl bg-accent text-on-accent hover:bg-accent-strong active:scale-95 font-bold text-xs flex flex-col items-center justify-center gap-1.5 cursor-pointer disabled:opacity-30 disabled:pointer-events-none shadow-md transition-all"
               >
-                <ArrowLeft className="w-6 h-6 rtl:rotate-0 ltr:rotate-180" />
-                <span>{lang === 'ar' ? 'الصفحة التالية' : 'Next Page'}</span>
+                <ArrowLeft className="w-5 h-5 rtl:rotate-0 ltr:rotate-180" />
+                <span>{lang === 'ar' ? 'التالية' : 'Next'}</span>
               </button>
             </div>
           </div>
@@ -652,73 +729,6 @@ export const BeamModal: React.FC<BeamModalProps> = ({
           className="hidden"
           onChange={handleOfflineFile}
         />
-
-        {/* Tab 4: 100% Offline Mode (No Internet in Classroom) */}
-        {activeTab === 'offline' && (
-          <div className="p-6 space-y-4 text-start">
-            <div className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
-              <WifiOff className="w-5 h-5 shrink-0" />
-              <div className="text-xs">
-                <span className="font-bold block">
-                  {lang === 'ar' ? 'وضع العمل بدون إنترنت' : 'Offline Classroom Mode'}
-                </span>
-                <span className="text-[11px] opacity-90">
-                  {lang === 'ar'
-                    ? 'يعمل التطبيق والسبورة بكفاءة 100% حتى في حال انقطاع الشبكة بالكامل.'
-                    : 'Otium & Smartboard work 100% offline with zero internet.'}
-                </span>
-              </div>
-            </div>
-
-            {/* Option A: Open from Flash Drive / Smartboard Storage */}
-            <div className="p-4 rounded-2xl bg-hover-subtle border border-line space-y-2.5">
-              <div className="flex items-center gap-2">
-                <FolderOpen className="w-4 h-4 text-accent" />
-                <h5 className="text-xs font-bold text-ink">
-                  {lang === 'ar' ? '1. فتح الكتاب من فلاش USB أو ذاكرة السبورة' : '1. Open from USB Flash or Storage'}
-                </h5>
-              </div>
-              <p className="text-[11px] text-ink-muted leading-relaxed">
-                {lang === 'ar'
-                  ? 'صل فلاشة الـ USB بالسبورة وافتح الملزمة مباشرة؛ سيتم تفعيل وضع السبورة المنقسمة 50/50 والأقلام فوراً.'
-                  : 'Plug USB drive into smartboard to launch PDF side-by-side with whiteboard canvas.'}
-              </p>
-              <button
-                type="button"
-                onClick={() => offlineFileInputRef.current?.click()}
-                className="w-full py-2.5 px-4 rounded-xl bg-accent text-on-accent text-xs font-bold flex items-center justify-center gap-2 hover:bg-accent-strong active:scale-98 transition-all cursor-pointer shadow-sm"
-              >
-                <FileUp className="w-4 h-4" />
-                <span>{lang === 'ar' ? 'اختيار ملف PDF من الجهاز / الفلاشة 📂' : 'Select PDF from Device / USB 📂'}</span>
-              </button>
-            </div>
-
-            {/* Option B: Mobile Hotspot (Personal LAN with zero internet) */}
-            <div className="p-4 rounded-2xl bg-hover-subtle border border-line space-y-2">
-              <div className="flex items-center gap-2">
-                <Smartphone className="w-4 h-4 text-emerald-500" />
-                <h5 className="text-xs font-bold text-ink">
-                  {lang === 'ar' ? '2. نقطة اتصال الهاتف (Mobile Hotspot)' : '2. Mobile Hotspot (Local Wi-Fi)'}
-                </h5>
-              </div>
-              <p className="text-[11px] text-ink-muted leading-relaxed">
-                {lang === 'ar'
-                  ? 'فعّل "نقطة الاتصال / Hotspot" بهاتفك واشبك السبورة عليها (بدون نت أو باقة بيانات نهائياً). ينشئ الهاتف شبكة واي فاي محلية فائقة السرعة، ويمكنك استخدام كود الغرفة لبث الملف محلياً!'
-                  : 'Turn on phone hotspot and connect smartboard. Works with zero data balance over local Wi-Fi.'}
-              </p>
-            </div>
-
-            {/* Option C: Offline Cache Confirmation */}
-            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
-              <Check className="w-4 h-4 shrink-0" />
-              <span>
-                {lang === 'ar'
-                  ? 'الموقع مثبت في ذاكرة المتصفح (PWA Cache)؛ سيفتح دائماً حتى لو انقطع الإنترنت.'
-                  : 'Cached locally in browser; Otium opens anytime without internet.'}
-              </span>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
