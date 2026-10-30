@@ -1,3 +1,8 @@
+# Otium 1.9.7 — Complete teaching workspace
+
+- The top reader toolbar remains available while the whiteboard is open, so navigation, pairing, and settings do not disappear.
+- The whiteboard now occupies its entire panel; the teacher dock overlays it instead of reserving an unused strip beneath it.
+
 # Otium 1.9.6 — Calm reading, full whiteboard
 
 - The reader now opens cleanly with the top toolbar only. The lower teacher dock appears only after opening the whiteboard.

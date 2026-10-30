@@ -215,7 +215,10 @@ const DesktopReader: React.FC = () => {
         </>
       ) : (
         <>
-          <div hidden={!teaching.readerTools || teaching.presentation || teaching.layout !== 'document'}><Toolbar
+          {/* Keep navigation, pairing, and recovery controls available while
+              teaching. The board dock complements this toolbar; it does not
+              replace it. */}
+          <div hidden={!teaching.readerTools || teaching.presentation}><Toolbar
             title={reader.docTitle}
             currentPage={reader.currentPage}
             totalPages={reader.numPages}

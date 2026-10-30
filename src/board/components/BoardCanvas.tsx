@@ -680,10 +680,12 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   useEffect(() => () => registerBoard(null), [registerBoard]);
 
 
+  // The dock floats above the workspace. Reserving its whole height here
+  // produced a dead strip below the board and made the canvas feel broken.
   return (
     <div
       ref={stageRef}
-      style={{ height: 'calc(100% - var(--teacher-bottom-inset, 130px))' }}
+      style={{ height: '100%' }}
       className={`relative w-full h-full select-none overflow-hidden touch-none transition-colors duration-300 ${
         background === 'dark'
           ? 'bg-slate-900 text-slate-100'
