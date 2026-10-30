@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { BookOpen, PenTool } from 'lucide-react';
 import type { ReaderController } from '../../app/useReaderController';
 import { ReaderWorkspace } from '../../components/ReaderWorkspace';
@@ -6,6 +6,7 @@ import { BoardCanvas } from './BoardCanvas';
 import { ResizeDivider } from './ResizeDivider';
 import { AreaSnippetModal } from './AreaSnippetModal';
 import type { BoardSnippet } from '../types';
+import { computeOptimalPageScale } from '../../core/reader/device';
 
 interface BoardSplitWorkspaceProps {
   reader: ReaderController;
@@ -30,6 +31,18 @@ export const BoardSplitWorkspace: React.FC<BoardSplitWorkspaceProps> = ({
   const [splitPercent, setSplitPercent] = useState<number>(50);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [isAreaClipOpen, setIsAreaClipOpen] = useState<boolean>(false);
+  const { doc, docId, scrollContainerRef, setZoom, basePageSize, viewMode } = reader;
+
+  useEffect(() => {
+    if (isDragging || !doc) return;
+    const frame = requestAnimationFrame(() => {
+      const viewport = scrollContainerRef.current;
+      if (!viewport?.clientWidth || !viewport.clientHeight) return;
+      setZoom(computeOptimalPageScale(basePageSize.width, basePageSize.height,
+        viewport.clientWidth, viewport.clientHeight, viewMode));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [splitPercent, isDragging, isBoardOpen, doc, docId, scrollContainerRef, setZoom, basePageSize.width, basePageSize.height, viewMode]);
 
   // If the board is closed, render normal 100% reader workspace with zero overhead
   if (!isBoardOpen) {
@@ -46,6 +59,10 @@ export const BoardSplitWorkspace: React.FC<BoardSplitWorkspaceProps> = ({
       dir={isRtl ? 'rtl' : 'ltr'}
       className="relative flex-1 w-full h-full flex overflow-hidden select-none"
     >
+      <nav aria-label={isRtl ? 'طريقة عرض المحاضرة' : 'Presentation layout'} className="fixed top-20 left-1/2 -translate-x-1/2 z-30 flex rounded-full border border-line bg-surface/95 p-1 shadow-lg text-ink backdrop-blur-md text-xs">
+        {([[100, isRtl ? 'الملف' : 'Document'], [50, isRtl ? 'تقسيم' : 'Split'], [0, isRtl ? 'السبورة' : 'Board']] as const).map(([value, label]) =>
+          <button key={value} aria-pressed={splitPercent === value} onClick={() => setSplitPercent(value)} className={`px-4 py-2 rounded-full ${splitPercent === value ? 'bg-accent text-on-accent' : 'hover:bg-hover'}`}>{label}</button>)}
+      </nav>
       {/* Pane 1: PDF Reader View */}
       {showReader && (
         <div

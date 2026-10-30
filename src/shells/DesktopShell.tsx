@@ -10,6 +10,7 @@ import { Toolbar } from '../components/Toolbar';
 import { WelcomeScreen } from '../components/WelcomeScreen';
 import { BoardSplitWorkspace } from '../board/components/BoardSplitWorkspace';
 import { BeamModal } from '../board/beam/BeamModal';
+import { DocumentInkProvider } from '../components/DocumentInk';
 import type { BoardSnippet } from '../board/types';
 
 /** Windows shell: floating desktop toolbar, Otium Board split-screen studio, and Smart Beam. */
@@ -164,6 +165,7 @@ export const DesktopShell: React.FC = () => {
   }, []);
 
   return (
+    <DocumentInkProvider reader={reader}>
     <div
       className={`relative w-screen h-screen overflow-hidden flex flex-col font-sans theme-${reader.theme}`}
       style={{ backgroundColor: getThemeBackground(reader.theme) }}
@@ -225,7 +227,7 @@ export const DesktopShell: React.FC = () => {
             onToggleBoard={() => setIsBoardOpen((open) => !open)}
             isBoardOpen={isBoardOpen}
             onOpenBeam={() => setIsBeamOpen(true)}
-            isBeaming={Boolean(reader.beamRoom)}
+            isBeaming={reader.beamPeerConnected}
             beamRoom={reader.beamRoom}
             beamRole={reader.beamRole}
             onDisconnectBeam={reader.disconnectBeam}
@@ -296,5 +298,6 @@ export const DesktopShell: React.FC = () => {
         </div>
       )}
     </div>
+    </DocumentInkProvider>
   );
 };

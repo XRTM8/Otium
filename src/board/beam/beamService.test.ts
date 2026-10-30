@@ -141,6 +141,21 @@ describe('Otium Smart Beam binary helpers', () => {
 });
 
 describe('Otium Smart Beam session routing', () => {
+  it('routes annotation updates only within the active paired session', async () => {
+    const sender = new BeamService() as any;
+    sender.connectedRoom = 'OTM-1234'; sender.role = 'sender'; sender.sessionId = 'paired';
+    sender.peerState = { ...sender.peerState, connected: true };
+    const listener = vi.fn();
+    sender.subscribe(listener);
+    const message = { type: 'BEAM_INK_UPDATE', roomCode: 'OTM-1234', timestamp: Date.now(), ink: { documentId: 'book', upsert: [] } };
+    try {
+      await sender.handleIncoming({ ...message, sessionId: 'old' }, 'p2p');
+      expect(listener).not.toHaveBeenCalled();
+      await sender.handleIncoming({ ...message, sessionId: 'paired' }, 'p2p');
+      expect(listener).toHaveBeenCalledOnce();
+    } finally { sender.disconnect(); }
+  });
+
   it('keeps relay sending pending until the receiver confirms opening', async () => {
     const sender = new BeamService() as any;
     sender.connectedRoom = 'OTM-1234'; sender.role = 'sender'; sender.sessionId = 'paired';
@@ -471,7 +486,7 @@ describe('Otium Smart Beam session routing', () => {
     expect(beamService.getConnectedRoom()).toBe('OTM-5555');
     expect(beamService.getPeerState().connected).toBe(true);
 
-    // The current session is allowed to disconnect.
+    // Disconnect clears the phone while the board remains available to pair.
     await incoming(
       {
         type: 'BEAM_DISCONNECT',
@@ -481,8 +496,13 @@ describe('Otium Smart Beam session routing', () => {
       } as BeamMessage,
       'relay'
     );
-    expect(beamService.getConnectedRoom()).toBeNull();
-    expect(beamService.getRole()).toBeNull();
+    expect(beamService.getConnectedRoom()).toBe('OTM-5555');
+    expect(beamService.getRole()).toBe('receiver');
+    expect(beamService.getPeerState()).toMatchObject({ connected: false, peerName: null });
+    await incoming({ type: 'BEAM_HANDSHAKE', roomCode: 'OTM-5555', sessionId: 'session-current', timestamp: Date.now() }, 'relay');
+    expect(beamService.getPeerState().connected).toBe(false);
+    await incoming({ type: 'BEAM_HANDSHAKE', roomCode: 'OTM-5555', sessionId: 'session-new', senderName: 'New phone', timestamp: Date.now() }, 'relay');
+    expect(beamService.getPeerState()).toMatchObject({ connected: true, peerName: 'New phone' });
   });
 
   it('drops duplicate relay messages by msgId', async () => {

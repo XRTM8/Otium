@@ -1,11 +1,11 @@
-# Otium 1.8.14 — Smart Beam pairing and confirmed PDF opening
+# Otium 1.9.0 — Write on PDF and present with confidence
 
-- Fix PDF font, CMap and image-decoder resource paths on GitHub Pages under /Otium/. Origin-root paths returned 404.
-- Wait for the receiving reader to open the document before reporting transfer success, for direct and cloud transfers.
-- Report receiver PDF-opening failures to the sender and keep the receiver error visible.
-- Close the receiving dialog only after opening succeeds.
-- Preserve early WebRTC candidates and use cursor-based short polling when streaming signaling stalls.
-- Deliver disconnect directly and ignore stale callbacks after cancellation.
-- Distinguish signaling readiness from an actually paired phone.
+- Write over PDF pages with a pen, transparent highlighter, text notes, and stroke eraser. Reopen notes to edit or delete them.
+- Undo and redo annotations; Ctrl+Z / Ctrl+Shift+Z work while annotation tools are open.
+- Page-relative annotations stay aligned through zoom and are saved locally per document. Storage status reports failed saves.
+- Synchronize annotations across the active Smart Beam session. Local undo preserves marks from the other device.
+- Export an annotated PDF copy while retaining original page content, page count, crop boxes, and rotation. Handwriting and notes are embedded as a transparent image; the source is not overwritten.
+- Add Document / Split / Board controls and fit the document to its pane after layout changes.
+- Clear the phone name and paired indicator on disconnect, keep the board ready for a new pairing, and ignore delayed handshakes from closed sessions.
 
-Both devices must load the new web version or update their application. Pairing still depends on ntfy.sh availability and quotas; no independent signaling or TURN service is provisioned. Physical phone-to-PC acceptance remains required.
+Update both devices for annotation synchronization. Local storage is device-specific; export a PDF copy for a portable result. Original PDF text editing is not included.

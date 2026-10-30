@@ -149,6 +149,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     role: beamService.getRole()
   }));
   const [peer, setPeer] = useState<BeamPeerState>(() => beamService.getPeerState());
+  const [peerLeft, setPeerLeft] = useState(false);
   const [transfer, setTransfer] = useState<BeamTransferState>(() =>
     beamService.getTransferState()
   );
@@ -165,13 +166,22 @@ export const BeamModal: React.FC<BeamModalProps> = ({
 
   // Sync beam connection, peer and transfer state.
   useEffect(() => {
+    let hadPeer = beamService.getPeerState().connected;
     const unsubState = beamService.onStateChange((state) => {
       setBeamState(state);
+      if (!state.role) setSendSuccess(false);
     });
     const unsubStatus = beamService.onConnectionStatusChange((status) => {
       setConnStatus(status);
     });
     const unsubPeer = beamService.onPeerChange((state) => {
+      if (hadPeer && !state.connected) {
+        setPeerLeft(true);
+        setRemoteDocTitle('');
+        setRemoteTotal(0);
+      }
+      if (state.connected) setPeerLeft(false);
+      hadPeer = state.connected;
       setPeer(state);
       if (state.docTitle) setRemoteDocTitle(state.docTitle);
       if (typeof state.pageNumber === 'number') setRemotePage(state.pageNumber);
@@ -1148,7 +1158,11 @@ export const BeamModal: React.FC<BeamModalProps> = ({
 
             {/* Connection Status Indicator */}
             <div className="flex items-center gap-1.5 text-[10px] text-ink-muted pt-1 border-t border-line w-full justify-center">
-              {connStatus === 'connected' ? (
+              {peerLeft && !peer.connected ? (
+                <span className="font-semibold text-ink-muted">
+                  {lang === 'ar' ? 'تم فصل الجهاز — بانتظار ربط جديد' : 'Device disconnected — waiting for a new pairing'}
+                </span>
+              ) : connStatus === 'connected' ? (
                 <>
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
                   <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
@@ -1273,6 +1287,8 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                   <Radio className="w-3 h-3 animate-pulse text-emerald-500" />
                   <span>{lang === 'ar' ? 'متصل فعلياً بالسبورة:' : 'Live Connected:'} <strong className="font-mono text-ink">{connectedRoom}</strong></span>
                 </span>
+              ) : peerLeft ? (
+                <span className="text-ink-muted">{lang === 'ar' ? 'تم فصل السبورة' : 'Board disconnected'}</span>
               ) : (
                 <span className="flex items-center gap-1.5 text-amber-500 font-semibold text-[11px]">
                   <RefreshCw className="w-3 h-3 animate-spin text-amber-500" />
@@ -1292,7 +1308,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
             </div>
 
             {/* Waiting for Board Hint */}
-            {!isReceiverAcknowledged && (
+            {!isReceiverAcknowledged && !peerLeft && (
               <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-start text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed">
                 <span>⚠️ {lang === 'ar' ? 'لم تستجب السبورة حتى الآن. تأكد أن المتصفح في الحاسبة مفتوح على نافذة "استقبال" وأن الرمز مطابق.' : 'Smartboard has not responded yet. Ensure PC browser is open on "Receiver" tab with matching code.'}</span>
               </div>
