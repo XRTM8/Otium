@@ -1,11 +1,11 @@
-# Otium 1.8.14 — Smart Beam reliability
+# Otium 1.8.14 — Smart Beam pairing and confirmed PDF opening
 
-- Preserve WebRTC candidates received before the offer.
-- Use short polling with a replay cursor when streaming signaling stalls or fails.
-- Deliver disconnect over the direct and local channels before teardown.
-- Ignore stale signaling downloads and old peer callbacks after cancellation.
-- Prevent cancelled transfers from reporting success or falling back to cloud upload.
-- Send control traffic directly once WebRTC opens to reduce public relay usage.
-- Distinguish signaling readiness from a paired phone; force a fresh connection on retry.
+- Fix PDF font, CMap and image-decoder resource paths on GitHub Pages under /Otium/. Origin-root paths returned 404.
+- Wait for the receiving reader to open the document before reporting transfer success, for direct and cloud transfers.
+- Report receiver PDF-opening failures to the sender and keep the receiver error visible.
+- Close the receiving dialog only after opening succeeds.
+- Preserve early WebRTC candidates and use cursor-based short polling when streaming signaling stalls.
+- Deliver disconnect directly and ignore stale callbacks after cancellation.
+- Distinguish signaling readiness from an actually paired phone.
 
-Update both devices. The web version deploys separately via GitHub Pages. Pairing still depends on ntfy.sh availability and quotas. Physical Android/Windows interoperability must be verified on the target network.
+Both devices must load the new web version or update their application. Pairing still depends on ntfy.sh availability and quotas; no independent signaling or TURN service is provisioned. Physical phone-to-PC acceptance remains required.

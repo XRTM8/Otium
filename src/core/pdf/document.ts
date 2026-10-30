@@ -61,13 +61,16 @@ export function openPdf(data: ArrayBuffer, options: OpenPdfOptions): PdfOpenHand
     throw new Error('الملف المحدد ليس ملف PDF صالحاً (Missing %PDF- header)');
   }
 
-  const baseUrl = typeof window === 'undefined' ? '' : window.location.origin;
+  // GitHub Pages hosts the app under /Otium/, while desktop builds use the
+  // webview root. Resolve resources beside the app rather than at origin root.
+  const pageUrl = typeof window === 'undefined' ? 'http://localhost/' : window.location.href;
+  const baseUrl = new URL(import.meta.env.BASE_URL || './', pageUrl).href;
   const loadingTask = pdfjsLib.getDocument({
     data,
-    cMapUrl: `${baseUrl}/cmaps/`,
+    cMapUrl: `${baseUrl}cmaps/`,
     cMapPacked: true,
-    standardFontDataUrl: `${baseUrl}/standard_fonts/`,
-    wasmUrl: `${baseUrl}/wasm/`,
+    standardFontDataUrl: `${baseUrl}standard_fonts/`,
+    wasmUrl: `${baseUrl}wasm/`,
     enableXfa: true,
     stopAtErrors: false
   });

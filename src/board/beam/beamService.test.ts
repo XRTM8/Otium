@@ -141,6 +141,69 @@ describe('Otium Smart Beam binary helpers', () => {
 });
 
 describe('Otium Smart Beam session routing', () => {
+  it('keeps relay sending pending until the receiver confirms opening', async () => {
+    const sender = new BeamService() as any;
+    sender.connectedRoom = 'OTM-1234'; sender.role = 'sender'; sender.sessionId = 'paired';
+    const upload = vi.spyOn(sender, 'putAttachment').mockResolvedValue('https://ntfy.sh/test.pdf');
+    let published!: () => void;
+    const reachedReceiver = new Promise<void>(resolve => { published = resolve; });
+    const broadcast = vi.spyOn(sender, 'broadcast').mockImplementation(async () => { published(); });
+    try {
+      const sending = sender.sendFileOverRelay({ buffer: pdfBuffer(), title: 'Test', pageNumber: 1, totalPages: 1, theme: 'midnight' });
+      await reachedReceiver;
+      expect(sender.getTransferState().phase).toBe('finalizing');
+      expect(sender.getTransferState().progress).toBeLessThan(100);
+      sender.handleFileCompletion(sender.fileCompletionId, true);
+      await sending;
+      expect(sender.getTransferState().phase).toBe('done');
+    } finally { upload.mockRestore(); broadcast.mockRestore(); sender.disconnect(); }
+  });
+
+  it('does not acknowledge PDF bytes until the receiving reader opens them', async () => {
+    const receiver = new BeamService() as any;
+    receiver.connectedRoom = 'OTM-1234'; receiver.role = 'receiver'; receiver.peerSessionId = 'paired';
+    const send = vi.fn();
+    receiver.rtcDataChannel = { readyState: 'open', close: vi.fn(), send };
+    let opened!: () => void;
+    receiver.subscribe((message: BeamMessage) => message.type === 'BEAM_PAYLOAD'
+      ? new Promise<void>(resolve => { opened = resolve; }) : undefined);
+    receiver.incomingFile = { transferId: 'file', title: 'Test', size: PDF_BYTES.length,
+      received: PDF_BYTES.length, parts: [pdfBuffer()], pageNumber: 1, totalPages: 1, theme: 'midnight' };
+    try {
+      const pending = receiver.finishIncomingFile('file');
+      expect(send).not.toHaveBeenCalled();
+      expect(receiver.getTransferState().phase).toBe('finalizing');
+      opened();
+      await pending;
+      expect(JSON.parse(send.mock.calls[0][0])).toMatchObject({ kind: 'file-complete', ok: true });
+      expect(receiver.getTransferState().phase).toBe('done');
+    } finally { receiver.disconnect(); }
+  });
+
+  it('reports reader failure to a relay sender instead of success', async () => {
+    const receiver = new BeamService() as any;
+    receiver.connectedRoom = 'OTM-1234'; receiver.role = 'receiver'; receiver.peerSessionId = 'paired';
+    const broadcast = vi.spyOn(receiver, 'broadcast').mockResolvedValue(undefined);
+    receiver.subscribe(async () => { throw new Error('PDF cannot be opened'); });
+    try {
+      await receiver.handleIncoming({ type: 'BEAM_PAYLOAD', roomCode: 'OTM-1234', sessionId: 'paired',
+        timestamp: Date.now(), payload: { title: 'Test', transferId: 'file' } }, 'relay');
+      expect(broadcast).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'BEAM_DOCUMENT_RESULT', transferId: 'file', ok: false, error: 'PDF cannot be opened'
+      }));
+      expect(receiver.getTransferState().phase).toBe('error');
+    } finally { broadcast.mockRestore(); receiver.disconnect(); }
+  });
+
+  it('does not claim success when no receiving reader is mounted', async () => {
+    const receiver = new BeamService() as any;
+    receiver.connectedRoom = 'OTM-1234'; receiver.role = 'receiver'; receiver.peerSessionId = 'paired';
+    try {
+      await expect(receiver.deliverDocument({ type: 'BEAM_PAYLOAD', sessionId: 'paired' }, 'p2p'))
+        .rejects.toThrow('not ready');
+    } finally { receiver.disconnect(); }
+  });
+
   it('transfers PDF bytes and waits for receiver confirmation over a direct channel', async () => {
     const sender = new BeamService() as any;
     const receiver = new BeamService() as any;
@@ -155,11 +218,11 @@ describe('Otium Smart Beam session routing', () => {
       readyState: 'open', close: vi.fn(),
       send: (data: unknown) => { void sender.handleDataChannelPayload(data); }
     };
-    const received = vi.fn();
+    const received = vi.fn(async () => {});
     receiver.subscribe(received);
     try {
       await sender.sendFileOverDataChannel({ buffer: pdfBuffer(), title: 'Test', pageNumber: 1, totalPages: 1, theme: 'midnight' });
-      expect(received).toHaveBeenCalledOnce();
+      expect(received).toHaveBeenCalledTimes(2);
       const payload = received.mock.calls[0][0].payload;
       expect(new Uint8Array(payload.pdfData)).toEqual(PDF_BYTES);
       expect(sender.getTransferState().phase).toBe('done');
