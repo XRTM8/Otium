@@ -96,10 +96,11 @@ describe('unified teacher workspace', () => {
     expect(host.querySelector('button[aria-label="قلم"]')).toBeNull();
     await click('إرجاع الأدوات'); expect(host.querySelector('button[aria-label="قلم"]')).not.toBeNull();
   });
-  it('keeps the phone reader clear of desktop whiteboard controls', async () => {
+  it('keeps phone document tools, including selection, without desktop board controls', async () => {
     await render('lesson-mobile', false, true);
     expect(host.querySelector('button[aria-label="إظهار السبورة"]')).toBeNull();
-    expect(host.querySelector('.teacher-dock')).toBeNull();
+    expect(host.querySelector('.teacher-mobile')).not.toBeNull();
+    expect(host.querySelector('button[aria-label="تحديد"]')).not.toBeNull();
     expect(teaching.layout).toBe('document');
   });
   it('waits for valid receipts from the paired reader instead of treating send as delivery', async () => {

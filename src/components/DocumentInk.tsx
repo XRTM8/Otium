@@ -178,7 +178,9 @@ export function DocumentInkProvider({ reader, children }: { reader: ReaderContro
   const documentStatus = status === 'error' || reader.annotationSaveStatus === 'error' ? 'error' : status === 'saving' || reader.annotationSaveStatus === 'saving' ? 'saving' : status;
   return <InkContext.Provider value={{ ready, tool: teaching.target === 'document' && !teaching.presentation ? tool : 'hand', color, size, stylus, marks: ready ? history.present : [], change, publishSelection }}>
     {children}
-    {teaching.layout !== 'document' && !teaching.mobile && <TeacherDock reader={reader} ink={{ ready, tool, setTool, canUndo: !!history.past.length, canRedo: !!history.future.length,
+    {/* Phone keeps its document annotation dock (including text selection),
+        while the desktop dock appears only in the board workspace. */}
+    {(teaching.mobile || teaching.layout !== 'document') && <TeacherDock reader={reader} ink={{ ready, tool, setTool, canUndo: !!history.past.length, canRedo: !!history.future.length,
       undo: () => dispatch({ type: 'undo' }), redo: () => dispatch({ type: 'redo' }), clear: () => change([]),
       status: documentStatus, delivery, exporting, exportPdf: () => void exportPdf(),
       message: message === 'load-error' ? (ar ? 'تعذر تحميل الشرح. أعد فتح الملف قبل التعديل.' : 'Could not load annotations. Reopen before editing.')
