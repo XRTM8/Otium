@@ -13,12 +13,14 @@ describe('PDF annotation placement', () => {
     const source = await original.save();
     const before = source.slice();
     const png = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII='), c => c.charCodeAt(0));
-    const context = { save() {}, restore() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, arc() {}, fill() {}, fillText() {} };
+    const context = { save() {}, restore() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, arc() {}, fill() {}, fillText() {}, fillRect: vi.fn() };
     vi.stubGlobal('document', { fonts: { ready: Promise.resolve(), load: async () => [] }, createElement: () => ({ width: 0, height: 0,
       getContext: () => context, toBlob: (callback: (blob: Blob) => void) => callback(new Blob([png], { type: 'image/png' })) }) });
     try {
       await exportInkPdf({ getData: async () => source } as any, [{ id: 'note', page: 2, type: 'note', color: '#000000', width: 0.03,
-        points: [{ x: 0.2, y: 0.3 }], text: 'شرح' }], 'Lecture', () => {});
+        points: [{ x: 0.2, y: 0.3 }], text: 'شرح' }], 'Lecture', () => {}, [{ id: 'highlight', pageNumber: 2,
+          type: 'highlight', color: '#fde047', rects: [{ xPct: 0.1, yPct: 0.2, widthPct: 0.4, heightPct: 0.03 }], text: 'Text', createdAt: 1 }]);
+      expect(context.fillRect).toHaveBeenCalledWith(175, 250, 700, 37.5);
       const call = vi.mocked(nativeSavePdf).mock.calls[0];
       expect(call[1]).toBe('Lecture-annotated.pdf');
       const exported = await PDFDocument.load(await call[0].arrayBuffer());

@@ -56,13 +56,10 @@ export const BoardSplitWorkspace: React.FC<BoardSplitWorkspaceProps> = ({
   return (
     <div
       ref={containerRef}
+      data-board-resizing={isDragging}
       dir={isRtl ? 'rtl' : 'ltr'}
       className="relative flex-1 w-full h-full flex overflow-hidden select-none"
     >
-      <nav aria-label={isRtl ? 'طريقة عرض المحاضرة' : 'Presentation layout'} className="fixed top-20 left-1/2 -translate-x-1/2 z-30 flex rounded-full border border-line bg-surface/95 p-1 shadow-lg text-ink backdrop-blur-md text-xs">
-        {([[100, isRtl ? 'الملف' : 'Document'], [50, isRtl ? 'تقسيم' : 'Split'], [0, isRtl ? 'السبورة' : 'Board']] as const).map(([value, label]) =>
-          <button key={value} aria-pressed={splitPercent === value} onClick={() => setSplitPercent(value)} className={`px-4 py-2 rounded-full ${splitPercent === value ? 'bg-accent text-on-accent' : 'hover:bg-hover'}`}>{label}</button>)}
-      </nav>
       {/* Pane 1: PDF Reader View */}
       {showReader && (
         <div

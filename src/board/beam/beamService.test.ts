@@ -141,13 +141,25 @@ describe('Otium Smart Beam binary helpers', () => {
 });
 
 describe('Otium Smart Beam session routing', () => {
-  it('routes annotation updates only within the active paired session', async () => {
+  it('also relays an explicit disconnect before closing an open direct channel', async () => {
+    const sender = new BeamService() as any;
+    sender.connectedRoom = 'OTM-1234'; sender.role = 'sender'; sender.sessionId = 'paired';
+    sender.rtcDataChannel = { readyState: 'open', send: vi.fn(), close: vi.fn() };
+    const publish = vi.spyOn(sender, 'publishMessage').mockResolvedValue(true);
+    try {
+      await sender.broadcast({ type: 'BEAM_DISCONNECT', roomCode: 'OTM-1234', sessionId: 'paired', timestamp: Date.now() });
+      expect(sender.rtcDataChannel.send).toHaveBeenCalledOnce();
+      expect(publish).toHaveBeenCalledOnce();
+    } finally { publish.mockRestore(); sender.disconnect(); }
+  });
+
+  it.each(['BEAM_INK_UPDATE', 'BEAM_TEXT_ANNOTATIONS', 'BEAM_SELECTION'])('routes %s only within the active paired session', async (type) => {
     const sender = new BeamService() as any;
     sender.connectedRoom = 'OTM-1234'; sender.role = 'sender'; sender.sessionId = 'paired';
     sender.peerState = { ...sender.peerState, connected: true };
     const listener = vi.fn();
     sender.subscribe(listener);
-    const message = { type: 'BEAM_INK_UPDATE', roomCode: 'OTM-1234', timestamp: Date.now(), ink: { documentId: 'book', upsert: [] } };
+    const message = { type, roomCode: 'OTM-1234', timestamp: Date.now(), ink: { documentId: 'book', upsert: [] } };
     try {
       await sender.handleIncoming({ ...message, sessionId: 'old' }, 'p2p');
       expect(listener).not.toHaveBeenCalled();

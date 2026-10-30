@@ -1369,3 +1369,29 @@ button:focus:not(:focus-visible),
 }
 
 
+/* Navigation must never start a native text selection or a long-press callout. */
+[data-reader-mode]:not([data-reader-mode="select"]) .textLayer,
+[data-reader-mode]:not([data-reader-mode="select"]) .textLayer * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-touch-callout: none;
+  pointer-events: none;
+}
+
+@keyframes otiumPanelIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes otiumPageIn {
+  from { opacity: .82; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.otium-tool-panel, .otium-panel-content { animation: otiumPanelIn 180ms cubic-bezier(.2,.8,.2,1) both; }
+.otium-tool-panel button { transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 120ms ease; }
+.otium-tool-panel button:active { transform: scale(.96); }
+.otium-tool-panel button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .otium-tool-panel, .otium-panel-content { animation: none; }
+  .otium-tool-panel button { transition: none; transform: none; }
+  .reader-viewport * { animation: none !important; transition-duration: 0ms !important; }
+}

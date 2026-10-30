@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { AnnotationQuad, AnnotationRect, TextAnnotation } from '../core/types';
 import type { Language } from '../core/i18n/translations';
+import { useDocumentInteraction } from './DocumentInk';
 import { HIGHLIGHT_COLORS, UNDERLINE_COLORS } from '../core/storage/annotations';
 import { normalizeCopiedArabicText } from '../core/search/arabic';
 import {
@@ -252,6 +253,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
   lang = 'ar',
   mobile = false
 }) => {
+  const { mode, publishSelection } = useDocumentInteraction();
   const [selectionState, setSelectionState] = useState<SelectionState | null>(null);
   const [selectedColor, setSelectedColor] = useState(HIGHLIGHT_COLORS[0].hex);
   const [copied, setCopied] = useState(false);
@@ -304,6 +306,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
     }
     selectionRef.current = null;
     selectionSignatureRef.current = '';
+    publishSelection(null);
     setSelectionState(null);
     setCopied(false);
     setSpeechError(null);
@@ -315,9 +318,12 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
     } catch {
       // Selection APIs are unavailable in a few embedded webviews.
     }
-  }, [clearCaptureTimers, stopSpeech]);
+  }, [clearCaptureTimers, stopSpeech, publishSelection]);
+
+  useEffect(() => { if (mode !== 'select') clearSelection(); }, [mode, clearSelection]);
 
   const captureSelection = useCallback(() => {
+    if (mode !== 'select') return false;
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed || selection.rangeCount === 0) return false;
 
@@ -408,13 +414,14 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
     if (!changed) return true;
 
     setSelectionState(nextState);
+    publishSelection({ page: nextState.pageNumber, rects: nextState.rects });
     setCopied(false);
     setSpeechError(null);
     setNoteMode(false);
     setNoteText('');
     stopSpeech();
     return true;
-  }, [stopSpeech]);
+  }, [stopSpeech, mode, publishSelection]);
 
   const scheduleCapture = useCallback(
     (delays: number[], clearWhenEmpty = false) => {
@@ -476,7 +483,9 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
   }, [mobile, scheduleCapture, stopSelectionWatchdog]);
 
   useEffect(() => {
+    if (mode !== 'select') return;
     const handlePointerDown = (event: PointerEvent) => {
+      if (mode !== 'select') return;
       pointerActiveRef.current = true;
       if (menuRef.current?.contains(event.target as Node)) return;
 
@@ -571,6 +580,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
       stopTts();
     };
   }, [
+    mode,
     clearCaptureTimers,
     clearSelection,
     mobile,

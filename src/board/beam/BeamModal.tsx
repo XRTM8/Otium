@@ -307,7 +307,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
         beamService.isMatchingRoom(msg.roomCode, receiverRoomRef.current)
       ) {
         saveRecentRoom(receiverRoomRef.current);
-        onSetBoardOpen(true);
+        onSetBoardOpen(false);
         onClose();
       }
     });

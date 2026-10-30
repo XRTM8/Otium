@@ -9,6 +9,8 @@ import { PdfPage } from './PdfPage';
 import { ErrorBoundary } from './ErrorBoundary';
 import { AnimatedCounter } from './AnimatedCounter';
 import { triggerHaptic } from '../core/utils/haptics';
+import { useDocumentInteraction } from './DocumentInk';
+import { computeOptimalPageScale } from '../core/reader/device';
 
 interface PageSlotProps {
   pageNum: number;
@@ -124,11 +126,13 @@ interface ReaderWorkspaceProps {
  * gestures; toolbars and platform navigation stay in the shells.
  */
 export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compact = false }) => {
+  const { mode: interactionMode } = useDocumentInteraction();
   const {
     doc,
     numPages,
     currentPage,
     zoom,
+    setZoom,
     theme,
     viewMode,
     lang,
@@ -148,10 +152,8 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
     handleTouchMove,
     handleTouchEnd,
     handleTouchCancel,
-    handleDoubleTap,
     isDraggingTouch,
     dualFlipKey,
-    dualFlipDir,
     numberJumpDisplay,
     scrollToPage
   } = reader;
@@ -163,6 +165,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
   const docIsRtl = reader.docIsRtl;
   const lastScrollPageRef = useRef<number>(currentPage);
   const scrollFrameRef = useRef<number | null>(null);
+  const mousePan = useRef<{ pointer: number; x: number; y: number; left: number; top: number } | null>(null);
 
   // Interactive precision scrubber state
   const [scrubState, setScrubState] = useState<{ page: number; x: number } | null>(null);
@@ -331,23 +334,32 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
     };
   }, []);
 
-  // When the page fits vertically, vertical touch gestures turn pages instead
-  // of panning: block native vertical panning so the page stays perfectly
-  // still until release. Overflowing pages keep native scrolling first.
   useLayoutEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
-    if (!doc || viewMode === 'continuous') {
-      container.style.touchAction = 'pan-x pan-y';
-      return;
-    }
-    let tallest = 0;
-    container.querySelectorAll<HTMLElement>('[data-pdf-page]').forEach((page) => {
-      tallest = Math.max(tallest, page.getBoundingClientRect().height);
+    container.style.touchAction = 'pan-x pan-y';
+    const pinch = (event: TouchEvent) => { if (interactionMode === 'hand' && event.touches.length > 1) event.preventDefault(); };
+    container.addEventListener('touchmove', pinch, { passive: false });
+    return () => container.removeEventListener('touchmove', pinch);
+  }, [interactionMode, doc, scrollContainerRef]);
+
+  useLayoutEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || !doc || typeof ResizeObserver === 'undefined') return;
+    let previousWidth = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const observer = new ResizeObserver(() => {
+      if (container.closest('[data-board-resizing="true"]')) return;
+      const width = container.clientWidth;
+      if (!width || Math.abs(width - previousWidth) < 24) return;
+      previousWidth = width;
+      clearTimeout(timer);
+      timer = setTimeout(() => setZoom(computeOptimalPageScale(basePageSize.width, basePageSize.height,
+        container.clientWidth, container.clientHeight, viewMode)), 80);
     });
-    container.style.touchAction =
-      tallest > 0 && tallest <= container.clientHeight - 48 ? 'pan-x' : 'pan-x pan-y';
-  }, [doc, viewMode, currentPage, zoom, compactLandscape, scrollContainerRef]);
+    observer.observe(container);
+    return () => { observer.disconnect(); clearTimeout(timer); };
+  }, [doc, viewMode, basePageSize.width, basePageSize.height, scrollContainerRef, setZoom]);
 
   const continuousPages = useMemo(
     () => Array.from({ length: numPages }, (_, index) => index + 1),
@@ -356,9 +368,10 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
 
   const EMPTY_ANNOTATIONS = useMemo<TextAnnotation[]>(() => [], []);
   const annotationsByPage = useMemo(() => {
-    if (!annotations || annotations.length === 0) return null;
+    const displayed = reader.beamSelection ? [...annotations, reader.beamSelection] : annotations;
+    if (!displayed.length) return null;
     const map = new Map<number, TextAnnotation[]>();
-    for (const a of annotations) {
+    for (const a of displayed) {
       const list = map.get(a.pageNumber);
       if (list) {
         list.push(a);
@@ -367,7 +380,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
       }
     }
     return map;
-  }, [annotations]);
+  }, [annotations, reader.beamSelection]);
 
   if (!doc) return null;
 
@@ -379,28 +392,9 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
     : 'transform 240ms cubic-bezier(0.16, 1, 0.3, 1)';
   const pagedAnimation =
     !isDraggingTouch && dualFlipKey > 0
-      ? `pagedTurn${
-          docIsRtl
-            ? dualFlipDir === 'forward'
-              ? 'Backward'
-              : 'Forward'
-            : dualFlipDir === 'forward'
-              ? 'Forward'
-              : 'Backward'
-        } 240ms cubic-bezier(0.16, 1, 0.3, 1) both`
+      ? 'otiumPageIn 160ms cubic-bezier(.2,.8,.2,1) both'
       : undefined;
-  const dualAnimation =
-    !isDraggingTouch && dualFlipKey > 0
-      ? `dualPageFlip${
-          docIsRtl
-            ? dualFlipDir === 'forward'
-              ? 'Backward'
-              : 'Forward'
-            : dualFlipDir === 'forward'
-              ? 'Forward'
-              : 'Backward'
-        } 260ms cubic-bezier(0.16, 1, 0.3, 1) both`
-      : undefined;
+  const dualAnimation = pagedAnimation;
 
   // Odd pages sit on the right in Arabic / RTL books and on the left in Latin / LTR books.
   // Using docIsRtl guarantees English books in Arabic UI are never mirrored or reversed.
@@ -537,20 +531,32 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
         dir="ltr"
         role="main"
         aria-label={lang === 'ar' ? 'مساحة قراءة المستند' : 'Document reading area'}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={handleTouchCancel}
-        onDoubleClick={(e) => {
-          if ((e.target as HTMLElement)?.closest('button, input, textarea, a, select, [role="button"], [role="menuitem"]')) {
-            return;
-          }
-          const sel = typeof window !== 'undefined' ? window.getSelection()?.toString().trim() : '';
-          if (!sel && handleDoubleTap) {
-            handleDoubleTap(e.clientX, e.clientY);
-          }
+        data-reader-mode={interactionMode}
+        onPointerDown={event => {
+          if (interactionMode !== 'hand' || event.pointerType !== 'mouse' || event.button !== 0 ||
+            (event.target as HTMLElement).closest('button, input, textarea, a, select')) return;
+          const container = event.currentTarget;
+          mousePan.current = { pointer: event.pointerId, x: event.clientX, y: event.clientY, left: container.scrollLeft, top: container.scrollTop };
+          container.setPointerCapture(event.pointerId); container.style.cursor = 'grabbing'; event.preventDefault();
         }}
+        onPointerMove={event => {
+          const pan = mousePan.current;
+          if (!pan || pan.pointer !== event.pointerId) return;
+          event.currentTarget.scrollLeft = pan.left - (event.clientX - pan.x);
+          event.currentTarget.scrollTop = pan.top - (event.clientY - pan.y);
+        }}
+        onPointerUp={event => {
+          mousePan.current = null;
+          event.currentTarget.style.cursor = interactionMode === 'hand' ? 'grab' : '';
+        }}
+        onPointerCancel={() => { mousePan.current = null; }}
+        onLostPointerCapture={() => { mousePan.current = null; }}
+        onTouchStart={interactionMode === 'hand' ? handleTouchStart : undefined}
+        onTouchMove={interactionMode === 'hand' ? handleTouchMove : undefined}
+        onTouchEnd={interactionMode === 'hand' ? handleTouchEnd : undefined}
+        onTouchCancel={interactionMode === 'hand' ? handleTouchCancel : undefined}
         style={{
+          cursor: interactionMode === 'hand' ? 'grab' : undefined,
           paddingTop: effectiveTopInset,
           scrollPaddingTop: effectiveTopInset,
           paddingBottom: bottomInset,

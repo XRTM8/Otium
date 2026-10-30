@@ -7,7 +7,7 @@ import type { Language } from '../core/i18n/translations';
 import { getCanvasPixelRatio } from '../core/reader/device';
 import { scheduleIdleWork, scheduleRender } from '../core/reader/renderScheduler';
 import { normalizeAnnotationRects } from '../core/annotations/geometry';
-import { DocumentInkLayer } from './DocumentInk';
+import { DocumentInkLayer, useDocumentInteraction } from './DocumentInk';
 
 interface PdfPageProps {
   doc: PDFDocumentProxy;
@@ -186,6 +186,7 @@ const PdfPageView: React.FC<PdfPageProps> = ({
   lang = 'ar',
   renderPriority = 0
 }) => {
+  const { mode } = useDocumentInteraction();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
@@ -583,6 +584,7 @@ const PdfPageView: React.FC<PdfPageProps> = ({
   }, [pageAnnotations, pageSize.width, pageSize.height, isDark]);
 
   const handlePageClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (mode !== 'select') { setActiveAnno(null); return; }
     const selection = window.getSelection();
     if (selection && !selection.isCollapsed && selection.toString().trim().length > 0) {
       setActiveAnno(null);
@@ -595,7 +597,7 @@ const PdfPageView: React.FC<PdfPageProps> = ({
     const xPct = (event.clientX - rect.left) / rect.width;
     const yPct = (event.clientY - rect.top) / rect.height;
 
-    const clicked = pageAnnotations.find((annotation) =>
+    const clicked = pageAnnotations.find((annotation) => annotation.id !== '__beam_selection' &&
       annotation.rects.some(
         (line) =>
           xPct >= line.xPct - 0.01 &&
@@ -674,8 +676,8 @@ const PdfPageView: React.FC<PdfPageProps> = ({
         ref={textLayerRef}
         dir="ltr"
         data-page-number={pageNumber}
-        className="textLayer absolute inset-0 select-text pointer-events-auto z-10"
-        style={{ transform: `scale(${scale})` }}
+        className={`textLayer absolute inset-0 z-10 ${mode === 'select' ? 'select-text pointer-events-auto' : 'select-none pointer-events-none'}`}
+        style={{ transform: `scale(${scale})`, userSelect: mode === 'select' ? 'text' : 'none', WebkitUserSelect: mode === 'select' ? 'text' : 'none' }}
       />
 
       {pageAnnotations.some((annotation) => annotation.note) && (
