@@ -98,208 +98,79 @@ function tryRecognizeLine(points: StrokePoint[]): RecognizedShape | null {
  */
 function tryRecognizeCircle(points: StrokePoint[]): RecognizedShape | null {
   if (points.length < 16) return null;
-
-  const first = points[0];
-  const last = points[points.length - 1];
-  const pathLen = calculatePathLength(points);
-
-  // Endpoints should meet (closed loop)
-  const closureDist = dist(first, last);
-  if (closureDist > pathLen * 0.32 && closureDist > 65) return null;
-
-  // Compute centroid
-  let sumX = 0;
-  let sumY = 0;
-  for (const pt of points) {
-    sumX += pt.x;
-    sumY += pt.y;
+  const xs = points.map(p => p.x), ys = points.map(p => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const width = maxX - minX, height = maxY - minY;
+  if (width < 30 || height < 30 || dist(points[0], points[points.length - 1]) > Math.max(18, Math.hypot(width, height) * .18)) return null;
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+  const radialError = points.reduce((sum, p) => sum + Math.abs(Math.hypot((p.x - cx) / (width / 2), (p.y - cy) / (height / 2)) - 1), 0) / points.length;
+  if (radialError > .12) return null;
+  const squareAspect = width / height > .88 && width / height < 1.14;
+  const rx = squareAspect ? (width + height) / 4 : width / 2;
+  const ry = squareAspect ? (width + height) / 4 : height / 2;
+  const result: StrokePoint[] = [];
+  for (let i = 0; i <= 72; i++) {
+    const angle = i / 72 * Math.PI * 2;
+    result.push({ x: cx + rx * Math.cos(angle), y: cy + ry * Math.sin(angle), pressure: .5 });
   }
-  const cx = sumX / points.length;
-  const cy = sumY / points.length;
+  return { type: 'circle', confidence: 1 - radialError, points: result };
+}
 
-  // Radii analysis
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  const radii: number[] = [];
-  for (const pt of points) {
-    minX = Math.min(minX, pt.x);
-    maxX = Math.max(maxX, pt.x);
-    minY = Math.min(minY, pt.y);
-    maxY = Math.max(maxY, pt.y);
-    radii.push(Math.hypot(pt.x - cx, pt.y - cy));
+/** Simplify a sampled edge while retaining real corners. */
+function simplify(points: StrokePoint[], tolerance: number): StrokePoint[] {
+  if (points.length < 3) return points;
+  let farthest = 0, index = 0;
+  for (let i = 1; i < points.length - 1; i++) {
+    const d = distToSegment(points[i], points[0], points[points.length - 1]);
+    if (d > farthest) { farthest = d; index = i; }
   }
+  if (farthest <= tolerance) return [points[0], points[points.length - 1]];
+  return [...simplify(points.slice(0, index + 1), tolerance).slice(0, -1), ...simplify(points.slice(index), tolerance)];
+}
 
-  const width = maxX - minX;
-  const height = maxY - minY;
-  if (width < 30 || height < 30) return null;
-
-  const avgRadius = radii.reduce((acc, r) => acc + r, 0) / radii.length;
-  const radiusVariance =
-    radii.reduce((acc, r) => acc + (r - avgRadius) ** 2, 0) / radii.length;
-  const stdDev = Math.sqrt(radiusVariance);
-
-  // Check if radii are consistent (low standard deviation)
-  const isCircleCandidate = stdDev / avgRadius < 0.24;
-
-  const aspect = width / height;
-  const isSquareAspect = aspect >= 0.78 && aspect <= 1.28;
-
-  if (isCircleCandidate) {
-    // Generate 36 smooth points along the perimeter
-    const snappedPoints: StrokePoint[] = [];
-    const rX = isSquareAspect ? (width + height) / 4 : width / 2;
-    const rY = isSquareAspect ? (width + height) / 4 : height / 2;
-    const steps = 36;
-
-    for (let i = 0; i <= steps; i++) {
-      const angle = (i / steps) * Math.PI * 2;
-      snappedPoints.push({
-        x: cx + rX * Math.cos(angle),
-        y: cy + rY * Math.sin(angle),
-        pressure: 0.5
-      });
+/** Corner detection supports rotated rectangles and triangles in any direction. */
+function tryRecognizePolygon(points: StrokePoint[]): RecognizedShape | null {
+  const xs = points.map(p => p.x), ys = points.map(p => p.y);
+  const width = Math.max(...xs) - Math.min(...xs), height = Math.max(...ys) - Math.min(...ys);
+  const diagonal = Math.hypot(width, height);
+  if (width < 25 || height < 25 || dist(points[0], points[points.length - 1]) > Math.max(18, diagonal * .18)) return null;
+  const tolerance = diagonal * .04;
+  let split = 1;
+  for (let i = 2; i < points.length; i++) if (dist(points[0], points[i]) > dist(points[0], points[split])) split = i;
+  const corners = [...simplify(points.slice(0, split + 1), tolerance).slice(0, -1), ...simplify([...points.slice(split), points[0]], tolerance).slice(0, -1)];
+  // A stroke may start halfway along an edge: remove that extra collinear point.
+  let changed = true;
+  while (changed && corners.length > 3) {
+    changed = false;
+    for (let i = 0; i < corners.length; i++) {
+      if (distToSegment(corners[i], corners[(i + corners.length - 1) % corners.length], corners[(i + 1) % corners.length]) < tolerance) {
+        corners.splice(i, 1); changed = true; break;
+      }
     }
-
-    return {
-      type: 'circle',
-      confidence: Math.max(0.75, 1 - stdDev / avgRadius),
-      points: snappedPoints
-    };
   }
-
-  return null;
-}
-
-/**
- * Recognizes if points form a rectangle or square.
- */
-function tryRecognizeRectangle(points: StrokePoint[]): RecognizedShape | null {
-  if (points.length < 12) return null;
-
-  const first = points[0];
-  const last = points[points.length - 1];
-  const pathLen = calculatePathLength(points);
-
-  const closureDist = dist(first, last);
-  if (closureDist > pathLen * 0.35 && closureDist > 75) return null;
-
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  for (const pt of points) {
-    minX = Math.min(minX, pt.x);
-    maxX = Math.max(maxX, pt.x);
-    minY = Math.min(minY, pt.y);
-    maxY = Math.max(maxY, pt.y);
+  if (corners.length !== 3 && corners.length !== 4) return null;
+  const perimeter = calculatePathLength([...corners, corners[0]]);
+  const ratio = calculatePathLength(points) / perimeter;
+  if (ratio < .7 || ratio > 1.4) return null;
+  const averageError = points.reduce((sum, p) => sum + Math.min(...corners.map((a, i) => distToSegment(p, a, corners[(i + 1) % corners.length]))), 0) / points.length;
+  if (averageError > diagonal * .035) return null;
+  if (corners.length === 3) return { type: 'triangle', confidence: .9, points: [...corners, corners[0]] };
+  for (let i = 0; i < 4; i++) {
+    const a = corners[i], b = corners[(i + 1) % 4], c = corners[(i + 2) % 4];
+    const dot = ((b.x - a.x) * (c.x - b.x) + (b.y - a.y) * (c.y - b.y)) / Math.max(1, dist(a, b) * dist(b, c));
+    if (Math.abs(dot) > .45) return null;
   }
-
-  const width = maxX - minX;
-  const height = maxY - minY;
-  if (width < 35 || height < 35) return null;
-
-  const perimeter = 2 * (width + height);
-  // Path length must roughly equal rectangle perimeter (±25%)
-  if (Math.abs(pathLen - perimeter) / perimeter > 0.30) return null;
-
-  // Check distance of points to the 4 bounding box edges
-  const edgeDistances = points.map((pt) => {
-    const dLeft = Math.abs(pt.x - minX);
-    const dRight = Math.abs(pt.x - maxX);
-    const dTop = Math.abs(pt.y - minY);
-    const dBottom = Math.abs(pt.y - maxY);
-    return Math.min(dLeft, dRight, dTop, dBottom);
-  });
-
-  const avgEdgeDist = edgeDistances.reduce((a, b) => a + b, 0) / edgeDistances.length;
-  const maxAllowedDist = Math.max(16, Math.min(width, height) * 0.16);
-
-  if (avgEdgeDist > maxAllowedDist) return null;
-
-  // Check for square aspect ratio snap
-  const aspect = width / height;
-  let finalMinX = minX;
-  let finalMaxX = maxX;
-  let finalMinY = minY;
-  let finalMaxY = maxY;
-
-  if (aspect >= 0.88 && aspect <= 1.14) {
-    const side = (width + height) / 2;
-    const cx = (minX + maxX) / 2;
-    const cy = (minY + maxY) / 2;
-    finalMinX = cx - side / 2;
-    finalMaxX = cx + side / 2;
-    finalMinY = cy - side / 2;
-    finalMaxY = cy + side / 2;
+  const origin = corners[0], length = dist(origin, corners[1]);
+  const ux = (corners[1].x - origin.x) / length, uy = (corners[1].y - origin.y) / length;
+  const px = corners.map(p => p.x * ux + p.y * uy), py = corners.map(p => -p.x * uy + p.y * ux);
+  let x0 = Math.min(...px), x1 = Math.max(...px), y0 = Math.min(...py), y1 = Math.max(...py);
+  const aspect = (x1 - x0) / (y1 - y0);
+  if (aspect > .88 && aspect < 1.14) {
+    const half = ((x1 - x0) + (y1 - y0)) / 4, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    x0 = cx - half; x1 = cx + half; y0 = cy - half; y1 = cy + half;
   }
-
-  return {
-    type: 'rectangle',
-    confidence: Math.max(0.7, 1 - avgEdgeDist / maxAllowedDist),
-    points: [
-      { x: finalMinX, y: finalMinY, pressure: 0.5 },
-      { x: finalMaxX, y: finalMinY, pressure: 0.5 },
-      { x: finalMaxX, y: finalMaxY, pressure: 0.5 },
-      { x: finalMinX, y: finalMaxY, pressure: 0.5 },
-      { x: finalMinX, y: finalMinY, pressure: 0.5 }
-    ]
-  };
-}
-
-/**
- * Recognizes if points form an equilateral or right triangle.
- */
-function tryRecognizeTriangle(points: StrokePoint[]): RecognizedShape | null {
-  if (points.length < 12) return null;
-
-  const first = points[0];
-  const last = points[points.length - 1];
-  const pathLen = calculatePathLength(points);
-
-  const closureDist = dist(first, last);
-  if (closureDist > pathLen * 0.35 && closureDist > 75) return null;
-
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  for (const pt of points) {
-    minX = Math.min(minX, pt.x);
-    maxX = Math.max(maxX, pt.x);
-    minY = Math.min(minY, pt.y);
-    maxY = Math.max(maxY, pt.y);
-  }
-
-  const width = maxX - minX;
-  const height = maxY - minY;
-  if (width < 40 || height < 40) return null;
-
-  // Approximate top vertex, bottom-left, bottom-right
-  const sortedByY = [...points].sort((a, b) => a.y - b.y);
-  const apex = sortedByY[0];
-  const bottomPoints = points.filter((p) => p.y > minY + height * 0.65);
-  if (bottomPoints.length < 4) return null;
-
-  const bLeft = [...bottomPoints].sort((a, b) => a.x - b.x)[0];
-  const bRight = [...bottomPoints].sort((a, b) => b.x - a.x)[0];
-
-  if (dist(bLeft, bRight) < width * 0.55) return null;
-
-  // Check point deviations to triangle edges (apex->bRight, bRight->bLeft, bLeft->apex)
-  let maxDev = 0;
-  for (const pt of points) {
-    const d1 = distToSegment(pt, apex, bRight);
-    const d2 = distToSegment(pt, bRight, bLeft);
-    const d3 = distToSegment(pt, bLeft, apex);
-    const minD = Math.min(d1, d2, d3);
-    if (minD > maxDev) maxDev = minD;
-  }
-
-  if (maxDev > Math.max(22, Math.min(width, height) * 0.22)) return null;
-
-  return {
-    type: 'triangle',
-    confidence: 0.8,
-    points: [
-      { x: apex.x, y: apex.y, pressure: 0.5 },
-      { x: bRight.x, y: bRight.y, pressure: 0.5 },
-      { x: bLeft.x, y: bLeft.y, pressure: 0.5 },
-      { x: apex.x, y: apex.y, pressure: 0.5 }
-    ]
-  };
+  const result = [[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]].map(([x, y]) => ({ x: x * ux - y * uy, y: x * uy + y * ux, pressure: .5 }));
+  return { type: 'rectangle', confidence: .9, points: result };
 }
 
 /**
@@ -313,17 +184,9 @@ export function recognizeGeometricShape(points: StrokePoint[]): RecognizedShape 
   const line = tryRecognizeLine(points);
   if (line) return line;
 
-  // 2. Check for circle / ellipse
-  const circle = tryRecognizeCircle(points);
-  if (circle) return circle;
-
-  // 3. Check for rectangle / square
-  const rect = tryRecognizeRectangle(points);
-  if (rect) return rect;
-
-  // 4. Check for triangle
-  const triangle = tryRecognizeTriangle(points);
-  if (triangle) return triangle;
-
-  return null;
+  // Corners must be considered before radial similarity: a square has a
+  // deceptively small radius variance and used to be snapped into a circle.
+  const polygon = tryRecognizePolygon(points);
+  if (polygon) return polygon;
+  return tryRecognizeCircle(points);
 }

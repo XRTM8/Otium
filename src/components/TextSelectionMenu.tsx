@@ -4,6 +4,7 @@ import {
   Check,
   Copy,
   Highlighter,
+  MoreHorizontal,
   Scissors,
   Search,
   StickyNote,
@@ -239,9 +240,8 @@ async function copyText(text: string): Promise<boolean> {
 }
 
 /**
- * Ephemeral selection layer + floating reading actions. Native selection is
- * captured into normalised page coordinates and then dismissed so Android's
- * copy/share toolbar never replaces the in-app menu.
+ * Reading actions capture page-relative geometry while preserving the native
+ * selection and its adjustment handles until an action is committed.
  */
 export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
   onAddAnnotation,
@@ -264,6 +264,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
   } | null>(null);
   const [noteMode, setNoteMode] = useState(false);
   const [noteText, setNoteText] = useState('');
+  const [expandedActions, setExpandedActions] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
   const selectionRef = useRef<SelectionState | null>(null);
@@ -308,6 +309,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
     selectionSignatureRef.current = '';
     publishSelection(null);
     setSelectionState(null);
+    setExpandedActions(false);
     setCopied(false);
     setSpeechError(null);
     setNoteMode(false);
@@ -405,13 +407,19 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
     const changed =
       !selectionRef.current || selectionSignatureRef.current !== signature;
 
+    const previousCoords = selectionRef.current?.coords;
     selectionRef.current = nextState;
     selectionSignatureRef.current = signature;
 
     // selectionchange fires repeatedly while Android finalises the selection.
     // Re-rendering identical geometry would reset the note editor, so only a
     // genuinely different selection replaces the visible state.
-    if (!changed) return true;
+    if (!changed) {
+      if (!mobile && (previousCoords?.x !== x || previousCoords?.y !== rawY || previousCoords?.isTop !== isTop)) {
+        setSelectionState(previous => previous ? { ...previous, coords: nextState.coords } : previous);
+      }
+      return true;
+    }
 
     setSelectionState(nextState);
     publishSelection({ page: nextState.pageNumber, rects: nextState.rects });
@@ -421,7 +429,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
     setNoteText('');
     stopSpeech();
     return true;
-  }, [stopSpeech, mode, publishSelection]);
+  }, [stopSpeech, mode, publishSelection, mobile]);
 
   const scheduleCapture = useCallback(
     (delays: number[], clearWhenEmpty = false) => {
@@ -474,7 +482,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
 
       if (hasSelection) {
         stopSelectionWatchdog();
-        scheduleCapture(mobile ? [0, 90, 240] : [0, 60], false);
+        scheduleCapture([100], false);
         return;
       }
 
@@ -506,7 +514,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
     const handlePointerUp = (event: PointerEvent) => {
       pointerActiveRef.current = false;
       if (menuRef.current?.contains(event.target as Node)) return;
-      scheduleCapture(mobile ? [0, 80, 220, 420] : [0, 50], true);
+      scheduleCapture([60, 180], true);
     };
 
     const handleTouchEnd = (event: TouchEvent) => {
@@ -529,7 +537,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
       );
 
       if (hasSelection) {
-        scheduleCapture(mobile ? [0, 80, 220] : [0, 50], false);
+        scheduleCapture([100], false);
         return;
       }
 
@@ -546,7 +554,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
       // The mobile action bar is pinned to the bottom and does not need to
       // follow the selection. Clearing here is what made the menu disappear
       // whenever Android nudged the page for its selection handles.
-      if (!mobile && selectionRef.current) clearSelection();
+      if (selectionRef.current) scheduleCapture([140], false);
     };
 
     const handleResize = () => {
@@ -696,7 +704,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
   };
 
   const actionClass = mobile
-    ? 'flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[10px] text-ink-muted transition-colors active:bg-hover'
+    ? 'flex min-h-11 min-w-12 shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1 text-[10px] text-ink-muted transition-colors active:bg-hover'
     : 'action-chip';
 
   return (
@@ -708,36 +716,10 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
       onContextMenu={(event) => event.preventDefault()}
       className={
         mobile
-          ? 'chrome-surface selection-bar-mobile fixed inset-x-0 bottom-0 z-[70] max-h-[78dvh] select-none overflow-y-auto rounded-t-3xl border-x-0 border-b-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-2.5 text-ink shadow-2xl'
+          ? `chrome-surface selection-bar-mobile fixed inset-x-2 bottom-[max(0.4rem,env(safe-area-inset-bottom,0px))] z-[70] ${noteMode ? 'max-h-[60dvh]' : 'max-h-[max(104px,34dvh)]'} select-none overflow-y-auto rounded-2xl px-2 py-1.5 text-ink shadow-2xl`
           : 'chrome-surface fixed z-[70] w-[min(336px,calc(100vw-16px))] select-none rounded-2xl p-1.5 text-ink shadow-2xl fluid-pop'
       }
     >
-      {mobile && (
-        <>
-          <div className="mb-2 flex justify-center">
-            <div className="h-1.5 w-10 rounded-full bg-line-strong" />
-          </div>
-          <div className="mb-2 flex items-start gap-2">
-            <div className="min-w-0 flex-1">
-              <div className={`text-[10px] font-medium uppercase text-ink-faint ${lang === 'ar' ? 'font-sans' : 'tracking-wide'}`}>
-                {labels.selectedText}
-              </div>
-              <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-ink-muted">
-                “{selectionState.text}”
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={clearSelection}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-ink-muted transition-colors active:bg-hover"
-              title={labels.close}
-              aria-label={labels.close}
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </>
-      )}
 
       {speechError && (
         <div
@@ -806,11 +788,11 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
           <>
             {/* Colour palette: one tap creates a persistent highlight while
                 every existing highlight on the page stays untouched. */}
-            <div className={`flex items-center gap-1.5 ${mobile ? 'px-0.5 pb-3' : 'px-1 pb-1.5'}`}>
+            <div className={`flex items-center gap-1.5 ${mobile ? 'px-0.5 pe-10 pb-1' : 'px-1 pb-1.5'}`}>
               <span className="shrink-0 text-[10px] font-medium text-ink-faint" title={labels.highlightColor}>
                 <Highlighter className={mobile ? 'h-5 w-5' : 'h-3.5 w-3.5'} />
               </span>
-              <div className="flex flex-1 items-center justify-between gap-1">
+              <div className="flex flex-1 min-w-0 items-center justify-between gap-1 overflow-x-auto">
                 {HIGHLIGHT_COLORS.map((color) => (
                   <button
                     key={color.id}
@@ -822,7 +804,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
                     title={`${labels.highlight} ${color.label}`}
                     aria-label={`${labels.highlight} ${color.label}`}
                     className={`rounded-full border border-black/20 transition-transform hover:scale-110 active:scale-95 ${
-                      mobile ? 'h-11 w-11' : 'h-5 w-5'
+                      mobile ? 'h-9 w-9 shrink-0' : 'h-5 w-5'
                     } ${
                       selectedColor === color.hex ? 'ring-2 ring-accent ring-offset-1 ring-offset-transparent' : ''
                     }`}
@@ -836,16 +818,17 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
                 title={labels.underline}
                 aria-label={labels.underline}
                 className={`flex items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-hover hover:text-ink ${
-                  mobile ? 'h-11 w-11' : 'h-6 w-6'
+                  mobile ? 'h-9 w-9 shrink-0' : 'h-6 w-6'
                 }`}
               >
                 <UnderlineIcon className={mobile ? 'h-4 w-4' : 'h-3.5 w-3.5'} />
               </button>
             </div>
 
+            {mobile && <button type="button" onClick={clearSelection} aria-label={labels.close} className="absolute top-1.5 end-1.5 h-9 w-9 flex items-center justify-center rounded-xl text-ink-muted"><X size={16} /></button>}
             <div className="h-px bg-line-subtle" />
 
-            <div className={mobile ? 'flex items-stretch gap-1 pt-2' : 'flex items-center gap-0.5 pt-1'}>
+            <div className={mobile ? 'flex items-stretch justify-between gap-1 overflow-x-auto pt-1' : 'flex items-center gap-0.5 pt-1'}>
               <button
                 type="button"
                 onClick={() => void handleCopy()}
@@ -863,7 +846,7 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
                 <span>{labels.note}</span>
               </button>
 
-              {onClipToBoard && (
+              {onClipToBoard && (!mobile || expandedActions) && (
                 <button
                   type="button"
                   onClick={() => {
@@ -878,14 +861,14 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
                 </button>
               )}
 
-              {onSearchSelectedText && (
+              {onSearchSelectedText && (!mobile || expandedActions) && (
                 <button type="button" onClick={handleSearch} className={actionClass} title={labels.search}>
                   <Search className="w-4 h-4" />
                   <span>{labels.search}</span>
                 </button>
               )}
 
-              <button
+              {(!mobile || expandedActions) && <button
                 type="button"
                 onClick={toggleSpeech}
                 className={`${actionClass} ${isSpeaking ? 'text-highlight' : ''}`}
@@ -893,8 +876,9 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
               >
                 {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                 <span>{isSpeaking ? labels.stop : labels.speak}</span>
-              </button>
+              </button>}
 
+              {mobile && <button type="button" className={actionClass} aria-expanded={expandedActions} aria-label={lang === 'ar' ? 'المزيد من أدوات التحديد' : 'More selection tools'} onClick={() => setExpandedActions(value => !value)}><MoreHorizontal size={18} /><span>{lang === 'ar' ? 'المزيد' : 'More'}</span></button>}
               {overlappingAnnotation && onDeleteAnnotation && (
                 <button
                   type="button"

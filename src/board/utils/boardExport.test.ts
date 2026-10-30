@@ -2,6 +2,13 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderBoardPageToContext, type ExportableBoardPage } from './boardExport';
 
 describe('boardExport', () => {
+  it('includes clipped images in the rendered export instead of silently omitting them', () => {
+    const ctx = { save: vi.fn(), restore: vi.fn(), clearRect: vi.fn(), fillRect: vi.fn(), scale: vi.fn(), drawImage: vi.fn() } as unknown as CanvasRenderingContext2D;
+    const image = { naturalWidth: 400, naturalHeight: 200 } as HTMLImageElement;
+    renderBoardPageToContext(ctx, { id: 'image-board', background: 'white', strokes: [] }, 1920, 1080,
+      [{ id: 'clip', type: 'image', content: 'data:image/png;base64,...', pageNumber: 1, x: 100, y: 80, width: 400, height: 200, createdAt: 1 }], new Map([['clip', image]]));
+    expect(ctx.drawImage).toHaveBeenCalledWith(image, 100, 80, 400, 200);
+  });
   it('renders strokes without errors on canvas context', () => {
     const mockCtx = {
       save: vi.fn(),

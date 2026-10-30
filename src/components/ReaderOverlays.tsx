@@ -107,6 +107,14 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader, mobile =
         </div>
       )}
 
+      {(reader.autoBeam.active || reader.autoBeam.error) && <div role={reader.autoBeam.error ? 'alert' : 'status'} dir={reader.lang === 'ar' ? 'rtl' : 'ltr'}
+        className="chrome-surface fixed inset-x-3 top-20 z-50 mx-auto flex max-w-lg items-center gap-3 rounded-2xl px-4 py-3 text-xs text-ink shadow-lg">
+        <span className="flex-1">{reader.autoBeam.error
+          ? (reader.lang === 'ar' ? 'تعذر فتح الملف على السبورة تلقائياً. تحقق من الربط وأعد المحاولة.' : 'Could not open this file on the board automatically. Check the connection and retry.')
+          : (reader.lang === 'ar' ? `جارٍ فتح الملف على السبورة… ${Math.round(reader.autoBeam.progress)}%` : `Opening on the board… ${Math.round(reader.autoBeam.progress)}%`)}</span>
+        {reader.autoBeam.error && <><button type="button" className="min-h-11 px-2 text-accent" onClick={reader.autoBeam.retry}>{reader.lang === 'ar' ? 'إعادة المحاولة' : 'Retry'}</button><button type="button" aria-label={reader.lang === 'ar' ? 'إغلاق التنبيه' : 'Dismiss notice'} onClick={reader.autoBeam.dismiss}><X size={18} /></button></>}
+      </div>}
+
       {reader.isLoading && (
         <div
           role="status"

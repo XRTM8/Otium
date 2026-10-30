@@ -17,6 +17,7 @@ export interface BoardStroke {
   color: string;
   width: number;
   tool: 'pen' | 'highlighter' | 'eraser';
+  shape?: 'line' | 'circle' | 'rectangle' | 'triangle';
 }
 
 export interface BoardSnippet {

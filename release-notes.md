@@ -1,3 +1,14 @@
+# Otium 1.9.13 — Automatic classroom files and smoother annotation tools
+
+- Automatically transfer a newly opened PDF from the paired presenter to the board, even with the Beam dialog closed; queue the latest opened file and expose progress and retry.
+- Share one transfer queue between pairing, file picking, and explicit retry instead of competing manual and automatic send paths.
+- Drag saved page notes directly, tap to edit text and color, and keep a move as one undoable action.
+- Recognize squares, rectangles, rotated rectangles, triangles in either direction, circles, ellipses, and lines on draw-and-hold; preserve sharp polygon corners in live ink and exports.
+- Keep native text-selection handles active through dragging and scrolling, debounce geometry capture, and use a compact two-row selection menu on phones.
+- Preserve the selected annotation tool when a Beam peer reconnects.
+- Include clipped images in whiteboard PDF/PNG exports and report incomplete image encoding.
+- Synchronize view-mode changes from settings as well as toolbars; keep the board canvas fitted when a large viewport reaches the raster memory limit.
+
 # Otium 1.9.12 — Clearer whiteboard ink and dependable note controls
 
 - Supersample whiteboard ink on standard displays with a bounded backing store, and stop resetting canvas dimensions on every stroke update.

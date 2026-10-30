@@ -11,7 +11,6 @@ import { WelcomeScreen } from '../components/WelcomeScreen';
 import { ReaderWorkspace } from '../components/ReaderWorkspace';
 import { BoardSplitWorkspace } from '../board/components/BoardSplitWorkspace';
 import { BeamModal } from '../board/beam/BeamModal';
-import { beamService } from '../board/beam/beamService';
 import { DocumentInkProvider } from '../components/DocumentInk';
 import { TeachingProvider, useTeaching } from '../components/TeachingContext';
 import type { BoardSnippet } from '../board/types';
@@ -239,7 +238,7 @@ const DesktopReader: React.FC = () => {
             onNextPage={reader.goToNextPage}
             onZoomChange={reader.setZoom}
             onThemeChange={reader.changeTheme}
-            onViewModeChange={(mode) => { reader.changeViewMode(mode); beamService.sendViewMode(mode); }}
+            onViewModeChange={reader.changeViewMode}
             onToggleBookmark={() => reader.toggleBookmark(reader.currentPage)}
             onToggleFullscreen={reader.handleToggleFullscreen}
             onToggleSidebar={() => reader.setIsSidebarOpen(true)}

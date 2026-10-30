@@ -625,7 +625,7 @@ const PdfPageView: React.FC<PdfPageProps> = ({
     <div
       ref={containerRef}
       onClick={handlePageClick}
-      onContextMenu={(event) => event.preventDefault()}
+      onContextMenu={(event) => { if (mode !== 'select') event.preventDefault(); }}
       dir="ltr"
       data-page-number={pageNumber}
       data-pdf-page={pageNumber}

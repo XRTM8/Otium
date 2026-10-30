@@ -70,6 +70,7 @@ import { syncNativeImmersive } from '../platform/ui';
 import { stopTts } from '../platform/tts';
 import { base64ToArrayBuffer, beamService } from '../board/beam/beamService';
 import type { BeamMessage } from '../board/types';
+import { useAutoBeamDocument } from '../board/beam/useAutoBeamDocument';
 
 export interface ReaderCapabilities {
   keyboard: boolean;
@@ -262,6 +263,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     role: beamService.getRole()
   });
   const [beamPeerConnected, setBeamPeerConnected] = useState(beamService.getPeerState().connected);
+  const autoBeam = useAutoBeamDocument({ doc, docId, title: docTitle, page: currentPage, total: numPages, theme, viewMode,
+    room: beamState.room, role: beamState.role, peerConnected: beamPeerConnected, loading: isLoading });
   useEffect(() => beamService.onPeerChange(peer => setBeamPeerConnected(peer.connected)), []);
   useEffect(() => {
     if (beamPeerConnected) return;
@@ -897,6 +900,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       }
       setViewMode(nextMode);
       saveViewMode(nextMode);
+      if (beamService.getRole() === 'sender') beamService.sendViewMode(nextMode);
       if (basePageSize.width && basePageSize.height && typeof window !== 'undefined') {
         const fit = computeOptimalPageScale(
           basePageSize.width,
@@ -1436,10 +1440,11 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const openFile = useCallback(async (file: File) => {
     try {
       const buffer = await file.arrayBuffer();
-      await loadDocumentRef.current(buffer, file.name);
+      return await loadDocumentRef.current(buffer, file.name);
     } catch (error) {
       setDocumentError(describeDocumentError(error, lang));
       console.error('Error reading file:', error);
+      return false;
     }
   }, [lang]);
 
@@ -2344,6 +2349,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     loadDocumentBytes,
     beamRoom: beamState.room,
     beamPeerConnected,
+    autoBeam,
     beamRole: beamState.role,
     disconnectBeam: () => beamService.disconnect()
   };

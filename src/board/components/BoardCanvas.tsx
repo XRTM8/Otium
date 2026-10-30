@@ -89,7 +89,11 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     const pts = currentPointsRef.current;
     if (pts.length < 5) return;
 
-    const recognized = recognizeGeometricShape(pts);
+    const rect = stageRef.current?.getBoundingClientRect();
+    if (!rect?.width || !rect.height) return;
+    // Recognition uses visible geometry so a square stays square in a tall
+    // split pane, rather than being classified in stretched storage space.
+    const recognized = recognizeGeometricShape(pts.map(p => ({ ...p, x: p.x * rect.width / 1920, y: p.y * rect.height / 1080 })));
     if (recognized) {
       if ('vibrate' in navigator) {
         try {
@@ -97,12 +101,13 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
         } catch {}
       }
       isShapeSnappedRef.current = true;
-      currentPointsRef.current = recognized.points;
+      const points = recognized.points.map(p => ({ ...p, x: p.x * 1920 / rect.width, y: p.y * 1080 / rect.height }));
+      currentPointsRef.current = points;
 
       setStrokes((prev) => {
         if (prev.length === 0) return prev;
         const last = prev[prev.length - 1];
-        return [...prev.slice(0, -1), { ...last, points: recognized.points }];
+        return [...prev.slice(0, -1), { ...last, points, shape: recognized.type }];
       });
     }
   }, []);
@@ -183,16 +188,15 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     if (rect.width === 0 || rect.height === 0) return;
     const raster = boardRasterSize(rect.width, rect.height, window.devicePixelRatio || 1);
 
+    canvas.style.width = `${rect.width}px`;
+    canvas.style.height = `${rect.height}px`;
+    laserCanvas.style.width = `${rect.width}px`;
+    laserCanvas.style.height = `${rect.height}px`;
     if (canvas.width === raster.width && canvas.height === raster.height) return;
     canvas.width = raster.width;
     canvas.height = raster.height;
-    canvas.style.width = `${rect.width}px`;
-    canvas.style.height = `${rect.height}px`;
-
     laserCanvas.width = raster.width;
     laserCanvas.height = raster.height;
-    laserCanvas.style.width = `${rect.width}px`;
-    laserCanvas.style.height = `${rect.height}px`;
 
     repaintAllStrokes();
   }, [repaintAllStrokes]);

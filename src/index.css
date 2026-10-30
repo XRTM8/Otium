@@ -1065,12 +1065,11 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-body[data-has-selection='true'] .reader-viewport {
-  touch-action: none !important;
-}
-
-body[data-has-selection='true'] .textLayer {
-  touch-action: none !important;
+/* Keep native selection handles in charge of their gesture. Changing
+   touch-action after selection starts cancels handle dragging on Android. */
+body[data-has-selection='true'] .teacher-dock {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .reader-viewport {

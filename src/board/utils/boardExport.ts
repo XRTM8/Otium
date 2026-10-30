@@ -18,7 +18,8 @@ export function renderBoardPageToContext(
   page: ExportableBoardPage,
   width: number,
   height: number,
-  snippets: BoardSnippet[] = []
+  snippets: BoardSnippet[] = [],
+  images: ReadonlyMap<string, HTMLImageElement> = new Map()
 ): void {
   ctx.save();
   ctx.clearRect(0, 0, width, height);
@@ -44,7 +45,10 @@ export function renderBoardPageToContext(
 
   // 3. Draw snippets (text quotes or image cards)
   for (const snip of snippets) {
-    if (snip.type === 'text') {
+    if (snip.type === 'image') {
+      const image = images.get(snip.id);
+      if (image) ctx.drawImage(image, snip.x, snip.y, snip.width, snip.height || snip.width * image.naturalHeight / Math.max(1, image.naturalWidth));
+    } else if (snip.type === 'text') {
       ctx.fillStyle = isDark ? '#1e293b' : '#f8fafc';
       ctx.strokeStyle = isDark ? '#334155' : '#e2e8f0';
       ctx.lineWidth = 1;
@@ -62,6 +66,16 @@ export function renderBoardPageToContext(
   }
 
   ctx.restore();
+}
+
+async function loadSnippetImages(snippets: BoardSnippet[]): Promise<Map<string, HTMLImageElement>> {
+  const entries = await Promise.all(snippets.filter(snippet => snippet.type === 'image').map(snippet => new Promise<[string, HTMLImageElement]>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve([snippet.id, image]);
+    image.onerror = () => reject(new Error('A clipped image could not be included in the export.'));
+    image.src = snippet.content;
+  })));
+  return new Map(entries);
 }
 
 function roundRect(
@@ -113,17 +127,18 @@ export async function exportPageToPng(
   canvas.width = Math.max(2560, width * 2);
   canvas.height = Math.max(1440, height * 2);
   const ctx = canvas.getContext('2d');
-  if (!ctx) return;
+  if (!ctx) throw new Error('Could not prepare the image export.');
 
-  renderBoardPageToContext(ctx, page, canvas.width, canvas.height, snippets);
+  const images = await loadSnippetImages(snippets);
+  renderBoardPageToContext(ctx, page, canvas.width, canvas.height, snippets, images);
 
-  return new Promise<void>((resolve) => {
+  return new Promise<void>((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (blob) {
         const dateStr = new Date().toISOString().slice(0, 10);
         triggerFileDownload(blob, `Otium_Board_Page_${pageNumber}_${dateStr}.png`);
-      }
-      resolve();
+        resolve();
+      } else reject(new Error('Could not encode the exported image.'));
     }, 'image/png');
   });
 }
@@ -143,13 +158,14 @@ export async function exportAllPagesToPdf(
   canvas.width = targetWidth;
   canvas.height = targetHeight;
   const ctx = canvas.getContext('2d');
-  if (!ctx) return;
+  if (!ctx) throw new Error('Could not prepare the PDF export.');
 
   const pdfPages: PdfImagePage[] = [];
+  const images = await loadSnippetImages(snippets);
 
   for (let i = 0; i < pages.length; i++) {
     const page = pages[i];
-    renderBoardPageToContext(ctx, page, targetWidth, targetHeight, snippets);
+    renderBoardPageToContext(ctx, page, targetWidth, targetHeight, snippets, images);
 
     const jpegBlob = await new Promise<Blob | null>((resolve) => {
       canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.98);
@@ -165,7 +181,7 @@ export async function exportAllPagesToPdf(
     }
   }
 
-  if (pdfPages.length === 0) return;
+  if (pdfPages.length !== pages.length) throw new Error('Could not encode all whiteboard pages.');
 
   const pdfBytes = buildPdfFromJpegPages(pdfPages);
   const pdfBlob = new Blob([pdfBytes as unknown as BlobPart], { type: 'application/pdf' });

@@ -161,7 +161,7 @@ describe('unified teacher workspace', () => {
     await writeInk('lesson-note-delete', [{ id: 'note-1', page: 1, type: 'note', color: '#2563eb', width: .03, points: [{ x: .2, y: .2 }], text: 'Lesson note' }]);
     await render('lesson-note-delete');
     await settled(() => !!host.querySelector('text[role="button"]'));
-    await act(async () => { host.querySelector('text[role="button"]')!.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 22, pointerType: 'mouse', button: 0, bubbles: true })); });
+    await act(async () => { const note = host.querySelector('text[role="button"]')!; note.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 22, pointerType: 'mouse', button: 0, bubbles: true })); note.dispatchEvent(new PointerEvent('pointerup', { pointerId: 22, pointerType: 'mouse', button: 0, bubbles: true })); });
     expect(document.querySelector('[role="dialog"]')).not.toBeNull();
     await click('حذف الملاحظة');
     expect(document.querySelector('[role="dialog"]')).toBeNull();
@@ -190,6 +190,27 @@ describe('unified teacher workspace', () => {
     await render('lesson-background');
     expect(host.querySelector('[data-board-color]')?.getAttribute('data-board-color')).toBe('#000000');
     expect(teaching.prefs.boardColor).toBe('#000000');
+  });
+  it('moves a note as one undoable action and saves its chosen color', async () => {
+    const original = { id: 'movable-note', page: 1, type: 'note' as const, color: '#e11d48', width: .03, points: [{ x: .2, y: .2 }], text: 'Move me' };
+    await writeInk('lesson-note-move', [original]);
+    await render('lesson-note-move');
+    await settled(() => !!host.querySelector('text[role="button"]'));
+    const note = host.querySelector('text[role="button"]')!;
+    const event = (type: string, x: number, y: number) => note.dispatchEvent(new PointerEvent(type, { pointerId: 51, pointerType: 'mouse', button: 0, clientX: x, clientY: y, bubbles: true }));
+    await act(async () => { event('pointerdown', 160, 90); });
+    await act(async () => { event('pointermove', 240, 135); });
+    await act(async () => { event('pointerup', 240, 135); });
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(Number(host.querySelector('text[role="button"]')?.getAttribute('x'))).toBeCloseTo(240);
+    await click('تراجع');
+    expect(Number(host.querySelector('text[role="button"]')?.getAttribute('x'))).toBeCloseTo(160);
+    const restored = host.querySelector('text[role="button"]')!;
+    await act(async () => { for (const type of ['pointerdown', 'pointerup']) restored.dispatchEvent(new PointerEvent(type, { pointerId: 52, pointerType: 'mouse', button: 0, bubbles: true })); });
+    await click('لون الملاحظة #2563eb'); await click('حفظ');
+    expect(host.querySelector('text[role="button"]')?.getAttribute('fill')).toBe('#2563eb');
+    await settled(() => host.textContent!.includes('محفوظ على هذا الجهاز'));
+    expect((await readInk('lesson-note-move'))[0].color).toBe('#2563eb');
   });
   it('keeps its high resolution backing canvas while a stroke is being written', async () => {
     await render('lesson-raster'); await click('إظهار السبورة'); await click('قلم');

@@ -20,9 +20,7 @@ import {
 import type { Language } from '../../core/i18n/translations';
 import type { ThemeMode } from '../../core/types';
 import type { ReaderController } from '../../app/useReaderController';
-import { getDocumentFromStorage } from '../../core/storage/documents';
 import {
-  BeamSendError,
   beamService,
   buildBeamLink,
   formatRoomCode,
@@ -49,34 +47,6 @@ interface BeamModalProps {
   isBoardOpen?: boolean;
   onSetBoardOpen: (open: boolean) => void;
   onClose: () => void;
-}
-
-function describeBeamError(error: unknown, lang: Language): string {
-  const ar = lang === 'ar';
-  if (error instanceof BeamSendError) {
-    switch (error.code) {
-      case 'peer-unreachable':
-        return ar
-          ? 'لم تستجب السبورة حتى الآن. تأكد أن الحاسبة مفتوحة على نافذة «استقبال» وأن الرمز مطابق، ثم أعد المحاولة.'
-          : 'The receiver did not answer. Make sure the PC is on the Receiver tab with the same code, then retry.';
-      case 'too-large':
-        return ar
-          ? 'الملف أكبر من حد النقل السحابي. اجعل الهاتف والحاسبة على نفس شبكة الواي فاي أو هوتسبوت الهاتف حتى يتم النقل المباشر.'
-          : 'This PDF is too large for the cloud relay. Keep both devices on the same Wi-Fi or phone hotspot for the direct transfer.';
-      case 'busy':
-        return ar
-          ? 'هناك عملية نقل مستند جارية بالفعل. انتظر انتهاءها ثم أعد المحاولة.'
-          : 'Another document transfer is already running. Wait for it to finish, then retry.';
-      case 'invalid-document':
-        return ar
-          ? `تعذر فتح ملف PDF على الجهاز الآخر: ${error.message}`
-          : `The receiving device could not open the PDF: ${error.message}`;
-      default:
-        return error.message;
-    }
-  }
-  if (error instanceof Error && error.message) return error.message;
-  return ar ? 'تعذر إتمام النقل. أعد المحاولة.' : 'The transfer did not complete. Please retry.';
 }
 
 function formatBytes(bytes: number): string {
@@ -124,12 +94,10 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     }
     return getPersistentReceiverRoomCode();
   });
-  const hasAutoBeamedRef = useRef(false);
   const launchAppliedRef = useRef(false);
   const receiverRoomRef = useRef(receiverRoomCode);
   receiverRoomRef.current = receiverRoomCode;
 
-  const [isSending, setIsSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [recentRooms, setRecentRooms] = useState<string[]>([]);
@@ -154,6 +122,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     beamService.getTransferState()
   );
 
+  const isSending = transfer.active && transfer.direction === 'send';
   const connectedRoom = beamState.room;
   const connectedRemotePeer =
     beamState.role === 'receiver' && peer.connected
@@ -327,82 +296,17 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     setIsScanningCamera(false);
   }, []);
 
-  // Send current book or custom file to the receiving board.
-  const handleBeamDocument = useCallback(
-    async (overrideCode?: string, overrideBuffer?: ArrayBuffer, overrideTitle?: string) => {
-      const raw = (overrideCode || targetRoomCode || beamService.getConnectedRoom() || '').trim();
-      const code = formatRoomCode(raw);
-      if (!code) {
-        setBeamError(
-          lang === 'ar'
-            ? 'يرجى إدخال رمز السبورة أولاً.'
-            : 'Please enter the board code first.'
-        );
-        return;
-      }
-
-      setBeamError(null);
-      hasAutoBeamedRef.current = true;
-
-      let buffer = overrideBuffer;
-      const title =
-        overrideTitle ||
-        reader.docTitle ||
-        (lang === 'ar' ? 'المحاضرة' : 'Lecture Document');
-      const pageNumber = reader.currentPage || 1;
-      const totalPages = reader.numPages || 1;
-
-      if (!buffer) {
-        if (!reader.doc || !reader.docId) {
-          beamFileInputRef.current?.click();
-          return;
-        }
-        try {
-          const docBuf = await getDocumentFromStorage(reader.docId);
-          if (!docBuf) throw new Error('Document buffer not found in storage');
-          buffer = docBuf;
-        } catch {
-          setBeamError(
-            lang === 'ar' ? 'تعذر قراءة ملف المستند' : 'Failed to read document'
-          );
-          return;
-        }
-      }
-
-      if (!buffer || buffer.byteLength === 0) {
-        setBeamError(
-          lang === 'ar' ? 'ملف المستند فارغ.' : 'The selected document is empty.'
-        );
-        return;
-      }
-
-      setIsSending(true);
-      setSendSuccess(false);
-      setBeamError(null);
-
-      try {
-        await beamService.sendDocument({
-          roomCode: code,
-          buffer,
-          title,
-          pageNumber,
-          totalPages,
-          theme: reader.theme
-        });
-        setSendSuccess(true);
-        setTargetRoomCode(code);
-        setTimeout(() => {
-          setActiveTab('remote');
-        }, 250);
-      } catch (error) {
-        console.error('Failed to beam document:', error);
-        setBeamError(describeBeamError(error, lang));
-      } finally {
-        setIsSending(false);
-      }
-    },
-    [targetRoomCode, reader, lang]
-  );
+  // All file transfers are owned by the reader, including when this modal
+  // is closed. Pairing and manual Retry share that same queue.
+  const handleBeamDocument = useCallback(async (overrideCode?: string) => {
+    const code = formatRoomCode((overrideCode || targetRoomCode || beamService.getConnectedRoom() || '').trim());
+    if (!code) { setBeamError(lang === 'ar' ? 'يرجى إدخال رمز السبورة أولاً.' : 'Please enter the board code first.'); return; }
+    if (!reader.doc || !reader.docId) { beamFileInputRef.current?.click(); return; }
+    setBeamError(null);
+    beamService.startSender(code);
+    reader.autoBeam.retry();
+    setTargetRoomCode(code); setSendSuccess(true); setActiveTab('remote');
+  }, [targetRoomCode, reader, lang]);
 
   // Quick remote pairing. The service retries the handshake continuously, so
   // there is no 8-attempt limit and no need for duplicate QUERY messages.
@@ -420,7 +324,6 @@ export const BeamModal: React.FC<BeamModalProps> = ({
       }
 
       setBeamError(null);
-      hasAutoBeamedRef.current = true;
 
       if (reader.doc) {
         void handleBeamDocument(code);
@@ -437,48 +340,17 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     [targetRoomCode, reader.doc, handleBeamDocument, lang]
   );
 
-  // Auto-beam the active lecture when a paired receiver reports that it has no
-  // document open. Runs once per pairing; manual re-beam remains available.
-  useEffect(() => {
-    if (
-      !isOpen ||
-      beamState.role !== 'sender' ||
-      !peer.connected ||
-      peer.docTitle ||
-      !reader.doc ||
-      hasAutoBeamedRef.current
-    ) {
-      return;
-    }
-    const target = beamState.room || targetRoomCode;
-    if (!target) return;
-    hasAutoBeamedRef.current = true;
-    void handleBeamDocument(target);
-  }, [
-    isOpen,
-    beamState.role,
-    beamState.room,
-    peer.connected,
-    peer.docTitle,
-    reader.doc,
-    targetRoomCode,
-    handleBeamDocument
-  ]);
-
   // File picker handler to beam a file directly without opening it first
   const handleBeamFileDirect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      // Also open the document in the local reader so the presenter can see and navigate it.
-      void reader.openFile(file);
-      const buf = await file.arrayBuffer();
-      const code = targetRoomCode.trim() || connectedRoom || '';
-      if (!code) {
-        setBeamError(lang === 'ar' ? 'يرجى إدخال رمز السبورة أولاً' : 'Please enter room code first');
-        return;
-      }
-      void handleBeamDocument(code, buf, file.name.replace(/\.pdf$/i, ''));
+      const code = formatRoomCode(targetRoomCode.trim() || connectedRoom || '');
+      if (!code) { setBeamError(lang === 'ar' ? 'يرجى إدخال رمز السبورة أولاً' : 'Please enter room code first'); return; }
+      const opened = await reader.openFile(file);
+      if (!opened) return;
+      beamService.startSender(code);
+      setTargetRoomCode(code); setActiveTab('remote');
     } catch {
       setBeamError(lang === 'ar' ? 'تعذر قراءة الملف المحدد' : 'Failed to read selected file');
     } finally {

@@ -3,6 +3,23 @@ import { recognizeGeometricShape } from './shapeRecognition';
 import type { StrokePoint } from '../types';
 
 describe('Smartboard Draw & Hold Shape Recognition Engine', () => {
+  const samplePolygon = (corners: StrokePoint[]) => corners.flatMap((a, i) => {
+    const b = corners[(i + 1) % corners.length];
+    return Array.from({ length: 20 }, (_, j) => ({ x: a.x + (b.x - a.x) * j / 20, y: a.y + (b.y - a.y) * j / 20 }));
+  }).concat(corners[0]);
+  it('keeps a square as a square instead of accepting its radius variance as a circle', () => {
+    const points = samplePolygon([{ x: 100, y: 100 }, { x: 300, y: 100 }, { x: 300, y: 300 }, { x: 100, y: 300 }]);
+    expect(recognizeGeometricShape(points)?.type).toBe('rectangle');
+  });
+  it('recognizes a rotated rectangle and an inverted triangle', () => {
+    const rectangle = samplePolygon([{ x: 100, y: 100 }, { x: 300, y: 100 }, { x: 300, y: 200 }, { x: 100, y: 200 }]).map(p => ({ x: p.x * .866 - p.y * .5, y: p.x * .5 + p.y * .866 }));
+    expect(recognizeGeometricShape(rectangle)?.type).toBe('rectangle');
+    expect(recognizeGeometricShape(samplePolygon([{ x: 100, y: 100 }, { x: 300, y: 100 }, { x: 200, y: 300 }]))?.type).toBe('triangle');
+  });
+  it('recognizes a wide ellipse without turning it into a rectangle', () => {
+    const ellipse = Array.from({ length: 65 }, (_, i) => ({ x: 300 + 180 * Math.cos(i / 64 * 2 * Math.PI), y: 200 + 55 * Math.sin(i / 64 * 2 * Math.PI) }));
+    expect(recognizeGeometricShape(ellipse)?.type).toBe('circle');
+  });
   it('returns null for very few points or dots', () => {
     expect(recognizeGeometricShape([])).toBeNull();
     expect(recognizeGeometricShape([{ x: 10, y: 10 }])).toBeNull();

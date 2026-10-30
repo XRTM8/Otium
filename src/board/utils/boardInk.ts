@@ -22,6 +22,11 @@ export function drawBoardInk(ctx: CanvasRenderingContext2D, strokes: BoardStroke
       continue;
     }
     ctx.moveTo(points[0].x, points[0].y);
+    if (stroke.shape && stroke.shape !== 'circle') {
+      for (const point of points.slice(1)) ctx.lineTo(point.x, point.y);
+      ctx.stroke();
+      continue;
+    }
     for (let i = 1; i < points.length - 1; i++) {
       const p = points[i], next = points[i + 1];
       ctx.quadraticCurveTo(p.x, p.y, (p.x + next.x) / 2, (p.y + next.y) / 2);
