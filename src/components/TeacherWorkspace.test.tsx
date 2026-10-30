@@ -29,6 +29,7 @@ async function render(id: string, linked = false, mobile = false) {
     <BoardCanvas documentId={id} lang="ar" snippets={[]} onRestoreSnippets={restore} onRemoveSnippet={vi.fn()} onUpdateSnippetPosition={vi.fn()} />
   </DocumentInkProvider></TeachingProvider>));
   await settled(() => teaching.board?.ready === true);
+  if (!mobile) await act(async () => teaching.updatePrefs({ boardEnabled: true }));
 }
 async function settled(test: () => boolean) {
   for (let i = 0; i < 60; i++) {

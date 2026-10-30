@@ -5,8 +5,10 @@ export interface TeachingPreferences {
   color: string;
   width: number;
   stylusOnly: boolean;
+  /** The whiteboard is an optional teaching workspace, never shown by default. */
+  boardEnabled: boolean;
 }
-export const DEFAULT_TEACHING: TeachingPreferences = { position: 'center', offset: 12, size: 52, color: '#e11d48', width: 4, stylusOnly: false };
+export const DEFAULT_TEACHING: TeachingPreferences = { position: 'center', offset: 12, size: 52, color: '#e11d48', width: 4, stylusOnly: false, boardEnabled: false };
 const KEY = 'otium-teaching-preferences-v1';
 export function normalizeTeaching(value: Partial<TeachingPreferences> | null): TeachingPreferences {
   const v = value || {};
@@ -16,7 +18,8 @@ export function normalizeTeaching(value: Partial<TeachingPreferences> | null): T
     size: Number.isFinite(v.size) ? Math.max(44, Math.min(64, v.size!)) : 52,
     color: typeof v.color === 'string' && /^#[\da-f]{6}$/i.test(v.color) ? v.color : DEFAULT_TEACHING.color,
     width: Number.isFinite(v.width) ? Math.max(2, Math.min(12, v.width!)) : 4,
-    stylusOnly: v.stylusOnly === true
+    stylusOnly: v.stylusOnly === true,
+    boardEnabled: v.boardEnabled === true
   };
 }
 export function readTeaching(): TeachingPreferences {

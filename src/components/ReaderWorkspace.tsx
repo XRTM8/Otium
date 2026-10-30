@@ -487,7 +487,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
           : `Page ${currentPage} of ${numPages}`}
       </div>
 
-      {viewMode !== 'continuous' && (
+      {viewMode !== 'continuous' && teaching.readerTools && (
         <>
           <button
             type="button"
@@ -607,7 +607,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
           })}
         </div>
       ) : viewMode === 'dual' ? (
-        <div className="min-h-full w-max min-w-full flex items-center justify-center py-2 sm:py-4 overflow-hidden">
+        <div className="min-h-full w-max min-w-full flex items-start justify-center py-2 sm:py-4 overflow-hidden">
           <div
             style={{
               transform: gestureTransform,
@@ -729,7 +729,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             transition: gestureTransition,
             willChange: 'transform'
           }}
-          className="min-h-full w-max min-w-full flex items-center justify-center py-2 sm:py-4 overflow-hidden"
+          className="min-h-full w-max min-w-full flex items-start justify-center py-2 sm:py-4 overflow-hidden"
         >
           <div
             key={`single-${dualFlipKey}`}

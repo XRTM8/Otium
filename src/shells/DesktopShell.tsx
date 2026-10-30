@@ -8,6 +8,7 @@ import { ReaderOverlays } from '../components/ReaderOverlays';
 import { TextSelectionMenu } from '../components/TextSelectionMenu';
 import { Toolbar } from '../components/Toolbar';
 import { WelcomeScreen } from '../components/WelcomeScreen';
+import { ReaderWorkspace } from '../components/ReaderWorkspace';
 import { BoardSplitWorkspace } from '../board/components/BoardSplitWorkspace';
 import { BeamModal } from '../board/beam/BeamModal';
 import { DocumentInkProvider } from '../components/DocumentInk';
@@ -19,11 +20,12 @@ export const DesktopShell: React.FC = () => <TeachingProvider><DesktopReader /><
 const DesktopReader: React.FC = () => {
   const reader = useReaderController({ keyboard: true, dragDrop: false });
   const teaching = useTeaching();
-  const isBoardOpen = teaching.layout !== 'document';
+  const isBoardOpen = teaching.prefs.boardEnabled && teaching.layout !== 'document';
   const setIsBoardOpen = useCallback((value: boolean | ((previous: boolean) => boolean)) => {
+    if (!teaching.prefs.boardEnabled) return;
     const next = typeof value === 'function' ? value(teaching.layout !== 'document') : value;
     teaching.setLayout(next ? 'split' : 'document');
-  }, [teaching.layout, teaching.setLayout]);
+  }, [teaching.layout, teaching.setLayout, teaching.prefs.boardEnabled]);
   const [isBeamOpen, setIsBeamOpen] = useState(false);
   const [snippets, setSnippets] = useState<BoardSnippet[]>([]);
   const [isDraggingOverWindow, setIsDraggingOverWindow] = useState(false);
@@ -65,8 +67,9 @@ const DesktopReader: React.FC = () => {
       height: 360,
       createdAt: Date.now()
     };
+    if (!teaching.prefs.boardEnabled) return;
     handleAddSnippet(newSnippet);
-  }, [handleAddSnippet]);
+  }, [handleAddSnippet, teaching.prefs.boardEnabled]);
 
   // Window-level Drag and Drop with full visual dropzone overlay
   useEffect(() => {
@@ -164,12 +167,12 @@ const DesktopReader: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
         e.preventDefault();
-        setIsBoardOpen((open) => !open);
+        if (teaching.prefs.boardEnabled) setIsBoardOpen((open) => !open);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [teaching.prefs.boardEnabled, setIsBoardOpen]);
 
   return (
     <DocumentInkProvider reader={reader}>
@@ -231,7 +234,7 @@ const DesktopReader: React.FC = () => {
             onToggleSidebar={() => reader.setIsSidebarOpen(true)}
             onToggleSearch={() => reader.setIsSearchOpen((open) => !open)}
             onToggleSettings={() => reader.setIsSettingsOpen(true)}
-            onToggleBoard={() => setIsBoardOpen((open) => !open)}
+            onToggleBoard={teaching.prefs.boardEnabled ? () => setIsBoardOpen((open) => !open) : undefined}
             isBoardOpen={isBoardOpen}
             onOpenBeam={() => setIsBeamOpen(true)}
             isBeaming={reader.beamPeerConnected}
@@ -252,10 +255,10 @@ const DesktopReader: React.FC = () => {
             annotations={reader.annotations}
             lang={reader.lang}
             onSearchSelectedText={reader.openSearchWithText}
-            onClipToBoard={handleClipTextToBoard}
+            onClipToBoard={teaching.prefs.boardEnabled ? handleClipTextToBoard : undefined}
           />
 
-          <BoardSplitWorkspace
+          {teaching.prefs.boardEnabled ? <BoardSplitWorkspace
             reader={reader}
             onRestoreSnippets={setSnippets}
             isBoardOpen={isBoardOpen}
@@ -264,7 +267,7 @@ const DesktopReader: React.FC = () => {
             onAddSnippet={handleAddSnippet}
             onRemoveSnippet={handleRemoveSnippet}
             onUpdateSnippetPosition={handleUpdateSnippetPosition}
-          />
+          /> : <ReaderWorkspace reader={reader} />}
         </>
       )}
 

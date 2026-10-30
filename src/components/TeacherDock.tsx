@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { BookOpen, Presentation, Hand, MousePointer2, PenLine, Highlighter, Eraser, Undo2, Redo2, MoreHorizontal, ChevronLeft, ChevronRight, X, Type, SlidersHorizontal, Download, type LucideIcon } from 'lucide-react';
+import { BookOpen, Presentation, EyeOff, Hand, MousePointer2, PenLine, Highlighter, Eraser, Undo2, Redo2, MoreHorizontal, ChevronLeft, ChevronRight, X, Type, SlidersHorizontal, Download, Trash2, type LucideIcon } from 'lucide-react';
 import type { ReaderController } from '../app/useReaderController';
 import { useTeaching, type SaveStatus } from './TeachingContext';
 import { computeOptimalPageScale } from '../core/reader/device';
@@ -22,7 +22,7 @@ export function TeacherDock({ reader, ink }: { reader: ReaderController; ink: Do
   const dialog = useRef<HTMLDivElement>(null);
   const dock = useRef<HTMLElement>(null);
   const [dockHeight, setDockHeight] = useState(110);
-  const onBoard = target === 'board' && !mobile;
+  const onBoard = target === 'board' && !mobile && prefs.boardEnabled;
   const active = onBoard ? board : ink;
   const mode = onBoard ? board?.tool || 'hand' : ink.tool;
   const label = (arabic: string, english: string) => ar ? arabic : english;
@@ -98,6 +98,7 @@ export function TeacherDock({ reader, ink }: { reader: ReaderController; ink: Do
           <label>{label('مكان الشريط', 'Dock position')}<select value={prefs.position} onChange={e => updatePrefs({ position: e.target.value as typeof prefs.position })}><option value="right">{label('يمين', 'Right')}</option><option value="center">{label('وسط', 'Center')}</option><option value="left">{label('يسار', 'Left')}</option></select></label>
           <label>{label('حجم الأزرار', 'Button size')} <output>{prefs.size}</output><input type="range" min="44" max="64" step="2" value={prefs.size} onChange={e => updatePrefs({ size: +e.target.value })} /></label>
           {!mobile && <label>{label('ارتفاع الشريط', 'Dock height')} <output>{prefs.offset}</output><input type="range" min="8" max="120" step="4" value={prefs.offset} onChange={e => updatePrefs({ offset: +e.target.value })} /></label>}
+          {!mobile && <label className="teacher-check"><input type="checkbox" checked={prefs.boardEnabled} onChange={e => { updatePrefs({ boardEnabled: e.target.checked }); if (!e.target.checked) teaching.setLayout('document'); }} />{label('تفعيل السبورة الذكية على هذا الجهاز', 'Enable whiteboard on this device')}</label>}
           <label className="teacher-check"><input type="checkbox" checked={prefs.stylusOnly} onChange={e => updatePrefs({ stylusOnly: e.target.checked })} />{label('الكتابة بالقلم الإلكتروني فقط', 'Stylus-only writing')}</label>
         </div>}
         {panel === 'more' && <div className="teacher-menu">
@@ -116,11 +117,13 @@ export function TeacherDock({ reader, ink }: { reader: ReaderController; ink: Do
         </div>}
       </div>}
       <div className="teacher-main-row" role="toolbar" aria-label={label('الكتابة والتنقل', 'Writing and navigation')}>
-        {!mobile && <button type="button" className="teacher-workspace-toggle" onClick={() => teaching.setLayout(onBoard ? 'document' : 'board')} aria-label={onBoard ? label('إظهار الكتاب', 'Show document') : label('إظهار السبورة', 'Show whiteboard')}>{onBoard ? <BookOpen size={21} /> : <Presentation size={21} />}<span>{onBoard ? label('الكتاب', 'Document') : label('السبورة', 'Whiteboard')}</span></button>}
+        {!mobile && prefs.boardEnabled && <button type="button" className="teacher-workspace-toggle" onClick={() => teaching.setLayout(onBoard ? 'document' : 'board')} aria-label={onBoard ? label('إظهار الكتاب', 'Show document') : label('إظهار السبورة', 'Show whiteboard')}>{onBoard ? <BookOpen size={21} /> : <Presentation size={21} />}<span>{onBoard ? label('الكتاب', 'Document') : label('السبورة', 'Whiteboard')}</span></button>}
         {!presentation && <><div className="teacher-tool-group">{tools.map(([id, Icon, text]) => <button type="button" key={id} aria-label={text} aria-pressed={mode === id} disabled={!active?.ready || active.exporting} onClick={() => setTool(id as InkTool)}><Icon size={21} /><span>{text}</span></button>)}</div>
-          <div className="teacher-history"><button type="button" disabled={!active?.canUndo || active.exporting} aria-label={label('تراجع', 'Undo')} onClick={() => active?.undo()}><Undo2 size={21} /><span>{label('تراجع', 'Undo')}</span></button><button type="button" disabled={!active?.canRedo || active.exporting} aria-label={label('إعادة', 'Redo')} onClick={() => active?.redo()}><Redo2 size={21} /><span>{label('إعادة', 'Redo')}</span></button></div></>}
+          <div className="teacher-history"><button type="button" disabled={!active?.canUndo || active.exporting} aria-label={label('تراجع', 'Undo')} onClick={() => active?.undo()}><Undo2 size={21} /><span>{label('تراجع', 'Undo')}</span></button><button type="button" disabled={!active?.canRedo || active.exporting} aria-label={label('إعادة', 'Redo')} onClick={() => active?.redo()}><Redo2 size={21} /><span>{label('إعادة', 'Redo')}</span></button></div>
+          <button type="button" disabled={!active?.ready || active.exporting} aria-label={label('تصدير', 'Export')} onClick={() => active?.exportPdf()}><Download size={21} /><span>{label('تصدير', 'Export')}</span></button>
+          <button type="button" disabled={!active?.ready || active.exporting} aria-label={label('فتح تأكيد المسح', 'Open clear confirmation')} onClick={() => { confirmationTarget.current = target; setConfirm(true); }}><Trash2 size={21} /><span>{label('مسح', 'Clear')}</span></button></>}
         <div className="teacher-page-navigation"><button type="button" disabled={page <= 1} aria-label={label('الصفحة السابقة', 'Previous page')} onClick={() => onBoard ? board?.goToPage(page - 1) : reader.goToPrevPage()}>{ar ? <ChevronRight size={22} /> : <ChevronLeft size={22} />}</button><span dir="ltr">{page} / {pages}</span><button type="button" disabled={page >= pages} aria-label={label('الصفحة التالية', 'Next page')} onClick={() => onBoard ? board?.goToPage(page + 1) : reader.goToNextPage()}>{ar ? <ChevronLeft size={22} /> : <ChevronRight size={22} />}</button></div>
-        {presentation ? <button type="button" onClick={() => setPresentation(false)}><PenLine size={21} /><span>{label('إرجاع الأدوات', 'Show tools')}</span></button> : <button type="button" aria-expanded={panel === 'more'} onClick={() => setPanel(panel === 'more' ? null : 'more')}><MoreHorizontal size={23} /><span>{label('المزيد', 'More')}</span></button>}
+        {presentation ? <button type="button" onClick={() => setPresentation(false)}><PenLine size={21} /><span>{label('إرجاع الأدوات', 'Show tools')}</span></button> : <><button type="button" aria-label={label('إخفاء كل الأدوات', 'Hide all controls')} onClick={() => { setPanel(null); teaching.setReaderTools(false); setPresentation(true); }}><EyeOff size={21} /><span>{label('إخفاء', 'Hide')}</span></button><button type="button" aria-expanded={panel === 'more'} onClick={() => setPanel(panel === 'more' ? null : 'more')}><MoreHorizontal size={23} /><span>{label('المزيد', 'More')}</span></button></>}
       </div>
       {!presentation && message && <p role="status" className="teacher-message">{message}</p>}
     </aside>

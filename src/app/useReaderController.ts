@@ -701,16 +701,22 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   }, [currentPage, doc, viewMode, scrollToRenderedPage]);
 
   // Single and dual pages are separate viewports: a new page starts at the
-  // top, never wherever the previous page happened to be scrolled.
+  // top, never wherever the previous page happened to be scrolled. Two frames
+  // cover PDF.js replacing the page after React has committed it.
   useEffect(() => {
     if (viewMode === 'continuous') return;
     const container = scrollContainerRef.current;
     if (!container) return;
-    container.scrollTop = 0;
-    container.scrollLeft = 0;
+    const resetViewport = () => { container.scrollTop = 0; container.scrollLeft = 0; };
+    resetViewport();
+    const first = window.requestAnimationFrame(() => {
+      resetViewport();
+      window.requestAnimationFrame(resetViewport);
+    });
     wheelAccumRef.current = 0;
     wheelDirectionRef.current = 0;
     resetPageGesture();
+    return () => window.cancelAnimationFrame(first);
   }, [currentPage, viewMode, resetPageGesture]);
 
   const handlePageVisible = useCallback(

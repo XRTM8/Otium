@@ -30,7 +30,9 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   documentId,
   onRestoreSnippets
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  // Strokes are authored on a fixed 16:9 logical stage. Keeping the stage's
+  // aspect ratio means resizing a split pane can never stretch handwriting.
+  const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const laserCanvasRef = useRef<HTMLCanvasElement>(null);
   const { prefs, registerBoard, target, presentation } = useTeaching();
@@ -201,7 +203,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   const syncCanvasDimensions = useCallback(() => {
     const canvas = canvasRef.current;
     const laserCanvas = laserCanvasRef.current;
-    const container = containerRef.current;
+    const container = stageRef.current;
     if (!canvas || !laserCanvas || !container) return;
 
     const rect = container.getBoundingClientRect();
@@ -223,7 +225,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
 
   useLayoutEffect(() => {
     syncCanvasDimensions();
-    const container = containerRef.current;
+    const container = stageRef.current;
     if (!container) return;
 
     let resizeObserver: ResizeObserver | null = null;
@@ -494,16 +496,19 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   // Full snapshots make erasing and clear-all undoable as one action.
   const handleUndo = () => {
     if (!undoStack.length) return;
+    setStatus('saving');
     setRedoStack(prev => [strokes, ...prev].slice(0, 60));
     setStrokes(undoStack[undoStack.length - 1]); setUndoStack(prev => prev.slice(0, -1));
   };
   const handleRedo = () => {
     if (!redoStack.length) return;
+    setStatus('saving');
     setUndoStack(prev => [...prev, strokes].slice(-60));
     setStrokes(redoStack[0]); setRedoStack(prev => prev.slice(1));
   };
   const handleClearAll = () => {
     if (!strokes.length) return;
+    setStatus('saving');
     setUndoStack(prev => [...prev, strokes].slice(-60)); setRedoStack([]); setStrokes([]);
   };
 
@@ -608,7 +613,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     setDraggingSnippetId(id);
     const snip = snippets.find((s) => s.id === id);
     if (!snip) return;
-    const rect = containerRef.current!.getBoundingClientRect();
+    const rect = stageRef.current!.getBoundingClientRect();
     dragOffsetRef.current = { x: (e.clientX - rect.left) * 1920 / rect.width - snip.x, y: (e.clientY - rect.top) * 1080 / rect.height - snip.y };
     try {
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
@@ -617,7 +622,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
 
   const handleSnippetPointerMove = (id: string, e: React.PointerEvent) => {
     if (draggingSnippetId !== id) return;
-    const rect = containerRef.current!.getBoundingClientRect();
+    const rect = stageRef.current!.getBoundingClientRect();
     const snip = snippets.find(s => s.id === id);
     const newX = Math.max(10, Math.min(1920 - (snip?.width || 300), (e.clientX - rect.left) * 1920 / rect.width - dragOffsetRef.current.x));
     const newY = Math.max(10, Math.min(1000, (e.clientY - rect.top) * 1080 / rect.height - dragOffsetRef.current.y));
@@ -670,9 +675,8 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
 
   return (
     <div
-      ref={containerRef}
       style={{ height: 'calc(100% - var(--teacher-bottom-inset, 130px))' }}
-      className={`relative w-full h-full select-none overflow-hidden touch-none transition-colors duration-300 ${
+      className={`relative w-full h-full select-none overflow-auto touch-none transition-colors duration-300 flex items-center justify-center p-2 ${
         background === 'dark'
           ? 'bg-slate-900 text-slate-100'
           : background === 'grid'
@@ -682,6 +686,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
           : 'bg-white text-slate-900'
       }`}
     >
+      <div ref={stageRef} className="relative shrink-0 overflow-hidden shadow-xl" style={{ width: 'min(100%, calc((100dvh - var(--teacher-bottom-inset, 130px)) * 16 / 9))', aspectRatio: '16 / 9' }}>
       {/* Interactive Inking Canvas */}
       <canvas
         ref={canvasRef}
@@ -751,6 +756,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
         ))}
       </div>
 
+      </div>
     </div>
   );
 };

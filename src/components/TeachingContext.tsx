@@ -30,10 +30,16 @@ export function TeachingProvider({ children, mobile = false }: { children: React
   const [reachMode, setReachMode] = useState(false);
   const [board, registerBoard] = useState<BoardControls | null>(null);
   const setLayout = useCallback((next: TeachingValue['layout']) => {
+    // The board is opt-in. A stale shortcut or an old saved layout must not
+    // surface it on a teacher's phone or computer unexpectedly.
+    if (mobile || !prefs.boardEnabled) next = 'document';
     setLayoutState(next); if (next !== 'split') setTarget(next);
-  }, []);
+  }, [mobile, prefs.boardEnabled]);
   const updatePrefs = useCallback((patch: Partial<TeachingPreferences>) => setPrefs(prev => ({ ...prev, ...patch })), []);
   useEffect(() => saveTeaching(prefs), [prefs]);
+  useEffect(() => {
+    if (!prefs.boardEnabled) { setLayoutState('document'); setTarget('document'); }
+  }, [prefs.boardEnabled]);
   const value = useMemo(() => ({ mobile, layout, setLayout, target, setTarget, prefs, updatePrefs, presentation, setPresentation,
     readerTools, setReaderTools, reachMode, setReachMode, board, registerBoard }), [mobile, layout, setLayout, target, prefs, updatePrefs, presentation, readerTools, reachMode, board]);
   return <TeachingContext.Provider value={value}>{children}</TeachingContext.Provider>;
