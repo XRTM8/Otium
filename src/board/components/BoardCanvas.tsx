@@ -30,8 +30,8 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   documentId,
   onRestoreSnippets
 }) => {
-  // Strokes are authored on a fixed 16:9 logical stage. Keeping the stage's
-  // aspect ratio means resizing a split pane can never stretch handwriting.
+  // Keep logical coordinates stable while allowing the board to use the
+  // whole pane assigned to it, including a narrow split-screen pane.
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const laserCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -260,6 +260,13 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     const ctx = laserCanvas.getContext('2d');
     if (!ctx) return;
 
+    // Do not redraw an idle board at 60fps. The animation exists only while
+    // the laser is actually in use.
+    if (activeTool !== 'laser' || target !== 'board' || presentation) {
+      ctx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+      return;
+    }
+
     const renderLaser = () => {
       const now = performance.now();
       const trail = laserTrailRef.current;
@@ -320,7 +327,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
         cancelAnimationFrame(laserAnimFrameRef.current);
       }
     };
-  }, []);
+  }, [activeTool, target, presentation]);
 
   // Stroke erasure intersection checker
   const eraseStrokesNearPoint = (x: number, y: number, radius = 20) => {
@@ -675,8 +682,9 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
 
   return (
     <div
+      ref={stageRef}
       style={{ height: 'calc(100% - var(--teacher-bottom-inset, 130px))' }}
-      className={`relative w-full h-full select-none overflow-auto touch-none transition-colors duration-300 flex items-center justify-center p-2 ${
+      className={`relative w-full h-full select-none overflow-hidden touch-none transition-colors duration-300 ${
         background === 'dark'
           ? 'bg-slate-900 text-slate-100'
           : background === 'grid'
@@ -686,7 +694,6 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
           : 'bg-white text-slate-900'
       }`}
     >
-      <div ref={stageRef} className="relative shrink-0 overflow-hidden shadow-xl" style={{ width: 'min(100%, calc((100dvh - var(--teacher-bottom-inset, 130px)) * 16 / 9))', aspectRatio: '16 / 9' }}>
       {/* Interactive Inking Canvas */}
       <canvas
         ref={canvasRef}
@@ -754,8 +761,6 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
             </div>
           </div>
         ))}
-      </div>
-
       </div>
     </div>
   );

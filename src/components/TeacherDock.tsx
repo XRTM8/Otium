@@ -80,9 +80,6 @@ export function TeacherDock({ reader, ink }: { reader: ReaderController; ink: Do
   };
   const message = onBoard ? board?.error : ink.message;
   return <>
-    {!presentation && !teaching.readerTools && <header className={`teacher-status theme-${reader.theme}`} dir={ar ? 'rtl' : 'ltr'}>
-      <span className="teacher-document-title">{reader.docTitle}</span><span>{reader.beamPeerConnected ? label('جهاز متصل', 'Device connected') : label('وضع المعلّم', 'Teacher workspace')}</span>
-    </header>}
     <aside ref={dock} dir={ar ? 'rtl' : 'ltr'} aria-label={label('أدوات المعلّم', 'Teacher controls')} className={`teacher-dock theme-${reader.theme} ${mobile ? 'teacher-mobile' : ''} ${presentation ? 'teacher-presenting' : ''}`}
       data-position={prefs.position} style={{ '--teacher-size': `${prefs.size}px`, '--teacher-offset': `${mobile ? 8 : prefs.offset}px` } as CSSProperties}>
       {!presentation && <div className="teacher-context-line"><strong>{onBoard ? label('تكتب على السبورة', 'Writing on whiteboard') : label('تكتب على الملف', 'Writing on document')}</strong><span role="status" aria-live="polite" className={saved === 'error' ? 'text-danger-ink' : ''}>{active?.exporting ? label('جارٍ التصدير…', 'Exporting…') : saveLabel}{deliveryLabel && ` · ${deliveryLabel}`}</span></div>}
@@ -117,7 +114,7 @@ export function TeacherDock({ reader, ink }: { reader: ReaderController; ink: Do
         </div>}
       </div>}
       <div className="teacher-main-row" role="toolbar" aria-label={label('الكتابة والتنقل', 'Writing and navigation')}>
-        {!mobile && prefs.boardEnabled && <button type="button" className="teacher-workspace-toggle" onClick={() => teaching.setLayout(onBoard ? 'document' : 'board')} aria-label={onBoard ? label('إظهار الكتاب', 'Show document') : label('إظهار السبورة', 'Show whiteboard')}>{onBoard ? <BookOpen size={21} /> : <Presentation size={21} />}<span>{onBoard ? label('الكتاب', 'Document') : label('السبورة', 'Whiteboard')}</span></button>}
+        {!mobile && prefs.boardEnabled && <button type="button" className="teacher-workspace-toggle" onClick={() => { if (onBoard) { teaching.setReaderTools(true); teaching.setLayout('document'); } else { teaching.setLayout('board'); } }} aria-label={onBoard ? label('إظهار الكتاب', 'Show document') : label('إظهار السبورة', 'Show whiteboard')}>{onBoard ? <BookOpen size={21} /> : <Presentation size={21} />}<span>{onBoard ? label('الكتاب', 'Document') : label('السبورة', 'Whiteboard')}</span></button>}
         {!presentation && <><div className="teacher-tool-group">{tools.map(([id, Icon, text]) => <button type="button" key={id} aria-label={text} aria-pressed={mode === id} disabled={!active?.ready || active.exporting} onClick={() => setTool(id as InkTool)}><Icon size={21} /><span>{text}</span></button>)}</div>
           <div className="teacher-history"><button type="button" disabled={!active?.canUndo || active.exporting} aria-label={label('تراجع', 'Undo')} onClick={() => active?.undo()}><Undo2 size={21} /><span>{label('تراجع', 'Undo')}</span></button><button type="button" disabled={!active?.canRedo || active.exporting} aria-label={label('إعادة', 'Redo')} onClick={() => active?.redo()}><Redo2 size={21} /><span>{label('إعادة', 'Redo')}</span></button></div>
           <button type="button" disabled={!active?.ready || active.exporting} aria-label={label('تصدير', 'Export')} onClick={() => active?.exportPdf()}><Download size={21} /><span>{label('تصدير', 'Export')}</span></button>

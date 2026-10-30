@@ -26,7 +26,9 @@ export function TeachingProvider({ children, mobile = false }: { children: React
   const [target, setTarget] = useState<TeachingValue['target']>('document');
   const [prefs, setPrefs] = useState(readTeaching);
   const [presentation, setPresentation] = useState(false);
-  const [readerTools, setReaderTools] = useState(false);
+  // Reading is the calm default: the familiar top toolbar is immediately
+  // available. The teacher dock takes over only after the board is opened.
+  const [readerTools, setReaderTools] = useState(true);
   const [reachMode, setReachMode] = useState(false);
   const [board, registerBoard] = useState<BoardControls | null>(null);
   const setLayout = useCallback((next: TeachingValue['layout']) => {

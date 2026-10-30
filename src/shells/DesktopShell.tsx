@@ -24,8 +24,14 @@ const DesktopReader: React.FC = () => {
   const setIsBoardOpen = useCallback((value: boolean | ((previous: boolean) => boolean)) => {
     if (!teaching.prefs.boardEnabled) return;
     const next = typeof value === 'function' ? value(teaching.layout !== 'document') : value;
-    teaching.setLayout(next ? 'split' : 'document');
-  }, [teaching.layout, teaching.setLayout, teaching.prefs.boardEnabled]);
+    if (next) {
+      teaching.setLayout('split');
+      teaching.setTarget('board');
+    } else {
+      teaching.setLayout('document');
+      teaching.setReaderTools(true);
+    }
+  }, [teaching.layout, teaching.setLayout, teaching.setTarget, teaching.setReaderTools, teaching.prefs.boardEnabled]);
   const [isBeamOpen, setIsBeamOpen] = useState(false);
   const [snippets, setSnippets] = useState<BoardSnippet[]>([]);
   const [isDraggingOverWindow, setIsDraggingOverWindow] = useState(false);
@@ -209,7 +215,7 @@ const DesktopReader: React.FC = () => {
         </>
       ) : (
         <>
-          <div hidden={!teaching.readerTools || teaching.presentation}><Toolbar
+          <div hidden={!teaching.readerTools || teaching.presentation || teaching.layout !== 'document'}><Toolbar
             title={reader.docTitle}
             currentPage={reader.currentPage}
             totalPages={reader.numPages}

@@ -29,7 +29,10 @@ async function render(id: string, linked = false, mobile = false) {
     <BoardCanvas documentId={id} lang="ar" snippets={[]} onRestoreSnippets={restore} onRemoveSnippet={vi.fn()} onUpdateSnippetPosition={vi.fn()} />
   </DocumentInkProvider></TeachingProvider>));
   await settled(() => teaching.board?.ready === true);
-  if (!mobile) await act(async () => teaching.updatePrefs({ boardEnabled: true }));
+  if (!mobile) {
+    await act(async () => teaching.updatePrefs({ boardEnabled: true }));
+    await act(async () => teaching.setLayout('split'));
+  }
 }
 async function settled(test: () => boolean) {
   for (let i = 0; i < 60; i++) {
@@ -63,8 +66,9 @@ describe('unified teacher workspace', () => {
       <BoardCanvas documentId="lesson-board-switch" lang="ar" snippets={[]} onRestoreSnippets={restore} onRemoveSnippet={vi.fn()} onUpdateSnippetPosition={vi.fn()} />
     </DocumentInkProvider></TeachingProvider>));
     await settled(() => teaching.board?.ready === true);
-    expect(host.querySelector('button[aria-label="إظهار السبورة"]')).toBeNull();
+    expect(host.querySelector('.teacher-dock')).toBeNull();
     await act(async () => teaching.updatePrefs({ boardEnabled: true }));
+    await act(async () => teaching.setLayout('split'));
     expect(host.querySelector('button[aria-label="إظهار السبورة"]')).not.toBeNull();
   });
   it('switches targets, confirms clearing, restores erased ink with undo and keeps it after remount', async () => {
@@ -80,7 +84,8 @@ describe('unified teacher workspace', () => {
     expect((await readBoard('lesson-controls'))?.pages[0].strokes).toEqual([]);
     await click('تراجع'); await settled(() => teaching.board?.status === 'saved');
     expect((await readBoard('lesson-controls'))?.pages[0].strokes).toEqual([initialStroke]);
-    await click('إظهار الكتاب'); await click('إظهار السبورة');
+    await click('إظهار الكتاب');
+    await act(async () => teaching.setLayout('board'));
     await act(async () => root.unmount()); root = createRoot(host); await render('lesson-controls');
     expect((await readBoard('lesson-controls'))?.pages[0].strokes).toEqual([initialStroke]);
   });
@@ -91,13 +96,11 @@ describe('unified teacher workspace', () => {
     expect(host.querySelector('button[aria-label="قلم"]')).toBeNull();
     await click('إرجاع الأدوات'); expect(host.querySelector('button[aria-label="قلم"]')).not.toBeNull();
   });
-  it('keeps the phone controls dedicated to document annotation', async () => {
+  it('keeps the phone reader clear of desktop whiteboard controls', async () => {
     await render('lesson-mobile', false, true);
     expect(host.querySelector('button[aria-label="إظهار السبورة"]')).toBeNull();
-    expect(host.textContent).toContain('تكتب على الملف');
-    await click('قلم');
-    expect(button('قلم').getAttribute('aria-pressed')).toBe('true');
-    expect(host.querySelector('.teacher-mobile')).not.toBeNull();
+    expect(host.querySelector('.teacher-dock')).toBeNull();
+    expect(teaching.layout).toBe('document');
   });
   it('waits for valid receipts from the paired reader instead of treating send as delivery', async () => {
     const listeners = new Set<(message: BeamMessage) => unknown>();
