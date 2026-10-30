@@ -75,6 +75,7 @@ export type BeamMessageType =
   | 'BEAM_TEXT_ANNOTATIONS_REQUEST'
   | 'BEAM_SELECTION'
   | 'BEAM_PAGE_CHANGE'
+  | 'BEAM_VIEW_MODE'
   | 'BEAM_STEP'
   | 'BEAM_QUERY_STATE'
   | 'BEAM_STATE_ANNOUNCE'
@@ -105,6 +106,7 @@ export interface BeamMessage {
   selection?: { documentId: string; page: number; rects: AnnotationRect[] };
   payload?: BeamPayload;
   pageNumber?: number;
+  viewMode?: 'continuous' | 'dual' | 'single';
   direction?: 'next' | 'prev';
   docTitle?: string;
   totalPages?: number;

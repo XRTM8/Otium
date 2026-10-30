@@ -10,8 +10,9 @@ import { ReaderWorkspace } from '../components/ReaderWorkspace';
 import { TextSelectionMenu } from '../components/TextSelectionMenu';
 import { WelcomeScreen } from '../components/WelcomeScreen';
 import { BeamModal } from '../board/beam/BeamModal';
-import { TeachingProvider, useTeaching } from '../components/TeachingContext';
+import { TeachingProvider } from '../components/TeachingContext';
 import { DocumentInkProvider } from '../components/DocumentInk';
+import { beamService } from '../board/beam/beamService';
 
 const ScannerModal = React.lazy(() =>
   import('../scanner/ScannerModal').then((m) => ({ default: m.ScannerModal }))
@@ -21,7 +22,6 @@ const preloadScanner = () => import('../scanner/ScannerModal');
 /** Android shell: touch-first bars, swipe gestures and no keyboard shortcuts. */
 export const MobileShell: React.FC = () => <TeachingProvider mobile><MobileReader /></TeachingProvider>;
 const MobileReader: React.FC = () => {
-  const teaching = useTeaching();
   const reader = useReaderController({ keyboard: false, dragDrop: false });
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isBeamOpen, setIsBeamOpen] = useState(false);
@@ -94,13 +94,14 @@ const MobileReader: React.FC = () => {
         />
       ) : (
         <>
-          <div hidden={!teaching.readerTools || teaching.presentation}><MobileToolbar
+          <div hidden={reader.isImmersive}><MobileToolbar
             title={reader.docTitle}
             currentPage={reader.currentPage}
             totalPages={reader.numPages}
             theme={reader.theme}
             viewMode={reader.viewMode}
             currentLang={reader.lang}
+            readingDirection={reader.docIsRtl ? 'rtl' : 'ltr'}
             isBookmarked={reader.bookmarks.some(
               (bookmark) => bookmark.pageNumber === reader.currentPage
             )}
@@ -110,7 +111,7 @@ const MobileReader: React.FC = () => {
             onPrevPage={reader.goToPrevPage}
             onNextPage={reader.goToNextPage}
             onThemeChange={reader.changeTheme}
-            onViewModeChange={reader.changeViewMode}
+            onViewModeChange={(mode) => { reader.changeViewMode(mode); beamService.sendViewMode(mode); }}
             onToggleBookmark={() => reader.toggleBookmark(reader.currentPage)}
             onToggleSearch={() => reader.setIsSearchOpen((open) => !open)}
             onOpenSidebar={() => reader.setIsSidebarOpen(true)}

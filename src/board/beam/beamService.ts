@@ -503,7 +503,9 @@ export class BeamService {
           } catch {}
         }
       });
-      window.addEventListener('pagehide', () => this.disconnect());
+      // Do not tear down a paired session on pagehide: Android WebView can
+      // emit it while rotating/recreating its surface. The peer timeout and
+      // explicit Disconnect action handle genuinely ended sessions.
       window.addEventListener('online', () => this.retryCloudConnection());
       window.addEventListener('offline', () => {
         if (this.connectedRoom) this.setConnectionStatus('error');
@@ -736,6 +738,11 @@ export class BeamService {
       direction,
       timestamp: Date.now()
     });
+  }
+
+  public sendViewMode(viewMode: 'continuous' | 'dual' | 'single'): void {
+    if (!this.connectedRoom || !this.sessionId || !this.peerSessionId) return;
+    void this.broadcast({ type: 'BEAM_VIEW_MODE', roomCode: this.connectedRoom, sessionId: this.sessionId, viewMode, timestamp: Date.now() });
   }
 
   public queryReceiverState(roomCode?: string): void {
@@ -1547,6 +1554,7 @@ export class BeamService {
       }
 
       case 'BEAM_PAGE_CHANGE':
+      case 'BEAM_VIEW_MODE':
       case 'BEAM_ANNOTATION_ACK':
       case 'BEAM_INK_UPDATE':
       case 'BEAM_INK_REQUEST':

@@ -1531,7 +1531,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     scrollToPage,
     goToNextPage,
     goToPrevPage,
-    changeTheme
+    changeTheme,
+    changeViewMode
   });
   useEffect(() => {
     beamSyncRef.current = {
@@ -1542,7 +1543,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       scrollToPage,
       goToNextPage,
       goToPrevPage,
-      changeTheme
+      changeTheme,
+      changeViewMode
     };
   });
 
@@ -1584,6 +1586,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         } else {
           sync.scrollToPage(msg.pageNumber);
         }
+      } else if (msg.type === 'BEAM_VIEW_MODE' && msg.viewMode) {
+        sync.changeViewMode(msg.viewMode);
       } else if (msg.type === 'BEAM_STEP') {
         if (msg.direction === 'next') {
           sync.goToNextPage();

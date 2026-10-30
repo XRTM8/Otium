@@ -1,3 +1,10 @@
+# Otium 1.9.9 — Mobile controls and paired reading fixes
+
+- Keep mobile reader controls available while teacher presentation mode is active; the toolbar hides only for explicit immersive reading.
+- Use the PDF's detected reading direction for phone page-turn arrows, independent of interface language.
+- Synchronize single, spread, and continuous page modes between paired devices.
+- Preserve Smart Beam sessions when Android WebView fires `pagehide` during orientation changes; explicit disconnect and peer timeout still end sessions.
+
 # Otium 1.9.8 — Reliable cloud pairing
 
 - Smart Beam now uses a verified, compatible cloud relay after the previous relay timed out on the classroom network.

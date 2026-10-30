@@ -29,6 +29,7 @@ interface MobileToolbarProps {
   theme: ThemeMode;
   viewMode: ViewMode;
   currentLang: Language;
+  readingDirection?: 'rtl' | 'ltr';
   isBookmarked: boolean;
   /** Settings → Reading can hide the bottom bar for a bare page. */
   showBottomBar?: boolean;
@@ -77,6 +78,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
   theme,
   viewMode,
   currentLang,
+  readingDirection = 'ltr',
   isBookmarked,
   showBottomBar = true,
   immersive = false,
@@ -103,6 +105,8 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
   const [compactLandscape, setCompactLandscape] = useState(false);
   const t = getTranslations(currentLang);
   const ar = currentLang === 'ar';
+  // The interface language can differ from the PDF's reading direction.
+  const contentIsRtl = readingDirection === 'rtl';
   const viewModeLabel = ar
     ? { continuous: 'مستمر', dual: 'صفحتين', single: 'مفردة' }[viewMode]
     : { continuous: 'Scroll', dual: 'Spread', single: 'Single' }[viewMode];
@@ -583,7 +587,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             type="button"
             onClick={() => {
               triggerHaptic('light');
-              if (ar) {
+              if (contentIsRtl) {
                 if (onNextPage) onNextPage();
                 else onPageChange(Math.min(totalPages, currentPage + 1));
               } else {
@@ -591,9 +595,9 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
                 else onPageChange(Math.max(1, currentPage - 1));
               }
             }}
-            disabled={ar ? currentPage >= totalPages : currentPage <= 1}
-            aria-label={ar ? t.nextPage : t.prevPage}
-            title={ar ? t.nextPage : t.prevPage}
+            disabled={contentIsRtl ? currentPage >= totalPages : currentPage <= 1}
+            aria-label={contentIsRtl ? t.nextPage : t.prevPage}
+            title={contentIsRtl ? t.nextPage : t.prevPage}
             className="fluid-press p-2 rounded-xl text-ink-muted disabled:opacity-30 active:bg-hover-strong cursor-pointer"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -614,7 +618,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             type="button"
             onClick={() => {
               triggerHaptic('light');
-              if (ar) {
+              if (contentIsRtl) {
                 if (onPrevPage) onPrevPage();
                 else onPageChange(Math.max(1, currentPage - 1));
               } else {
@@ -622,9 +626,9 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
                 else onPageChange(Math.min(totalPages, currentPage + 1));
               }
             }}
-            disabled={ar ? currentPage <= 1 : currentPage >= totalPages}
-            aria-label={ar ? t.prevPage : t.nextPage}
-            title={ar ? t.prevPage : t.nextPage}
+            disabled={contentIsRtl ? currentPage <= 1 : currentPage >= totalPages}
+            aria-label={contentIsRtl ? t.prevPage : t.nextPage}
+            title={contentIsRtl ? t.prevPage : t.nextPage}
             className="fluid-press p-2 rounded-xl text-ink-muted disabled:opacity-30 active:bg-hover-strong cursor-pointer"
           >
             <ChevronRight className="w-5 h-5" />
