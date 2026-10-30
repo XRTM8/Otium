@@ -66,12 +66,6 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   const [updateResult, setUpdateResult] = useState<UpdateCheckResult | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      loadDocs();
-    }
-  }, [isOpen]);
-
   const triggerHaptic = (duration = 15) => {
     if ('vibrate' in navigator) {
       try {
@@ -88,6 +82,12 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
       console.warn('Failed to load library:', e);
     }
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      loadDocs();
+    }
+  }, [isOpen]);
 
   const handleDelete = async (id: string) => {
     triggerHaptic(15);

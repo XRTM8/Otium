@@ -1,68 +1,36 @@
-// Otium Service Worker — 100% Offline Resilience for Smartboards & Classrooms
-const CACHE_NAME = 'otium-offline-v1.9.13';
-const PRECACHE_URLS = ['/', '/index.html', '/manifest.webmanifest'];
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS).catch(() => {}))
-  );
+// Otium offline cache is scoped to this application, including /Otium/ on Pages.
+const CACHE_NAME = 'otium-offline-v1.9.14';
+const APP_ROOT = self.registration.scope;
+const PRECACHE_URLS = ['./', './index.html', './manifest.webmanifest'].map(path => new URL(path, APP_ROOT).href);
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(PRECACHE_URLS)).catch(() => {}));
   self.skipWaiting();
 });
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) return caches.delete(key);
-        })
-      )
-    ).then(() => self.clients.claim())
-  );
+self.addEventListener('activate', event => {
+  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('otium-offline-') && key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim()));
 });
-
-self.addEventListener('fetch', (event) => {
+self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
-
-  // Skip external signaling APIs (like ntfy.sh or web sockets)
-  if (url.origin !== self.location.origin) return;
-
-  // HTML navigation requests: Network First, fallback to cache for 100% offline support
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const clone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return networkResponse;
-        })
-        .catch(async () => {
-          const cached = await caches.match(event.request);
-          if (cached) return cached;
-          const fallback = (await caches.match('/index.html')) || (await caches.match('/'));
-          if (fallback) return fallback;
-          return undefined;
-        })
-    );
-    return;
-  }
-
-  // Static assets (hashed JS, CSS, fonts, wasm): Cache First, fallback to network
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const clone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return networkResponse;
-        })
-        .catch(() => undefined);
-    })
-  );
+  if (url.origin !== self.location.origin || !url.href.startsWith(APP_ROOT)) return;
+  const remember = response => {
+    if (response.ok) { const copy = response.clone(); void caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy)).catch(() => {}); }
+    return response;
+  };
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    if (event.request.mode === 'navigate') {
+      try {
+        const response = await fetch(event.request);
+        if (response.ok) return remember(response);
+        const cached = await cache.match(event.request) || await cache.match(new URL('./index.html', APP_ROOT).href);
+        return cached || response;
+      } catch {
+        return await cache.match(event.request) || await cache.match(new URL('./index.html', APP_ROOT).href) || Response.error();
+      }
+    }
+    const cached = await cache.match(event.request);
+    if (cached) return cached;
+    try { return remember(await fetch(event.request)); } catch { return Response.error(); }
+  })());
 });

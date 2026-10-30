@@ -12,6 +12,7 @@ import { triggerHaptic } from '../core/utils/haptics';
 import { useDocumentInteraction } from './DocumentInk';
 import { computeOptimalPageScale } from '../core/reader/device';
 import { useTeaching } from './TeachingContext';
+import { useChromeTap } from '../core/reader/useChromeTap';
 
 interface PageSlotProps {
   pageNum: number;
@@ -129,6 +130,7 @@ interface ReaderWorkspaceProps {
 export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compact = false }) => {
   const { mode: interactionMode } = useDocumentInteraction();
   const teaching = useTeaching();
+  const chromeTap = useChromeTap(compact && interactionMode === 'hand', () => reader.setIsImmersive(value => !value));
   const {
     doc,
     numPages,
@@ -154,7 +156,6 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
     handleTouchMove,
     handleTouchEnd,
     handleTouchCancel,
-    isDraggingTouch,
     dualFlipKey,
     numberJumpDisplay,
     scrollToPage
@@ -386,16 +387,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
 
   if (!doc) return null;
 
-  // The controller writes this custom property directly on the scroll
-  // container during a pan, so moving a finger never triggers a React render.
-  const gestureTransform = 'translate3d(var(--otium-swipe-x, 0px), 0, 0)';
-  const gestureTransition = isDraggingTouch
-    ? 'none'
-    : 'transform 240ms cubic-bezier(0.16, 1, 0.3, 1)';
-  const pagedAnimation =
-    !isDraggingTouch && dualFlipKey > 0
-      ? 'otiumPageIn 160ms cubic-bezier(.2,.8,.2,1) both'
-      : undefined;
+  const pagedAnimation = dualFlipKey > 0 ? 'otiumPageIn 160ms cubic-bezier(.2,.8,.2,1) both' : undefined;
   const dualAnimation = pagedAnimation;
 
   // Odd pages sit on the right in Arabic / RTL books and on the left in Latin / LTR books.
@@ -412,7 +404,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
   const immersiveInset = compactLandscape
     ? 'max(0.35rem, calc(env(safe-area-inset-top, 0px) + 0.25rem))'
     : 'max(0.5rem, env(safe-area-inset-top, 0px))';
-  const effectiveTopInset = teaching.reachMode ? `calc(${topInset} + 30dvh)` : teaching.presentation ? immersiveInset : teaching.readerTools ? topInset : 'max(3.3rem, env(safe-area-inset-top, 0px))';
+  const effectiveTopInset = isImmersive ? immersiveInset : teaching.reachMode ? `calc(${topInset} + 30dvh)` : teaching.presentation ? immersiveInset : teaching.readerTools ? topInset : 'max(3.3rem, env(safe-area-inset-top, 0px))';
   const legacyBottomInset = isImmersive
     ? 'max(0.5rem, env(safe-area-inset-bottom, 0px))'
     : compactLandscape
@@ -422,7 +414,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
           ? 'max(5.5rem, calc(env(safe-area-inset-bottom, 0px) + 5rem))'
           : 'max(2.5rem, calc(env(safe-area-inset-bottom, 0px) + 2rem))'
         : undefined;
-  const bottomInset = `max(var(--teacher-bottom-inset, 150px), ${legacyBottomInset || '0px'})`;
+  const bottomInset = isImmersive ? immersiveInset : `max(var(--teacher-bottom-inset, 150px), ${legacyBottomInset || '0px'})`;
 
   return (
     <div className="relative flex-1 w-full h-full overflow-hidden flex flex-col">
@@ -535,6 +527,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
         role="main"
         aria-label={lang === 'ar' ? 'مساحة قراءة المستند' : 'Document reading area'}
         data-reader-mode={interactionMode}
+        {...chromeTap}
         onPointerDown={event => {
           if (interactionMode !== 'hand' || event.pointerType !== 'mouse' || event.button !== 0 ||
             (event.target as HTMLElement).closest('button, input, textarea, a, select')) return;
@@ -610,8 +603,6 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
         <div className="min-h-full w-max min-w-full flex items-start justify-center py-2 sm:py-4 overflow-hidden">
           <div
             style={{
-              transform: gestureTransform,
-              transition: gestureTransition,
               willChange: 'transform'
             }}
           >
@@ -725,8 +716,6 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
       ) : (
         <div
           style={{
-            transform: gestureTransform,
-            transition: gestureTransition,
             willChange: 'transform'
           }}
           className="min-h-full w-max min-w-full flex items-start justify-center py-2 sm:py-4 overflow-hidden"
@@ -834,6 +823,8 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
               <span className="text-ink text-xs underline decoration-accent font-bold">{numberJumpDisplay}</span>
               <span className="text-[10px] text-ink-muted">(Enter ↵)</span>
             </span>
+          ) : isImmersive && compact ? (
+            <span dir="ltr"><AnimatedCounter value={currentPage} /> / {numPages}</span>
           ) : (
             <>
               <span className="font-sans font-medium text-ink inline-flex items-center gap-1">

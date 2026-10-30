@@ -87,7 +87,7 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader, mobile =
         onCancel={reader.handlePasswordCancel}
       />
 
-      {reader.documentError && (
+      {reader.documentError && !reader.isImmersive && (
         <div
           role="alert"
           aria-live="assertive"
@@ -107,7 +107,7 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader, mobile =
         </div>
       )}
 
-      {(reader.autoBeam.active || reader.autoBeam.error) && <div role={reader.autoBeam.error ? 'alert' : 'status'} dir={reader.lang === 'ar' ? 'rtl' : 'ltr'}
+      {!reader.isImmersive && (reader.autoBeam.active || reader.autoBeam.error) && <div role={reader.autoBeam.error ? 'alert' : 'status'} dir={reader.lang === 'ar' ? 'rtl' : 'ltr'}
         className="chrome-surface fixed inset-x-3 top-20 z-50 mx-auto flex max-w-lg items-center gap-3 rounded-2xl px-4 py-3 text-xs text-ink shadow-lg">
         <span className="flex-1">{reader.autoBeam.error
           ? (reader.lang === 'ar' ? 'تعذر فتح الملف على السبورة تلقائياً. تحقق من الربط وأعد المحاولة.' : 'Could not open this file on the board automatically. Check the connection and retry.')

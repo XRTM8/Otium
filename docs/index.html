@@ -14,7 +14,7 @@
     <!-- Security: Content Security Policy (Sovereign Local-First Enforcement) -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self' data:; connect-src 'self' blob: data: wss: https:; worker-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost blob: data: https://ntfy.tedomum.fr https://ntfy.sh https://github.com https://api.github.com https://*.githubusercontent.com https://cdn.jsdelivr.net; worker-src 'self' blob:; frame-src 'self' blob:; media-src 'self' blob: data: mediastream:; object-src 'none'; base-uri 'none'; form-action 'none';"
     />
 
     <!-- Open Graph Metadata -->
@@ -35,41 +35,14 @@
     <link rel="apple-touch-icon" href="./pwa-192x192.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
 
-    <script>
-      (function () {
-        try {
-          var themes = {
-            paper: ['#f4ede1', true],
-            parchment: ['#ede2cd', true],
-            eink: ['#dfdfdf', true],
-            pure: ['#f1f5f9', true],
-            sakura: ['#fdf6f7', true],
-            midnight: ['#06090f', false],
-            amber: ['#14100c', false],
-            amoled: ['#000000', false]
-          };
-          var saved = localStorage.getItem('otium_theme') || localStorage.getItem('tirs_theme') || 'paper';
-          var entry = themes[saved] || themes.paper;
-          var root = document.documentElement;
-          root.classList.add('theme-' + (themes[saved] ? saved : 'paper'));
-          root.style.colorScheme = entry[1] ? 'light' : 'dark';
-          root.style.backgroundColor = entry[0];
-          var meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) meta.setAttribute('content', entry[0]);
-          var bridge = window.OtiumTheme;
-          if (bridge && bridge.setTheme) {
-            bridge.setTheme(entry[1] ? 'light' : 'dark', entry[0], entry[1]);
-          }
-        } catch (error) {}
-      })();
-    </script>
+    <script src="./theme-init.js"></script>
     <title>Otium — The Quiet Reader</title>
-    <script type="module" crossorigin src="./assets/index-DpWkAwt2.js"></script>
+    <script type="module" crossorigin src="./assets/index-5tTMJtt_.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime-BCiCTKAo.js">
     <link rel="modulepreload" crossorigin href="./assets/vendor-icons-DlKf1hd7.js">
     <link rel="modulepreload" crossorigin href="./assets/vendor-react-Dvd5WbgV.js">
     <link rel="modulepreload" crossorigin href="./assets/pdfjs-core-DhLKTOXj.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-B8AxymqL.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-BPOp-9cv.css">
   </head>
   <body class="antialiased selection:bg-amber-400/30 selection:text-amber-200">
     <div id="root"></div>

@@ -12,6 +12,7 @@ import { WelcomeScreen } from '../components/WelcomeScreen';
 import { BeamModal } from '../board/beam/BeamModal';
 import { TeachingProvider, useTeaching } from '../components/TeachingContext';
 import { DocumentInkProvider } from '../components/DocumentInk';
+import { useMobileFullscreen } from '../platform/useMobileFullscreen';
 
 const ScannerModal = React.lazy(() =>
   import('../scanner/ScannerModal').then((m) => ({ default: m.ScannerModal }))
@@ -23,6 +24,11 @@ export const MobileShell: React.FC = () => <TeachingProvider mobile><MobileReade
 const MobileReader: React.FC = () => {
   const teaching = useTeaching();
   const reader = useReaderController({ keyboard: false, dragDrop: false });
+  useMobileFullscreen();
+  React.useEffect(() => {
+    teaching.setPresentation(reader.isImmersive);
+    teaching.setReaderTools(!reader.isImmersive);
+  }, [reader.isImmersive, teaching.setPresentation, teaching.setReaderTools]);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isBeamOpen, setIsBeamOpen] = useState(false);
 

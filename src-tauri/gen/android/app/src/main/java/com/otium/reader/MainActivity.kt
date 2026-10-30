@@ -37,7 +37,7 @@ import java.nio.charset.StandardCharsets
 class MainActivity : TauriActivity() {
   private var appWebView: WebView? = null
   private var ttsBridge: AndroidTtsBridge? = null
-  private var immersive = false
+  private var immersive = true
   private val mainHandler = Handler(Looper.getMainLooper())
 
   private var pendingPdfBase64: String? = null
@@ -70,6 +70,7 @@ class MainActivity : TauriActivity() {
     clearLegacyServiceWorker()
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
+    applyImmersive(true)
 
     onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
       override fun handleOnBackPressed() {
@@ -475,6 +476,8 @@ class MainActivity : TauriActivity() {
 
     @JavascriptInterface
     fun openExternalUrl(url: String) {
+      val scheme = Uri.parse(url).scheme?.lowercase()
+      if (scheme != "https" && scheme != "http") return
       runOnUiThread {
         try {
           startActivity(
@@ -510,6 +513,7 @@ class MainActivity : TauriActivity() {
         }
         val connection = (URL(urlStr).openConnection() as HttpURLConnection).apply {
           requestMethod = "GET"
+          instanceFollowRedirects = false
           setRequestProperty("User-Agent", "Otium-Android")
           setRequestProperty("Accept", "application/vnd.github.v3+json")
           connectTimeout = 10_000

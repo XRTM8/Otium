@@ -42,10 +42,7 @@ export const QrCodeView: React.FC<QrCodeViewProps> = ({ value, size = 180 }) => 
       className="p-2.5 bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-slate-100 flex items-center justify-center select-none overflow-hidden"
     >
       {svgString ? (
-        <div
-          dangerouslySetInnerHTML={{ __html: svgString }}
-          className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
-        />
+        <img src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`} alt="Device pairing QR code" className="w-full h-full" />
       ) : (
         <div className="w-8 h-8 rounded-full border-2 border-accent border-t-transparent animate-spin" />
       )}

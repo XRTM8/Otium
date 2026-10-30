@@ -808,7 +808,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                 type="text"
                 value={targetRoomCode}
                 onChange={(e) => setTargetRoomCode(e.target.value.toUpperCase())}
-                placeholder="OTM-XXXX"
+                placeholder="OTM-XXXXXXXXXXXX"
                 className="w-full px-3 py-2.5 rounded-2xl bg-hover border border-line font-mono text-sm font-bold text-center tracking-widest text-ink focus:outline-none focus:ring-2 focus:ring-accent"
               />
               <div className="flex flex-col gap-2">

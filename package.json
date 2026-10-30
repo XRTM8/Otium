@@ -1,7 +1,7 @@
 {
   "name": "otium-reader",
   "private": true,
-  "version": "1.9.13",
+  "version": "1.9.14",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,7 @@
     "build": "tsc -b && vite build",
     "postbuild": "node scripts/sync-docs.mjs",
     "prebuild": "node scripts/copy-ocr-assets.mjs",
-    "lint": "oxlint",
+    "lint": "oxlint src scripts",
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview",

@@ -52,11 +52,12 @@ export function TeacherDock({ reader, ink }: { reader: ReaderController; ink: Do
     resize();
     const observer = new ResizeObserver(resize); observer.observe(element);
     return () => observer.disconnect();
-  }, [reader.doc, presentation]);
+  }, [reader.doc, presentation, reader.isImmersive]);
   useEffect(() => {
-    document.documentElement.style.setProperty('--teacher-bottom-inset', `${dockHeight + (mobile ? 8 : prefs.offset) + 18}px`);
+    if (mobile && reader.isImmersive) document.documentElement.style.removeProperty('--teacher-bottom-inset');
+    else document.documentElement.style.setProperty('--teacher-bottom-inset', `${dockHeight + (mobile ? 8 : prefs.offset) + 18}px`);
     return () => { document.documentElement.style.removeProperty('--teacher-bottom-inset'); };
-  }, [dockHeight, prefs.offset, mobile]);
+  }, [dockHeight, prefs.offset, mobile, reader.isImmersive]);
   useEffect(() => {
     if (!panel) return;
     const close = (e: PointerEvent) => { if (!dock.current?.contains(e.target as Node)) setPanel(null); };
@@ -64,7 +65,7 @@ export function TeacherDock({ reader, ink }: { reader: ReaderController; ink: Do
     document.addEventListener('pointerdown', close); document.addEventListener('keydown', key);
     return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', key); };
   }, [panel]);
-  if (!reader.doc) return null;
+  if (!reader.doc || (mobile && reader.isImmersive)) return null;
   const saved = active?.status || 'loading';
   const saveLabel = saved === 'saved' ? label('محفوظ على هذا الجهاز', 'Saved on this device') : saved === 'saving' ? label('جارٍ الحفظ…', 'Saving…') : saved === 'error' ? label('تعذر الحفظ — صدّر نسخة', 'Save failed — export a copy') : label('تحميل الشرح…', 'Loading annotations…');
   const deliveryLabel = !onBoard && reader.beamRoom ? ink.delivery === 'received' ? label('وصل الشرح للجهاز الآخر', 'Annotations received') : ink.delivery === 'sending' ? label('جارٍ إرسال الشرح…', 'Sending annotations…') : label('بانتظار الاتصال أو تأكيد الوصول', 'Waiting for connection or receipt') : '';
@@ -119,7 +120,7 @@ export function TeacherDock({ reader, ink }: { reader: ReaderController; ink: Do
           <button type="button" onClick={() => setPanel('settings')}><SlidersHorizontal size={18} />{label('تخصيص الشريط واللمس', 'Customize dock and touch')}</button>
           {!onBoard && <><button type="button" onClick={fit}>{label('ملاءمة الصفحة وإعادة التموضع', 'Fit and reposition page')}</button><button type="button" onClick={() => { teaching.setReachMode(!teaching.reachMode); const el = reader.scrollContainerRef.current; el?.scrollBy({ top: -(el.clientHeight / 3), behavior: 'auto' }); setPanel(null); }}>{teaching.reachMode ? label('إرجاع ارتفاع الصفحة', 'Restore page height') : label('إنزال المحتوى نحو اليد', 'Bring content down')}</button></>}
           <button type="button" onClick={() => { teaching.setReaderTools(!teaching.readerTools); setPanel(null); }}>{teaching.readerTools ? label('إخفاء أدوات القراءة الإضافية', 'Hide extra reader controls') : label('أدوات القراءة والربط', 'Reader and connection controls')}</button>
-          <button type="button" onClick={() => { teaching.setReaderTools(false); setPresentation(true); }}><Presentation size={18} />{label('عرض للطلاب', 'Present to students')}</button>
+          <button type="button" onClick={() => { teaching.setReaderTools(false); setPresentation(true); if (mobile) reader.setIsImmersive(true); }}><Presentation size={18} />{label('عرض للطلاب', 'Present to students')}</button>
           <button type="button" onClick={() => { void reader.handleToggleFullscreen(); setPanel(null); }}>{reader.isFullscreen ? label('خروج من ملء الشاشة', 'Exit fullscreen') : label('ملء الشاشة', 'Fullscreen')}</button>
           <button type="button" onClick={() => { setPanel(null); reader.setIsSettingsOpen(true); }}>{label('إعدادات التطبيق', 'App settings')}</button>
           <button type="button" className="text-danger-ink" disabled={!active?.ready || active.exporting} onClick={() => { confirmationTarget.current = target; setConfirm(true); setPanel(null); }}>{onBoard ? label('مسح شرح صفحة السبورة', 'Clear this board page') : label('مسح الكتابة عن الملف', 'Clear document ink')}</button>
@@ -134,7 +135,7 @@ export function TeacherDock({ reader, ink }: { reader: ReaderController; ink: Do
           <button type="button" disabled={!active?.ready || active.exporting} aria-label={label('تصدير', 'Export')} onClick={() => active?.exportPdf()}><Download size={21} /><span>{label('تصدير', 'Export')}</span></button>
           <button type="button" disabled={!active?.ready || active.exporting} aria-label={label('فتح تأكيد المسح', 'Open clear confirmation')} onClick={() => { confirmationTarget.current = target; setConfirm(true); }}><Trash2 size={21} /><span>{label('مسح', 'Clear')}</span></button></>}</>}
         {!presentation && !compactStudy && <div className="teacher-page-navigation" dir={reader.docIsRtl ? 'rtl' : 'ltr'}><button type="button" disabled={page <= 1} aria-label={label('الصفحة السابقة', 'Previous page')} onClick={() => onBoard ? board?.goToPage(page - 1) : reader.goToPrevPage()}>{reader.docIsRtl ? <ChevronRight size={22} /> : <ChevronLeft size={22} />}</button><span dir="ltr">{page} / {pages}</span><button type="button" disabled={page >= pages} aria-label={label('الصفحة التالية', 'Next page')} onClick={() => onBoard ? board?.goToPage(page + 1) : reader.goToNextPage()}>{reader.docIsRtl ? <ChevronLeft size={22} /> : <ChevronRight size={22} />}</button></div>}
-        {presentation ? <button type="button" onClick={() => { setPresentation(false); teaching.setReaderTools(true); }}><PenLine size={21} /><span>{label('إرجاع الأدوات', 'Show tools')}</span></button> : <><button type="button" aria-label={label('إخفاء كل الأدوات', 'Hide all controls')} onClick={() => { setPanel(null); teaching.setReaderTools(false); setPresentation(true); }}><EyeOff size={21} /><span>{label('إخفاء', 'Hide')}</span></button><button type="button" aria-expanded={panel === 'more'} onClick={() => setPanel(panel === 'more' ? null : 'more')}><MoreHorizontal size={23} /><span>{label('المزيد', 'More')}</span></button></>}
+        {presentation ? <button type="button" onClick={() => { setPresentation(false); teaching.setReaderTools(true); }}><PenLine size={21} /><span>{label('إرجاع الأدوات', 'Show tools')}</span></button> : <><button type="button" aria-label={label('إخفاء كل الأدوات', 'Hide all controls')} onClick={() => { setPanel(null); teaching.setReaderTools(false); setPresentation(true); if (mobile) reader.setIsImmersive(true); }}><EyeOff size={21} /><span>{label('إخفاء', 'Hide')}</span></button><button type="button" aria-expanded={panel === 'more'} onClick={() => setPanel(panel === 'more' ? null : 'more')}><MoreHorizontal size={23} /><span>{label('المزيد', 'More')}</span></button></>}
       </div>
       {!presentation && message && <p role="status" className="teacher-message">{message}</p>}
     </aside>

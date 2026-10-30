@@ -113,7 +113,6 @@ const SAMPLE_DOCUMENT_NAME = 'The Art of Vibe Reading.pdf';
  */
 const WHEEL_TURN_THRESHOLD = 96;
 const WHEEL_TURN_COOLDOWN_MS = 320;
-const ZOOM_ANIMATION_MS = 260;
 
 interface ZoomAnchor {
   element: HTMLElement;
@@ -280,54 +279,24 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const [passwordModal, setPasswordModal] =
     useState<PasswordModalState>(EMPTY_PASSWORD_MODAL);
 
-  const [isDraggingTouch, setIsDraggingTouch] = useState(false);
   const [searchSeed, setSearchSeed] = useState<{ query: string; id: number } | null>(null);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const touchStartX = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
-  const touchDeltaXRef = useRef(0);
   const pinchStartDistRef = useRef<number | null>(null);
   const pinchStartZoomRef = useRef(1);
   const isPinchingRef = useRef(false);
   const zoomAnchorRef = useRef<ZoomAnchor | null>(null);
   const zoomFocusRef = useRef<{ x: number; y: number } | null>(null);
-  const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
-  const singleTapTimerRef = useRef<number | null>(null);
-  const selectionAtTouchStartRef = useRef(false);
-  const swipeFrameRef = useRef<number | null>(null);
-  const pendingSwipeXRef = useRef(0);
-
-  /**
-   * Touch pans update a CSS variable instead of React state. A page swipe can
-   * fire 60-120 move events per second; re-rendering the whole reading surface
-   * for each one is what made the flagship phone feel choppy.
-   */
-  const resetSwipeOffset = useCallback(() => {
-    pendingSwipeXRef.current = 0;
-    if (swipeFrameRef.current !== null) {
-      window.cancelAnimationFrame(swipeFrameRef.current);
-      swipeFrameRef.current = null;
-    }
-    scrollContainerRef.current?.style.setProperty('--otium-swipe-x', '0px');
-  }, []);
-
-  const cancelPendingSingleTap = useCallback(() => {
-    if (singleTapTimerRef.current === null) return;
-    window.clearTimeout(singleTapTimerRef.current);
-    singleTapTimerRef.current = null;
-  }, []);
 
   useEffect(() => {
-    syncNativeImmersive(isImmersive);
-  }, [isImmersive]);
+    syncNativeImmersive(!capabilities.keyboard || isImmersive);
+  }, [isImmersive, capabilities.keyboard]);
 
   useEffect(() => {
     return () => {
-      cancelPendingSingleTap();
       syncNativeImmersive(false);
     };
-  }, [cancelPendingSingleTap]);
+  }, []);
 
   // Any overlay must bring the chrome back so its own controls stay reachable.
   useEffect(() => {
@@ -335,15 +304,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       setIsImmersive(false);
     }
   }, [isImmersive, isSearchOpen, isSettingsOpen, isSidebarOpen]);
-
-  useEffect(() => {
-    return () => {
-      if (swipeFrameRef.current !== null) {
-        window.cancelAnimationFrame(swipeFrameRef.current);
-        swipeFrameRef.current = null;
-      }
-    };
-  }, []);
 
   const docRef = useRef<PDFDocumentProxy | null>(null);
   const loadingTaskRef = useRef<PDFDocumentLoadingTask | null>(null);
@@ -446,11 +406,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     },
     [viewMode]
   );
-
-  const resetPageGesture = useCallback(() => {
-    resetSwipeOffset();
-    touchDeltaXRef.current = 0;
-  }, [resetSwipeOffset]);
 
   /** Remembers which point of which page sits under the user's fingers. */
   const captureZoomAnchor = useCallback((clientX: number, clientY: number) => {
@@ -718,9 +673,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     });
     wheelAccumRef.current = 0;
     wheelDirectionRef.current = 0;
-    resetPageGesture();
     return () => window.cancelAnimationFrame(first);
-  }, [currentPage, viewMode, resetPageGesture]);
+  }, [currentPage, viewMode]);
 
   const handlePageVisible = useCallback(
     (pageNumber: number) => {
@@ -786,6 +740,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   }, [currentPage, scrollToPage, triggerBoundaryBounce, viewMode]);
 
   const changeTheme = useCallback((nextTheme: ThemeMode, persistDocument = true) => {
+    if (!THEME_ORDER.includes(nextTheme)) return;
     triggerHaptic('selection');
     saveTheme(nextTheme);
     if (persistDocument && docIdRef.current && rememberDocThemeRef.current) {
@@ -853,7 +808,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     setRememberDocThemeState(enabled);
   }, []);
 
-
   useEffect(() => {
     if (themeSchedule !== 'system' || typeof window === 'undefined') return;
     const media = window.matchMedia('(prefers-color-scheme: dark)');
@@ -893,6 +847,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
 
   const changeViewMode = useCallback(
     (nextMode: ViewMode) => {
+      if (!['single', 'dual', 'continuous'].includes(nextMode)) return;
       // Continuous has no page viewport of its own, so remember which page the
       // reader was on and scroll to it once the new layout has mounted.
       if (nextMode === 'continuous' && currentPage > 1) {
@@ -1132,15 +1087,14 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     setIsSidebarOpen(false);
     setIsSettingsOpen(false);
     setIsImmersive(false);
-    lastTapRef.current = null;
-    cancelPendingSingleTap();
+
     setPasswordModal(EMPTY_PASSWORD_MODAL);
     setDocumentError(null);
     setIsLoading(false);
     setLoadProgress(null);
     lastFitScaleRef.current = 0;
     if (activeDoc) destroyDocumentSoon(activeDoc);
-  }, [cancelPendingSingleTap]);
+  }, []);
 
   const handlePasswordCancel = useCallback(() => {
     loadGenerationRef.current += 1;
@@ -1625,9 +1579,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
           } else if (msg.payload?.pdfBase64) {
             buffer = base64ToArrayBuffer(msg.payload.pdfBase64);
           } else if (msg.payload?.pdfUrl) {
-            const res = await fetch(msg.payload.pdfUrl);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            buffer = await res.arrayBuffer();
+            buffer = await beamService.downloadRelayDocument(msg.payload.pdfUrl);
           } else if (msg.payload?.chunks && msg.payload.chunks.length > 0) {
             buffer = await beamService.downloadRelayChunks(
               msg.payload.chunks,
@@ -1797,36 +1749,11 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     [passwordModal]
   );
 
-  const handleDoubleTap = useCallback(
-    (clientX: number, clientY: number) => {
-      const fit = getFitScale();
-      captureZoomAnchor(clientX, clientY);
-      // Double-tap toggles between fit and roughly 2x fit. Any other zoom
-      // level (including a pinch below fit) returns to fit first.
-      const nearFit = Math.abs(zoom - fit) <= Math.max(0.04, fit * 0.12);
-      const target = nearFit ? Math.min(getMaxZoom(), Number((fit * 2.0).toFixed(2))) : fit;
-      if (Number.isFinite(target) && target > 0) {
-        triggerHaptic('light');
-        setZoom(Number(target.toFixed(2)));
-      }
-
-      const captured = zoomAnchorRef.current;
-      window.setTimeout(() => {
-        if (zoomAnchorRef.current === captured) clearZoomAnchor();
-      }, ZOOM_ANIMATION_MS);
-    },
-    [captureZoomAnchor, clearZoomAnchor, getFitScale, zoom]
-  );
-
   const handleTouchStart = (event: ReactTouchEvent<HTMLDivElement>) => {
     if (isInteractiveTarget(event.target)) return;
-    // A new touch may be the second half of a double tap. Hold the pending
-    // single-tap chrome toggle until the gesture resolves.
-    cancelPendingSingleTap();
 
     if (event.touches.length === 2) {
-      lastTapRef.current = null;
-      selectionAtTouchStartRef.current = false;
+
       const distance = Math.hypot(
         event.touches[0].clientX - event.touches[1].clientX,
         event.touches[0].clientY - event.touches[1].clientY
@@ -1840,24 +1767,11 @@ export function useReaderController(capabilities: ReaderCapabilities) {
           (event.touches[0].clientY + event.touches[1].clientY) / 2
         );
       }
-      touchStartX.current = null;
-      touchStartY.current = null;
-      setIsDraggingTouch(false);
-      resetSwipeOffset();
-      touchDeltaXRef.current = 0;
+
       return;
     }
 
     if (event.touches.length === 1 && !isPinchingRef.current) {
-      const touch = event.touches[0];
-      const selection = window.getSelection();
-      selectionAtTouchStartRef.current = Boolean(
-        selection && !selection.isCollapsed && selection.toString().trim().length > 0
-      );
-      touchStartX.current = touch.clientX;
-      touchStartY.current = touch.clientY;
-      resetSwipeOffset();
-      touchDeltaXRef.current = 0;
 
       // Cache scroll metrics once at touchstart to eliminate layout thrashing during touchmove
       const container = scrollContainerRef.current;
@@ -1871,7 +1785,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
           isOverflowingY: maxScrollY > 2
         };
       }
-
 
     }
   };
@@ -1916,14 +1829,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     pendingPinchZoom.current = null;
     isPinchingRef.current = false;
     pinchStartDistRef.current = null;
-    touchStartX.current = null;
-    touchStartY.current = null;
-    selectionAtTouchStartRef.current = false;
-    lastTapRef.current = null;
-    cancelPendingSingleTap();
-    setIsDraggingTouch(false);
-    resetSwipeOffset();
-    touchDeltaXRef.current = 0;
+
     const anchor = zoomAnchorRef.current;
     requestAnimationFrame(() => { if (zoomAnchorRef.current === anchor) clearZoomAnchor(); });
   };
@@ -1934,14 +1840,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     isPinchingRef.current = false;
     pinchStartDistRef.current = null;
     clearZoomAnchor();
-    touchStartX.current = null;
-    touchStartY.current = null;
-    selectionAtTouchStartRef.current = false;
-    cancelPendingSingleTap();
-    lastTapRef.current = null;
-    setIsDraggingTouch(false);
-    resetSwipeOffset();
-    touchDeltaXRef.current = 0;
+
   };
 
   const handleToggleFullscreen = useCallback(() => {
@@ -2300,7 +2199,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     fileSizeBytes,
     numberJumpDisplay,
     renameDocument: renameCurrentDocument,
-    isDraggingTouch,
     scrollContainerRef,
     openFile,
     openSample,
@@ -2334,7 +2232,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     handleTouchMove,
     handleTouchEnd,
     handleTouchCancel,
-    handleDoubleTap,
     handleToggleFullscreen,
     handleSearchQueryChange,
     openSearchWithText,

@@ -40,6 +40,15 @@ jobs:
 
       - run: npm ci
 
+      - name: Check application source
+        run: npm run lint
+
+      - name: Run regression and security checks
+        run: npm test -- --reporter=dot
+
+      - name: Audit dependency advisories
+        run: npm audit --audit-level=high
+
       - name: Check version and tag
         id: version
         shell: bash

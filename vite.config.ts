@@ -14,6 +14,14 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(packageJson.version),
   },
   plugins: [
+    {
+      name: 'development-csp',
+      apply: 'serve',
+      transformIndexHtml(html) {
+        return html.replace("script-src 'self' 'wasm-unsafe-eval'", "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'")
+          .replace("connect-src 'self'", "connect-src 'self' http://localhost:5173 ws://localhost:5173");
+      },
+    },
     react(),
     tailwindcss(),
   ],

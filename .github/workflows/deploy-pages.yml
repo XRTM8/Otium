@@ -35,6 +35,12 @@ jobs:
       - name: Run automated regression suite
         run: npm test -- --reporter=dot
 
+      - name: Check application source
+        run: npm run lint
+
+      - name: Audit dependency advisories
+        run: npm audit --audit-level=high
+
       - name: Build Web Application
         run: npm run build
 

@@ -20,7 +20,7 @@ function reader(id: string, linked = false) {
   return { doc: {}, docId: id, docTitle: 'Lesson', annotations: [], annotationSaveStatus: 'saved',
     currentPage: 1, numPages: 3, theme: 'amoled', lang: 'ar', beamRoom: linked ? 'OTM-1234' : null,
     beamPeerConnected: linked, receiveBeamSelection: vi.fn(), mergeRemoteAnnotations: vi.fn(),
-    scrollContainerRef: { current: null }, closeDocument: vi.fn(), goToPrevPage: vi.fn(), goToNextPage: vi.fn()
+    scrollContainerRef: { current: null }, closeDocument: vi.fn(), goToPrevPage: vi.fn(), goToNextPage: vi.fn(), setIsImmersive: vi.fn()
   } as unknown as ReaderController;
 }
 async function render(id: string, linked = false, mobile = false) {
@@ -102,6 +102,13 @@ describe('unified teacher workspace', () => {
     expect(host.querySelector('.teacher-mobile')).not.toBeNull();
     expect(host.querySelector('button[aria-label="تحديد"]')).not.toBeNull();
     expect(teaching.layout).toBe('document');
+  });
+  it('removes the entire phone dock and its reserved space in immersive reading', async () => {
+    document.documentElement.style.setProperty('--teacher-bottom-inset', '140px');
+    await act(async () => root.render(<TeachingProvider mobile><DocumentInkProvider reader={{ ...reader('lesson-immersive'), isImmersive: true }}><Probe /></DocumentInkProvider></TeachingProvider>));
+    expect(host.querySelector('.teacher-dock')).toBeNull();
+    expect(host.textContent).not.toContain('إرجاع الأدوات');
+    expect(document.documentElement.style.getPropertyValue('--teacher-bottom-inset')).toBe('');
   });
   it('collapses phone study tools and restores selection without losing the document', async () => {
     await render('lesson-mobile-hide', false, true);

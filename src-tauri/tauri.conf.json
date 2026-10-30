@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Otium",
-  "version": "1.9.13",
+  "version": "1.9.14",
   "identifier": "com.otium.reader",
   "build": {
     "frontendDist": "../dist",
@@ -28,7 +28,7 @@
     "security": {
       "csp": {
         "default-src": "'self'",
-        "connect-src": "'self' ipc: http://ipc.localhost https://github.com https://*.githubusercontent.com https://cdn.jsdelivr.net https://ntfy.sh https://*.ntfy.sh",
+        "connect-src": "'self' ipc: http://ipc.localhost https://github.com https://*.githubusercontent.com https://cdn.jsdelivr.net https://ntfy.sh https://*.ntfy.sh https://ntfy.tedomum.fr https://api.github.com",
         "font-src": "'self' data:",
         "img-src": "'self' data: blob:",
         "media-src": "'self' blob: data: mediastream:",
@@ -37,13 +37,13 @@
         "worker-src": "'self' blob:",
         "child-src": "'self' blob:",
         "object-src": "'none'",
-        "base-uri": "'self'",
+        "base-uri": "'none'",
         "form-action": "'none'",
         "frame-ancestors": "'none'"
       },
       "devCsp": {
         "default-src": "'self'",
-        "connect-src": "'self' ipc: http://ipc.localhost https://github.com https://*.githubusercontent.com https://cdn.jsdelivr.net https://ntfy.sh https://*.ntfy.sh http://localhost:5173 ws://localhost:5173",
+        "connect-src": "'self' ipc: http://ipc.localhost https://github.com https://*.githubusercontent.com https://cdn.jsdelivr.net https://ntfy.sh https://*.ntfy.sh http://localhost:5173 ws://localhost:5173 https://ntfy.tedomum.fr https://api.github.com",
         "font-src": "'self' data:",
         "img-src": "'self' data: blob:",
         "media-src": "'self' blob: data: mediastream:",
@@ -52,7 +52,7 @@
         "worker-src": "'self' blob:",
         "child-src": "'self' blob:",
         "object-src": "'none'",
-        "base-uri": "'self'",
+        "base-uri": "'none'",
         "form-action": "'none'",
         "frame-ancestors": "'none'"
       }

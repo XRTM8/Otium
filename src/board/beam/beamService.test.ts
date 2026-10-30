@@ -37,9 +37,9 @@ afterEach(() => {
 });
 
 describe('Otium Smart Beam room codes', () => {
-  it('generates a clean 4-digit room code with prefix', () => {
+  it('generates a cryptographically random room code with 60 bits of entropy', () => {
     const code = generateRoomCode();
-    expect(code).toMatch(/^OTM-\d{4}$/);
+    expect(code).toMatch(/^OTM-[A-HJ-NP-Z2-9]{12}$/);
   });
 
   it('formats raw codes and numbers into standardized OTM-XXXX', () => {
@@ -58,14 +58,32 @@ describe('Otium Smart Beam room codes', () => {
 
   it('maintains persistent receiver room code across invocations and regenerates on request', () => {
     const code1 = getPersistentReceiverRoomCode();
-    expect(code1).toMatch(/^OTM-\d{4}$/);
+    expect(code1).toMatch(/^OTM-[A-HJ-NP-Z2-9]{12}$/);
 
     const code2 = getPersistentReceiverRoomCode();
     expect(code2).toBe(code1);
 
     const fresh = generateNewReceiverRoomCode();
-    expect(fresh).toMatch(/^OTM-\d{4}$/);
+    expect(fresh).toMatch(/^OTM-[A-HJ-NP-Z2-9]{12}$/);
     expect(getPersistentReceiverRoomCode()).toBe(fresh);
+  });
+  it('replaces weak saved defaults while still accepting manually entered legacy codes', () => {
+    localStorage.setItem('otium_receiver_room_code', 'OTM-1234');
+    expect(getPersistentReceiverRoomCode()).toMatch(/^OTM-[A-HJ-NP-Z2-9]{12}$/);
+    expect(formatRoomCode('1234')).toBe('OTM-1234');
+  });
+  it('does not let a second session replace an actively paired presenter', async () => {
+    const receiver = new BeamService() as any;
+    receiver.connectedRoom = 'OTM-1234'; receiver.role = 'receiver'; receiver.peerSessionId = 'paired'; receiver.peerState.connected = true;
+    try {
+      await receiver.handleIncoming({ type: 'BEAM_HANDSHAKE', roomCode: 'OTM-1234', sessionId: 'different', timestamp: Date.now() }, 'relay');
+      expect(receiver.peerSessionId).toBe('paired');
+    } finally { receiver.disconnect(); }
+  });
+  it('rejects oversized or untrusted relay manifests before fetching anything', async () => {
+    await expect(beamService.downloadRelayChunks(['https://127.0.0.1/private'])).rejects.toThrow('Untrusted');
+    await expect(beamService.downloadRelayChunks(Array(500).fill('https://ntfy.tedomum.fr/file/a'))).rejects.toThrow();
+    await expect(beamService.downloadRelayChunks(['https://ntfy.tedomum.fr/file/a'], 999_000_000)).rejects.toThrow('size');
   });
 });
 

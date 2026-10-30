@@ -5,6 +5,7 @@ import type {
   BeamTransferState,
   BeamTransport
 } from '../types';
+import { BEAM_RELAY_ORIGIN, boundedResponseBytes, trustedRelayUrl } from './beamSecurity';
 
 export type BeamConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
@@ -40,7 +41,7 @@ const RECEIVER_ROOM_KEY = 'otium_receiver_room_code';
 // ntfy.sh was timing out on the classroom network even though normal HTTPS
 // worked. This compatible relay was verified with publish, long-poll and SSE
 // before being made the shared default for every newly updated device.
-const CLOUD_RELAY_BASE = 'https://ntfy.tedomum.fr';
+const CLOUD_RELAY_BASE = BEAM_RELAY_ORIGIN;
 
 const SSE_SINCE = '30s';
 const HANDSHAKE_INTERVAL_MS = 2000;
@@ -218,16 +219,16 @@ function isRetryableStatus(status: number): boolean {
 }
 
 export function generateRoomCode(): string {
-  // 4 easy numeric digits for effortless classroom read-out: OTM-XXXX
-  const num = Math.floor(1000 + Math.random() * 9000);
-  return `OTM-${num}`;
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = crypto.getRandomValues(new Uint8Array(12));
+  return `OTM-${Array.from(bytes, value => alphabet[value & 31]).join('')}`;
 }
 
 export function getPersistentReceiverRoomCode(): string {
   if (typeof localStorage === 'undefined') return generateRoomCode();
   try {
     const saved = localStorage.getItem(RECEIVER_ROOM_KEY);
-    if (saved && /^OTM-\d{4,6}$/.test(saved)) {
+    if (saved && /^OTM-[A-HJ-NP-Z2-9]{12}$/.test(saved)) {
       return saved;
     }
     const fresh = generateRoomCode();
@@ -249,6 +250,7 @@ export function generateNewReceiverRoomCode(): string {
 }
 
 export function formatRoomCode(code: string): string {
+  if (typeof code !== 'string' || code.length > 256) return '';
   const clean = (code || '').trim().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
   if (clean.startsWith('OTM') && clean.length > 3) {
     return `OTM-${clean.slice(3)}`;
@@ -293,7 +295,7 @@ export function parseBeamLaunch(hash = '', search = ''): BeamLaunchParams {
     if (legacy) roomRaw = legacy[1];
   }
   if (!roomRaw) {
-    const typed = `${rawHash} ${search || ''}`.match(/\bOTM-\d{4,6}\b/i);
+    const typed = `${rawHash} ${search || ''}`.match(/\bOTM-[A-Za-z0-9]{4,32}\b/i);
     if (typed) roomRaw = typed[0];
   }
 
@@ -884,9 +886,12 @@ export class BeamService {
     expectedSize?: number,
     expectedSha256?: string
   ): Promise<ArrayBuffer> {
-    if (!Array.isArray(chunks) || chunks.length === 0) {
+    if (!Array.isArray(chunks) || chunks.length === 0 || chunks.length > Math.ceil(RELAY_MAX_BYTES / RELAY_CHUNK_SIZE) + 1) {
       throw new Error('The relay payload contains no chunks.');
     }
+    if (expectedSize !== undefined && (!Number.isInteger(expectedSize) || expectedSize <= 0 || expectedSize > RELAY_MAX_BYTES)) throw new Error('Invalid relay transfer size.');
+    if (expectedSha256 !== undefined && !/^[a-f0-9]{64}$/i.test(expectedSha256)) throw new Error('Invalid relay checksum.');
+    chunks.forEach(trustedRelayUrl);
 
     this.updateTransfer({
       active: true,
@@ -905,9 +910,10 @@ export class BeamService {
       let completed = 0;
 
       const downloadOne = async (url: string, index: number): Promise<void> => {
-        const buffer = await this.fetchAttachmentBuffer(url);
+        const buffer = await this.fetchAttachmentBuffer(url, RELAY_CHUNK_SIZE + 1024);
         parts[index] = buffer;
         downloaded += buffer.byteLength;
+        if (downloaded > RELAY_MAX_BYTES || (expectedSize && downloaded > expectedSize)) throw new Error('Relay payload exceeds the announced size.');
         completed += 1;
         const total = expectedSize || downloaded;
         this.updateTransfer({
@@ -934,7 +940,7 @@ export class BeamService {
       }
       if (expectedSha256) {
         const actual = await computeSha256(merged);
-        if (actual && actual !== expectedSha256) {
+        if (!actual || actual.toLowerCase() !== expectedSha256.toLowerCase()) {
           throw new Error('Relay checksum mismatch. Please retry the transfer.');
         }
       }
@@ -1422,19 +1428,24 @@ export class BeamService {
 
   private async fetchAttachmentText(url: string): Promise<string> {
     const response = await this.fetchWithRetry(url);
-    return await response.text();
+    return new TextDecoder().decode(await boundedResponseBytes(response, 2 * 1024 * 1024));
   }
 
-  private async fetchAttachmentBuffer(url: string): Promise<ArrayBuffer> {
+  private async fetchAttachmentBuffer(url: string, maxBytes = MAX_FILE_BYTES): Promise<ArrayBuffer> {
     const response = await this.fetchWithRetry(url);
-    return await response.arrayBuffer();
+    return await boundedResponseBytes(response, maxBytes);
+  }
+
+  public async downloadRelayDocument(url: string): Promise<ArrayBuffer> {
+    return this.fetchAttachmentBuffer(url);
   }
 
   private async fetchWithRetry(url: string, attempts = 3): Promise<Response> {
+    url = trustedRelayUrl(url);
     let lastError: unknown = null;
     for (let attempt = 0; attempt < attempts; attempt++) {
       try {
-        const response = await fetchWithTimeout(url, undefined, 45000);
+        const response = await fetchWithTimeout(url, { redirect: 'error', credentials: 'omit', referrerPolicy: 'no-referrer' }, 45000);
         if (response.ok) return response;
         if (isRetryableStatus(response.status) && attempt < attempts - 1) {
           await sleep(retryDelayMs(response, attempt));
@@ -1469,7 +1480,9 @@ export class BeamService {
   }
 
   private async handleIncoming(message: BeamMessage, transport: BeamTransport): Promise<void> {
-    if (!message || !message.type || !message.roomCode) return;
+    if (!message || typeof message.type !== 'string' || typeof message.roomCode !== 'string' || message.roomCode.length > 256) return;
+    if (message.sessionId !== undefined && (typeof message.sessionId !== 'string' || message.sessionId.length > 128)) return;
+    if (message.msgId !== undefined && (typeof message.msgId !== 'string' || message.msgId.length > 128)) return;
     if (!this.connectedRoom || !this.isMatchingRoom(message.roomCode, this.connectedRoom)) {
       return;
     }
@@ -1491,6 +1504,7 @@ export class BeamService {
       case 'BEAM_HANDSHAKE': {
         if (!message.sessionId) return;
         if (this.closedSessions.has(message.sessionId)) return;
+        if (this.peerState.connected && this.peerSessionId && message.sessionId !== this.peerSessionId) return;
         const isNewSession =
           !this.peerSessionId || this.peerSessionId !== message.sessionId;
         if (isNewSession) {
@@ -2372,7 +2386,7 @@ export class BeamService {
           const parsed = await response.json();
           const attachmentUrl = parsed?.attachment?.url;
           if (typeof attachmentUrl === 'string' && attachmentUrl.length > 0) {
-            return attachmentUrl;
+            return trustedRelayUrl(attachmentUrl);
           }
           throw new Error('The relay did not return an attachment URL.');
         }

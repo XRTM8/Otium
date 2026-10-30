@@ -1,3 +1,15 @@
+# Otium 1.9.14 — Mobile focus and stability hardening
+
+- Keep Android system bars hidden independently of reader tools; request browser fullscreen on an eligible user gesture without consuming file-picker controls.
+- A short stationary page tap hides or restores mobile chrome; scroll, pinch, long press, controls, and native selection do not toggle it. Hidden reading keeps only the page number and removes the floating restore dock.
+- Replace weak default pairing codes with 12 cryptographically random characters. Re-pair by QR after upgrading; manual legacy codes remain compatible.
+- Restrict relay attachment URLs and redirects, cap actual streamed bytes and manifest sizes, and reject replacement handshakes while a presenter is connected.
+- Align native relay CSP with production, restrict web connection destinations, move startup theme code to a local file, and render QR images without HTML insertion.
+- Correct offline cache application paths and stop deleting unrelated application caches.
+- Remove inactive swipe/double-tap state and scope linting to application source instead of generated/vendor assets.
+- Gate desktop/mobile release builds on regression tests, source checks, and dependency advisories.
+- Document audit findings and remaining LTS requirements in maintenance/LTS-READINESS.md. This is a preparatory hardening patch, not an LTS certification.
+
 # Otium 1.9.13 — Automatic classroom files and smoother annotation tools
 
 - Automatically transfer a newly opened PDF from the paired presenter to the board, even with the Beam dialog closed; queue the latest opened file and expose progress and retry.

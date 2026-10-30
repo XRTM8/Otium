@@ -5,8 +5,8 @@ interface NativeUiBridge {
 }
 
 /**
- * Extends the tap-to-hide reading mode into the native Android system bars.
- * Browser previews and Windows only hide the in-app chrome.
+ * Controls native Android system bars independently of the reader chrome.
+ * Mobile keeps these hidden while its in-app toolbars can be shown or hidden.
  */
 export function syncNativeImmersive(enabled: boolean): void {
   if (typeof window === 'undefined') return;
