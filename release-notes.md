@@ -1,14 +1,14 @@
-# Otium 1.9.1 — Calm navigation and synchronized text selection
+# Otium 1.9.2 — Reachable teacher workspace
 
-- Remove the redundant Document / Split / Board control from the middle of the screen; keep the draggable divider.
-- Open received PDFs in the document view instead of automatically showing an empty whiteboard beside them.
-- Separate Navigate, Select text, and annotation tools. Native text selection is disabled during ordinary scrolling and drawing.
-- Single-finger touch scrolls; two-finger pinch zooms. Touch gestures no longer hide controls, double-tap zoom, or flip pages at scroll boundaries. Explicit page controls remain available.
-- Coalesce pinch updates to animation frames and prevent simultaneous native pan during a pinch.
-- Fit using the actual document pane width, including after split resizing, without responding to scrollbar-width changes.
-- Synchronize temporary text selection, saved highlights, underlines, notes, and deletion between paired devices. The receiving board follows the selected paragraph.
-- Include saved text highlights and underlines in annotated PDF exports.
-- Use short, subtle panel/page transitions and honor reduced-motion preferences.
-- Send explicit disconnect through both direct and relay paths, including a keepalive request when leaving the page.
+- Replace floating corner buttons and separate drawing toolbars with one reachable bottom dock. Switch between document and whiteboard from the same place.
+- Clearly identify whether tools affect the document or whiteboard; start navigation safely and reveal pen options only when needed.
+- Remember dock position, height, button size, pen color, width, and stylus-only preference on each device.
+- Save whiteboard pages, undo/redo history, backgrounds, and pinned clips by document identity. Switching views keeps both workspaces mounted.
+- Confirm clear-all and restore cleared or erased board strokes with Undo. Flush pending text highlights when leaving a document.
+- Distinguish local saving from peer delivery. Show delivery only after a receipt from the paired reader; older clients without receipts remain in the waiting state.
+- Add a student presentation view with reachable page navigation and a restore-tools button. Offer fullscreen and page reach/fit actions from More.
+- Adapt the unified dock for narrow phone screens, reserve space below the content, and respect reduced-motion preferences.
 
-Update both linked devices. Temporary selection is a short-lived blue spotlight; use the highlight action to save a persistent mark.
+Update both linked devices. Whiteboard pages are saved on the device; synchronized PDF annotations continue to use the paired connection.
+
+Validation: production build, shared-version guard, storage and session tests, and React interaction tests for target switching, clear/undo/remount, presentation, phone controls, stylus-only input, and delivery receipts. Physical smartboard reach, pen hardware, and phone pinch gestures still need device acceptance testing; automated browser inspection was stopped by the Computer Use URL policy check.

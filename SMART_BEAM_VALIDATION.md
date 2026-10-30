@@ -1,6 +1,19 @@
-# Smart Beam and PDF ink 1.9.1 acceptance
+# Teacher workspace, Smart Beam and PDF ink 1.9.2 acceptance
 
-Automated: run npm test, npm run build, and npm run version:check -- v1.9.1.
+Automated: run npm test, npm run build, and npm run version:check -- v1.9.2.
+
+Teacher workspace checks:
+
+- Check the bottom dock at 320px phone width and on a large physical board. No overlapping touch targets or hidden restore button.
+- Move the dock left/right, adjust height and size, select pen width/color/stylus-only, reload and verify device preferences.
+- Toggle document/whiteboard repeatedly and use the split divider. Marks, pages and clips must remain intact and the active writing target must be clear.
+- Clear a board page, cancel the confirmation, then confirm it. Undo must restore erased and cleared ink; redo must repeat the action.
+- Close/reopen a document and reload the app. Its own saved board pages, backgrounds, history and clips must return without another document's data.
+- Enter student presentation and restore tools from the reachable bottom button; test fullscreen separately.
+- Pair two updated devices. Delivery status must wait for a receipt rather than a successful local send. Disconnect, reconnect and repeat.
+- Test stylus and palm input on actual hardware. Automated DOM tests verify filtered input but cannot establish hardware palm rejection or physical reach.
+
+React interaction tests cover target switching, confirmation/undo/remount, presentation, phone tools, stylus-only input, and delivery receipts. Computer Use browser inspection was stopped because the tool could not establish the current URL; this release has not been visually inspected through that tool.
 
 Physical device validation is still required:
 

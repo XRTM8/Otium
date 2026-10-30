@@ -11,12 +11,19 @@ import { WelcomeScreen } from '../components/WelcomeScreen';
 import { BoardSplitWorkspace } from '../board/components/BoardSplitWorkspace';
 import { BeamModal } from '../board/beam/BeamModal';
 import { DocumentInkProvider } from '../components/DocumentInk';
+import { TeachingProvider, useTeaching } from '../components/TeachingContext';
 import type { BoardSnippet } from '../board/types';
 
 /** Windows shell: floating desktop toolbar, Otium Board split-screen studio, and Smart Beam. */
-export const DesktopShell: React.FC = () => {
+export const DesktopShell: React.FC = () => <TeachingProvider><DesktopReader /></TeachingProvider>;
+const DesktopReader: React.FC = () => {
   const reader = useReaderController({ keyboard: true, dragDrop: false });
-  const [isBoardOpen, setIsBoardOpen] = useState(false);
+  const teaching = useTeaching();
+  const isBoardOpen = teaching.layout !== 'document';
+  const setIsBoardOpen = useCallback((value: boolean | ((previous: boolean) => boolean)) => {
+    const next = typeof value === 'function' ? value(teaching.layout !== 'document') : value;
+    teaching.setLayout(next ? 'split' : 'document');
+  }, [teaching.layout, teaching.setLayout]);
   const [isBeamOpen, setIsBeamOpen] = useState(false);
   const [snippets, setSnippets] = useState<BoardSnippet[]>([]);
   const [isDraggingOverWindow, setIsDraggingOverWindow] = useState(false);
@@ -54,8 +61,8 @@ export const DesktopShell: React.FC = () => {
       pageNumber,
       x: 30,
       y: 50,
-      width: 300,
-      height: 180,
+      width: 600,
+      height: 360,
       createdAt: Date.now()
     };
     handleAddSnippet(newSnippet);
@@ -199,7 +206,7 @@ export const DesktopShell: React.FC = () => {
         </>
       ) : (
         <>
-          <Toolbar
+          <div hidden={!teaching.readerTools || teaching.presentation}><Toolbar
             title={reader.docTitle}
             currentPage={reader.currentPage}
             totalPages={reader.numPages}
@@ -237,7 +244,7 @@ export const DesktopShell: React.FC = () => {
             bookmarksCount={reader.bookmarks.length}
             fileSizeBytes={reader.fileSizeBytes}
             pageDimensions={reader.basePageSize}
-          />
+          /></div>
 
           <TextSelectionMenu
             onAddAnnotation={reader.addAnnotation}
@@ -250,6 +257,7 @@ export const DesktopShell: React.FC = () => {
 
           <BoardSplitWorkspace
             reader={reader}
+            onRestoreSnippets={setSnippets}
             isBoardOpen={isBoardOpen}
             onCloseBoard={() => setIsBoardOpen(false)}
             snippets={snippets}

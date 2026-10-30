@@ -1,7 +1,7 @@
 import type { ThemeMode, TextAnnotation, AnnotationRect } from '../core/types';
 import type { InkMark } from '../core/annotations/ink';
 
-export type BoardTool = 'pen' | 'highlighter' | 'eraser' | 'laser';
+export type BoardTool = 'hand' | 'pen' | 'highlighter' | 'eraser' | 'laser';
 
 export type BoardBackground = 'white' | 'grid' | 'ruled' | 'dark';
 
@@ -35,6 +35,7 @@ export interface BoardPageData {
   id: string;
   strokes: BoardStroke[];
   redoStack: BoardStroke[][];
+  undoStack?: BoardStroke[][];
   background: BoardBackground;
 }
 
@@ -69,6 +70,7 @@ export type BeamMessageType =
   | 'BEAM_DOCUMENT_OPENED'
   | 'BEAM_INK_UPDATE'
   | 'BEAM_INK_REQUEST'
+  | 'BEAM_ANNOTATION_ACK'
   | 'BEAM_TEXT_ANNOTATIONS'
   | 'BEAM_TEXT_ANNOTATIONS_REQUEST'
   | 'BEAM_SELECTION'
@@ -96,6 +98,8 @@ export interface BeamMessage {
   transferId?: string;
   ok?: boolean;
   error?: string;
+  receiptId?: string;
+  annotationReceipt?: { documentId: string; id: string };
   ink?: { documentId: string; upsert?: InkMark[]; deleted?: string[] };
   annotationSync?: { documentId: string; upsert?: TextAnnotation[]; deleted?: string[] };
   selection?: { documentId: string; page: number; rects: AnnotationRect[] };

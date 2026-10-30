@@ -153,8 +153,8 @@ export const AreaSnippetModal: React.FC<AreaSnippetModalProps> = ({
         pageNumber: currentPage,
         x: 40,
         y: 60,
-        width: Math.min(340, Math.round(screenWidth)),
-        height: Math.min(420, Math.round(screenHeight)),
+        width: Math.min(680, Math.round(screenWidth) * 2),
+        height: Math.min(840, Math.round(screenHeight) * 2),
         createdAt: Date.now()
       };
 

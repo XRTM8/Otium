@@ -10,6 +10,7 @@ import { ReaderWorkspace } from '../components/ReaderWorkspace';
 import { TextSelectionMenu } from '../components/TextSelectionMenu';
 import { WelcomeScreen } from '../components/WelcomeScreen';
 import { BeamModal } from '../board/beam/BeamModal';
+import { TeachingProvider, useTeaching } from '../components/TeachingContext';
 import { DocumentInkProvider } from '../components/DocumentInk';
 
 const ScannerModal = React.lazy(() =>
@@ -18,7 +19,9 @@ const ScannerModal = React.lazy(() =>
 const preloadScanner = () => import('../scanner/ScannerModal');
 
 /** Android shell: touch-first bars, swipe gestures and no keyboard shortcuts. */
-export const MobileShell: React.FC = () => {
+export const MobileShell: React.FC = () => <TeachingProvider mobile><MobileReader /></TeachingProvider>;
+const MobileReader: React.FC = () => {
+  const teaching = useTeaching();
   const reader = useReaderController({ keyboard: false, dragDrop: false });
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isBeamOpen, setIsBeamOpen] = useState(false);
@@ -91,7 +94,7 @@ export const MobileShell: React.FC = () => {
         />
       ) : (
         <>
-          <MobileToolbar
+          <div hidden={!teaching.readerTools || teaching.presentation}><MobileToolbar
             title={reader.docTitle}
             currentPage={reader.currentPage}
             totalPages={reader.numPages}
@@ -101,7 +104,7 @@ export const MobileShell: React.FC = () => {
             isBookmarked={reader.bookmarks.some(
               (bookmark) => bookmark.pageNumber === reader.currentPage
             )}
-            showBottomBar={reader.showMobileNavBar}
+            showBottomBar={false}
             immersive={reader.isImmersive}
             onPageChange={reader.scrollToPage}
             onPrevPage={reader.goToPrevPage}
@@ -119,7 +122,7 @@ export const MobileShell: React.FC = () => {
             onDisconnectBeam={reader.disconnectBeam}
             onOpenSettings={() => reader.setIsSettingsOpen(true)}
             onCloseDocument={reader.closeDocument}
-          />
+          /></div>
 
           <TextSelectionMenu
             onAddAnnotation={reader.addAnnotation}

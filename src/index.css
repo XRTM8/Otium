@@ -1390,6 +1390,57 @@ button:focus:not(:focus-visible),
 .otium-tool-panel button { transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 120ms ease; }
 .otium-tool-panel button:active { transform: scale(.96); }
 .otium-tool-panel button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+/* A single reachable teaching dock; secondary options open directly above it. */
+.teacher-status { position: fixed; z-index: 35; top: max(10px, env(safe-area-inset-top, 0px)); left: 16px; right: 16px; margin: auto; width: fit-content; max-width: calc(100% - 32px); display: flex; align-items: center; gap: 24px; padding: 9px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-1); color: var(--ink-muted); font-size: 12px; pointer-events: none; }
+.teacher-document-title { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55vw; }
+.teacher-dock { position: fixed; z-index: 45; bottom: max(var(--teacher-offset, 12px), env(safe-area-inset-bottom, 0px)); left: 16px; right: 16px; width: fit-content; max-width: calc(100vw - 32px); margin-inline: auto; border: 1px solid var(--line); border-radius: 20px; background: var(--surface-1); color: var(--ink); padding: 7px; box-shadow: 0 8px 32px rgb(0 0 0 / .16); }
+.teacher-dock[data-position="left"] { margin-left: 0; }
+.teacher-dock[data-position="right"] { margin-right: 0; }
+.teacher-context-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 22px; padding: 3px 9px 8px; font-size: 11px; color: var(--ink-muted); border-bottom: 1px solid var(--line); margin-bottom: 5px; }
+.teacher-context-line strong { color: var(--accent); font-size: 12px; font-weight: 600; }
+.teacher-main-row, .teacher-tool-group, .teacher-history, .teacher-page-navigation { display: flex; align-items: center; justify-content: center; gap: 3px; }
+.teacher-main-row { flex-wrap: wrap; }
+.teacher-dock button { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: var(--teacher-size, 52px); min-height: var(--teacher-size, 52px); border-radius: 12px; padding: 6px 8px; font-size: 11px; cursor: pointer; transition: background-color 140ms ease, color 140ms ease; touch-action: manipulation; }
+.teacher-dock button:hover { background: var(--surface-hover); }
+.teacher-dock button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.teacher-dock button:disabled { opacity: .35; cursor: default; }
+.teacher-dock .teacher-workspace-toggle { color: var(--accent); border-inline-end: 1px solid var(--line); border-radius: 12px 0 0 12px; padding-inline-end: 13px; margin-inline-end: 4px; }
+.teacher-history { border-inline: 1px solid var(--line); margin-inline: 4px; padding-inline: 4px; }
+.teacher-page-navigation span { font-size: 12px; font-variant-numeric: tabular-nums; min-width: 46px; text-align: center; }
+.teacher-popover { position: absolute; bottom: calc(100% + 10px); inset-inline-end: 0; width: min(360px, calc(100vw - 32px)); max-height: min(460px, calc(100dvh - var(--teacher-bottom-inset, 180px) - 24px)); overflow-y: auto; overscroll-behavior: contain; padding: 12px; border-radius: 18px; border: 1px solid var(--line); box-shadow: 0 6px 24px rgb(0 0 0 / .16); background: var(--surface-1); animation: otiumPanelIn 160ms ease both; }
+.teacher-popover-heading { display: flex; align-items: center; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
+.teacher-popover button { min-width: 44px; min-height: 44px; font-size: 13px; }
+.teacher-pen-options, .teacher-settings { display: flex; flex-direction: column; gap: 16px; font-size: 13px; }
+.teacher-palette { display: flex; flex-wrap: wrap; gap: 12px; }
+.teacher-palette button { min-width: 44px; min-height: 44px; border: 5px solid var(--surface-1); outline: 1px solid var(--line); border-radius: 50%; }
+.teacher-dock label { display: flex; align-items: center; gap: 12px; justify-content: space-between; min-height: 44px; font-size: 13px; }
+.teacher-dock input[type="range"] { width: 130px; max-width: 45%; accent-color: var(--accent); min-height: 44px; }
+.teacher-dock input[type="color"] { width: 48px; height: 44px; border-radius: 8px; }
+.teacher-dock input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent); flex-shrink: 0; }
+.teacher-dock .teacher-check { justify-content: flex-start; }
+.teacher-dock select { max-width: 65%; min-height: 44px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-1); color: var(--ink); }
+.teacher-menu { display: flex; flex-direction: column; gap: 3px; }
+.teacher-menu button { flex-direction: row; justify-content: flex-start; text-align: start; gap: 10px; }
+.teacher-menu button:last-child { border-top: 1px solid var(--line); border-radius: 0 0 10px 10px; margin-top: 4px; }
+.teacher-message { padding: 5px 9px; margin: 0; font-size: 12px; max-width: 80vw; overflow-wrap: anywhere; }
+.teacher-presenting { padding: 5px; }
+@media(max-width:600px) {
+  .teacher-dock, .teacher-dock.teacher-mobile { left: 8px; right: 8px; max-width: calc(100vw - 16px); --teacher-size: 44px !important; border-radius: 16px; padding: 5px; }
+  .teacher-dock .teacher-history { gap: 0; margin-inline: 0; padding-inline: 0; }
+  .teacher-dock .teacher-history button { min-width: 44px; }
+  .teacher-context-line { font-size: 10px; justify-content: center; padding: 3px 4px 6px; gap: 2px 8px; }
+  .teacher-context-line strong { font-size: 11px; }
+  .teacher-popover { width: min(360px, calc(100vw - 16px)); }
+  .teacher-status { left: 8px; right: 8px; font-size: 11px; gap: 12px; }
+  .teacher-main-row { gap: 2px; }
+  .teacher-dock button { padding: 5px 6px; }
+}
+@media(prefers-reduced-motion: reduce) {
+  .teacher-dock button { transition: none; }
+  .teacher-popover { animation: none; }
+}
+@media print { .teacher-dock, .teacher-status { display: none !important; } }
 @media (prefers-reduced-motion: reduce) {
   .otium-tool-panel, .otium-panel-content { animation: none; }
   .otium-tool-panel button { transition: none; transform: none; }

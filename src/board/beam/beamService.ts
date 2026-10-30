@@ -1511,6 +1511,7 @@ export class BeamService {
       }
 
       case 'BEAM_PAGE_CHANGE':
+      case 'BEAM_ANNOTATION_ACK':
       case 'BEAM_INK_UPDATE':
       case 'BEAM_INK_REQUEST':
       case 'BEAM_TEXT_ANNOTATIONS':
@@ -1554,6 +1555,7 @@ export class BeamService {
     _transport: BeamTransport
   ): Promise<void> {
     switch (message.type) {
+      case 'BEAM_ANNOTATION_ACK':
       case 'BEAM_INK_UPDATE':
       case 'BEAM_INK_REQUEST': {
         if (!message.sessionId || message.sessionId !== this.sessionId || !this.peerState.connected) return;

@@ -240,6 +240,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSearchPage, setActiveSearchPage] = useState<number | null>(null);
   const [annotations, setAnnotations] = useState<TextAnnotation[]>([]);
+  const [annotationSaveStatus, setAnnotationSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const [beamSelection, setBeamSelection] = useState<TextAnnotation | null>(null);
   const beamSelectionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mergeRemoteAnnotations = useCallback((updates: TextAnnotation[], deleted: string[]) => {
@@ -551,10 +552,22 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   // highlighting never waits for IndexedDB or blocks the canvas.
   useEffect(() => {
     if (!docId || !annotationsHydratedRef.current) return;
+    let alive = true;
+    setAnnotationSaveStatus('saving');
+    const save = () => {
+      void saveStoredAnnotations(docId, annotations).then(ok => {
+        if (alive) setAnnotationSaveStatus(ok ? 'saved' : 'error');
+      });
+    };
     const timer = window.setTimeout(() => {
-      void saveStoredAnnotations(docId, annotations);
+      save();
     }, 240);
-    return () => window.clearTimeout(timer);
+    window.addEventListener('pagehide', save);
+    return () => {
+      alive = false; window.clearTimeout(timer); window.removeEventListener('pagehide', save);
+      // Flush the last edit when changing documents or closing the reader.
+      void saveStoredAnnotations(docId, annotations);
+    };
   }, [annotations, docId]);
 
   useEffect(() => {
@@ -2258,6 +2271,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     activeSearchPage,
     searchSeed,
     annotations,
+    annotationSaveStatus,
     beamSelection,
     receiveBeamSelection,
     mergeRemoteAnnotations,
