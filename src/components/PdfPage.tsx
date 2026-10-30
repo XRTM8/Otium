@@ -7,7 +7,7 @@ import type { Language } from '../core/i18n/translations';
 import { getCanvasPixelRatio } from '../core/reader/device';
 import { scheduleIdleWork, scheduleRender } from '../core/reader/renderScheduler';
 import { normalizeAnnotationRects } from '../core/annotations/geometry';
-import { DocumentInkLayer } from './DocumentInk';
+import { DocumentInkLayer, useDocumentInteraction } from './DocumentInk';
 
 interface PdfPageProps {
   doc: PDFDocumentProxy;
@@ -186,6 +186,7 @@ const PdfPageView: React.FC<PdfPageProps> = ({
   lang = 'ar',
   renderPriority = 0
 }) => {
+  const { mode } = useDocumentInteraction();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
@@ -674,8 +675,8 @@ const PdfPageView: React.FC<PdfPageProps> = ({
         ref={textLayerRef}
         dir="ltr"
         data-page-number={pageNumber}
-        className="textLayer absolute inset-0 select-text pointer-events-auto z-10"
-        style={{ transform: `scale(${scale})` }}
+        className={`textLayer absolute inset-0 z-10 ${mode === 'select' ? 'select-text pointer-events-auto' : 'select-none pointer-events-none'}`}
+        style={{ transform: `scale(${scale})`, userSelect: mode === 'select' ? 'text' : 'none', WebkitUserSelect: mode === 'select' ? 'text' : 'none' }}
       />
 
       {pageAnnotations.some((annotation) => annotation.note) && (

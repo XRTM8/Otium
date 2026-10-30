@@ -1,6 +1,7 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { paintInk, type InkMark } from './ink';
 import { nativeSavePdf } from '../../scanner/core/nativeBridge';
+import type { TextAnnotation } from '../types';
 
 export function overlayPlacement(box: { x: number; y: number; width: number; height: number }, angle: number) {
   const rotation = ((angle % 360) + 360) % 360;
@@ -13,7 +14,7 @@ export function overlayPlacement(box: { x: number; y: number; width: number; hei
   };
 }
 
-export async function exportInkPdf(doc: PDFDocumentProxy, marks: InkMark[], title: string, progress: (page: number) => void): Promise<void> {
+export async function exportInkPdf(doc: PDFDocumentProxy, marks: InkMark[], title: string, progress: (page: number) => void, annotations: TextAnnotation[] = []): Promise<void> {
   const { PDFDocument, degrees } = await import('pdf-lib');
   const pdf = await PDFDocument.load(await doc.getData());
   await document.fonts.ready;
@@ -21,7 +22,8 @@ export async function exportInkPdf(doc: PDFDocumentProxy, marks: InkMark[], titl
   const pages = pdf.getPages();
   for (let index = 0; index < pages.length; index++) {
     const ink = marks.filter(mark => mark.page === index + 1);
-    if (!ink.length) continue;
+    const textAnnotations = annotations.filter(annotation => annotation.pageNumber === index + 1);
+    if (!ink.length && !textAnnotations.length) continue;
     progress(index + 1);
     const page = pages[index];
     const placement = overlayPlacement(page.getCropBox(), page.getRotation().angle);
@@ -31,6 +33,17 @@ export async function exportInkPdf(doc: PDFDocumentProxy, marks: InkMark[], titl
     canvas.height = Math.max(1, Math.round(placement.height * ratio));
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Unable to prepare the annotations for export');
+    for (const annotation of textAnnotations) {
+      ctx.save();
+      ctx.fillStyle = annotation.color;
+      ctx.globalAlpha = annotation.type === 'highlight' ? 0.3 : 1;
+      for (const rect of annotation.rects) {
+        const height = annotation.type === 'underline' ? Math.max(1, canvas.width * 0.002) : rect.heightPct * canvas.height;
+        const y = annotation.type === 'underline' ? (rect.yPct + rect.heightPct) * canvas.height - height : rect.yPct * canvas.height;
+        ctx.fillRect(rect.xPct * canvas.width, y, rect.widthPct * canvas.width, height);
+      }
+      ctx.restore();
+    }
     paintInk(ctx, ink, canvas.width, canvas.height);
     const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('Unable to export annotations')), 'image/png'));
     const image = await pdf.embedPng(await blob.arrayBuffer());

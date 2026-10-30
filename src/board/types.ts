@@ -1,4 +1,4 @@
-import type { ThemeMode } from '../core/types';
+import type { ThemeMode, TextAnnotation, AnnotationRect } from '../core/types';
 import type { InkMark } from '../core/annotations/ink';
 
 export type BoardTool = 'pen' | 'highlighter' | 'eraser' | 'laser';
@@ -69,6 +69,9 @@ export type BeamMessageType =
   | 'BEAM_DOCUMENT_OPENED'
   | 'BEAM_INK_UPDATE'
   | 'BEAM_INK_REQUEST'
+  | 'BEAM_TEXT_ANNOTATIONS'
+  | 'BEAM_TEXT_ANNOTATIONS_REQUEST'
+  | 'BEAM_SELECTION'
   | 'BEAM_PAGE_CHANGE'
   | 'BEAM_STEP'
   | 'BEAM_QUERY_STATE'
@@ -94,6 +97,8 @@ export interface BeamMessage {
   ok?: boolean;
   error?: string;
   ink?: { documentId: string; upsert?: InkMark[]; deleted?: string[] };
+  annotationSync?: { documentId: string; upsert?: TextAnnotation[]; deleted?: string[] };
+  selection?: { documentId: string; page: number; rects: AnnotationRect[] };
   payload?: BeamPayload;
   pageNumber?: number;
   direction?: 'next' | 'prev';

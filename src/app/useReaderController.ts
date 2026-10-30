@@ -12,6 +12,8 @@ import type {
 import type { Language } from '../core/i18n/translations';
 import type { RecentDocItem } from '../core/storage/documents';
 import { isPdfBuffer, openPdf } from '../core/pdf/document';
+import { mergeTextAnnotations, validSelectionRects } from '../core/annotations/textSync';
+import { pinchScale } from '../core/reader/pinch';
 import {
   adoptLegacyDocumentRecord,
   getDocumentFromStorage,
@@ -110,9 +112,6 @@ const SAMPLE_DOCUMENT_NAME = 'The Art of Vibe Reading.pdf';
  */
 const WHEEL_TURN_THRESHOLD = 96;
 const WHEEL_TURN_COOLDOWN_MS = 320;
-const TOUCH_SWIPE_TURN_THRESHOLD = 46;
-const TOUCH_VERTICAL_TURN_THRESHOLD = 64;
-const DOUBLE_TAP_MS = 320;
 const ZOOM_ANIMATION_MS = 260;
 
 interface ZoomAnchor {
@@ -184,6 +183,9 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const [numPages, setNumPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [zoom, setZoom] = useState(1.15);
+  const pinchFrameRef = useRef<number | null>(null);
+  const pendingPinchZoom = useRef<number | null>(null);
+  useEffect(() => () => { if (pinchFrameRef.current !== null) cancelAnimationFrame(pinchFrameRef.current); }, []);
 
   const [dualFlipKey, setDualFlipKey] = useState(0);
   const [dualFlipDir, setDualFlipDir] = useState<'forward' | 'backward'>('forward');
@@ -238,6 +240,21 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSearchPage, setActiveSearchPage] = useState<number | null>(null);
   const [annotations, setAnnotations] = useState<TextAnnotation[]>([]);
+  const [beamSelection, setBeamSelection] = useState<TextAnnotation | null>(null);
+  const beamSelectionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mergeRemoteAnnotations = useCallback((updates: TextAnnotation[], deleted: string[]) => {
+    setAnnotations(current => mergeTextAnnotations(current, updates, deleted));
+  }, []);
+  const receiveBeamSelection = useCallback((page: number, rects: import('../core/types').AnnotationRect[]) => {
+    if (beamSelectionTimer.current) clearTimeout(beamSelectionTimer.current);
+    if (!Number.isInteger(page) || page < 1 || !validSelectionRects(rects)) return;
+    setBeamSelection(rects.length ? { id: '__beam_selection', pageNumber: page, rects, type: 'highlight', color: '#38bdf8', text: '', createdAt: Date.now() } : null);
+    beamSelectionTimer.current = setTimeout(() => setBeamSelection(null), 6000);
+  }, []);
+  useEffect(() => {
+    setBeamSelection(null);
+    return () => { if (beamSelectionTimer.current) clearTimeout(beamSelectionTimer.current); };
+  }, [docId]);
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [beamState, setBeamState] = useState<{ room: string | null; role: 'receiver' | 'sender' | null }>({
     room: beamService.getConnectedRoom(),
@@ -245,6 +262,11 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   });
   const [beamPeerConnected, setBeamPeerConnected] = useState(beamService.getPeerState().connected);
   useEffect(() => beamService.onPeerChange(peer => setBeamPeerConnected(peer.connected)), []);
+  useEffect(() => {
+    if (beamPeerConnected) return;
+    setBeamSelection(null);
+    if (beamSelectionTimer.current) clearTimeout(beamSelectionTimer.current);
+  }, [beamPeerConnected]);
 
   useEffect(() => {
     return beamService.onStateChange((state) => {
@@ -260,7 +282,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
-  const touchStartTimeRef = useRef(0);
   const touchDeltaXRef = useRef(0);
   const pinchStartDistRef = useRef<number | null>(null);
   const pinchStartZoomRef = useRef(1);
@@ -278,18 +299,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
    * fire 60-120 move events per second; re-rendering the whole reading surface
    * for each one is what made the flagship phone feel choppy.
    */
-  const applySwipeOffset = useCallback((value: number) => {
-    pendingSwipeXRef.current = value;
-    if (swipeFrameRef.current !== null) return;
-    swipeFrameRef.current = window.requestAnimationFrame(() => {
-      swipeFrameRef.current = null;
-      scrollContainerRef.current?.style.setProperty(
-        '--otium-swipe-x',
-        `${pendingSwipeXRef.current}px`
-      );
-    });
-  }, []);
-
   const resetSwipeOffset = useCallback(() => {
     pendingSwipeXRef.current = 0;
     if (swipeFrameRef.current !== null) {
@@ -373,8 +382,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     return computeOptimalPageScale(
       basePageSize.width,
       basePageSize.height,
-      window.innerWidth,
-      window.innerHeight - chromeInset,
+      (scrollContainerRef.current?.clientWidth || window.innerWidth),
+      (scrollContainerRef.current?.clientHeight || window.innerHeight) - chromeInset,
       viewMode
     );
   }, [basePageSize, chromeInset, viewMode]);
@@ -873,8 +882,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         const fit = computeOptimalPageScale(
           basePageSize.width,
           basePageSize.height,
-          window.innerWidth,
-          window.innerHeight - chromeInset,
+          (scrollContainerRef.current?.clientWidth || window.innerWidth),
+          (scrollContainerRef.current?.clientHeight || window.innerHeight) - chromeInset,
           nextMode
         );
         lastFitScaleRef.current = fit;
@@ -898,8 +907,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       const fit = computeOptimalPageScale(
         basePageSize.width,
         basePageSize.height,
-        window.innerWidth,
-        window.innerHeight - chromeInset,
+        (scrollContainerRef.current?.clientWidth || window.innerWidth),
+        (scrollContainerRef.current?.clientHeight || window.innerHeight) - chromeInset,
         viewMode
       );
       const previousFit = lastFitScaleRef.current;
@@ -997,7 +1006,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         return;
       }
 
-      if (viewMode === 'continuous') return;
+      if (viewMode === 'continuous' || Math.abs(event.deltaY) >= Math.abs(event.deltaX)) return;
+      if (container.scrollWidth > container.clientWidth + 2 || container.scrollHeight > container.clientHeight + 2) return;
 
       const multiplier =
         event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? container.clientHeight : 1;
@@ -1286,7 +1296,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         .then((stored) => {
           if (annotationGeneration !== annotationsGenerationRef.current) return;
           annotationsHydratedRef.current = true;
-          setAnnotations(stored);
+          setAnnotations(current => mergeTextAnnotations(current, stored));
         })
         .catch(() => {
           if (annotationGeneration !== annotationsGenerationRef.current) return;
@@ -1325,8 +1335,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         const fit = computeOptimalPageScale(
           opened.basePageSize.width,
           opened.basePageSize.height,
-          window.innerWidth,
-          window.innerHeight - chromeInset,
+          (scrollContainerRef.current?.clientWidth || window.innerWidth),
+          (scrollContainerRef.current?.clientHeight || window.innerHeight) - chromeInset,
           viewMode
         );
         lastFitScaleRef.current = fit;
@@ -1632,6 +1642,23 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     };
   }, [beamState.room, beamState.role]);
 
+  // Follow the presenter's selected paragraph without sharing device-specific zoom.
+  useEffect(() => {
+    if (!beamSelection || beamState.role !== 'receiver' || !doc) return;
+    scrollToPage(beamSelection.pageNumber);
+    const timer = setTimeout(() => {
+      const container = scrollContainerRef.current;
+      const page = container?.querySelector<HTMLElement>(`[data-pdf-page="${beamSelection.pageNumber}"]`);
+      if (!container || !page || !beamSelection.rects.length) return;
+      const rect = page.getBoundingClientRect(), viewport = container.getBoundingClientRect();
+      const selectedY = rect.top + beamSelection.rects[0].yPct * rect.height;
+      if (selectedY < viewport.top + 70 || selectedY > viewport.bottom - 70) {
+        container.scrollTop += selectedY - viewport.top - container.clientHeight * 0.35;
+      }
+    }, 80);
+    return () => clearTimeout(timer);
+  }, [beamSelection, beamState.role, doc, scrollToPage]);
+
   // Apply a page command that arrived while the beamed PDF was still loading.
   useEffect(() => {
     if (beamLoadingRef.current || pendingBeamPageRef.current === null) return;
@@ -1761,6 +1788,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
   );
 
   const handleTouchStart = (event: ReactTouchEvent<HTMLDivElement>) => {
+    if (isInteractiveTarget(event.target)) return;
     // A new touch may be the second half of a double tap. Hold the pending
     // single-tap chrome toggle until the gesture resolves.
     cancelPendingSingleTap();
@@ -1797,7 +1825,6 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       );
       touchStartX.current = touch.clientX;
       touchStartY.current = touch.clientY;
-      touchStartTimeRef.current = performance.now();
       resetSwipeOffset();
       touchDeltaXRef.current = 0;
 
@@ -1814,9 +1841,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         };
       }
 
-      if (viewMode === 'single' || viewMode === 'dual') {
-        setIsDraggingTouch(true);
-      }
+
     }
   };
 
@@ -1834,208 +1859,47 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         x: (event.touches[0].clientX + event.touches[1].clientX) / 2,
         y: (event.touches[0].clientY + event.touches[1].clientY) / 2
       };
-      const factor = distance / pinchStartDistRef.current;
       const minZ = getMinZoom();
       const maxZ = getMaxZoom();
-      const targetZoom = Math.min(
-        maxZ,
-        Math.max(minZ, Number((pinchStartZoomRef.current * factor).toFixed(2)))
-      );
+      const targetZoom = pinchScale(pinchStartZoomRef.current, pinchStartDistRef.current, distance, minZ, maxZ);
       if (Number.isFinite(targetZoom) && targetZoom > 0 && Math.abs(targetZoom - zoom) >= 0.01) {
-        const fit = getFitScale();
-        if (Math.abs(targetZoom - fit) < Math.max(0.015, fit * 0.03) && Math.abs(zoom - fit) >= Math.max(0.015, fit * 0.03)) {
-          if ('vibrate' in navigator) {
-            try {
-              navigator.vibrate(12);
-            } catch {}
-          }
+        pendingPinchZoom.current = targetZoom;
+        if (pinchFrameRef.current === null) {
+          pinchFrameRef.current = requestAnimationFrame(() => {
+            pinchFrameRef.current = null;
+            if (pendingPinchZoom.current !== null) setZoom(pendingPinchZoom.current);
+          });
         }
-        setZoom(targetZoom);
       }
       return;
     }
 
-    if (event.touches.length >= 2) {
-      touchStartX.current = null;
-      setIsDraggingTouch(false);
-      resetSwipeOffset();
-      touchDeltaXRef.current = 0;
-      return;
-    }
-
-    if (
-      touchStartX.current === null ||
-      touchStartY.current === null ||
-      isPinchingRef.current ||
-      (viewMode !== 'single' && viewMode !== 'dual')
-    ) {
-      return;
-    }
-
-    // A drag that is extending a text selection must never turn a page.
-    const selection = typeof window !== 'undefined' ? window.getSelection() : null;
-    const hasSelection =
-      selectionAtTouchStartRef.current ||
-      Boolean(selection && !selection.isCollapsed && selection.toString().trim().length > 0);
-    if (hasSelection) {
-      if (touchDeltaXRef.current !== 0) {
-        resetSwipeOffset();
-        touchDeltaXRef.current = 0;
-      }
-      return;
-    }
-
-    const touch = event.touches[0];
-    const deltaX = touch.clientX - touchStartX.current;
-    const deltaY = touch.clientY - touchStartY.current;
-
-    if (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8) {
-      lastTapRef.current = null;
-    }
-
-    if (Math.abs(deltaX) > Math.abs(deltaY)) {
-      const scrollDirection = deltaX < 0 ? 1 : -1;
-      if (canScrollHorizontally(scrollDirection)) {
-        if (touchDeltaXRef.current !== 0) {
-          resetSwipeOffset();
-          touchDeltaXRef.current = 0;
-        }
-        return;
-      }
-
-      // Elastic, horizontal-only feedback. The page never drifts vertically.
-      const resisted = Math.max(-72, Math.min(72, deltaX * 0.35));
-      applySwipeOffset(resisted);
-      touchDeltaXRef.current = resisted;
-      return;
-    }
-
-    if (Math.abs(deltaY) < 8 || Math.abs(deltaX) > 18) return;
-
-    // Once the gesture is clearly vertical, discard horizontal travel so a
-    // wobbly swipe cannot turn the page sideways at release.
-    if (touchDeltaXRef.current !== 0) {
-      resetSwipeOffset();
-      touchDeltaXRef.current = 0;
-    }
-
-    // Overflowing pages scroll natively first. Fit pages stay perfectly still
-    // and turn only when the finger is released.
-    const direction = deltaY < 0 ? 1 : -1;
-    if (canScrollVertically(direction)) return;
+    // One finger belongs to native scrolling. No page turns or elastic offsets.
   };
 
   const handleTouchEnd = (event: ReactTouchEvent<HTMLDivElement>) => {
-    const wasPinching = isPinchingRef.current;
-    if (event.touches.length === 0) {
-      isPinchingRef.current = false;
-      pinchStartDistRef.current = null;
-      const captured = zoomAnchorRef.current;
-      window.setTimeout(() => {
-        if (zoomAnchorRef.current === captured) clearZoomAnchor();
-      }, 0);
-    }
-    if (wasPinching || event.touches.length > 0) {
-      touchStartX.current = null;
-      touchStartY.current = null;
-      selectionAtTouchStartRef.current = false;
-      setIsDraggingTouch(false);
-      resetSwipeOffset();
-      touchDeltaXRef.current = 0;
-      return;
-    }
-
-    const startX = touchStartX.current;
-    const startY = touchStartY.current;
-    const duration = performance.now() - touchStartTimeRef.current;
-    const touch = event.changedTouches[0];
-
-    setIsDraggingTouch(false);
+    if (event.touches.length > 0) return;
+    if (pinchFrameRef.current !== null) cancelAnimationFrame(pinchFrameRef.current);
+    pinchFrameRef.current = null;
+    if (isPinchingRef.current && pendingPinchZoom.current !== null) setZoom(pendingPinchZoom.current);
+    pendingPinchZoom.current = null;
+    isPinchingRef.current = false;
+    pinchStartDistRef.current = null;
     touchStartX.current = null;
     touchStartY.current = null;
+    selectionAtTouchStartRef.current = false;
+    lastTapRef.current = null;
+    cancelPendingSingleTap();
+    setIsDraggingTouch(false);
     resetSwipeOffset();
     touchDeltaXRef.current = 0;
-
-    if (startX === null || startY === null || !touch) return;
-
-    const movedX = touch.clientX - startX;
-    const movedY = touch.clientY - startY;
-
-    const selection = window.getSelection();
-    const selectionIsActive =
-      selectionAtTouchStartRef.current ||
-      Boolean(selection && !selection.isCollapsed && selection.toString().trim().length > 0);
-    selectionAtTouchStartRef.current = false;
-    if (selectionIsActive) {
-      // The tap dismissed or adjusted a text selection; the selection menu
-      // owns this gesture and the chrome must stay exactly as it was.
-      lastTapRef.current = null;
-      return;
-    }
-
-    if (viewMode === 'single' || viewMode === 'dual') {
-      const horizontal =
-        Math.abs(movedX) > TOUCH_SWIPE_TURN_THRESHOLD &&
-        Math.abs(movedX) > Math.abs(movedY) * 1.2;
-      if (horizontal) {
-        lastTapRef.current = null;
-        cancelPendingSingleTap();
-        const next = docIsRtl ? movedX > 0 : movedX < 0;
-        if (next) goToNextPage();
-        else goToPrevPage();
-        return;
-      }
-
-      const vertical =
-        Math.abs(movedY) > TOUCH_VERTICAL_TURN_THRESHOLD &&
-        Math.abs(movedY) > Math.abs(movedX) * 1.2;
-      if (vertical) {
-        const direction = movedY < 0 ? 1 : -1;
-        if (!canScrollVertically(direction)) {
-          lastTapRef.current = null;
-          cancelPendingSingleTap();
-          if (direction > 0) goToNextPage();
-          else goToPrevPage();
-          return;
-        }
-      }
-    }
-
-    const isTap =
-      duration < 280 &&
-      Math.abs(movedX) < 12 &&
-      Math.abs(movedY) < 12 &&
-      !isInteractiveTarget(event.target);
-
-    if (!isTap) {
-      lastTapRef.current = null;
-      return;
-    }
-
-    const now = performance.now();
-    const previous = lastTapRef.current;
-    if (
-      previous &&
-      now - previous.time < DOUBLE_TAP_MS &&
-      Math.hypot(touch.clientX - previous.x, touch.clientY - previous.y) < 40
-    ) {
-      lastTapRef.current = null;
-      cancelPendingSingleTap();
-      handleDoubleTap(touch.clientX, touch.clientY);
-      return;
-    }
-
-    lastTapRef.current = { time: now, x: touch.clientX, y: touch.clientY };
-
-    // Wait out the double-tap window, then toggle the immersive reading mode.
-    // A second tap cancels this timer in handleTouchStart and zooms instead.
-    singleTapTimerRef.current = window.setTimeout(() => {
-      singleTapTimerRef.current = null;
-      setIsImmersive((hidden) => !hidden);
-    }, DOUBLE_TAP_MS);
+    const anchor = zoomAnchorRef.current;
+    requestAnimationFrame(() => { if (zoomAnchorRef.current === anchor) clearZoomAnchor(); });
   };
 
   const handleTouchCancel = () => {
+    if (pinchFrameRef.current !== null) cancelAnimationFrame(pinchFrameRef.current);
+    pinchFrameRef.current = null; pendingPinchZoom.current = null;
     isPinchingRef.current = false;
     pinchStartDistRef.current = null;
     clearZoomAnchor();
@@ -2394,6 +2258,9 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     activeSearchPage,
     searchSeed,
     annotations,
+    beamSelection,
+    receiveBeamSelection,
+    mergeRemoteAnnotations,
     bookmarks,
     passwordModal,
     dualFlipKey,

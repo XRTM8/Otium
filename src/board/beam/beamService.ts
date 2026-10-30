@@ -496,6 +496,7 @@ export class BeamService {
           } catch {}
         }
       });
+      window.addEventListener('pagehide', () => this.disconnect());
     }
   }
 
@@ -1512,6 +1513,9 @@ export class BeamService {
       case 'BEAM_PAGE_CHANGE':
       case 'BEAM_INK_UPDATE':
       case 'BEAM_INK_REQUEST':
+      case 'BEAM_TEXT_ANNOTATIONS':
+      case 'BEAM_TEXT_ANNOTATIONS_REQUEST':
+      case 'BEAM_SELECTION':
       case 'BEAM_STEP':
       case 'BEAM_PAYLOAD':
       case 'BEAM_STATE_ANNOUNCE':
@@ -1552,6 +1556,13 @@ export class BeamService {
     switch (message.type) {
       case 'BEAM_INK_UPDATE':
       case 'BEAM_INK_REQUEST': {
+        if (!message.sessionId || message.sessionId !== this.sessionId || !this.peerState.connected) return;
+        this.notifyListeners(message, _transport);
+        return;
+      }
+      case 'BEAM_TEXT_ANNOTATIONS':
+      case 'BEAM_TEXT_ANNOTATIONS_REQUEST':
+      case 'BEAM_SELECTION': {
         if (!message.sessionId || message.sessionId !== this.sessionId || !this.peerState.connected) return;
         this.notifyListeners(message, _transport);
         return;
@@ -2365,6 +2376,7 @@ export class BeamService {
           `${CLOUD_RELAY_BASE}/${topic}`,
           {
             method: 'POST',
+            keepalive: body.type === 'BEAM_DISCONNECT',
             headers: {
               'Content-Type': 'application/json',
               'X-Title': 'Otium Beam'
@@ -2424,7 +2436,7 @@ export class BeamService {
         this.rtcDataChannel.send(JSON.stringify(outgoing));
         // Once the direct channel is open, control traffic needs no relay.
         // Heartbeats otherwise consume the public relay quota continuously.
-        return;
+        if (outgoing.type !== 'BEAM_DISCONNECT') return;
       } catch (error) {
         console.debug('P2P channel send note, relay fallback active:', error);
       }
