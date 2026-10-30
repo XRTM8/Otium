@@ -360,7 +360,7 @@ describe('Otium Smart Beam session routing', () => {
       beamService.startReceiver('OTM-1234');
       expect(beamService.getConnectionStatus()).toBe('connecting');
       vi.advanceTimersByTime(15000);
-      expect(beamService.getConnectionStatus()).toBe('error');
+      expect(beamService.getConnectionStatus()).toBe('connecting');
       expect(sources[0].close).toHaveBeenCalled();
       beamService.disconnect();
       sources[0].onopen();
@@ -372,6 +372,36 @@ describe('Otium Smart Beam session routing', () => {
       vi.unstubAllGlobals();
       vi.useRealTimers();
     }
+  });
+
+  it('keeps the cloud in recovery while early polling retries fail, then reports a real failure', async () => {
+    vi.useFakeTimers();
+    const service = new BeamService() as any;
+    service.activeRoomCode = 'otm1234'; service.connectedRoom = 'OTM-1234'; service.role = 'receiver';
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network unavailable')));
+    try {
+      await service.pollRoom(service.sourceGeneration);
+      expect(service.getConnectionStatus()).toBe('connecting');
+      await service.pollRoom(service.sourceGeneration);
+      expect(service.getConnectionStatus()).toBe('connecting');
+      await service.pollRoom(service.sourceGeneration);
+      expect(service.getConnectionStatus()).toBe('error');
+    } finally { service.disconnect(); vi.unstubAllGlobals(); vi.useRealTimers(); }
+  });
+
+  it('retries cloud signaling without discarding the active room or role', () => {
+    const service = new BeamService() as any;
+    service.activeRoomCode = 'otm1234'; service.connectedRoom = 'OTM-1234'; service.role = 'receiver';
+    const open = vi.spyOn(service, 'openEventSource').mockImplementation(() => {});
+    const close = vi.spyOn(service, 'closeEventSource').mockImplementation(() => {});
+    try {
+      service.retryCloudConnection();
+      expect(close).toHaveBeenCalledOnce();
+      expect(open).toHaveBeenCalledOnce();
+      expect(service.getConnectionStatus()).toBe('connecting');
+      expect(service.connectedRoom).toBe('OTM-1234');
+      expect(service.role).toBe('receiver');
+    } finally { open.mockRestore(); close.mockRestore(); service.disconnect(); }
   });
 
   it('sends disconnect over the direct channel before closing it', () => {

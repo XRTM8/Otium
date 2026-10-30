@@ -56,6 +56,10 @@ const P2P_CHUNK_SIZE = 32 * 1024;
 const P2P_HIGH_WATER_MARK = 1024 * 1024;
 const MAX_FILE_BYTES = 300 * 1024 * 1024;
 const MAX_SEEN_MESSAGES = 600;
+// An SSE failure is common on captive Wi-Fi and Android WebView even though
+// ordinary HTTPS requests still work. Do not alarm the teacher until both
+// signaling transports have actually failed a few times.
+const CLOUD_FAILURES_BEFORE_ERROR = 3;
 
 const EMPTY_PEER: BeamPeerState = {
   connected: false,
@@ -497,6 +501,10 @@ export class BeamService {
         }
       });
       window.addEventListener('pagehide', () => this.disconnect());
+      window.addEventListener('online', () => this.retryCloudConnection());
+      window.addEventListener('offline', () => {
+        if (this.connectedRoom) this.setConnectionStatus('error');
+      });
     }
   }
 
@@ -534,6 +542,20 @@ export class BeamService {
 
   public getTransferState(): BeamTransferState {
     return { ...this.transferState };
+  }
+
+  /**
+   * Reopens cloud signaling without throwing away the room, pairing role, or
+   * direct-channel state. This is deliberately public for the visible Retry
+   * button and for the browser's online event.
+   */
+  public retryCloudConnection(): void {
+    if (!this.connectedRoom || !this.activeRoomCode || !this.role) return;
+    this.reconnectAttempt = 0;
+    this.closeEventSource();
+    this.setConnectionStatus('connecting');
+    this.openEventSource();
+    if (this.role === 'sender') this.sendHandshake();
   }
 
   public getLocalDocumentState(): LocalDocState {
@@ -1073,7 +1095,9 @@ export class BeamService {
         if (generation !== this.sourceGeneration) return;
         source.close();
         this.activeEventSource = null;
-        this.setConnectionStatus('error');
+        // Try short polling before presenting a cloud failure. Many school
+        // routers permit fetch but buffer long-lived SSE connections.
+        this.setConnectionStatus('connecting');
         void this.pollRoom(generation);
       }, 15000);
 
@@ -1097,14 +1121,14 @@ export class BeamService {
         if (generation !== this.sourceGeneration || this.activeEventSource !== source) return;
         if (this.connectionTimer !== null) clearTimeout(this.connectionTimer);
         this.connectionTimer = null;
-        this.setConnectionStatus('error');
+        this.setConnectionStatus('connecting');
         source.close();
         this.activeEventSource = null;
         void this.pollRoom(generation);
       };
     } catch (error) {
       console.warn('Cloud EventSource signaling fallback:', error);
-      this.setConnectionStatus('error');
+      this.setConnectionStatus('connecting');
       this.scheduleReconnect(generation);
     }
   }
@@ -1151,11 +1175,17 @@ export class BeamService {
       }
     } catch {
       if (generation !== this.sourceGeneration) return;
-      this.setConnectionStatus('error');
       this.reconnectAttempt += 1;
+      if (this.reconnectAttempt >= CLOUD_FAILURES_BEFORE_ERROR) {
+        this.setConnectionStatus('error');
+      } else {
+        this.setConnectionStatus('connecting');
+      }
     }
     if (generation !== this.sourceGeneration) return;
-    const delay = Math.min(30000, 5000 * 2 ** Math.min(3, this.reconnectAttempt));
+    const delay = this.reconnectAttempt === 0
+      ? 5000
+      : Math.min(30000, 1500 * 2 ** Math.min(4, this.reconnectAttempt));
     this.pollTimer = setTimeout(() => {
       this.pollTimer = null;
       void this.pollRoom(generation);
@@ -2400,6 +2430,13 @@ export class BeamService {
           console.debug('Cloud signaling transport note:', error);
         }
       }
+    }
+    // A failed POST used to be silently ignored; the receiver then waited
+    // forever although the UI still looked connected. Surface it and kick the
+    // SSE/polling recovery path immediately.
+    if (this.connectedRoom) {
+      this.setConnectionStatus('error');
+      this.scheduleReconnect(this.sourceGeneration);
     }
     return false;
   }

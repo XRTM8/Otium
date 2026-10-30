@@ -1186,10 +1186,10 @@ export const BeamModal: React.FC<BeamModalProps> = ({
                   </span>
                   <button
                     type="button"
-                    onClick={() => beamService.startReceiver(receiverRoomCode, true)}
+                    onClick={() => beamService.retryCloudConnection()}
                     className="text-accent underline text-[10px] cursor-pointer"
                   >
-                    {lang === 'ar' ? 'إعادة محاولة الاتصال' : 'Retry connection'}
+                    {lang === 'ar' ? 'إعادة محاولة السحابة' : 'Retry cloud connection'}
                   </button>
                 </div>
               ) : (
