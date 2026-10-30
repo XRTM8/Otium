@@ -584,6 +584,7 @@ const PdfPageView: React.FC<PdfPageProps> = ({
   }, [pageAnnotations, pageSize.width, pageSize.height, isDark]);
 
   const handlePageClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (mode !== 'select') { setActiveAnno(null); return; }
     const selection = window.getSelection();
     if (selection && !selection.isCollapsed && selection.toString().trim().length > 0) {
       setActiveAnno(null);
@@ -596,7 +597,7 @@ const PdfPageView: React.FC<PdfPageProps> = ({
     const xPct = (event.clientX - rect.left) / rect.width;
     const yPct = (event.clientY - rect.top) / rect.height;
 
-    const clicked = pageAnnotations.find((annotation) =>
+    const clicked = pageAnnotations.find((annotation) => annotation.id !== '__beam_selection' &&
       annotation.rects.some(
         (line) =>
           xPct >= line.xPct - 0.01 &&
