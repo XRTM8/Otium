@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
-import { Download, Eraser, Hand, Highlighter, PenLine, Redo2, Undo2, Type, X, Trash2, MousePointer2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
+import { TeacherDock, type InkTool } from './TeacherDock';
+import { useTeaching } from './TeachingContext';
+import { useAnnotationDelivery } from './useAnnotationDelivery';
 import type { ReaderController } from '../app/useReaderController';
 import { clampPoint, EMPTY_INK, hitInk, inkHistory, mergeInk, readInk, writeInk, type InkMark, type InkPoint } from '../core/annotations/ink';
 import { beamService } from '../board/beam/beamService';
 import { mergeTextAnnotations } from '../core/annotations/textSync';
 import type { TextAnnotation } from '../core/types';
 
-type InkTool = 'hand' | 'select' | 'pen' | 'highlighter' | 'eraser' | 'note';
 interface InkContextValue {
   ready: boolean; tool: InkTool; color: string; size: number; stylus: boolean;
   marks: InkMark[]; change: (marks: InkMark[]) => void;
@@ -16,7 +18,7 @@ const InkContext = createContext<InkContextValue | null>(null);
 const noSelection = () => {};
 export function useDocumentInteraction() {
   const context = useContext(InkContext);
-  return { mode: context?.tool || 'hand', publishSelection: context?.publishSelection || noSelection };
+  return { mode: context?.stylus && context.tool !== 'select' ? 'hand' : context?.tool || 'hand', publishSelection: context?.publishSelection || noSelection };
 }
 const newMarkId = () => typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
   ? crypto.randomUUID() : `ink-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
@@ -26,10 +28,9 @@ export function DocumentInkProvider({ reader, children }: { reader: ReaderContro
   const [history, dispatch] = useReducer(inkHistory, EMPTY_INK);
   const [loadedId, setLoadedId] = useState('');
   const [tool, setTool] = useState<InkTool>('hand');
-  const [color, setColor] = useState('#e11d48');
-  const [size, setSize] = useState(4);
-  const [stylus, setStylus] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const teaching = useTeaching();
+  const { color, width: size, stylusOnly: stylus } = teaching.prefs;
+  const { delivery, send, acknowledge } = useAnnotationDelivery(reader);
   const [status, setStatus] = useState<'loading' | 'saved' | 'saving' | 'error'>('loading');
   const [message, setMessage] = useState('');
   const [exporting, setExporting] = useState(false);
@@ -57,9 +58,10 @@ export function DocumentInkProvider({ reader, children }: { reader: ReaderContro
     if (!selection) send();
     else selectionBroadcast.current = setTimeout(send, 90);
   }, [reader.docId, reader.beamRoom, reader.beamPeerConnected]);
+  useEffect(() => { setTool('hand'); publishSelection(null); }, [teaching.target, teaching.layout, publishSelection]);
 
   useEffect(() => {
-    if (!expanded || !ready) return;
+    if (teaching.target !== 'document' || !ready) return;
     const handleKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       if (target?.closest('input, textarea, [contenteditable="true"]') || !(event.ctrlKey || event.metaKey)) return;
@@ -70,7 +72,7 @@ export function DocumentInkProvider({ reader, children }: { reader: ReaderContro
     };
     window.addEventListener('keydown', handleKey, true);
     return () => window.removeEventListener('keydown', handleKey, true);
-  }, [expanded, ready]);
+  }, [teaching.target, ready]);
 
   useEffect(() => {
     let alive = true;
@@ -95,18 +97,19 @@ export function DocumentInkProvider({ reader, children }: { reader: ReaderContro
       }
       if (message.annotationSync?.documentId !== documentId) return;
       if (message.type === 'BEAM_TEXT_ANNOTATIONS_REQUEST') {
-        void beamService.broadcast({ type: 'BEAM_TEXT_ANNOTATIONS', roomCode, annotationSync: { documentId, upsert: annotationsRef.current }, timestamp: Date.now() });
+        send({ type: 'BEAM_TEXT_ANNOTATIONS', roomCode, annotationSync: { documentId, upsert: annotationsRef.current }, timestamp: Date.now() });
       } else if (message.type === 'BEAM_TEXT_ANNOTATIONS') {
+        acknowledge(message);
         const merged = mergeTextAnnotations(annotationsRef.current, message.annotationSync.upsert, message.annotationSync.deleted);
         sharedAnnotations.current = merged;
         annotationsRef.current = merged;
         mergeRemoteAnnotations(message.annotationSync.upsert || [], message.annotationSync.deleted || []);
       }
     });
-    void beamService.broadcast({ type: 'BEAM_TEXT_ANNOTATIONS', roomCode, annotationSync: { documentId, upsert: annotationsRef.current }, timestamp: Date.now() });
+    send({ type: 'BEAM_TEXT_ANNOTATIONS', roomCode, annotationSync: { documentId, upsert: annotationsRef.current }, timestamp: Date.now() });
     void beamService.broadcast({ type: 'BEAM_TEXT_ANNOTATIONS_REQUEST', roomCode, annotationSync: { documentId }, timestamp: Date.now() });
     return unsubscribe;
-  }, [reader.docId, reader.beamRoom, reader.beamPeerConnected, reader.numPages, receiveBeamSelection, mergeRemoteAnnotations]);
+  }, [reader.docId, reader.beamRoom, reader.beamPeerConnected, reader.numPages, receiveBeamSelection, mergeRemoteAnnotations, send, acknowledge]);
 
   useEffect(() => {
     const previous = new Map(sharedAnnotations.current.map(a => [a.id, a]));
@@ -115,9 +118,9 @@ export function DocumentInkProvider({ reader, children }: { reader: ReaderContro
     const deleted = [...previous.keys()].filter(id => !current.has(id));
     sharedAnnotations.current = reader.annotations;
     if (!reader.docId || !reader.beamRoom || !reader.beamPeerConnected || (!upsert.length && !deleted.length)) return;
-    void beamService.broadcast({ type: 'BEAM_TEXT_ANNOTATIONS', roomCode: reader.beamRoom,
+    send({ type: 'BEAM_TEXT_ANNOTATIONS', roomCode: reader.beamRoom,
       annotationSync: { documentId: reader.docId, upsert, deleted }, timestamp: Date.now() });
-  }, [reader.annotations, reader.docId, reader.beamRoom, reader.beamPeerConnected]);
+  }, [reader.annotations, reader.docId, reader.beamRoom, reader.beamPeerConnected, send]);
 
   useEffect(() => {
     if (!ready || !reader.docId || !reader.beamPeerConnected || !reader.beamRoom) return;
@@ -125,8 +128,9 @@ export function DocumentInkProvider({ reader, children }: { reader: ReaderContro
     const unsubscribe = beamService.subscribe(message => {
       if (!message.ink || message.ink.documentId !== documentId) return;
       if (message.type === 'BEAM_INK_REQUEST') {
-        void beamService.broadcast({ type: 'BEAM_INK_UPDATE', roomCode, ink: { documentId, upsert: marksRef.current }, timestamp: Date.now() });
+        send({ type: 'BEAM_INK_UPDATE', roomCode, ink: { documentId, upsert: marksRef.current }, timestamp: Date.now() });
       } else if (message.type === 'BEAM_INK_UPDATE') {
+        acknowledge(message);
         const marks = mergeInk(marksRef.current, message.ink.upsert, message.ink.deleted);
         if (JSON.stringify(marks) === JSON.stringify(marksRef.current)) return;
         sharedMarks.current = marks;
@@ -134,10 +138,10 @@ export function DocumentInkProvider({ reader, children }: { reader: ReaderContro
         dispatch({ type: 'remote', upsert: message.ink.upsert, deleted: message.ink.deleted });
       }
     });
-    void beamService.broadcast({ type: 'BEAM_INK_UPDATE', roomCode, ink: { documentId, upsert: marksRef.current }, timestamp: Date.now() });
+    send({ type: 'BEAM_INK_UPDATE', roomCode, ink: { documentId, upsert: marksRef.current }, timestamp: Date.now() });
     void beamService.broadcast({ type: 'BEAM_INK_REQUEST', roomCode, ink: { documentId }, timestamp: Date.now() });
     return unsubscribe;
-  }, [ready, reader.docId, reader.beamPeerConnected, reader.beamRoom]);
+  }, [ready, reader.docId, reader.beamPeerConnected, reader.beamRoom, send, acknowledge]);
 
   useEffect(() => {
     if (!ready) return;
@@ -147,8 +151,8 @@ export function DocumentInkProvider({ reader, children }: { reader: ReaderContro
     const deleted = [...previous.keys()].filter(id => !current.has(id));
     sharedMarks.current = history.present;
     if ((!upsert.length && !deleted.length) || !reader.beamPeerConnected || !reader.beamRoom || !reader.docId) return;
-    void beamService.broadcast({ type: 'BEAM_INK_UPDATE', roomCode: reader.beamRoom, ink: { documentId: reader.docId, upsert, deleted }, timestamp: Date.now() });
-  }, [history.revision, history.present, ready, reader.beamPeerConnected, reader.beamRoom, reader.docId]);
+    send({ type: 'BEAM_INK_UPDATE', roomCode: reader.beamRoom, ink: { documentId: reader.docId, upsert, deleted }, timestamp: Date.now() });
+  }, [history.revision, history.present, ready, reader.beamPeerConnected, reader.beamRoom, reader.docId, send]);
 
   useEffect(() => {
     if (!ready || !history.revision) return;
@@ -171,43 +175,14 @@ export function DocumentInkProvider({ reader, children }: { reader: ReaderContro
     } catch (error) { setMessage(error instanceof Error ? error.message : (ar ? 'تعذر التصدير' : 'Export failed')); }
     finally { setExporting(false); }
   };
-  const tools = [
-    ['hand', Hand, ar ? 'تصفح وتحريك' : 'Navigate'],
-    ['select', MousePointer2, ar ? 'تحديد النص' : 'Select text'],
-    ['pen', PenLine, ar ? 'قلم' : 'Pen'],
-    ['highlighter', Highlighter, ar ? 'تظليل' : 'Highlight'],
-    ['note', Type, ar ? 'ملاحظة نصية' : 'Text note'],
-    ['eraser', Eraser, ar ? 'ممحاة الشرح' : 'Erase annotation']
-  ] as const;
-  const buttonClass = 'p-2 rounded-xl transition-colors hover:bg-hover disabled:opacity-30 disabled:pointer-events-none';
-  return <InkContext.Provider value={{ ready, tool: expanded ? tool : 'hand', color, size, stylus, marks: ready ? history.present : [], change, publishSelection }}>
+  const documentStatus = status === 'error' || reader.annotationSaveStatus === 'error' ? 'error' : status === 'saving' || reader.annotationSaveStatus === 'saving' ? 'saving' : status;
+  return <InkContext.Provider value={{ ready, tool: teaching.target === 'document' && !teaching.presentation ? tool : 'hand', color, size, stylus, marks: ready ? history.present : [], change, publishSelection }}>
     {children}
-    {reader.doc && <aside dir={ar ? 'rtl' : 'ltr'} aria-label={ar ? 'أدوات الشرح على PDF' : 'PDF annotation tools'}
-      className={`otium-tool-panel fixed start-3 bottom-24 sm:bottom-auto sm:top-24 z-40 max-w-[calc(100vw-24px)] rounded-2xl border border-line bg-surface/95 text-ink shadow-xl backdrop-blur-md p-2 theme-${reader.theme}`}>
-      {!expanded ? <button className="flex items-center gap-2 px-3 py-2 text-xs font-bold" onClick={() => { setExpanded(true); setTool('hand'); }}><PenLine size={16} />{ar ? 'أدوات القراءة والشرح' : 'Reading & annotation tools'}</button> : <div className="otium-panel-content">
-        <div className="flex items-center gap-1 flex-wrap">
-          {tools.map(([id, Icon, label]) => <button key={id} title={label} aria-label={label} aria-pressed={tool === id} disabled={!ready || exporting}
-            className={`${buttonClass} inline-flex items-center gap-1 ${tool === id ? 'bg-accent text-on-accent' : ''}`} onClick={() => setTool(id)}><Icon size={18} />{(id === 'hand' || id === 'select') && <span className="text-[11px]">{label}</span>}</button>)}
-          <span className="h-6 border-s border-line mx-1" />
-          <button className={buttonClass} disabled={!history.past.length || !ready || exporting} aria-label={ar ? 'تراجع' : 'Undo'} title={ar ? 'تراجع' : 'Undo'} onClick={() => dispatch({ type: 'undo' })}><Undo2 size={17} /></button>
-          <button className={buttonClass} disabled={!history.future.length || !ready || exporting} aria-label={ar ? 'إعادة' : 'Redo'} title={ar ? 'إعادة' : 'Redo'} onClick={() => dispatch({ type: 'redo' })}><Redo2 size={17} /></button>
-          <button className={`${buttonClass} text-accent`} disabled={!ready || exporting || (!history.present.length && !reader.annotations.length)} onClick={() => void exportPdf()} title={ar ? 'تصدير نسخة PDF بالشرح' : 'Export annotated PDF'} aria-label={ar ? 'تصدير نسخة PDF بالشرح' : 'Export annotated PDF'}><Download size={18} /></button>
-          <button className={buttonClass} aria-label={ar ? 'إغلاق أدوات الشرح' : 'Close annotation tools'} onClick={() => { setExpanded(false); setTool('hand'); }}><X size={17} /></button>
-        </div>
-        <p className="text-[10px] text-ink-muted pt-1 px-1">{tool === 'hand' ? (ar ? 'اسحب للتصفح • إصبعان للتكبير' : 'Drag to scroll · Pinch to zoom') : tool === 'select' ? (ar ? 'اسحب على النص لتحديده • يظهر التحديد على السبورة' : 'Select text · Selection appears on the board') : (ar ? 'وضع الشرح • اختر اليد للتصفح والتكبير' : 'Annotation mode · Choose the hand to navigate')}</p>
-        <div className="flex items-center gap-2 pt-2 border-t border-line mt-1 flex-wrap">
-          <label className="text-[10px] flex items-center gap-1">{ar ? 'اللون' : 'Color'}<input type="color" value={color} onChange={e => setColor(e.target.value)} className="w-7 h-7 bg-transparent" aria-label={ar ? 'لون الشرح' : 'Annotation color'} /></label>
-          <label className="text-[10px] flex items-center gap-1">{ar ? 'الحجم' : 'Size'}<input type="range" min="2" max="12" value={size} onChange={e => setSize(Number(e.target.value))} className="w-20" aria-label={ar ? 'حجم القلم' : 'Pen size'} /></label>
-          <label className="text-[10px] flex items-center gap-1"><input type="checkbox" checked={stylus} onChange={e => setStylus(e.target.checked)} />{ar ? 'قلم إلكتروني فقط' : 'Stylus only'}</label>
-          <span role="status" className={`text-[10px] ${status === 'error' ? 'text-danger-ink' : 'text-ink-muted'}`}>
-            {exporting ? (ar ? 'جارٍ التصدير…' : 'Exporting…') : status === 'saved' ? (ar ? 'محفوظ على هذا الجهاز' : 'Saved on this device') : status === 'saving' ? (ar ? 'جارٍ الحفظ…' : 'Saving…') : status === 'loading' ? (ar ? 'تحميل الشرح…' : 'Loading…') : (ar ? 'تعذر الحفظ' : 'Save failed')}
-          </span>
-        </div>
-        {message && <p role="status" className="text-[11px] max-w-sm pt-2">{message === 'load-error'
-          ? (ar ? 'تعذر تحميل الشرح المحفوظ. أعد فتح الملف قبل التعديل.' : 'Saved annotations could not be loaded. Reopen the file before editing.')
-          : message === 'save-error' ? (ar ? 'لم يُحفظ آخر تعديل. صدّر نسخة قبل الإغلاق.' : 'The last edit was not saved. Export a copy before closing.') : message}</p>}
-      </div>}
-    </aside>}
+    <TeacherDock reader={reader} ink={{ ready, tool, setTool, canUndo: !!history.past.length, canRedo: !!history.future.length,
+      undo: () => dispatch({ type: 'undo' }), redo: () => dispatch({ type: 'redo' }), clear: () => change([]),
+      status: documentStatus, delivery, exporting, exportPdf: () => void exportPdf(),
+      message: message === 'load-error' ? (ar ? 'تعذر تحميل الشرح. أعد فتح الملف قبل التعديل.' : 'Could not load annotations. Reopen before editing.')
+        : message === 'save-error' ? (ar ? 'لم يُحفظ آخر تعديل. صدّر نسخة قبل الإغلاق.' : 'Save failed. Export a copy before closing.') : message }} />
   </InkContext.Provider>;
 }
 
@@ -218,6 +193,7 @@ export function DocumentInkLayer({ page, width, height, lang }: { page: number; 
   const drawing = useRef<InkMark | null>(null);
   const gesture = useRef<number | null>(null);
   const surface = useRef<HTMLDivElement>(null);
+  const lastPen = useRef(0);
   const ar = lang === 'ar';
   useEffect(() => { setNote(null); setDraft(null); drawing.current = null; gesture.current = null; }, [ink?.tool, page]);
   if (!ink) return null;
@@ -243,9 +219,11 @@ export function DocumentInkLayer({ page, width, height, lang }: { page: number; 
     : mark.points.length === 1
       ? <circle key={mark.id} cx={mark.points[0].x * width} cy={mark.points[0].y * height} r={mark.width * width / 2} fill={mark.color} opacity={mark.type === 'highlighter' ? 0.3 : 1} />
       : <polyline key={mark.id} points={mark.points.map(p => `${p.x * width},${p.y * height}`).join(' ')} fill="none" stroke={mark.color} strokeWidth={mark.width * width} strokeLinecap="round" strokeLinejoin="round" opacity={mark.type === 'highlighter' ? 0.3 : 1} />;
-  return <div ref={surface} className="absolute inset-0 z-[15] select-none" style={{ pointerEvents: ink.tool === 'hand' || ink.tool === 'select' || !ink.ready ? 'none' : 'auto', touchAction: ink.tool === 'hand' ? 'auto' : 'none', cursor: ink.tool === 'eraser' ? 'crosshair' : ink.tool === 'note' ? 'text' : 'crosshair' }}
-    onTouchStart={e => { if (e.touches.length > 1) { drawing.current = null; gesture.current = null; setDraft(null); } e.stopPropagation(); }} onTouchMove={e => e.stopPropagation()} onTouchEnd={e => e.stopPropagation()}
+  return <div ref={surface} className="absolute inset-0 z-[15] select-none" style={{ pointerEvents: ink.tool === 'hand' || ink.tool === 'select' || !ink.ready ? 'none' : 'auto', touchAction: ink.stylus ? 'pan-x pan-y pinch-zoom' : ink.tool === 'hand' ? 'auto' : 'none', cursor: ink.tool === 'eraser' ? 'crosshair' : ink.tool === 'note' ? 'text' : 'crosshair' }}
+    onTouchStart={e => { if (e.touches.length > 1 && !ink.stylus) { drawing.current = null; gesture.current = null; setDraft(null); } if (!ink.stylus) e.stopPropagation(); }} onTouchMove={e => { if (!ink.stylus) e.stopPropagation(); }} onTouchEnd={e => { if (!ink.stylus) e.stopPropagation(); }}
     onPointerDown={e => {
+      if (e.pointerType === 'pen') lastPen.current = Date.now();
+      if (e.pointerType === 'touch' && (e.width > 35 || e.height > 35 || Date.now() - lastPen.current < 800)) return;
       if (!ink.ready || ink.tool === 'hand' || ink.tool === 'select' || (ink.stylus && e.pointerType !== 'pen') || e.button !== 0) return;
       if (gesture.current !== null) return;
       e.preventDefault(); e.stopPropagation();

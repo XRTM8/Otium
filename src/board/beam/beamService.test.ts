@@ -153,7 +153,7 @@ describe('Otium Smart Beam session routing', () => {
     } finally { publish.mockRestore(); sender.disconnect(); }
   });
 
-  it.each(['BEAM_INK_UPDATE', 'BEAM_TEXT_ANNOTATIONS', 'BEAM_SELECTION'])('routes %s only within the active paired session', async (type) => {
+  it.each(['BEAM_INK_UPDATE', 'BEAM_TEXT_ANNOTATIONS', 'BEAM_SELECTION', 'BEAM_ANNOTATION_ACK'])('routes %s only within the active paired session', async (type) => {
     const sender = new BeamService() as any;
     sender.connectedRoom = 'OTM-1234'; sender.role = 'sender'; sender.sessionId = 'paired';
     sender.peerState = { ...sender.peerState, connected: true };

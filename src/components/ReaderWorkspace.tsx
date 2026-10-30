@@ -11,6 +11,7 @@ import { AnimatedCounter } from './AnimatedCounter';
 import { triggerHaptic } from '../core/utils/haptics';
 import { useDocumentInteraction } from './DocumentInk';
 import { computeOptimalPageScale } from '../core/reader/device';
+import { useTeaching } from './TeachingContext';
 
 interface PageSlotProps {
   pageNum: number;
@@ -127,6 +128,7 @@ interface ReaderWorkspaceProps {
  */
 export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compact = false }) => {
   const { mode: interactionMode } = useDocumentInteraction();
+  const teaching = useTeaching();
   const {
     doc,
     numPages,
@@ -410,8 +412,8 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
   const immersiveInset = compactLandscape
     ? 'max(0.35rem, calc(env(safe-area-inset-top, 0px) + 0.25rem))'
     : 'max(0.5rem, env(safe-area-inset-top, 0px))';
-  const effectiveTopInset = isImmersive ? immersiveInset : topInset;
-  const bottomInset = isImmersive
+  const effectiveTopInset = teaching.reachMode ? `calc(${topInset} + 30dvh)` : teaching.presentation ? immersiveInset : teaching.readerTools ? topInset : 'max(3.3rem, env(safe-area-inset-top, 0px))';
+  const legacyBottomInset = isImmersive
     ? 'max(0.5rem, env(safe-area-inset-bottom, 0px))'
     : compactLandscape
       ? 'max(3.2rem, calc(env(safe-area-inset-bottom, 0px) + 2.8rem))'
@@ -420,6 +422,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
           ? 'max(5.5rem, calc(env(safe-area-inset-bottom, 0px) + 5rem))'
           : 'max(2.5rem, calc(env(safe-area-inset-bottom, 0px) + 2rem))'
         : undefined;
+  const bottomInset = `max(var(--teacher-bottom-inset, 150px), ${legacyBottomInset || '0px'})`;
 
   return (
     <div className="relative flex-1 w-full h-full overflow-hidden flex flex-col">

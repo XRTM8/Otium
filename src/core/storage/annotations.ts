@@ -183,12 +183,14 @@ function readLegacy(docTitle: string): TextAnnotation[] {
   }
 }
 
-function writeLegacy(docTitle: string, annotations: TextAnnotation[]): void {
-  if (!docTitle || typeof window === 'undefined') return;
+function writeLegacy(docTitle: string, annotations: TextAnnotation[]): boolean {
+  if (!docTitle || typeof window === 'undefined') return false;
   try {
     localStorage.setItem(`${STORAGE_PREFIX}${docTitle}`, JSON.stringify(annotations));
+    return true;
   } catch {
     // Quota or privacy mode: IndexedDB remains the primary store.
+    return false;
   }
 }
 
@@ -244,6 +246,16 @@ export async function loadStoredAnnotations(
 ): Promise<TextAnnotation[]> {
   if (!docKey || typeof window === 'undefined') return [];
 
+  // If a database write failed, the local fallback is newer, including an
+  // intentionally empty set after deleting the last highlight.
+  try {
+    if (localStorage.getItem(`otium_annos_pending_${docKey}`) === '1') {
+      const pending = readLegacy(docKey);
+      if (await writeDatabase(docKey, pending)) localStorage.removeItem(`otium_annos_pending_${docKey}`);
+      return pending;
+    }
+  } catch { /* Read the database when localStorage is unavailable. */ }
+
   const fromDb = await readDatabase(docKey);
   if (fromDb !== null) return fromDb;
 
@@ -268,7 +280,7 @@ export async function loadStoredAnnotations(
   return [];
 }
 
-const writeChains = new Map<string, Promise<void>>();
+const writeChains = new Map<string, Promise<boolean>>();
 
 /**
  * Persists annotations without blocking the UI. Writes for one document are
@@ -277,22 +289,29 @@ const writeChains = new Map<string, Promise<void>>();
 export function saveStoredAnnotations(
   docKey: string,
   annotations: TextAnnotation[]
-): Promise<void> {
-  if (!docKey || typeof window === 'undefined') return Promise.resolve();
+): Promise<boolean> {
+  if (!docKey || typeof window === 'undefined') return Promise.resolve(false);
 
   const previous = writeChains.get(docKey) ?? Promise.resolve();
   const next = previous
     .catch(() => {})
     .then(async () => {
       const stored = await writeDatabase(docKey, annotations);
-      writeLegacy(docKey, annotations);
+      const fallback = writeLegacy(docKey, annotations);
+      try {
+        if (stored) localStorage.removeItem(`otium_annos_pending_${docKey}`);
+        else if (fallback) localStorage.setItem(`otium_annos_pending_${docKey}`, '1');
+      } catch { if (!stored) return false; }
       if (!stored) {
         console.warn('IndexedDB unavailable; annotations kept in localStorage only.');
       }
+      return stored || fallback;
     })
     .catch((error) => {
       console.warn('Failed to persist annotations:', error);
-      writeLegacy(docKey, annotations);
+      const fallback = writeLegacy(docKey, annotations);
+      try { if (fallback) localStorage.setItem(`otium_annos_pending_${docKey}`, '1'); } catch { return false; }
+      return fallback;
     });
 
   writeChains.set(docKey, next);

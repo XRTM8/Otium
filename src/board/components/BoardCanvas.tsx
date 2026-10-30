@@ -1,24 +1,8 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Crop,
-  Download,
-  Eraser,
-  FileText,
-  Hand,
-  Highlighter,
-  Image as ImageIcon,
-  Loader2,
-  Move,
-  Pen,
-  Plus,
-  Pointer,
-  RotateCcw,
-  RotateCw,
-  Trash2,
-  X
-} from 'lucide-react';
+import { Move, X } from 'lucide-react';
+import { useTeaching, type SaveStatus } from '../../components/TeachingContext';
+import { readBoard, writeBoard } from '../utils/boardStorage';
+
 import type { BoardBackground, BoardPageData, BoardSnippet, BoardStroke, BoardTool, StrokePoint } from '../types';
 import type { Language } from '../../core/i18n/translations';
 import { exportAllPagesToPdf, exportPageToPng, type ExportableBoardPage } from '../utils/boardExport';
@@ -30,18 +14,12 @@ interface BoardCanvasProps {
   onRemoveSnippet: (id: string) => void;
   onUpdateSnippetPosition: (id: string, x: number, y: number) => void;
   onRequestAreaClip?: () => void;
-  onCloseBoard?: () => void;
+  documentId: string;
+  onRestoreSnippets: (snippets: BoardSnippet[]) => void;
 }
 
-const PEN_WIDTHS = [
-  { id: 'thin', value: 3, label: '3px' },
-  { id: 'medium', value: 6, label: '6px' },
-  { id: 'thick', value: 12, label: '12px' }
-];
 
 // Curated academic pigment palette
-const LIGHT_COLORS = ['#111827', '#1d4ed8', '#be123c', '#047857'];
-const DARK_COLORS = ['#f8fafc', '#38bdf8', '#fb7185', '#34d399'];
 
 export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   lang,
@@ -49,12 +27,21 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   onRemoveSnippet,
   onUpdateSnippetPosition,
   onRequestAreaClip,
-  onCloseBoard
+  documentId,
+  onRestoreSnippets
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const laserCanvasRef = useRef<HTMLCanvasElement>(null);
-  const exportMenuRef = useRef<HTMLDivElement>(null);
+  const { prefs, registerBoard, target, presentation } = useTeaching();
+  const [ready, setReady] = useState(false);
+  const [status, setStatus] = useState<SaveStatus>('loading');
+  const [error, setError] = useState('');
+  const saveQueue = useRef(Promise.resolve());
+  const [drawingRevision, setDrawingRevision] = useState(0);
+  const pointer = useRef<number | null>(null);
+  const lastPen = useRef(0);
+  const [undoStack, setUndoStack] = useState<BoardStroke[][]>([]);
 
   // Multi-page state
   const [pages, setPages] = useState<BoardPageData[]>([
@@ -63,16 +50,15 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   const [currentPageIndex, setCurrentPageIndex] = useState<number>(0);
 
   // Palm rejection state (Stylus only mode)
-  const [stylusOnly, setStylusOnly] = useState<boolean>(false);
+  const stylusOnly = prefs.stylusOnly;
 
   // Export popover state
-  const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
-  const [activeTool, setActiveTool] = useState<BoardTool>('pen');
+  const [activeTool, setActiveTool] = useState<BoardTool>('hand');
   const [background, setBackground] = useState<BoardBackground>('white');
-  const [selectedColor, setSelectedColor] = useState<string>('#111827');
-  const [selectedWidth, setSelectedWidth] = useState<number>(4);
+  const [selectedColor, setSelectedColor] = useState<string>(prefs.color);
+  const [selectedWidth, setSelectedWidth] = useState<number>(prefs.width);
 
   const [strokes, setStrokes] = useState<BoardStroke[]>([]);
   const [redoStack, setRedoStack] = useState<BoardStroke[][]>([]);
@@ -129,7 +115,8 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const isDarkBg = background === 'dark';
-  const palette = isDarkBg ? DARK_COLORS : LIGHT_COLORS;
+  useEffect(() => { setSelectedColor(prefs.color); setSelectedWidth(prefs.width); }, [prefs.color, prefs.width]);
+
 
   // Auto-tune selected color when switching between light and dark backgrounds
   useEffect(() => {
@@ -159,18 +146,6 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     });
   }, [strokes, redoStack, background, currentPageIndex]);
 
-  // Close export menu when clicking outside
-  useEffect(() => {
-    if (!isExportOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
-        setIsExportOpen(false);
-      }
-    };
-    window.addEventListener('mousedown', handleClickOutside);
-    return () => window.removeEventListener('mousedown', handleClickOutside);
-  }, [isExportOpen]);
-
   // Repaint all vector strokes with Bézier curves
   const repaintAllStrokes = useCallback(() => {
     const canvas = canvasRef.current;
@@ -178,11 +153,10 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const dpr = window.devicePixelRatio || 1;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.save();
-    ctx.scale(dpr, dpr);
+    ctx.scale(canvas.width / 1920, canvas.height / 1080);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -287,7 +261,6 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     const renderLaser = () => {
       const now = performance.now();
       const trail = laserTrailRef.current;
-      const dpr = window.devicePixelRatio || 1;
 
       while (trail.length > 0 && now - trail[0].time > 1100) {
         trail.shift();
@@ -297,7 +270,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
 
       if (trail.length > 0) {
         ctx.save();
-        ctx.scale(dpr, dpr);
+        ctx.scale(laserCanvas.width / 1920, laserCanvas.height / 1080);
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
@@ -370,13 +343,17 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
     return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: (e.clientX - rect.left) * 1920 / rect.width,
+      y: (e.clientY - rect.top) * 1080 / rect.height,
       pressure: e.pressure || 0.5
     };
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!ready || target !== 'board' || presentation || activeTool === 'hand') return;
+    if (e.pointerType === 'pen') lastPen.current = Date.now();
+    if (e.pointerType === 'touch' && (e.width > 35 || e.height > 35 || Date.now() - lastPen.current < 800)) return;
+    if (pointer.current !== null) return;
     // Palm Rejection: if active, reject non-pen touches
     if (stylusOnly && e.pointerType === 'touch') {
       return;
@@ -389,6 +366,8 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
       canvas.setPointerCapture(e.pointerId);
     } catch {}
 
+    pointer.current = e.pointerId;
+    setUndoStack(prev => [...prev, strokes].slice(-60));
     const coords = getCanvasCoordinates(e);
 
     if (activeTool === 'laser') {
@@ -430,6 +409,8 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.pointerType === 'pen') lastPen.current = Date.now();
+    if (pointer.current !== e.pointerId) return;
     // Palm Rejection: ignore touch events when stylus only is enabled
     if (stylusOnly && e.pointerType === 'touch') {
       return;
@@ -476,8 +457,8 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     const rect = canvas.getBoundingClientRect();
 
     const newPoints: StrokePoint[] = coalesced.map((pe) => ({
-      x: pe.clientX - rect.left,
-      y: pe.clientY - rect.top,
+      x: (pe.clientX - rect.left) * 1920 / rect.width,
+      y: (pe.clientY - rect.top) * 1080 / rect.height,
       pressure: pe.pressure || 0.5
     }));
 
@@ -495,6 +476,8 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (pointer.current !== e.pointerId) return;
+    pointer.current = null;
     cancelShapeHoldTimer();
     isShapeSnappedRef.current = false;
 
@@ -510,27 +493,23 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     } catch {}
     isDrawingRef.current = false;
     currentPointsRef.current = [];
+    setDrawingRevision(value => value + 1);
   };
 
-  // Undo / Redo
+  // Full snapshots make erasing and clear-all undoable as one action.
   const handleUndo = () => {
-    if (strokes.length === 0) return;
-    const lastStroke = strokes[strokes.length - 1];
-    setRedoStack((prev) => [[lastStroke], ...prev]);
-    setStrokes((prev) => prev.slice(0, -1));
+    if (!undoStack.length) return;
+    setRedoStack(prev => [strokes, ...prev].slice(0, 60));
+    setStrokes(undoStack[undoStack.length - 1]); setUndoStack(prev => prev.slice(0, -1));
   };
-
   const handleRedo = () => {
-    if (redoStack.length === 0) return;
-    const [nextStrokeBatch, ...rest] = redoStack;
-    setStrokes((prev) => [...prev, ...nextStrokeBatch]);
-    setRedoStack(rest);
+    if (!redoStack.length) return;
+    setUndoStack(prev => [...prev, strokes].slice(-60));
+    setStrokes(redoStack[0]); setRedoStack(prev => prev.slice(1));
   };
-
   const handleClearAll = () => {
-    if (strokes.length === 0) return;
-    setRedoStack((prev) => [strokes, ...prev]);
-    setStrokes([]);
+    if (!strokes.length) return;
+    setUndoStack(prev => [...prev, strokes].slice(-60)); setRedoStack([]); setStrokes([]);
   };
 
   // Multi-Page Navigation Handlers
@@ -543,6 +522,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
       ...updatedPages[currentPageIndex],
       strokes,
       redoStack,
+      undoStack,
       background
     };
     setPages(updatedPages);
@@ -551,6 +531,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     const target = updatedPages[targetIndex];
     setStrokes(target.strokes);
     setRedoStack(target.redoStack);
+    setUndoStack(target.undoStack || []);
     setBackground(target.background);
     setCurrentPageIndex(targetIndex);
     laserTrailRef.current = [];
@@ -564,6 +545,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
       ...updatedPages[currentPageIndex],
       strokes,
       redoStack,
+      undoStack,
       background
     };
 
@@ -578,6 +560,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     setPages(updatedPages);
     setCurrentPageIndex(updatedPages.length - 1);
     setStrokes([]);
+    setUndoStack([]);
     setRedoStack([]);
     laserTrailRef.current = [];
   };
@@ -586,9 +569,8 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   const handleExportPdf = async () => {
     setIsExporting(true);
     try {
-      const canvas = canvasRef.current;
-      const w = canvas ? canvas.width : 1920;
-      const h = canvas ? canvas.height : 1080;
+      const w = 1920;
+      const h = 1080;
 
       const pagesToExport: ExportableBoardPage[] = pages.map((p, idx) =>
         idx === currentPageIndex ? { ...p, strokes, background } : p
@@ -596,19 +578,18 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
 
       await exportAllPagesToPdf(pagesToExport, w, h, snippets);
     } catch (err) {
-      console.error('Failed to export lecture PDF:', err);
+      setError(err instanceof Error ? err.message : 'PDF export failed');
     } finally {
       setIsExporting(false);
-      setIsExportOpen(false);
+
     }
   };
 
   const handleExportPng = async () => {
     setIsExporting(true);
     try {
-      const canvas = canvasRef.current;
-      const w = canvas ? canvas.width : 1920;
-      const h = canvas ? canvas.height : 1080;
+      const w = 1920;
+      const h = 1080;
 
       const currentPage: ExportableBoardPage = {
         id: pages[currentPageIndex]?.id || 'page-1',
@@ -618,23 +599,22 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
 
       await exportPageToPng(currentPage, w, h, snippets, currentPageIndex + 1);
     } catch (err) {
-      console.error('Failed to export lecture PNG:', err);
+      setError(err instanceof Error ? err.message : 'Image export failed');
     } finally {
       setIsExporting(false);
-      setIsExportOpen(false);
+
     }
   };
 
   // Snippet Card Dragging
   const handleSnippetPointerDown = (id: string, e: React.PointerEvent) => {
+    if (presentation || (e.target as HTMLElement).closest('button')) return;
     e.stopPropagation();
     setDraggingSnippetId(id);
     const snip = snippets.find((s) => s.id === id);
     if (!snip) return;
-    dragOffsetRef.current = {
-      x: e.clientX - snip.x,
-      y: e.clientY - snip.y
-    };
+    const rect = containerRef.current!.getBoundingClientRect();
+    dragOffsetRef.current = { x: (e.clientX - rect.left) * 1920 / rect.width - snip.x, y: (e.clientY - rect.top) * 1080 / rect.height - snip.y };
     try {
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
     } catch {}
@@ -642,8 +622,10 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
 
   const handleSnippetPointerMove = (id: string, e: React.PointerEvent) => {
     if (draggingSnippetId !== id) return;
-    const newX = Math.max(10, e.clientX - dragOffsetRef.current.x);
-    const newY = Math.max(10, e.clientY - dragOffsetRef.current.y);
+    const rect = containerRef.current!.getBoundingClientRect();
+    const snip = snippets.find(s => s.id === id);
+    const newX = Math.max(10, Math.min(1920 - (snip?.width || 300), (e.clientX - rect.left) * 1920 / rect.width - dragOffsetRef.current.x));
+    const newY = Math.max(10, Math.min(1000, (e.clientY - rect.top) * 1080 / rect.height - dragOffsetRef.current.y));
     onUpdateSnippetPosition(id, newX, newY);
   };
 
@@ -656,11 +638,45 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     }
   };
 
-  const isRtl = lang === 'ar';
+  useEffect(() => {
+    let alive = true;
+    setReady(false); setStatus('loading');
+    void readBoard(documentId).then(snapshot => {
+      if (!alive) return;
+      if (snapshot) {
+        const current = snapshot.pages[snapshot.currentPage];
+        setPages(snapshot.pages); setCurrentPageIndex(snapshot.currentPage);
+        setStrokes(current.strokes); setRedoStack(current.redoStack); setUndoStack(current.undoStack || []); setBackground(current.background);
+      }
+      onRestoreSnippets(snapshot?.snippets || []);
+      setReady(true); setStatus('saved');
+    }).catch(() => { if (alive) { setStatus('error'); setError(lang === 'ar' ? 'تعذر تحميل السبورة المحفوظة. أعد فتح الملف.' : 'Saved board could not be loaded. Reopen the document.'); } });
+    return () => { alive = false; };
+  }, [documentId, onRestoreSnippets]);
+  useEffect(() => {
+    if (!ready || isDrawingRef.current || draggingSnippetId) return;
+    let alive = true;
+    const snapshot = { pages: pages.map((page, index) => index === currentPageIndex ? { ...page, strokes, redoStack, undoStack, background } : page), currentPage: currentPageIndex, snippets };
+    setStatus('saving');
+    saveQueue.current = saveQueue.current.catch(() => {}).then(() => writeBoard(documentId, snapshot));
+    void saveQueue.current.then(() => { if (alive) setStatus('saved'); }).catch(() => { if (alive) setStatus('error'); });
+    return () => { alive = false; };
+  }, [ready, documentId, pages, currentPageIndex, strokes, redoStack, undoStack, background, snippets, drawingRevision, draggingSnippetId]);
+  useLayoutEffect(() => {
+    registerBoard({ ready, tool: activeTool, color: selectedColor, width: selectedWidth, background,
+      page: currentPageIndex + 1, pages: pages.length, canUndo: !!undoStack.length, canRedo: !!redoStack.length,
+      exporting: isExporting, status, error,
+      setTool: setActiveTool, setColor: setSelectedColor, setWidth: setSelectedWidth, setBackground,
+      undo: handleUndo, redo: handleRedo, clear: handleClearAll, addPage: handleAddPage,
+      goToPage: page => handleSwitchPage(page - 1), exportPdf: () => void handleExportPdf(), exportPng: () => void handleExportPng(), clip: () => onRequestAreaClip?.() });
+  }, [ready, activeTool, selectedColor, selectedWidth, background, currentPageIndex, pages, strokes, undoStack, redoStack, isExporting, status, error, snippets, registerBoard, onRequestAreaClip]);
+  useEffect(() => () => registerBoard(null), [registerBoard]);
+
 
   return (
     <div
       ref={containerRef}
+      style={{ height: 'calc(100% - var(--teacher-bottom-inset, 130px))' }}
       className={`relative w-full h-full select-none overflow-hidden touch-none transition-colors duration-300 ${
         background === 'dark'
           ? 'bg-slate-900 text-slate-100'
@@ -678,6 +694,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
+        onLostPointerCapture={handlePointerUp}
         className="absolute inset-0 cursor-crosshair z-10 touch-none select-none"
       />
 
@@ -693,8 +710,8 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
           <div
             key={snip.id}
             style={{
-              transform: `translate3d(${snip.x}px, ${snip.y}px, 0)`,
-              width: `${snip.width}px`
+              left: `${snip.x / 1920 * 100}%`, top: `${snip.y / 1080 * 100}%`,
+              width: `${snip.width / 1920 * 100}%`
             }}
             className="absolute top-0 left-0 pointer-events-auto rounded-2xl border border-line bg-surface/95 backdrop-blur-md shadow-xl overflow-hidden transition-shadow hover:shadow-2xl flex flex-col"
           >
@@ -711,6 +728,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
               </div>
               <button
                 type="button"
+                hidden={presentation}
                 onClick={() => onRemoveSnippet(snip.id)}
                 className="p-1 rounded-lg hover:bg-hover hover:text-danger-ink text-ink-muted transition-colors cursor-pointer"
                 title={lang === 'ar' ? 'إزالة الاقتباس' : 'Remove Snippet'}
@@ -738,366 +756,6 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
         ))}
       </div>
 
-      {/* Floating Zen Whiteboard Studio Dock */}
-      <div
-        dir={isRtl ? 'rtl' : 'ltr'}
-        className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-surface/85 border border-line/70 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.18)] ring-1 ring-white/10 text-ink max-w-[96vw] overflow-x-auto select-none"
-      >
-        {/* Tool Segmented Group */}
-        <div className="flex items-center gap-1 bg-hover-subtle/70 rounded-xl p-0.5 border border-line/50">
-          {/* Pen Tool */}
-          <button
-            type="button"
-            onClick={() => setActiveTool('pen')}
-            title={lang === 'ar' ? 'قلم الكتابة الحبري' : 'Inking Pen'}
-            className={`p-2 rounded-lg transition-all cursor-pointer ${
-              activeTool === 'pen'
-                ? 'bg-surface text-accent shadow-xs scale-102 font-bold'
-                : 'text-ink-muted hover:text-ink hover:bg-hover'
-            }`}
-          >
-            <Pen className="w-4 h-4" />
-          </button>
-
-          {/* Highlighter Tool */}
-          <button
-            type="button"
-            onClick={() => setActiveTool('highlighter')}
-            title={lang === 'ar' ? 'تظليل فسفوري مضاعف' : 'Highlighter'}
-            className={`p-2 rounded-lg transition-all cursor-pointer ${
-              activeTool === 'highlighter'
-                ? 'bg-amber-500 text-white shadow-xs scale-102 font-bold'
-                : 'text-ink-muted hover:text-ink hover:bg-hover'
-            }`}
-          >
-            <Highlighter className="w-4 h-4" />
-          </button>
-
-          {/* Eraser Tool */}
-          <button
-            type="button"
-            onClick={() => setActiveTool('eraser')}
-            title={lang === 'ar' ? 'ممحاة المسارات الذكية' : 'Stroke Eraser'}
-            className={`p-2 rounded-lg transition-all cursor-pointer ${
-              activeTool === 'eraser'
-                ? 'bg-rose-500 text-white shadow-xs scale-102 font-bold'
-                : 'text-ink-muted hover:text-ink hover:bg-hover'
-            }`}
-          >
-            <Eraser className="w-4 h-4" />
-          </button>
-
-          {/* Digital Laser Pointer */}
-          <button
-            type="button"
-            onClick={() => setActiveTool('laser')}
-            title={lang === 'ar' ? 'مؤشر ليزر للشرح التفاعلي' : 'Laser Pointer'}
-            className={`p-2 rounded-lg transition-all cursor-pointer ${
-              activeTool === 'laser'
-                ? 'bg-red-600 text-white shadow-xs shadow-red-500/30 scale-102 font-bold'
-                : 'text-ink-muted hover:text-ink hover:bg-hover'
-            }`}
-          >
-            <Pointer className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Color Palette (Active only when Pen is active) */}
-        {activeTool === 'pen' && (
-          <>
-            <div className="h-5 w-px bg-line/60 mx-0.5" />
-            <div className="flex items-center gap-1.5 px-1 bg-hover-subtle/50 rounded-xl py-1 border border-line/40">
-              {palette.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => setSelectedColor(color)}
-                  style={{ backgroundColor: color }}
-                  className={`w-4 h-4 rounded-full transition-all cursor-pointer ${
-                    selectedColor === color
-                      ? 'scale-125 ring-2 ring-accent ring-offset-2 ring-offset-surface shadow-xs'
-                      : 'hover:scale-110 opacity-80 hover:opacity-100'
-                  }`}
-                />
-              ))}
-            </div>
-
-            {/* Visual Pen Stroke Width Dots */}
-            <div className="flex items-center gap-1 bg-hover-subtle/70 rounded-xl p-0.5 border border-line/50">
-              {PEN_WIDTHS.map((w) => (
-                <button
-                  key={w.id}
-                  type="button"
-                  onClick={() => setSelectedWidth(w.value)}
-                  title={w.label}
-                  className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
-                    selectedWidth === w.value
-                      ? 'bg-surface text-accent shadow-xs'
-                      : 'hover:bg-hover text-ink-muted hover:text-ink'
-                  }`}
-                >
-                  <span
-                    style={{ width: `${w.value * 0.9 + 1}px`, height: `${w.value * 0.9 + 1}px` }}
-                    className="rounded-full bg-current"
-                  />
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-
-        <div className="h-5 w-px bg-line/60 mx-0.5" />
-
-        {/* Background Style Switcher */}
-        <div className="flex items-center gap-1 bg-hover-subtle/50 rounded-xl p-0.5 border border-line/50 text-[11px]">
-          <button
-            type="button"
-            onClick={() => setBackground('white')}
-            title={lang === 'ar' ? 'ورقة بيضاء نقية' : 'Plain White'}
-            className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
-              background === 'white'
-                ? 'bg-surface border border-line/70 text-accent font-bold shadow-xs'
-                : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            {lang === 'ar' ? 'بيضاء' : 'White'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setBackground('grid')}
-            title={lang === 'ar' ? 'شبكة مربعات هندسية' : 'Math Grid'}
-            className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
-              background === 'grid'
-                ? 'bg-surface border border-line/70 text-accent font-bold shadow-xs'
-                : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            {lang === 'ar' ? 'مربعات' : 'Grid'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setBackground('ruled')}
-            title={lang === 'ar' ? 'أسطر دفتر مسطرة' : 'Ruled Lines'}
-            className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
-              background === 'ruled'
-                ? 'bg-surface border border-line/70 text-accent font-bold shadow-xs'
-                : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            {lang === 'ar' ? 'مسطر' : 'Ruled'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setBackground('dark')}
-            title={lang === 'ar' ? 'سبورة داكنة عالية التباين' : 'Dark Slate'}
-            className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
-              background === 'dark'
-                ? 'bg-slate-800 border border-slate-700 text-white font-bold shadow-xs'
-                : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            {lang === 'ar' ? 'داكنة' : 'Dark'}
-          </button>
-        </div>
-
-        <div className="h-5 w-px bg-line/60 mx-0.5" />
-
-        {/* Palm Rejection Toggle (Stylus Only) */}
-        <button
-          type="button"
-          onClick={() => setStylusOnly((prev) => !prev)}
-          title={
-            lang === 'ar'
-              ? stylusOnly
-                ? 'وضع القلم فقط مفعّل (رفض راحة اليد لحماية السبورة)'
-                : 'تفعيل وضع القلم فقط (تجاهل لمس الكف لمنع البقع)'
-              : stylusOnly
-              ? 'Stylus Only active (Palm rejection enabled)'
-              : 'Enable Stylus Only (Reject palm touches)'
-          }
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
-            stylusOnly
-              ? 'bg-accent/15 border-accent text-accent font-bold shadow-xs'
-              : 'border-line/60 hover:bg-hover text-ink-muted hover:text-ink'
-          }`}
-        >
-          <Hand className={`w-3.5 h-3.5 ${stylusOnly ? 'text-accent' : 'text-ink-muted'}`} />
-          <span className="text-[11px] hidden md:inline">
-            {lang === 'ar' ? (stylusOnly ? 'قلم حصري' : 'لمس حر') : (stylusOnly ? 'Stylus' : 'Touch')}
-          </span>
-          {stylusOnly && <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />}
-        </button>
-
-        <div className="h-5 w-px bg-line/60 mx-0.5" />
-
-        {/* Multi-Page Whiteboard Navigator [ ‹  1 / 3  ›  + ] */}
-        <div className="flex items-center gap-1 bg-hover-subtle/70 px-1.5 py-1 rounded-xl border border-line/60">
-          <button
-            type="button"
-            onClick={() => handleSwitchPage(currentPageIndex - 1)}
-            disabled={currentPageIndex <= 0}
-            title={lang === 'ar' ? 'الصفحة السابقة' : 'Previous Board Page'}
-            className="p-1 rounded-lg hover:bg-surface disabled:opacity-25 disabled:pointer-events-none text-ink-muted hover:text-ink transition-colors cursor-pointer"
-          >
-            {isRtl ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
-          </button>
-
-          <span className="text-xs font-mono font-bold text-ink px-1.5 min-w-[36px] text-center tracking-tight">
-            {currentPageIndex + 1} / {pages.length}
-          </span>
-
-          <button
-            type="button"
-            onClick={() => handleSwitchPage(currentPageIndex + 1)}
-            disabled={currentPageIndex >= pages.length - 1}
-            title={lang === 'ar' ? 'الصفحة التالية' : 'Next Board Page'}
-            className="p-1 rounded-lg hover:bg-surface disabled:opacity-25 disabled:pointer-events-none text-ink-muted hover:text-ink transition-colors cursor-pointer"
-          >
-            {isRtl ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-          </button>
-
-          <button
-            type="button"
-            onClick={handleAddPage}
-            disabled={pages.length >= 10}
-            title={lang === 'ar' ? 'إضافة صفحة سبورة جديدة' : 'Add New Board Page'}
-            className="p-1 rounded-lg hover:bg-accent hover:text-on-accent text-accent transition-all cursor-pointer disabled:opacity-25 disabled:pointer-events-none"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <div className="h-5 w-px bg-line/60 mx-0.5" />
-
-        {/* Export Lecture Button & Menu */}
-        <div className="relative" ref={exportMenuRef}>
-          <button
-            type="button"
-            onClick={() => setIsExportOpen((prev) => !prev)}
-            title={lang === 'ar' ? 'تصدير وحفظ المحاضرة' : 'Export Lecture'}
-            className={`p-2 rounded-xl border transition-all cursor-pointer ${
-              isExportOpen
-                ? 'bg-accent text-on-accent border-accent shadow-md scale-102'
-                : 'hover:bg-hover border-line/60 text-ink-muted hover:text-ink'
-            }`}
-          >
-            {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-          </button>
-
-          {/* Export Dropdown Popover */}
-          {isExportOpen && (
-            <div
-              dir={isRtl ? 'rtl' : 'ltr'}
-              className="absolute bottom-full mb-3 rtl:right-0 ltr:left-0 z-50 w-64 rounded-2xl bg-surface/95 border border-line/80 shadow-[0_20px_50px_rgba(0,0,0,0.2)] p-2 space-y-1 text-start backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-150"
-            >
-              <div className="px-2.5 py-1.5 text-[11px] font-bold text-ink-muted border-b border-line/60 tracking-tight">
-                {lang === 'ar' ? 'تصدير وحفظ المحاضرة' : 'Export Lecture'}
-              </div>
-
-              {/* Option 1: PDF Export (All Pages) */}
-              <button
-                type="button"
-                onClick={handleExportPdf}
-                disabled={isExporting}
-                className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-hover text-ink text-xs transition-colors cursor-pointer text-start"
-              >
-                <div className="w-7 h-7 rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="font-bold tracking-tight">
-                    {lang === 'ar' ? 'ملف PDF لجميع الصفحات' : 'All Pages as PDF'}
-                  </span>
-                  <span className="text-[10px] text-ink-muted truncate">
-                    {lang === 'ar' ? `${pages.length} صفحات مجمعة بدقة عالية` : `${pages.length} vector pages combined`}
-                  </span>
-                </div>
-              </button>
-
-              {/* Option 2: Current Page PNG */}
-              <button
-                type="button"
-                onClick={handleExportPng}
-                disabled={isExporting}
-                className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-hover text-ink text-xs transition-colors cursor-pointer text-start"
-              >
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                  <ImageIcon className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="font-bold tracking-tight">
-                    {lang === 'ar' ? 'صورة الصفحة الحالية (PNG)' : 'Current Page Image (PNG)'}
-                  </span>
-                  <span className="text-[10px] text-ink-muted truncate">
-                    {lang === 'ar' ? 'صورة عالية النقاء للمشاركة الفورية' : 'High-res image for quick sharing'}
-                  </span>
-                </div>
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Area Clip Button: Crop diagram from PDF to Board */}
-        {onRequestAreaClip && (
-          <button
-            type="button"
-            onClick={onRequestAreaClip}
-            title={lang === 'ar' ? 'قص مسألة أو رسم من الكتاب وإلصاقه على السبورة' : 'Crop Area from PDF to Board'}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-accent/15 border border-accent/30 text-accent text-xs font-semibold hover:bg-accent hover:text-on-accent transition-all cursor-pointer"
-          >
-            <Crop className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{lang === 'ar' ? 'قص من الكتاب' : 'Clip'}</span>
-          </button>
-        )}
-
-        <div className="h-5 w-px bg-line/60 mx-0.5" />
-
-        {/* Undo / Redo */}
-        <button
-          type="button"
-          onClick={handleUndo}
-          disabled={strokes.length === 0}
-          title={lang === 'ar' ? 'تراجع' : 'Undo'}
-          className="p-1.5 rounded-xl hover:bg-hover disabled:opacity-25 disabled:pointer-events-none text-ink-muted hover:text-ink transition-colors cursor-pointer"
-        >
-          <RotateCcw className="w-4 h-4" />
-        </button>
-
-        <button
-          type="button"
-          onClick={handleRedo}
-          disabled={redoStack.length === 0}
-          title={lang === 'ar' ? 'إعادة' : 'Redo'}
-          className="p-1.5 rounded-xl hover:bg-hover disabled:opacity-25 disabled:pointer-events-none text-ink-muted hover:text-ink transition-colors cursor-pointer"
-        >
-          <RotateCw className="w-4 h-4" />
-        </button>
-
-        {/* Clear All */}
-        <button
-          type="button"
-          onClick={handleClearAll}
-          disabled={strokes.length === 0}
-          title={lang === 'ar' ? 'مسح الصفحة الحالية' : 'Clear Current Page'}
-          className="p-1.5 rounded-xl hover:bg-hover disabled:opacity-25 disabled:pointer-events-none text-ink-muted hover:text-danger-ink transition-colors cursor-pointer"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-
-        {onCloseBoard && (
-          <>
-            <div className="h-5 w-px bg-line/60 mx-0.5" />
-            <button
-              type="button"
-              onClick={onCloseBoard}
-              title={lang === 'ar' ? 'إغلاق شاشة السبورة' : 'Close Board'}
-              className="p-1.5 rounded-xl hover:bg-hover text-ink-muted hover:text-ink transition-colors cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </>
-        )}
-      </div>
     </div>
   );
 };

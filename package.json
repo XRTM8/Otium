@@ -1,7 +1,7 @@
 {
   "name": "otium-reader",
   "private": true,
-  "version": "1.9.1",
+  "version": "1.9.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -50,6 +50,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "fake-indexeddb": "^6.2.6",
+    "happy-dom": "^21.0.4",
     "oxlint": "^1.88.0",
     "qrcode": "^1.5.4",
     "sharp": "^0.35.5",
