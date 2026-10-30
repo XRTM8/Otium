@@ -103,6 +103,23 @@ describe('unified teacher workspace', () => {
     expect(host.querySelector('button[aria-label="تحديد"]')).not.toBeNull();
     expect(teaching.layout).toBe('document');
   });
+  it('collapses phone study tools and restores selection without losing the document', async () => {
+    await render('lesson-mobile-hide', false, true);
+    expect(host.querySelector('.teacher-context-line')).toBeNull();
+    expect(host.querySelector('button[aria-label="تصدير"]')).toBeNull();
+    await click('إخفاء كل الأدوات');
+    expect(host.querySelector('button[aria-label="تحديد"]')).toBeNull();
+    expect(host.querySelector('.teacher-main-row')?.querySelectorAll('button')).toHaveLength(1);
+    await click('إرجاع الأدوات');
+    expect(host.querySelector('button[aria-label="تحديد"]')).not.toBeNull();
+    expect(teaching.readerTools).toBe(true);
+  });
+  it('expands mobile teaching actions only when a live beam peer is connected', async () => {
+    await render('lesson-mobile-broadcast', true, true);
+    expect(host.querySelector('.teacher-context-line')).not.toBeNull();
+    expect(host.querySelector('button[aria-label="تصدير"]')).not.toBeNull();
+    expect(host.querySelector('.teacher-page-navigation')?.getAttribute('dir')).toBe('ltr');
+  });
   it('waits for valid receipts from the paired reader instead of treating send as delivery', async () => {
     const listeners = new Set<(message: BeamMessage) => unknown>();
     vi.spyOn(beamService, 'subscribe').mockImplementation(callback => { listeners.add(callback as never); return () => { listeners.delete(callback as never); }; });

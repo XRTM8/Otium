@@ -233,6 +233,7 @@ const DesktopReader: React.FC = () => {
             isBookmarked={reader.bookmarks.some(
               (bookmark) => bookmark.pageNumber === reader.currentPage
             )}
+            readingDirection={reader.docIsRtl ? 'rtl' : 'ltr'}
             onPageChange={reader.scrollToPage}
             onPrevPage={reader.goToPrevPage}
             onNextPage={reader.goToNextPage}

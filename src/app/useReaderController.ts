@@ -1335,19 +1335,22 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       setIsImmersive(false);
       setDocumentError(null);
 
-      // Detect language / reading direction of document
+      // File names may be Arabic even for English textbooks. Sample actual
+      // pages so a cover or translated filename cannot reverse navigation.
+      setDetectedDocIsRtl(false);
       void (async () => {
+        let pageText = '';
         try {
-          const firstPage = await opened.doc.getPage(1);
-          const textContent = await firstPage.getTextContent();
-          const pageText = textContent.items
-            .map((item: any) => ('str' in item ? item.str : ''))
-            .join(' ');
-          const combined = `${title} ${pageText}`;
-          setDetectedDocIsRtl(detectIsArabicScript(combined));
-        } catch {
-          setDetectedDocIsRtl(detectIsArabicScript(title));
-        }
+          for (let page = 1; page <= Math.min(3, opened.doc.numPages); page++) {
+            if (generation !== loadGenerationRef.current) return;
+            const pdfPage = await opened.doc.getPage(page);
+            const textContent = await pdfPage.getTextContent();
+            pageText += ' ' + textContent.items
+              .map(item => ('str' in item ? item.str : ''))
+              .join(' ').slice(0, 6000);
+          }
+        } catch { /* Keep the text already sampled; image-only PDFs default to LTR. */ }
+        if (generation === loadGenerationRef.current) setDetectedDocIsRtl(detectIsArabicScript(pageText));
       })();
 
       if (opened.basePageSize.width && opened.basePageSize.height && typeof window !== 'undefined') {

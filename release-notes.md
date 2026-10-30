@@ -1,3 +1,10 @@
+# Otium 1.9.11 — Consistent document navigation
+
+- Use document direction for both desktop toolbar and in-page navigation arrows, independently of interface language.
+- Detect document direction from up to three content pages, without Arabic filenames reversing English books.
+- Keep Redo available in More while using the compact phone study dock.
+- Regression checks cover mobile reader state across rotation, hide/restore actions, and expanded controls for a live paired device.
+
 # Otium 1.9.10 — Stable rotation and focused study controls
 
 - Keep the mobile shell stable across orientation changes so rotating a phone does not unmount the open document or reset the connected reading session.

@@ -38,6 +38,7 @@ interface ToolbarProps {
   theme: ThemeMode;
   viewMode: ViewMode;
   currentLang: Language;
+  readingDirection?: 'rtl' | 'ltr';
   isFullscreen: boolean;
   isBookmarked?: boolean;
   onPageChange: (page: number) => void;
@@ -96,6 +97,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   theme,
   viewMode,
   currentLang,
+  readingDirection = 'ltr',
   isFullscreen,
   isBookmarked = false,
   onPageChange,
@@ -191,7 +193,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     dot: THEME_DOTS[id]
   }));
 
-  const isAr = currentLang === 'ar';
+  const isAr = readingDirection === 'rtl';
   const handleLeftStep = () => {
     if (isAr) {
       if (onNextPage) onNextPage();

@@ -497,7 +497,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             title={lang === 'ar' ? 'الصفحة السابقة' : 'Previous page'}
             aria-label={lang === 'ar' ? 'الصفحة السابقة' : 'Previous page'}
             className={`paged-arrow spring-press fixed top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full text-ink disabled:opacity-0 transition-opacity duration-300 ${
-              isRtl ? 'right-2 sm:right-5' : 'left-2 sm:left-5'
+              docIsRtl ? 'right-2 sm:right-5' : 'left-2 sm:left-5'
             }`}
             style={
               isImmersive
@@ -505,7 +505,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
                 : undefined
             }
           >
-            {isRtl ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+            {docIsRtl ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
           </button>
           <button
             type="button"
@@ -515,7 +515,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
             title={lang === 'ar' ? 'الصفحة التالية' : 'Next page'}
             aria-label={lang === 'ar' ? 'الصفحة التالية' : 'Next page'}
             className={`paged-arrow spring-press fixed top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full text-ink disabled:opacity-0 transition-opacity duration-300 ${
-              isRtl ? 'left-2 sm:left-5' : 'right-2 sm:right-5'
+              docIsRtl ? 'left-2 sm:left-5' : 'right-2 sm:right-5'
             }`}
             style={
               isImmersive
@@ -523,7 +523,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
                 : undefined
             }
           >
-            {isRtl ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+            {docIsRtl ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
           </button>
         </>
       )}
