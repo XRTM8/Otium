@@ -112,4 +112,15 @@ describe('unified teacher workspace', () => {
     await settled(() => host.textContent!.includes('محفوظ على هذا الجهاز'));
     expect(await readInk('lesson-stylus')).toHaveLength(1);
   });
+  it('uses the selected color and width for whiteboard highlighting', async () => {
+    await render('lesson-highlight-options'); await click('إظهار السبورة'); await click('تظليل');
+    await act(async () => teaching.updatePrefs({ color: '#059669', width: 8 }));
+    const canvas = host.querySelector('canvas')!;
+    await act(async () => { canvas.dispatchEvent(new PointerEvent('pointerdown', { pointerType: 'pen', pointerId: 9, button: 0, clientX: 100, clientY: 100, bubbles: true })); });
+    await act(async () => { canvas.dispatchEvent(new PointerEvent('pointerup', { pointerType: 'pen', pointerId: 9, button: 0, clientX: 100, clientY: 100, bubbles: true })); });
+    await settled(() => teaching.board?.status === 'saved');
+    const snapshot = { value: null as Awaited<ReturnType<typeof readBoard>> };
+    await act(async () => { snapshot.value = await readBoard('lesson-highlight-options'); });
+    expect(snapshot.value?.pages[0].strokes[0]).toMatchObject({ tool: 'highlighter', color: '#059669', width: 48 });
+  });
 });
