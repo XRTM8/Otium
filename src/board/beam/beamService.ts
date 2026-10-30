@@ -421,7 +421,7 @@ export interface SendDocumentOptions {
 
 export class BeamService {
   private broadcastChannel: BroadcastChannel | null = null;
-  private listeners: Set<(msg: BeamMessage, transport: BeamTransport) => void> = new Set();
+  private listeners: Set<(msg: BeamMessage, transport: BeamTransport) => void | Promise<void>> = new Set();
   private stateListeners: Set<
     (state: { room: string | null; role: 'receiver' | 'sender' | null }) => void
   > = new Set();
@@ -662,7 +662,7 @@ export class BeamService {
   }
 
   public subscribe(
-    callback: (msg: BeamMessage, transport: BeamTransport) => void
+    callback: (msg: BeamMessage, transport: BeamTransport) => void | Promise<void>
   ): () => void {
     this.listeners.add(callback);
     return () => {
@@ -815,6 +815,7 @@ export class BeamService {
           return { mode: 'p2p' };
         } catch (error) {
           assertActive();
+          if (error instanceof BeamSendError && error.code === 'invalid-document') throw error;
           console.warn('P2P transfer failed, trying cloud relay:', error);
           this.updateTransfer({ phase: 'preparing', mode: 'relay', progress: 5 });
         }
@@ -905,9 +906,9 @@ export class BeamService {
       }
 
       this.updateTransfer({
-        active: false,
-        phase: 'done',
-        progress: 100,
+        active: true,
+        phase: 'finalizing',
+        progress: 98,
         bytesTransferred: merged.byteLength,
         totalBytes: merged.byteLength
       });
@@ -976,7 +977,7 @@ export class BeamService {
 
   private resetTransfer(): void {
     this.incomingFile = null;
-    this.resolveFileCompletion(null);
+    this.resolveFileCompletion(new Error('The transfer was cancelled.'));
     if (
       this.transferState.phase !== 'idle' ||
       this.transferState.active ||
@@ -1510,6 +1511,20 @@ export class BeamService {
         this.setPeerConnected(true);
         if (message.type === 'BEAM_PAYLOAD') {
           this.resetTransfer();
+          try {
+            await this.deliverDocument(message, transport);
+            if (!this.isCurrentSession(message.sessionId)) return;
+            this.updateTransfer({ active: false, phase: 'done', progress: 100 });
+            await this.broadcast({ type: 'BEAM_DOCUMENT_RESULT', roomCode: message.roomCode,
+              sessionId: message.sessionId, transferId: message.payload?.transferId, ok: true, timestamp: Date.now() });
+          } catch (error) {
+            if (!this.isCurrentSession(message.sessionId)) return;
+            const reason = error instanceof Error ? error.message : 'The receiver could not open the PDF.';
+            this.updateTransfer({ active: false, phase: 'error', error: reason });
+            await this.broadcast({ type: 'BEAM_DOCUMENT_RESULT', roomCode: message.roomCode,
+              sessionId: message.sessionId, transferId: message.payload?.transferId, ok: false, error: reason, timestamp: Date.now() });
+          }
+          return;
         }
         this.notifyListeners(message, transport);
         return;
@@ -1525,6 +1540,11 @@ export class BeamService {
     _transport: BeamTransport
   ): Promise<void> {
     switch (message.type) {
+      case 'BEAM_DOCUMENT_RESULT': {
+        if (message.sessionId !== this.sessionId || !message.transferId) return;
+        this.handleFileCompletion(message.transferId, message.ok === true, message.error);
+        return;
+      }
       case 'BEAM_READY': {
         if (!message.sessionId || message.sessionId !== this.sessionId) return;
         this.peerSessionId = message.sessionId;
@@ -1588,11 +1608,24 @@ export class BeamService {
   private notifyListeners(message: BeamMessage, transport: BeamTransport): void {
     for (const listener of this.listeners) {
       try {
-        listener(message, transport);
+        const result = listener(message, transport);
+        if (result) void result.catch(error => console.error('Error in beam listener:', error));
       } catch (error) {
         console.error('Error in beam listener:', error);
       }
     }
+  }
+
+  private async deliverDocument(message: BeamMessage, transport: BeamTransport): Promise<void> {
+    const pending: Promise<void>[] = [];
+    for (const listener of this.listeners) {
+      const result = listener(message, transport);
+      if (result) pending.push(result);
+    }
+    if (!pending.length) throw new Error('The receiving reader is not ready. Reopen Receiver and retry.');
+    await Promise.all(pending);
+    if (!this.isCurrentSession(message.sessionId)) throw new Error('The receiving session was cancelled.');
+    this.notifyListeners({ ...message, type: 'BEAM_DOCUMENT_OPENED' }, transport);
   }
 
   private closeRtc(): void {
@@ -1924,6 +1957,7 @@ export class BeamService {
     const file = this.incomingFile;
     if (!file || file.transferId !== transferId) return;
     this.incomingFile = null;
+    const session = this.peerSessionId;
 
     try {
       this.updateTransfer({
@@ -1970,12 +2004,16 @@ export class BeamService {
         timestamp: Date.now()
       };
 
+      if (this.peerSessionId !== session || this.role !== 'receiver') return;
+      await this.deliverDocument(payloadMessage, 'p2p');
+      if (this.peerSessionId !== session || this.role !== 'receiver') return;
+
       this.updateTransfer({
         active: false,
         phase: 'done',
         progress: 100,
-        bytesTransferred: merged.byteLength,
-        totalBytes: merged.byteLength
+        bytesTransferred: file.size,
+        totalBytes: file.size
       });
 
       this.sendDataChannelControl({
@@ -1984,8 +2022,8 @@ export class BeamService {
         ok: true
       });
 
-      this.notifyListeners(payloadMessage, 'p2p');
     } catch (error) {
+      if (this.peerSessionId !== session || this.role !== 'receiver') return;
       const message = error instanceof Error ? error.message : 'P2P receive failed.';
       this.updateTransfer({ active: false, phase: 'error', error: message });
       this.sendDataChannelControl({
@@ -2012,7 +2050,7 @@ export class BeamService {
     if (ok) {
       completion.resolve();
     } else {
-      completion.reject(new Error(message || 'The receiver rejected the transfer.'));
+      completion.reject(new BeamSendError('invalid-document', message || 'The receiver could not open the PDF.'));
     }
   }
 
@@ -2054,6 +2092,7 @@ export class BeamService {
   }
 
   private async sendFileOverDataChannel(options: SendDocumentOptions): Promise<void> {
+    const session = this.sessionId;
     const channel = this.rtcDataChannel;
     if (!channel || channel.readyState !== 'open') {
       throw new Error('The direct channel is not open yet.');
@@ -2072,6 +2111,7 @@ export class BeamService {
       this.fileCompletion = { resolve, reject, timer };
       this.fileCompletionId = transferId;
     });
+    void completion.catch(() => {});
 
     try {
       channel.send(
@@ -2119,6 +2159,9 @@ export class BeamService {
       channel.send(JSON.stringify({ kind: 'file-end', transferId }));
       this.updateTransfer({ phase: 'finalizing', progress: 96 });
       await completion;
+      if (this.sessionId !== session || this.rtcDataChannel !== channel) {
+        throw new Error('The transfer was cancelled.');
+      }
       this.updateTransfer({
         active: false,
         phase: 'done',
@@ -2186,6 +2229,18 @@ export class BeamService {
     }
 
     this.updateTransfer({ phase: 'finalizing', progress: 92 });
+    const completion = new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        if (this.fileCompletionId === transferId) {
+          this.fileCompletion = null;
+          this.fileCompletionId = null;
+          reject(new Error('The receiver did not confirm opening the PDF.'));
+        }
+      }, 90000);
+      this.fileCompletion = { resolve, reject, timer };
+      this.fileCompletionId = transferId;
+    });
+    void completion.catch(() => {});
     await this.broadcast({
       type: 'BEAM_PAYLOAD',
       roomCode: this.connectedRoom,
@@ -2203,6 +2258,9 @@ export class BeamService {
       },
       timestamp: Date.now()
     });
+
+    await completion;
+    assertActive();
 
     this.updateTransfer({
       active: false,

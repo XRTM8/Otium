@@ -64,6 +64,8 @@ export type BeamMessageType =
   | 'BEAM_PING'
   | 'BEAM_PONG'
   | 'BEAM_PAYLOAD'
+  | 'BEAM_DOCUMENT_RESULT'
+  | 'BEAM_DOCUMENT_OPENED'
   | 'BEAM_PAGE_CHANGE'
   | 'BEAM_STEP'
   | 'BEAM_QUERY_STATE'
@@ -85,6 +87,9 @@ export interface BeamMessage {
   origin?: string;
   senderName?: string;
   receiverName?: string;
+  transferId?: string;
+  ok?: boolean;
+  error?: string;
   payload?: BeamPayload;
   pageNumber?: number;
   direction?: 'next' | 'prev';

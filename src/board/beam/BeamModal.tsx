@@ -69,8 +69,8 @@ function describeBeamError(error: unknown, lang: Language): string {
           : 'Another document transfer is already running. Wait for it to finish, then retry.';
       case 'invalid-document':
         return ar
-          ? 'تعذر قراءة هذا الملف كملف PDF صالح.'
-          : 'This file could not be read as a valid PDF.';
+          ? `تعذر فتح ملف PDF على الجهاز الآخر: ${error.message}`
+          : `The receiving device could not open the PDF: ${error.message}`;
       default:
         return error.message;
     }
@@ -291,7 +291,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     if (!isOpen) return;
     const unsubscribe = beamService.subscribe((msg: BeamMessage) => {
       if (
-        msg.type === 'BEAM_PAYLOAD' &&
+        msg.type === 'BEAM_DOCUMENT_OPENED' &&
         msg.payload &&
         beamService.getRole() === 'receiver' &&
         beamService.isMatchingRoom(msg.roomCode, receiverRoomRef.current)
@@ -649,7 +649,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
       return ar ? 'جارٍ تجهيز الاتصال المباشر…' : 'Preparing the direct connection…';
     }
     if (transfer.phase === 'finalizing') {
-      return ar ? 'جارٍ التحقق من الملف…' : 'Verifying the file…';
+      return ar ? 'بانتظار فتح الملف على الجهاز الآخر…' : 'Waiting for the receiver to open the PDF…';
     }
     if (transfer.phase === 'transferring') {
       const channel = transfer.mode === 'p2p' ? (ar ? 'P2P مباشر' : 'Direct P2P') : ar ? 'سحابة' : 'Cloud';

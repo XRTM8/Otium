@@ -1203,10 +1203,10 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     };
   }, [handleBackStep]);
 
-  const loadPdfData = async (data: ArrayBuffer, title: string, startPage?: number) => {
+  const loadPdfData = async (data: ArrayBuffer, title: string, startPage?: number, reportFailure = false) => {
     if (!data || data.byteLength === 0) {
       setDocumentError(lang === 'ar' ? 'الملف المحدد فارغ.' : 'The selected file is empty.');
-      return;
+      return false;
     }
 
     if (!isPdfBuffer(data)) {
@@ -1215,7 +1215,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
           ? 'الملف المحدد تالف أو ليس مستند PDF صالحاً.'
           : 'The selected file is corrupt or not a valid PDF document.'
       );
-      return;
+      return false;
     }
 
     const generation = ++loadGenerationRef.current;
@@ -1260,14 +1260,14 @@ export function useReaderController(capabilities: ReaderCapabilities) {
       const opened = await handle.promise;
       if (generation !== loadGenerationRef.current) {
         destroyDocumentSoon(opened.doc);
-        return;
+        return false;
       }
 
       // Identity follows the bytes, so a renamed file keeps its highlights.
       const documentId = (await identityPromise) || title;
       if (generation !== loadGenerationRef.current) {
         destroyDocumentSoon(opened.doc);
-        return;
+        return false;
       }
 
       loadingTaskRef.current = null;
@@ -1371,12 +1371,15 @@ export function useReaderController(capabilities: ReaderCapabilities) {
         clearSearchTextCache(previousDoc);
         destroyDocumentSoon(previousDoc);
       }
+      return true;
     } catch (error) {
-      if (generation !== loadGenerationRef.current) return;
+      if (generation !== loadGenerationRef.current) return false;
       loadingTaskRef.current = null;
       setPasswordModal(EMPTY_PASSWORD_MODAL);
       setDocumentError(describeDocumentError(error, lang));
       console.error('Error loading PDF:', error);
+      if (reportFailure) throw error;
+      return false;
     } finally {
       if (generation === loadGenerationRef.current) {
         setIsLoading(false);
@@ -1594,11 +1597,13 @@ export function useReaderController(capabilities: ReaderCapabilities) {
             throw new Error('No PDF payload found');
           }
 
-          await loadDocumentRef.current(
+          const opened = await loadDocumentRef.current(
             buffer,
             payloadTitle,
-            msg.payload?.pageNumber
+            msg.payload?.pageNumber,
+            true
           );
+          if (!opened) throw new Error('The receiving device could not open this PDF. Check the error on its screen.');
           if (msg.payload?.theme) {
             sync.changeTheme(msg.payload.theme);
           }
@@ -1609,13 +1614,11 @@ export function useReaderController(capabilities: ReaderCapabilities) {
             msg.payload?.totalPages || 1
           );
         } catch (err) {
+          handledPayloadIdsRef.current.delete(payloadKey);
           console.error('Failed to load beamed PDF in reader:', err);
           setIsLoading(false);
-          setDocumentError(
-            sync.lang === 'ar'
-              ? 'تعذر تحميل المستند المبثوث من الهاتف. تحقق من الاتصال وحاول مجدداً.'
-              : 'Failed to load beamed document from phone. Check connection and retry.'
-          );
+          setDocumentError(describeDocumentError(err, sync.lang));
+          throw err;
         } finally {
           beamLoadingRef.current = false;
         }
