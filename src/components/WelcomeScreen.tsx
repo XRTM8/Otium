@@ -551,7 +551,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                         loadRecents();
                       }}
                       title={t.deleteTooltip}
-                      className="fluid-press p-2 rounded-xl opacity-75 sm:opacity-0 group-hover:opacity-100 text-ink-faint hover:text-rose-400 hover:bg-rose-500/10 active:bg-rose-500/20 cursor-pointer"
+                      aria-label={t.deleteTooltip}
+                      className="fluid-press p-2 rounded-xl opacity-100 text-ink-faint hover:text-rose-400 hover:bg-rose-500/10 active:bg-rose-500/20 cursor-pointer"
                     >
                       <X className="w-4 h-4" />
                     </button>

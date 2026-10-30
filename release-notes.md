@@ -1,3 +1,11 @@
+# Otium 1.9.10 — Stable rotation and focused study controls
+
+- Keep the mobile shell stable across orientation changes so rotating a phone does not unmount the open document or reset the connected reading session.
+- Keep the X action visible on recent files in landscape, with an accessible remove label.
+- Make the phone teacher dock context-aware: a compact study bar when no live peer is connected, and full controls while paired for Smart Beam.
+- Make Hide collapse the dock to a single restore control on mobile as well as desktop.
+- Orient the phone dock page controls from the document direction, independent of interface language.
+
 # Otium 1.9.9 — Mobile controls and paired reading fixes
 
 - Keep mobile reader controls available while teacher presentation mode is active; the toolbar hides only for explicit immersive reading.

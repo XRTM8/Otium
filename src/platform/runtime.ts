@@ -24,11 +24,16 @@ export function getFormFactor(): FormFactor {
   if (platform === 'android') return 'mobile';
   if (platform === 'windows') return 'desktop';
 
-  // Browser previews follow their viewport; native Windows never becomes mobile.
-  if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
-    return 'mobile';
-  }
-  return 'desktop';
+  // Choose the shell from stable device traits, not viewport width. Width
+  // crosses the desktop breakpoint when many phones rotate to landscape;
+  // swapping shells there unmounts the reader and returns to the library.
+  if (typeof navigator === 'undefined') return 'desktop';
+  const ua = navigator.userAgent || '';
+  const mobileHint = (navigator as Navigator & { userAgentData?: { mobile?: boolean } }).userAgentData?.mobile;
+  const touchIpad = /Macintosh/i.test(ua) && navigator.maxTouchPoints > 1;
+  return mobileHint || /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(ua) || touchIpad
+    ? 'mobile'
+    : 'desktop';
 }
 
 export function getPlatformLabel(platform: PlatformId = getPlatformId()): string {
