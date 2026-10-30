@@ -5,6 +5,7 @@ import { PasswordModal } from './PasswordModal';
 import { SearchBar } from './SearchBar';
 import { SettingsModal } from './SettingsModal';
 import { Sidebar } from './Sidebar';
+import { useTeaching } from './TeachingContext';
 
 interface ReaderOverlaysProps {
   reader: ReaderController;
@@ -14,6 +15,7 @@ interface ReaderOverlaysProps {
 
 /** Modals, drawers and status surfaces that are shared by every platform. */
 export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader, mobile = false }) => {
+  const teaching = useTeaching();
   return (
     <>
       <SearchBar
@@ -66,6 +68,10 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader, mobile =
         onRememberDocThemeChange={reader.changeRememberDocTheme}
         keepScreenAwake={reader.keepScreenAwake}
         onKeepScreenAwakeChange={reader.changeKeepScreenAwake}
+        smartBoardEnabled={teaching.prefs.boardEnabled}
+        onSmartBoardEnabledChange={enabled => {
+          if (!mobile) teaching.updatePrefs({ boardEnabled: enabled });
+        }}
         onResetDefaults={reader.resetDefaults}
         onExportBackup={reader.exportBackup}
         onImportBackup={reader.importBackup}

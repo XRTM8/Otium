@@ -404,6 +404,23 @@ describe('Otium Smart Beam session routing', () => {
     } finally { open.mockRestore(); close.mockRestore(); service.disconnect(); }
   });
 
+  it('falls back to HTTPS polling when an older WebView has no EventSource', async () => {
+    const service = new BeamService() as any;
+    service.activeRoomCode = 'otm1234'; service.connectedRoom = 'OTM-1234'; service.role = 'receiver';
+    const poll = vi.spyOn(service, 'pollRoom').mockResolvedValue(undefined);
+    const original = (globalThis as any).EventSource;
+    try {
+      vi.stubGlobal('EventSource', undefined);
+      service.openEventSource();
+      expect(service.getConnectionStatus()).toBe('connecting');
+      expect(poll).toHaveBeenCalledWith(service.sourceGeneration);
+    } finally {
+      poll.mockRestore();
+      if (original === undefined) vi.unstubAllGlobals(); else vi.stubGlobal('EventSource', original);
+      service.disconnect();
+    }
+  });
+
   it('sends disconnect over the direct channel before closing it', () => {
     const service = beamService as any;
     service.connectedRoom = 'OTM-1234';

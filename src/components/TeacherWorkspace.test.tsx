@@ -57,6 +57,16 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); });
 
 describe('unified teacher workspace', () => {
+  it('keeps the whiteboard hidden by default but restores it immediately when the saved setting is enabled', async () => {
+    await act(async () => root.render(<TeachingProvider><DocumentInkProvider reader={reader('lesson-board-switch')}>
+      <Probe /><DocumentInkLayer page={1} width={800} height={450} lang="ar" />
+      <BoardCanvas documentId="lesson-board-switch" lang="ar" snippets={[]} onRestoreSnippets={restore} onRemoveSnippet={vi.fn()} onUpdateSnippetPosition={vi.fn()} />
+    </DocumentInkProvider></TeachingProvider>));
+    await settled(() => teaching.board?.ready === true);
+    expect(host.querySelector('button[aria-label="إظهار السبورة"]')).toBeNull();
+    await act(async () => teaching.updatePrefs({ boardEnabled: true }));
+    expect(host.querySelector('button[aria-label="إظهار السبورة"]')).not.toBeNull();
+  });
   it('switches targets, confirms clearing, restores erased ink with undo and keeps it after remount', async () => {
     await writeBoard('lesson-controls', { pages: [{ id: 'p1', strokes: [initialStroke], redoStack: [], undoStack: [[]], background: 'grid' }], currentPage: 0, snippets: [] });
     await render('lesson-controls');

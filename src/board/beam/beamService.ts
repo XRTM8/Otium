@@ -37,6 +37,9 @@ const BEAM_CHANNEL_NAME = 'otium_smart_beam_channel';
 const BEAM_STORAGE_KEY = 'otium_beam_last_event';
 const RECENT_ROOMS_KEY = 'otium_recent_beam_rooms';
 const RECEIVER_ROOM_KEY = 'otium_receiver_room_code';
+// Keep the existing relay endpoint until the product owner explicitly chooses
+// a different provider. Recovery happens through polling/retry, not by quietly
+// redirecting classroom signaling to a new third party.
 const CLOUD_RELAY_BASE = 'https://ntfy.sh';
 
 const SSE_SINCE = '30s';
@@ -1078,7 +1081,10 @@ export class BeamService {
     this.closeEventSource();
     if (!this.activeRoomCode) return;
     if (typeof EventSource === 'undefined') {
-      this.setConnectionStatus('disconnected');
+      // Older Android WebViews may not provide EventSource but can still use
+      // ordinary HTTPS. Start polling instead of making cloud pairing vanish.
+      this.setConnectionStatus('connecting');
+      void this.pollRoom(this.sourceGeneration);
       return;
     }
 

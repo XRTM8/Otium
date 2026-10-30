@@ -64,6 +64,8 @@ interface SettingsModalProps {
   onRememberDocThemeChange?: (enabled: boolean) => void;
   keepScreenAwake?: boolean;
   onKeepScreenAwakeChange?: (enabled: boolean) => void;
+  smartBoardEnabled?: boolean;
+  onSmartBoardEnabledChange?: (enabled: boolean) => void;
   onResetDefaults?: () => void;
   onExportBackup?: () => Promise<SaveTextOutcome>;
   onImportBackup?: (text: string) => Promise<RestoreSummary>;
@@ -231,6 +233,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onRememberDocThemeChange,
   keepScreenAwake = true,
   onKeepScreenAwakeChange,
+  smartBoardEnabled = false,
+  onSmartBoardEnabledChange,
   onResetDefaults = () => {},
   onExportBackup,
   onImportBackup,
@@ -748,6 +752,41 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <span
                       className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all ${
                         mobileNavVisible ? 'start-6' : 'start-0.5'
+                      }`}
+                    />
+                  </span>
+                </button>
+              )}
+
+              {onSmartBoardEnabledChange && (
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={smartBoardEnabled}
+                  onClick={() => onSmartBoardEnabledChange(!smartBoardEnabled)}
+                  className="flex w-full items-center gap-3 rounded-2xl border border-line-subtle bg-hover-subtle p-3 text-start transition-colors active:bg-hover"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold text-ink">
+                      {ar ? 'السبورة الذكية' : 'Smart whiteboard'}
+                    </div>
+                    <p className="mt-0.5 text-[10px] leading-relaxed text-ink-muted">
+                      {mobile
+                        ? (ar ? 'تُفعّل على الحاسوب أو السبورة فقط. هذا الهاتف يبقى ريموتاً للقراءة والشرح.' : 'Available on the computer or smartboard. This phone stays a reading and annotation remote.')
+                        : (ar ? 'إظهار زر السبورة وشاشة التقسيم لهذا الجهاز. يبقى اختيارك محفوظاً.' : 'Show the whiteboard button and split workspace on this device. Your choice is saved.')}
+                    </p>
+                  </div>
+                  <span
+                    aria-hidden="true"
+                    className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
+                      smartBoardEnabled && !mobile
+                        ? 'border-accent/50 bg-accent'
+                        : 'border-line-strong bg-hover-strong'
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all ${
+                        smartBoardEnabled && !mobile ? 'start-6' : 'start-0.5'
                       }`}
                     />
                   </span>
