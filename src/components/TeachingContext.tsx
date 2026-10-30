@@ -4,7 +4,7 @@ import type { BoardBackground, BoardTool } from '../board/types';
 
 export type SaveStatus = 'loading' | 'saved' | 'saving' | 'error';
 export interface BoardControls {
-  ready: boolean; tool: BoardTool; color: string; width: number; background: BoardBackground;
+  ready: boolean; tool: BoardTool; color: string; width: number; background: BoardBackground; isDark?: boolean;
   page: number; pages: number; canUndo: boolean; canRedo: boolean; exporting: boolean; status: SaveStatus; error: string;
   setTool: (tool: BoardTool) => void; setColor: (color: string) => void; setWidth: (width: number) => void;
   setBackground: (background: BoardBackground) => void;

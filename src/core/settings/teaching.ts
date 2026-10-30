@@ -7,8 +7,10 @@ export interface TeachingPreferences {
   stylusOnly: boolean;
   /** The whiteboard is an optional teaching workspace, never shown by default. */
   boardEnabled: boolean;
+  boardFollowTheme: boolean;
+  boardColor: string;
 }
-export const DEFAULT_TEACHING: TeachingPreferences = { position: 'center', offset: 12, size: 52, color: '#e11d48', width: 4, stylusOnly: false, boardEnabled: false };
+export const DEFAULT_TEACHING: TeachingPreferences = { position: 'center', offset: 12, size: 52, color: '#e11d48', width: 4, stylusOnly: false, boardEnabled: false, boardFollowTheme: true, boardColor: '#ffffff' };
 const KEY = 'otium-teaching-preferences-v1';
 export function normalizeTeaching(value: Partial<TeachingPreferences> | null): TeachingPreferences {
   const v = value || {};
@@ -19,7 +21,9 @@ export function normalizeTeaching(value: Partial<TeachingPreferences> | null): T
     color: typeof v.color === 'string' && /^#[\da-f]{6}$/i.test(v.color) ? v.color : DEFAULT_TEACHING.color,
     width: Number.isFinite(v.width) ? Math.max(2, Math.min(12, v.width!)) : 4,
     stylusOnly: v.stylusOnly === true,
-    boardEnabled: v.boardEnabled === true
+    boardEnabled: v.boardEnabled === true,
+    boardFollowTheme: v.boardFollowTheme !== false,
+    boardColor: typeof v.boardColor === 'string' && /^#[\da-f]{6}$/i.test(v.boardColor) ? v.boardColor : DEFAULT_TEACHING.boardColor
   };
 }
 export function readTeaching(): TeachingPreferences {

@@ -7,9 +7,13 @@ import type { BoardBackground, BoardPageData, BoardSnippet, BoardStroke, BoardTo
 import type { Language } from '../../core/i18n/translations';
 import { exportAllPagesToPdf, exportPageToPng, type ExportableBoardPage } from '../utils/boardExport';
 import { recognizeGeometricShape } from '../utils/shapeRecognition';
+import { boardAppearance, boardRasterSize } from '../utils/boardAppearance';
+import { drawBoardInk } from '../utils/boardInk';
+import type { ThemeMode } from '../../core/types';
 
 interface BoardCanvasProps {
   lang: Language;
+  theme?: ThemeMode;
   snippets: BoardSnippet[];
   onRemoveSnippet: (id: string) => void;
   onUpdateSnippetPosition: (id: string, x: number, y: number) => void;
@@ -23,6 +27,7 @@ interface BoardCanvasProps {
 
 export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   lang,
+  theme = 'paper',
   snippets,
   onRemoveSnippet,
   onUpdateSnippetPosition,
@@ -116,7 +121,10 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   const [draggingSnippetId, setDraggingSnippetId] = useState<string | null>(null);
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  const isDarkBg = background === 'dark';
+  const appearance = boardAppearance(background, theme, prefs.boardFollowTheme, prefs.boardColor);
+  const isDarkBg = appearance.dark;
+  const paintState = useRef({ strokes, isDarkBg });
+  useLayoutEffect(() => { paintState.current = { strokes, isDarkBg }; }, [strokes, isDarkBg]);
   useEffect(() => { setSelectedColor(prefs.color); setSelectedWidth(prefs.width); }, [prefs.color, prefs.width]);
 
 
@@ -159,45 +167,10 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
 
     ctx.save();
     ctx.scale(canvas.width / 1920, canvas.height / 1080);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    for (const stroke of strokes) {
-      if (!stroke.points || stroke.points.length === 0) continue;
-
-      ctx.beginPath();
-      if (stroke.tool === 'highlighter') {
-        ctx.globalCompositeOperation = isDarkBg ? 'screen' : 'multiply';
-        ctx.strokeStyle = stroke.color || (isDarkBg ? 'rgba(250, 204, 21, 0.45)' : 'rgba(250, 204, 21, 0.65)');
-        ctx.lineWidth = stroke.width || 24;
-        ctx.globalAlpha = isDarkBg ? 0.45 : 0.65;
-      } else {
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.strokeStyle = stroke.color;
-        ctx.lineWidth = stroke.width;
-        ctx.globalAlpha = 1.0;
-      }
-
-      const pts = stroke.points;
-      if (pts.length === 1) {
-        ctx.arc(pts[0].x, pts[0].y, stroke.width / 2, 0, Math.PI * 2);
-        ctx.fillStyle = stroke.color;
-        ctx.fill();
-        continue;
-      }
-
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i < pts.length - 1; i++) {
-        const xc = (pts[i].x + pts[i + 1].x) / 2;
-        const yc = (pts[i].y + pts[i + 1].y) / 2;
-        ctx.quadraticCurveTo(pts[i].x, pts[i].y, xc, yc);
-      }
-      ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
-      ctx.stroke();
-    }
+    drawBoardInk(ctx, paintState.current.strokes, paintState.current.isDarkBg);
 
     ctx.restore();
-  }, [strokes, isDarkBg]);
+  }, []);
 
   // Sync canvas size with high DPI pixel ratio and observe container resizing
   const syncCanvasDimensions = useCallback(() => {
@@ -208,15 +181,16 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
 
     const rect = container.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
-    const dpr = window.devicePixelRatio || 1;
+    const raster = boardRasterSize(rect.width, rect.height, window.devicePixelRatio || 1);
 
-    canvas.width = Math.round(rect.width * dpr);
-    canvas.height = Math.round(rect.height * dpr);
+    if (canvas.width === raster.width && canvas.height === raster.height) return;
+    canvas.width = raster.width;
+    canvas.height = raster.height;
     canvas.style.width = `${rect.width}px`;
     canvas.style.height = `${rect.height}px`;
 
-    laserCanvas.width = Math.round(rect.width * dpr);
-    laserCanvas.height = Math.round(rect.height * dpr);
+    laserCanvas.width = raster.width;
+    laserCanvas.height = raster.height;
     laserCanvas.style.width = `${rect.width}px`;
     laserCanvas.style.height = `${rect.height}px`;
 
@@ -249,9 +223,10 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     };
   }, [syncCanvasDimensions]);
 
-  useEffect(() => {
-    repaintAllStrokes();
-  }, [repaintAllStrokes]);
+  useLayoutEffect(() => {
+    const frame = requestAnimationFrame(repaintAllStrokes);
+    return () => cancelAnimationFrame(frame);
+  }, [strokes, isDarkBg, repaintAllStrokes]);
 
   // Laser loop animation
   useEffect(() => {
@@ -452,7 +427,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     }
 
     // Capture coalesced events if available (high-precision smartboard pens)
-    const coalesced = (e.nativeEvent as any).getCoalescedEvents
+    const samples = (e.nativeEvent as any).getCoalescedEvents
       ? ((e.nativeEvent as any).getCoalescedEvents() as PointerEvent[])
       : [e.nativeEvent];
 
@@ -460,6 +435,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
 
+    const coalesced = samples.length ? samples : [e.nativeEvent];
     const newPoints: StrokePoint[] = coalesced.map((pe) => ({
       x: (pe.clientX - rect.left) * 1920 / rect.width,
       y: (pe.clientY - rect.top) * 1080 / rect.height,
@@ -583,7 +559,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
         idx === currentPageIndex ? { ...p, strokes, background } : p
       );
 
-      await exportAllPagesToPdf(pagesToExport, w, h, snippets);
+      await exportAllPagesToPdf(pagesToExport.map(page => ({ ...page, backgroundColor: boardAppearance(page.background, theme, prefs.boardFollowTheme, prefs.boardColor).color })), w, h, snippets);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'PDF export failed');
     } finally {
@@ -601,7 +577,8 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
       const currentPage: ExportableBoardPage = {
         id: pages[currentPageIndex]?.id || 'page-1',
         strokes,
-        background
+        background,
+        backgroundColor: appearance.color
       };
 
       await exportPageToPng(currentPage, w, h, snippets, currentPageIndex + 1);
@@ -670,13 +647,13 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     return () => { alive = false; };
   }, [ready, documentId, pages, currentPageIndex, strokes, redoStack, undoStack, background, snippets, drawingRevision, draggingSnippetId]);
   useLayoutEffect(() => {
-    registerBoard({ ready, tool: activeTool, color: selectedColor, width: selectedWidth, background,
+    registerBoard({ ready, tool: activeTool, color: selectedColor, width: selectedWidth, background, isDark: isDarkBg,
       page: currentPageIndex + 1, pages: pages.length, canUndo: !!undoStack.length, canRedo: !!redoStack.length,
       exporting: isExporting, status, error,
       setTool: setActiveTool, setColor: setSelectedColor, setWidth: setSelectedWidth, setBackground,
       undo: handleUndo, redo: handleRedo, clear: handleClearAll, addPage: handleAddPage,
       goToPage: page => handleSwitchPage(page - 1), exportPdf: () => void handleExportPdf(), exportPng: () => void handleExportPng(), clip: () => onRequestAreaClip?.() });
-  }, [ready, activeTool, selectedColor, selectedWidth, background, currentPageIndex, pages, strokes, undoStack, redoStack, isExporting, status, error, snippets, registerBoard, onRequestAreaClip]);
+  }, [ready, activeTool, selectedColor, selectedWidth, background, currentPageIndex, pages, strokes, undoStack, redoStack, isExporting, status, error, snippets, registerBoard, onRequestAreaClip, isDarkBg, appearance.color, theme, prefs.boardFollowTheme, prefs.boardColor]);
   useEffect(() => () => registerBoard(null), [registerBoard]);
 
 
@@ -685,16 +662,11 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   return (
     <div
       ref={stageRef}
-      style={{ height: '100%' }}
-      className={`relative w-full h-full select-none overflow-hidden touch-none transition-colors duration-300 ${
-        background === 'dark'
-          ? 'bg-slate-900 text-slate-100'
-          : background === 'grid'
-          ? 'bg-white bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px] text-slate-900'
-          : background === 'ruled'
-          ? 'bg-[#fcfbf9] bg-[linear-gradient(transparent_27px,#e2e8f0_28px)] [background-size:100%_28px] text-slate-900'
-          : 'bg-white text-slate-900'
-      }`}
+      data-board-color={appearance.color}
+      style={{ height: '100%', backgroundColor: appearance.color, color: isDarkBg ? '#f8fafc' : '#111827',
+        backgroundImage: background === 'grid' ? `radial-gradient(${appearance.pattern} 1px, transparent 1px)` : background === 'ruled' ? `linear-gradient(transparent 27px, ${appearance.pattern} 28px)` : 'none',
+        backgroundSize: background === 'grid' ? '20px 20px' : '100% 28px' }}
+      className="relative w-full h-full select-none overflow-hidden touch-none transition-colors duration-200"
     >
       {/* Interactive Inking Canvas */}
       <canvas

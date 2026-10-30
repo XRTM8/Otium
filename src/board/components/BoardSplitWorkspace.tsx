@@ -51,7 +51,7 @@ export const BoardSplitWorkspace: React.FC<BoardSplitWorkspaceProps> = ({ reader
     {((splitPercent > 0 && splitPercent < 100) || isDragging) && <ResizeDivider splitPercent={splitPercent} onSplitChange={setSplitPercent} isDragging={isDragging} setIsDragging={finishDrag} containerRef={containerRef} isRtl={reader.lang === 'ar'} />}
     {/* Switching views never discards a lesson. */}
     <div hidden={splitPercent === 100} onPointerDownCapture={() => setTarget('board')} style={{ flex: `0 0 ${100 - splitPercent}%`, width: `${100 - splitPercent}%` }} className="relative h-full overflow-hidden flex-col">
-      <BoardCanvas key={reader.docId} documentId={reader.docId!} lang={reader.lang} snippets={snippets} onRestoreSnippets={onRestoreSnippets} onRemoveSnippet={onRemoveSnippet} onUpdateSnippetPosition={onUpdateSnippetPosition} onRequestAreaClip={requestAreaClip} />
+      <BoardCanvas key={reader.docId} documentId={reader.docId!} theme={reader.theme} lang={reader.lang} snippets={snippets} onRestoreSnippets={onRestoreSnippets} onRemoveSnippet={onRemoveSnippet} onUpdateSnippetPosition={onUpdateSnippetPosition} onRequestAreaClip={requestAreaClip} />
     </div>
     <AreaSnippetModal isOpen={isAreaClipOpen} currentPage={reader.currentPage} lang={reader.lang} onClose={() => setIsAreaClipOpen(false)} onSnippetCaptured={onAddSnippet} />
   </div>;

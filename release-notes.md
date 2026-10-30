@@ -1,3 +1,12 @@
+# Otium 1.9.12 — Clearer whiteboard ink and dependable note controls
+
+- Supersample whiteboard ink on standard displays with a bounded backing store, and stop resetting canvas dimensions on every stroke update.
+- Share smooth curve rendering between the live board and higher-resolution PDF/PNG exports.
+- Follow the app theme by default, with a direct Background control for pure black, white, or a saved independent color; retain dots and ruled patterns.
+- Adapt neutral ink to the background so it stays legible when the theme changes.
+- Close note placement completely after Cancel or Save; edit or delete existing notes directly, with undo available for deletion.
+- Honor Hide reader controls on mobile and keep the dock restore action reachable.
+
 # Otium 1.9.11 — Consistent document navigation
 
 - Use document direction for both desktop toolbar and in-page navigation arrows, independently of interface language.

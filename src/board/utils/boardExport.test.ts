@@ -6,6 +6,7 @@ describe('boardExport', () => {
     const mockCtx = {
       save: vi.fn(),
       restore: vi.fn(),
+      scale: vi.fn(),
       clearRect: vi.fn(),
       fillRect: vi.fn(),
       beginPath: vi.fn(),
@@ -51,6 +52,7 @@ describe('boardExport', () => {
     const mockCtx = {
       save: vi.fn(),
       restore: vi.fn(),
+      scale: vi.fn(),
       clearRect: vi.fn(),
       fillRect: vi.fn(),
       beginPath: vi.fn(),
@@ -68,7 +70,7 @@ describe('boardExport', () => {
     };
 
     renderBoardPageToContext(mockCtx, darkPage, 1920, 1080);
-    expect(mockCtx.fillStyle).toBe('#0f172a');
+    expect(mockCtx.fillStyle).toBe('#000000');
     expect(mockCtx.fillRect).toHaveBeenCalledWith(0, 0, 1920, 1080);
   });
 });

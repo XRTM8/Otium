@@ -6,7 +6,7 @@ import { TeachingProvider, useTeaching } from './TeachingContext';
 import { DocumentInkProvider, DocumentInkLayer } from './DocumentInk';
 import { BoardCanvas } from '../board/components/BoardCanvas';
 import { readBoard, writeBoard } from '../board/utils/boardStorage';
-import { readInk } from '../core/annotations/ink';
+import { readInk, writeInk } from '../core/annotations/ink';
 import { beamService } from '../board/beam/beamService';
 import type { BeamMessage } from '../board/types';
 import type { ReaderController } from '../app/useReaderController';
@@ -42,7 +42,7 @@ async function settled(test: () => boolean) {
   expect(test()).toBe(true);
 }
 function button(name: string) {
-  const result = [...host.querySelectorAll<HTMLButtonElement>('button')].find(b => b.getAttribute('aria-label') === name || b.textContent?.trim() === name);
+  const result = [...document.body.querySelectorAll<HTMLButtonElement>('button')].find(b => b.getAttribute('aria-label') === name || b.textContent?.trim() === name);
   if (!result) throw Error(`Missing button: ${name}`);
   return result;
 }
@@ -144,6 +144,31 @@ describe('unified teacher workspace', () => {
     await settled(() => host.textContent!.includes('محفوظ على هذا الجهاز'));
     expect(await readInk('lesson-stylus')).toHaveLength(1);
   });
+  it('cancels note placement once and does not reopen it on the next touch', async () => {
+    await render('lesson-note-cancel');
+    await click('المزيد'); await click('ملاحظة على الملف');
+    const surface = host.querySelector('svg.absolute')!.parentElement!;
+    const touch = () => surface.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 21, pointerType: 'mouse', button: 0, clientX: 80, clientY: 100, bubbles: true }));
+    await act(async () => { touch(); });
+    expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+    await click('إلغاء');
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    await act(async () => { touch(); });
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(await readInk('lesson-note-cancel')).toEqual([]);
+  });
+  it('opens an existing note in navigation mode and deletes it with undo available', async () => {
+    await writeInk('lesson-note-delete', [{ id: 'note-1', page: 1, type: 'note', color: '#2563eb', width: .03, points: [{ x: .2, y: .2 }], text: 'Lesson note' }]);
+    await render('lesson-note-delete');
+    await settled(() => !!host.querySelector('text[role="button"]'));
+    await act(async () => { host.querySelector('text[role="button"]')!.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 22, pointerType: 'mouse', button: 0, bubbles: true })); });
+    expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+    await click('حذف الملاحظة');
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    await settled(() => !host.querySelector('text[role="button"]'));
+    await click('تراجع');
+    await settled(() => !!host.querySelector('text[role="button"]'));
+  });
   it('uses the selected color and width for whiteboard highlighting', async () => {
     await render('lesson-highlight-options'); await click('إظهار السبورة'); await click('تظليل');
     await act(async () => teaching.updatePrefs({ color: '#059669', width: 8 }));
@@ -154,5 +179,26 @@ describe('unified teacher workspace', () => {
     const snapshot = { value: null as Awaited<ReturnType<typeof readBoard>> };
     await act(async () => { snapshot.value = await readBoard('lesson-highlight-options'); });
     expect(snapshot.value?.pages[0].strokes[0]).toMatchObject({ tool: 'highlighter', color: '#059669', width: 48 });
+  });
+  it('keeps a pure black board as a saved independent background', async () => {
+    await render('lesson-background'); await click('إظهار السبورة');
+    await click('خلفية السبورة'); await click('سوداء بالكامل');
+    expect(host.querySelector('[data-board-color]')?.getAttribute('data-board-color')).toBe('#000000');
+    expect(teaching.prefs.boardFollowTheme).toBe(false);
+    expect(teaching.board?.background).toBe('white');
+    await act(async () => root.unmount()); root = createRoot(host);
+    await render('lesson-background');
+    expect(host.querySelector('[data-board-color]')?.getAttribute('data-board-color')).toBe('#000000');
+    expect(teaching.prefs.boardColor).toBe('#000000');
+  });
+  it('keeps its high resolution backing canvas while a stroke is being written', async () => {
+    await render('lesson-raster'); await click('إظهار السبورة'); await click('قلم');
+    const canvas = host.querySelector('canvas')!;
+    const setWidth = vi.spyOn(canvas, 'width', 'set');
+    await act(async () => { canvas.dispatchEvent(new PointerEvent('pointerdown', { pointerType: 'pen', pointerId: 31, button: 0, clientX: 100, clientY: 100, bubbles: true })); });
+    await act(async () => { canvas.dispatchEvent(new PointerEvent('pointermove', { pointerType: 'pen', pointerId: 31, button: 0, clientX: 150, clientY: 160, bubbles: true })); });
+    await act(async () => { canvas.dispatchEvent(new PointerEvent('pointerup', { pointerType: 'pen', pointerId: 31, button: 0, clientX: 150, clientY: 160, bubbles: true })); });
+    expect(canvas.width).toBe(1600);
+    expect(setWidth).not.toHaveBeenCalled();
   });
 });

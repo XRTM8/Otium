@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
 import { Trash2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { TeacherDock, type InkTool } from './TeacherDock';
 import { useTeaching } from './TeachingContext';
 import { useAnnotationDelivery } from './useAnnotationDelivery';
@@ -12,6 +13,7 @@ import type { TextAnnotation } from '../core/types';
 interface InkContextValue {
   ready: boolean; tool: InkTool; color: string; size: number; stylus: boolean;
   marks: InkMark[]; change: (marks: InkMark[]) => void;
+  setTool: (tool: InkTool) => void;
   publishSelection: (selection: { page: number; rects: import('../core/types').AnnotationRect[] } | null) => void;
 }
 const InkContext = createContext<InkContextValue | null>(null);
@@ -176,7 +178,7 @@ export function DocumentInkProvider({ reader, children }: { reader: ReaderContro
     finally { setExporting(false); }
   };
   const documentStatus = status === 'error' || reader.annotationSaveStatus === 'error' ? 'error' : status === 'saving' || reader.annotationSaveStatus === 'saving' ? 'saving' : status;
-  return <InkContext.Provider value={{ ready, tool: teaching.target === 'document' && !teaching.presentation ? tool : 'hand', color, size, stylus, marks: ready ? history.present : [], change, publishSelection }}>
+  return <InkContext.Provider value={{ ready, tool: teaching.target === 'document' && !teaching.presentation ? tool : 'hand', color, size, stylus, marks: ready ? history.present : [], change, setTool, publishSelection }}>
     {children}
     {/* Phone keeps its document annotation dock (including text selection),
         while the desktop dock appears only in the board workspace. */}
@@ -199,6 +201,7 @@ export function DocumentInkLayer({ page, width, height, lang }: { page: number; 
   const ar = lang === 'ar';
   useEffect(() => { setNote(null); setDraft(null); drawing.current = null; gesture.current = null; }, [ink?.tool, page]);
   if (!ink) return null;
+  const closeNote = () => { setNote(null); ink.setTool('hand'); };
   const marks = ink.marks.filter(mark => mark.page === page);
   const point = (e: React.PointerEvent) => {
     const box = surface.current!.getBoundingClientRect();
@@ -215,7 +218,11 @@ export function DocumentInkLayer({ page, width, height, lang }: { page: number; 
   };
   const renderMark = (mark: InkMark) => mark.type === 'note'
     ? <text key={mark.id} x={mark.points[0].x * width} y={mark.points[0].y * height} fill={mark.color} fontSize={mark.width * width}
-        fontFamily="Tajawal, Arial, sans-serif" dominantBaseline="text-before-edge" direction={/[\u0600-\u06ff]/.test(mark.text || '') ? 'rtl' : 'ltr'}>
+        fontFamily="Tajawal, Arial, sans-serif" dominantBaseline="text-before-edge" direction={/[\u0600-\u06ff]/.test(mark.text || '') ? 'rtl' : 'ltr'}
+        style={{ pointerEvents: ink.tool === 'hand' || ink.tool === 'note' ? 'auto' : 'none', cursor: 'pointer' }}
+        role="button" tabIndex={0} aria-label={ar ? 'تعديل أو حذف الملاحظة' : 'Edit or delete note'}
+        onPointerDown={e => { if (ink.tool !== 'hand' && ink.tool !== 'note') return; e.preventDefault(); e.stopPropagation(); setNote(mark); }}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setNote(mark); } }}>
         {(mark.text || '').split('\n').map((line, i) => <tspan key={i} x={mark.points[0].x * width} dy={i ? '1.35em' : '0'}>{line}</tspan>)}
       </text>
     : mark.points.length === 1
@@ -249,14 +256,15 @@ export function DocumentInkLayer({ page, width, height, lang }: { page: number; 
       if (Math.hypot((p.x - last.x) * width, (p.y - last.y) * height) < 1) return;
       drawing.current = { ...drawing.current, points: [...drawing.current.points, p] }; setDraft(drawing.current);
     }} onPointerUp={e => finish(e)} onPointerCancel={e => finish(e, true)} onLostPointerCapture={e => finish(e, true)}>
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="absolute inset-0 pointer-events-none" aria-hidden="true">{marks.map(renderMark)}{draft && renderMark(draft)}</svg>
-    {note && <div role="dialog" aria-label={ar ? 'ملاحظة على الصفحة' : 'Page note'} dir={ar ? 'rtl' : 'ltr'} className="absolute top-4 left-4 z-30 w-60 max-w-[90%] rounded-2xl border border-line bg-surface text-ink shadow-xl p-3 pointer-events-auto" onPointerDown={e => e.stopPropagation()} onPointerMove={e => e.stopPropagation()}>
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="absolute inset-0 pointer-events-none">{marks.map(renderMark)}{draft && renderMark(draft)}</svg>
+    {note && createPortal(<div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-scrim pointer-events-auto" onPointerDown={e => { e.stopPropagation(); if (e.target === e.currentTarget) closeNote(); }} onTouchStart={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()} onKeyDown={e => { e.stopPropagation(); if (e.key === 'Escape') closeNote(); }}>
+      <div role="dialog" aria-modal="true" aria-label={ar ? 'ملاحظة على الصفحة' : 'Page note'} dir={ar ? 'rtl' : 'ltr'} className="w-80 max-w-full max-h-[85dvh] overflow-auto rounded-2xl border border-line bg-surface text-ink shadow-xl p-4" onPointerDown={e => e.stopPropagation()} onPointerMove={e => e.stopPropagation()}>
       <textarea autoFocus aria-label={ar ? 'نص الملاحظة' : 'Note text'} value={note.text} maxLength={2000} onChange={e => setNote({ ...note, text: e.target.value })} className="w-full min-h-24 rounded-xl p-2 bg-hover text-sm resize-y" />
       <div className="flex items-center gap-2 pt-2 text-xs">
-        <button className="rounded-lg bg-accent text-on-accent px-3 py-2" disabled={!note.text?.trim()} onClick={() => { ink.change([...ink.marks.filter(mark => mark.id !== note.id), { ...note, text: note.text!.trim() }]); setNote(null); }}>{ar ? 'حفظ' : 'Save'}</button>
-        <button onClick={() => setNote(null)}>{ar ? 'إلغاء' : 'Cancel'}</button>
-        {ink.marks.some(mark => mark.id === note.id) && <button aria-label={ar ? 'حذف الملاحظة' : 'Delete note'} className="ms-auto text-danger-ink" onClick={() => { ink.change(ink.marks.filter(mark => mark.id !== note.id)); setNote(null); }}><Trash2 size={16} /></button>}
+        <button className="min-h-11 rounded-lg bg-accent text-on-accent px-3 py-2" disabled={!note.text?.trim()} onClick={() => { ink.change([...ink.marks.filter(mark => mark.id !== note.id), { ...note, text: note.text!.trim() }]); closeNote(); }}>{ar ? 'حفظ' : 'Save'}</button>
+        <button className="min-h-11 px-3" onClick={closeNote}>{ar ? 'إلغاء' : 'Cancel'}</button>
+        {ink.marks.some(mark => mark.id === note.id) && <button aria-label={ar ? 'حذف الملاحظة' : 'Delete note'} className="ms-auto min-h-11 flex items-center gap-2 text-danger-ink" onClick={() => { ink.change(ink.marks.filter(mark => mark.id !== note.id)); closeNote(); }}><Trash2 size={16} />{ar ? 'حذف' : 'Delete'}</button>}
       </div>
-    </div>}
+    </div></div>, document.body)}
   </div>;
 }

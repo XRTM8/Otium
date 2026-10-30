@@ -1,10 +1,13 @@
 import type { BoardBackground, BoardSnippet, BoardStroke } from '../types';
 import { buildPdfFromJpegPages, type PdfImagePage } from './pdfWriter';
+import { drawBoardInk } from './boardInk';
+import { boardAppearance } from './boardAppearance';
 
 export interface ExportableBoardPage {
   id: string;
   strokes: BoardStroke[];
   background: BoardBackground;
+  backgroundColor?: string;
 }
 
 /**
@@ -20,88 +23,30 @@ export function renderBoardPageToContext(
   ctx.save();
   ctx.clearRect(0, 0, width, height);
 
-  // 1. Draw Background
-  if (page.background === 'dark') {
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(0, 0, width, height);
-  } else if (page.background === 'grid') {
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, width, height);
-
-    ctx.fillStyle = '#cbd5e1';
-    const spacing = 24;
-    for (let x = spacing; x < width; x += spacing) {
-      for (let y = spacing; y < height; y += spacing) {
-        ctx.beginPath();
-        ctx.arc(x, y, 1, 0, Math.PI * 2);
-        ctx.fill();
-      }
+  const appearance = boardAppearance('white', 'paper', false, page.backgroundColor || (page.background === 'dark' ? '#000000' : '#ffffff'));
+  const isDark = appearance.dark;
+  ctx.fillStyle = appearance.color;
+  ctx.fillRect(0, 0, width, height);
+  ctx.scale(width / 1920, height / 1080);
+  if (page.background === 'grid') {
+    ctx.fillStyle = appearance.pattern;
+    for (let x = 20; x < 1920; x += 20) for (let y = 20; y < 1080; y += 20) {
+      ctx.beginPath(); ctx.arc(x, y, 1, 0, Math.PI * 2); ctx.fill();
     }
   } else if (page.background === 'ruled') {
-    ctx.fillStyle = '#fcfbf9';
-    ctx.fillRect(0, 0, width, height);
-
-    ctx.strokeStyle = '#e2e8f0';
+    ctx.strokeStyle = appearance.pattern;
     ctx.lineWidth = 1;
-    const lineSpacing = 32;
-    for (let y = lineSpacing; y < height; y += lineSpacing) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-      ctx.stroke();
+    for (let y = 28; y < 1080; y += 28) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1920, y); ctx.stroke();
     }
-  } else {
-    // Plain white
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, width, height);
   }
-
-  // 2. Draw Vector Strokes with Bézier Curves
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-
-  for (const stroke of page.strokes) {
-    if (!stroke.points || stroke.points.length === 0) continue;
-
-    ctx.beginPath();
-    const isDark = page.background === 'dark';
-    if (stroke.tool === 'highlighter') {
-      ctx.globalCompositeOperation = isDark ? 'screen' : 'multiply';
-      ctx.strokeStyle = stroke.color || (isDark ? 'rgba(250, 204, 21, 0.45)' : 'rgba(250, 204, 21, 0.65)');
-      ctx.lineWidth = stroke.width || 24;
-      ctx.globalAlpha = isDark ? 0.45 : 0.65;
-    } else {
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.strokeStyle = stroke.color;
-      ctx.lineWidth = stroke.width;
-      ctx.globalAlpha = 1.0;
-    }
-
-    const pts = stroke.points;
-    if (pts.length === 1) {
-      ctx.arc(pts[0].x, pts[0].y, stroke.width / 2, 0, Math.PI * 2);
-      ctx.fillStyle = stroke.color;
-      ctx.fill();
-      continue;
-    }
-
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for (let i = 1; i < pts.length - 1; i++) {
-      const xc = (pts[i].x + pts[i + 1].x) / 2;
-      const yc = (pts[i].y + pts[i + 1].y) / 2;
-      ctx.quadraticCurveTo(pts[i].x, pts[i].y, xc, yc);
-    }
-    ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
-    ctx.stroke();
-  }
-
-  ctx.globalAlpha = 1.0;
+  drawBoardInk(ctx, page.strokes, isDark);
 
   // 3. Draw snippets (text quotes or image cards)
   for (const snip of snippets) {
     if (snip.type === 'text') {
-      ctx.fillStyle = page.background === 'dark' ? '#1e293b' : '#f8fafc';
-      ctx.strokeStyle = page.background === 'dark' ? '#334155' : '#e2e8f0';
+      ctx.fillStyle = isDark ? '#1e293b' : '#f8fafc';
+      ctx.strokeStyle = isDark ? '#334155' : '#e2e8f0';
       ctx.lineWidth = 1;
 
       // Rounded rectangle for card
@@ -110,7 +55,7 @@ export function renderBoardPageToContext(
       ctx.stroke();
 
       // Text inside snippet
-      ctx.fillStyle = page.background === 'dark' ? '#f8fafc' : '#0f172a';
+      ctx.fillStyle = isDark ? '#f8fafc' : '#0f172a';
       ctx.font = '13px Cairo, sans-serif';
       ctx.fillText(snip.content.slice(0, 60) + (snip.content.length > 60 ? '…' : ''), snip.x + 12, snip.y + 36);
     }
@@ -165,8 +110,8 @@ export async function exportPageToPng(
   pageNumber: number
 ): Promise<void> {
   const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1280, width);
-  canvas.height = Math.max(720, height);
+  canvas.width = Math.max(2560, width * 2);
+  canvas.height = Math.max(1440, height * 2);
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
@@ -192,8 +137,8 @@ export async function exportAllPagesToPdf(
   height: number,
   snippets: BoardSnippet[]
 ): Promise<void> {
-  const targetWidth = Math.max(1280, width);
-  const targetHeight = Math.max(720, height);
+  const targetWidth = Math.max(2560, width * 2);
+  const targetHeight = Math.max(1440, height * 2);
   const canvas = document.createElement('canvas');
   canvas.width = targetWidth;
   canvas.height = targetHeight;
@@ -207,7 +152,7 @@ export async function exportAllPagesToPdf(
     renderBoardPageToContext(ctx, page, targetWidth, targetHeight, snippets);
 
     const jpegBlob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.92);
+      canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.98);
     });
 
     if (jpegBlob) {
