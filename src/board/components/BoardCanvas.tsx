@@ -394,13 +394,8 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
     const newStroke: BoardStroke = {
       id: `stroke-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       points: [coords],
-      color:
-        activeTool === 'highlighter'
-          ? isDarkBg
-            ? 'rgba(250, 204, 21, 0.45)'
-            : 'rgba(250, 204, 21, 0.65)'
-          : selectedColor,
-      width: activeTool === 'highlighter' ? 24 : selectedWidth,
+      color: selectedColor,
+      width: activeTool === 'highlighter' ? selectedWidth * 6 : selectedWidth,
       tool: activeTool === 'highlighter' ? 'highlighter' : 'pen'
     };
 
