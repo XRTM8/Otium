@@ -441,6 +441,7 @@ export class BeamService {
   private readonly deviceId = randomId('d');
   private sessionId: string | null = null;
   private peerSessionId: string | null = null;
+  private closedSessions = new Set<string>();
   private localDoc: LocalDocState = { title: null, page: 1, total: 0 };
   private peerState: BeamPeerState = { ...EMPTY_PEER };
   private transferState: BeamTransferState = { ...EMPTY_TRANSFER };
@@ -1445,6 +1446,7 @@ export class BeamService {
     switch (message.type) {
       case 'BEAM_HANDSHAKE': {
         if (!message.sessionId) return;
+        if (this.closedSessions.has(message.sessionId)) return;
         const isNewSession =
           !this.peerSessionId || this.peerSessionId !== message.sessionId;
         if (isNewSession) {
@@ -1497,11 +1499,19 @@ export class BeamService {
 
       case 'BEAM_DISCONNECT': {
         if (!this.isCurrentSession(message.sessionId)) return;
-        this.finishDisconnect();
+        this.closedSessions.add(message.sessionId!);
+        if (this.closedSessions.size > 40) this.closedSessions.delete(this.closedSessions.values().next().value!);
+        this.closeRtc();
+        this.resetTransfer();
+        this.resetPeer();
+        this.peerSessionId = null;
+        this.notifyListeners(message, transport);
         return;
       }
 
       case 'BEAM_PAGE_CHANGE':
+      case 'BEAM_INK_UPDATE':
+      case 'BEAM_INK_REQUEST':
       case 'BEAM_STEP':
       case 'BEAM_PAYLOAD':
       case 'BEAM_STATE_ANNOUNCE':
@@ -1540,6 +1550,12 @@ export class BeamService {
     _transport: BeamTransport
   ): Promise<void> {
     switch (message.type) {
+      case 'BEAM_INK_UPDATE':
+      case 'BEAM_INK_REQUEST': {
+        if (!message.sessionId || message.sessionId !== this.sessionId || !this.peerState.connected) return;
+        this.notifyListeners(message, _transport);
+        return;
+      }
       case 'BEAM_DOCUMENT_RESULT': {
         if (message.sessionId !== this.sessionId || !message.transferId) return;
         this.handleFileCompletion(message.transferId, message.ok === true, message.error);

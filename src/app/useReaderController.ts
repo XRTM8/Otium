@@ -243,6 +243,8 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     room: beamService.getConnectedRoom(),
     role: beamService.getRole()
   });
+  const [beamPeerConnected, setBeamPeerConnected] = useState(beamService.getPeerState().connected);
+  useEffect(() => beamService.onPeerChange(peer => setBeamPeerConnected(peer.connected)), []);
 
   useEffect(() => {
     return beamService.onStateChange((state) => {
@@ -2447,6 +2449,7 @@ export function useReaderController(capabilities: ReaderCapabilities) {
     changeReadingDirection,
     loadDocumentBytes,
     beamRoom: beamState.room,
+    beamPeerConnected,
     beamRole: beamState.role,
     disconnectBeam: () => beamService.disconnect()
   };

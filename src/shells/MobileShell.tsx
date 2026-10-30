@@ -10,6 +10,7 @@ import { ReaderWorkspace } from '../components/ReaderWorkspace';
 import { TextSelectionMenu } from '../components/TextSelectionMenu';
 import { WelcomeScreen } from '../components/WelcomeScreen';
 import { BeamModal } from '../board/beam/BeamModal';
+import { DocumentInkProvider } from '../components/DocumentInk';
 
 const ScannerModal = React.lazy(() =>
   import('../scanner/ScannerModal').then((m) => ({ default: m.ScannerModal }))
@@ -70,6 +71,7 @@ export const MobileShell: React.FC = () => {
   }, []);
 
   return (
+    <DocumentInkProvider reader={reader}>
     <div
       className={`relative w-full h-screen overflow-hidden flex flex-col font-sans theme-${reader.theme}`}
       style={{ backgroundColor: getThemeBackground(reader.theme), height: '100dvh' }}
@@ -111,7 +113,7 @@ export const MobileShell: React.FC = () => {
             onOpenSidebar={() => reader.setIsSidebarOpen(true)}
             onOpenScanner={() => setIsScannerOpen(true)}
             onOpenBeam={() => setIsBeamOpen(true)}
-            isBeaming={Boolean(reader.beamRoom)}
+            isBeaming={reader.beamPeerConnected}
             beamRoom={reader.beamRoom}
             beamRole={reader.beamRole}
             onDisconnectBeam={reader.disconnectBeam}
@@ -194,5 +196,6 @@ export const MobileShell: React.FC = () => {
         onClose={() => setIsBeamOpen(false)}
       />
     </div>
+    </DocumentInkProvider>
   );
 };

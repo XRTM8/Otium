@@ -7,6 +7,7 @@ import type { Language } from '../core/i18n/translations';
 import { getCanvasPixelRatio } from '../core/reader/device';
 import { scheduleIdleWork, scheduleRender } from '../core/reader/renderScheduler';
 import { normalizeAnnotationRects } from '../core/annotations/geometry';
+import { DocumentInkLayer } from './DocumentInk';
 
 interface PdfPageProps {
   doc: PDFDocumentProxy;
@@ -652,6 +653,7 @@ const PdfPageView: React.FC<PdfPageProps> = ({
       )}
 
       {/* High-definition annotation canvas isolated from background filters */}
+      <DocumentInkLayer page={pageNumber} width={dimensions.width} height={dimensions.height} lang={lang} />
       <canvas
         ref={annotationCanvasRef}
         aria-hidden="true"
