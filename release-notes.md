@@ -1,3 +1,9 @@
+# Otium 1.9.8 — Reliable cloud pairing
+
+- Smart Beam now uses a verified, compatible cloud relay after the previous relay timed out on the classroom network.
+- The replacement was tested with publish, long-poll receive, and real-time SSE receive before release.
+- Update both the phone and the computer to this version so they use the same pairing relay.
+
 # Otium 1.9.7 — Complete teaching workspace
 
 - The top reader toolbar remains available while the whiteboard is open, so navigation, pairing, and settings do not disappear.

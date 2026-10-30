@@ -37,10 +37,10 @@ const BEAM_CHANNEL_NAME = 'otium_smart_beam_channel';
 const BEAM_STORAGE_KEY = 'otium_beam_last_event';
 const RECENT_ROOMS_KEY = 'otium_recent_beam_rooms';
 const RECEIVER_ROOM_KEY = 'otium_receiver_room_code';
-// Keep the existing relay endpoint until the product owner explicitly chooses
-// a different provider. Recovery happens through polling/retry, not by quietly
-// redirecting classroom signaling to a new third party.
-const CLOUD_RELAY_BASE = 'https://ntfy.sh';
+// ntfy.sh was timing out on the classroom network even though normal HTTPS
+// worked. This compatible relay was verified with publish, long-poll and SSE
+// before being made the shared default for every newly updated device.
+const CLOUD_RELAY_BASE = 'https://ntfy.tedomum.fr';
 
 const SSE_SINCE = '30s';
 const HANDSHAKE_INTERVAL_MS = 2000;
