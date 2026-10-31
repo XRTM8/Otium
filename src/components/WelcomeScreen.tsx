@@ -31,6 +31,7 @@ import { OtiumLogo } from './OtiumLogo';
 import { triggerHaptic } from '../core/utils/haptics';
 import { isTauriRuntime, openExternalLink } from '../platform/runtime';
 import { getCurrentVersion } from '../core/updates/currentVersion';
+import { BrowserFullscreenButton } from './BrowserFullscreenButton';
 
 interface WelcomeScreenProps {
   currentTheme: ThemeMode;
@@ -214,6 +215,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         
         {/* Language Switch & Settings Buttons */}
         <div className="pointer-events-auto flex items-center gap-2">
+          <BrowserFullscreenButton ar={currentLang === 'ar'} />
           <button
             onClick={onToggleLanguage}
             title={currentLang === 'ar' ? 'Switch to English' : 'التحويل إلى العربية'}

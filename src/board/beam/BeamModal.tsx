@@ -32,6 +32,7 @@ import {
   type BeamConnectionStatus
 } from './beamService';
 import { QrCodeView } from './QrCodeView';
+import { defaultBeamTab } from './deviceRole';
 import type {
   BeamMessage,
   BeamPeerState,
@@ -44,6 +45,7 @@ interface BeamModalProps {
   theme?: ThemeMode;
   reader: ReaderController;
   formFactor: 'desktop' | 'mobile';
+  preferredRole?: 'receiver' | 'sender';
   isBoardOpen?: boolean;
   onSetBoardOpen: (open: boolean) => void;
   onClose: () => void;
@@ -61,6 +63,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
   lang,
   reader,
   formFactor,
+  preferredRole,
   onSetBoardOpen,
   onClose
 }) => {
@@ -80,8 +83,7 @@ export const BeamModal: React.FC<BeamModalProps> = ({
     // A large screen with no document is almost always the receiving board.
     // Never infer this from window.innerWidth: a narrow desktop window used to
     // become a sender and silently stopped listening for the phone.
-    if (!reader.doc && formFactor === 'desktop') return 'receive';
-    return 'send';
+    return defaultBeamTab(formFactor, Boolean(reader.doc), preferredRole);
   });
   const [targetRoomCode, setTargetRoomCode] = useState(() => launchRef.current.room || '');
   const [receiverRoomCode, setReceiverRoomCode] = useState(() => {
@@ -230,6 +232,18 @@ export const BeamModal: React.FC<BeamModalProps> = ({
       beamService.startReceiver(launch.room);
     }
   }, [isOpen, formFactor, reader.doc]);
+
+  // Device role is a default for a new session, never a reason to replace a
+  // connected peer. Re-evaluate on opening because settings can change while
+  // this modal stays mounted and hidden.
+  const defaultRoleRef = useRef({ open: false, formFactor, preferredRole });
+  useEffect(() => {
+    const previous = defaultRoleRef.current;
+    defaultRoleRef.current = { open: isOpen, formFactor, preferredRole };
+    if (!isOpen || (previous.open && previous.formFactor === formFactor && previous.preferredRole === preferredRole)) return;
+    if (reader.beamPeerConnected || beamService.getConnectedRoom() || launchRef.current.role) return;
+    setActiveTab(defaultBeamTab(formFactor, Boolean(reader.doc), preferredRole));
+  }, [isOpen, formFactor, preferredRole, reader.doc, reader.beamPeerConnected]);
 
   // Close on Escape key
   useEffect(() => {

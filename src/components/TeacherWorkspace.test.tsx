@@ -103,6 +103,20 @@ describe('unified teacher workspace', () => {
     expect(host.querySelector('button[aria-label="تحديد"]')).not.toBeNull();
     expect(teaching.layout).toBe('document');
   });
+  it('allows an Android/touch shell to opt into the full board and persists that choice', async () => {
+    await render('android-board-enabled', false, true);
+    expect(host.querySelector('button[aria-label="إظهار السبورة"]')).toBeNull();
+    await act(async () => teaching.updatePrefs({ boardEnabled: true }));
+    await act(async () => teaching.setLayout('split'));
+    expect(host.querySelector('button[aria-label="إظهار السبورة"]')).not.toBeNull();
+    await click('إظهار السبورة');
+    expect(teaching.layout).toBe('board');
+    expect(teaching.target).toBe('board');
+    expect(JSON.parse(localStorage.getItem('otium-teaching-preferences-v1')!).boardEnabled).toBe(true);
+    await act(async () => teaching.updatePrefs({ boardEnabled: false }));
+    expect(teaching.layout).toBe('document');
+    expect(teaching.target).toBe('document');
+  });
   it('removes the entire phone dock and its reserved space in immersive reading', async () => {
     document.documentElement.style.setProperty('--teacher-bottom-inset', '140px');
     await act(async () => root.render(<TeachingProvider mobile><DocumentInkProvider reader={{ ...reader('lesson-immersive'), isImmersive: true }}><Probe /></DocumentInkProvider></TeachingProvider>));

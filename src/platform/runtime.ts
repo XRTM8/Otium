@@ -9,6 +9,9 @@ export function isTauriRuntime(): boolean {
 
 export function getPlatformId(): PlatformId {
   if (!isTauriRuntime()) return 'web';
+  // Android boards may request a desktop user agent. The native bridge is a
+  // more reliable platform signal than that browser preference.
+  if (typeof window !== 'undefined' && 'OtiumUi' in window) return 'android';
   if (typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)) {
     return 'android';
   }

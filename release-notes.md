@@ -1,3 +1,13 @@
+# Otium 1.9.15 — Android displays and interactive boards
+
+- Allow Android devices to enable and use the complete whiteboard and split workspace; keep it opt-in and remember the setting.
+- Add a saved device role: automatic, personal reader/controller, display/TV, or interactive whiteboard. Changing the role keeps the reader and current connection mounted.
+- Detect Android televisions through the native UI mode, with browser hints and a manual choice for generic Android boards.
+- Make display/board roles default to receiving, while preserving connected sessions, QR launch roles, and existing desktop sending behaviour.
+- Add directional remote navigation with visible focus, modal boundaries, and single-action Enter handling. Touch input is optional on Android TV.
+- Add a fullscreen toggle to the browser home page, including external Escape state updates and a clear blocked/unsupported message.
+- Keep experimental media work out of this patch. Real-device television, touch-board, and remote-control validation remains recommended.
+
 # Otium 1.9.14 — Mobile focus and stability hardening
 
 - Keep Android system bars hidden independently of reader tools; request browser fullscreen on an eligible user gesture without consuming file-picker controls.

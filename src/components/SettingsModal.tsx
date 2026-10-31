@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { DeviceUsageSetting } from './DeviceUsageSetting';
 import {
   AlertTriangle,
   BookOpen,
@@ -758,6 +759,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </button>
               )}
 
+              <DeviceUsageSetting ar={ar} />
               {onSmartBoardEnabledChange && (
                 <button
                   type="button"
@@ -771,22 +773,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       {ar ? 'السبورة الذكية' : 'Smart whiteboard'}
                     </div>
                     <p className="mt-0.5 text-[10px] leading-relaxed text-ink-muted">
-                      {mobile
-                        ? (ar ? 'تُفعّل على الحاسوب أو السبورة فقط. هذا الهاتف يبقى ريموتاً للقراءة والشرح.' : 'Available on the computer or smartboard. This phone stays a reading and annotation remote.')
-                        : (ar ? 'إظهار زر السبورة وشاشة التقسيم لهذا الجهاز. يبقى اختيارك محفوظاً.' : 'Show the whiteboard button and split workspace on this device. Your choice is saved.')}
+                      {ar ? 'إظهار السبورة والتقسيم على هذا الجهاز، بما فيه Android. يبقى اختيارك محفوظاً.' : 'Enable the whiteboard and split workspace on this device, including Android. Your choice is saved.'}
                     </p>
                   </div>
                   <span
                     aria-hidden="true"
                     className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
-                      smartBoardEnabled && !mobile
+                      smartBoardEnabled
                         ? 'border-accent/50 bg-accent'
                         : 'border-line-strong bg-hover-strong'
                     }`}
                   >
                     <span
                       className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all ${
-                        smartBoardEnabled && !mobile ? 'start-6' : 'start-0.5'
+                        smartBoardEnabled ? 'start-6' : 'start-0.5'
                       }`}
                     />
                   </span>

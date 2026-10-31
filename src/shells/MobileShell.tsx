@@ -13,6 +13,9 @@ import { BeamModal } from '../board/beam/BeamModal';
 import { TeachingProvider, useTeaching } from '../components/TeachingContext';
 import { DocumentInkProvider } from '../components/DocumentInk';
 import { useMobileFullscreen } from '../platform/useMobileFullscreen';
+import { useDeviceUsage } from '../platform/deviceUsage';
+import { BoardSplitWorkspace } from '../board/components/BoardSplitWorkspace';
+import type { BoardSnippet } from '../board/types';
 
 const ScannerModal = React.lazy(() =>
   import('../scanner/ScannerModal').then((m) => ({ default: m.ScannerModal }))
@@ -20,17 +23,39 @@ const ScannerModal = React.lazy(() =>
 const preloadScanner = () => import('../scanner/ScannerModal');
 
 /** Android shell: touch-first bars, swipe gestures and no keyboard shortcuts. */
-export const MobileShell: React.FC = () => <TeachingProvider mobile><MobileReader /></TeachingProvider>;
+export const MobileShell: React.FC = () => {
+  const { compact } = useDeviceUsage();
+  return <TeachingProvider mobile={compact}><MobileReader /></TeachingProvider>;
+};
 const MobileReader: React.FC = () => {
   const teaching = useTeaching();
+  const { receiver } = useDeviceUsage();
   const reader = useReaderController({ keyboard: false, dragDrop: false });
+  const { setPresentation, setReaderTools, setLayout, setTarget, presentation, layout } = teaching;
+  const { boardEnabled } = teaching.prefs;
+  const { isImmersive, setIsImmersive } = reader;
   useMobileFullscreen();
   React.useEffect(() => {
-    teaching.setPresentation(reader.isImmersive);
-    teaching.setReaderTools(!reader.isImmersive);
-  }, [reader.isImmersive, teaching.setPresentation, teaching.setReaderTools]);
+    setPresentation(isImmersive);
+    setReaderTools(!isImmersive);
+  }, [isImmersive, setPresentation, setReaderTools]);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isBeamOpen, setIsBeamOpen] = useState(false);
+  const [snippets, setSnippets] = useState<BoardSnippet[]>([]);
+  const isBoardOpen = teaching.prefs.boardEnabled && teaching.layout !== 'document';
+  const setBoardOpen = React.useCallback((open: boolean) => {
+    if (!boardEnabled) return;
+    setLayout(open ? 'split' : 'document');
+    setTarget(open ? 'board' : 'document');
+    if (!open) setReaderTools(true);
+  }, [boardEnabled, setLayout, setTarget, setReaderTools]);
+  React.useEffect(() => registerBackHandler(() => {
+    if (presentation || isImmersive) {
+      setPresentation(false); setReaderTools(true); setIsImmersive(false); return true;
+    }
+    if (layout !== 'document') { setLayout('document'); return true; }
+    return false;
+  }), [presentation, layout, setPresentation, setReaderTools, setLayout, isImmersive, setIsImmersive]);
 
   // Fallback hardware back handler for mobile shell while scanner modal is active or lazy-loading
   React.useEffect(() => {
@@ -123,6 +148,8 @@ const MobileReader: React.FC = () => {
             onOpenSidebar={() => reader.setIsSidebarOpen(true)}
             onOpenScanner={() => setIsScannerOpen(true)}
             onOpenBeam={() => setIsBeamOpen(true)}
+            onToggleBoard={teaching.prefs.boardEnabled ? () => setBoardOpen(!isBoardOpen) : undefined}
+            isBoardOpen={isBoardOpen}
             isBeaming={reader.beamPeerConnected}
             beamRoom={reader.beamRoom}
             beamRole={reader.beamRole}
@@ -137,14 +164,20 @@ const MobileReader: React.FC = () => {
             annotations={reader.annotations}
             lang={reader.lang}
             onSearchSelectedText={reader.openSearchWithText}
-            mobile
+            mobile={teaching.mobile}
           />
 
-          <ReaderWorkspace reader={reader} compact />
+          {teaching.prefs.boardEnabled ? <BoardSplitWorkspace
+            reader={reader} isBoardOpen={isBoardOpen} onCloseBoard={() => setBoardOpen(false)}
+            snippets={snippets} onRestoreSnippets={setSnippets}
+            onAddSnippet={snippet => { setSnippets(previous => [...previous, snippet]); setBoardOpen(true); }}
+            onRemoveSnippet={id => setSnippets(previous => previous.filter(snippet => snippet.id !== id))}
+            onUpdateSnippetPosition={(id, x, y) => setSnippets(previous => previous.map(snippet => snippet.id === id ? { ...snippet, x, y } : snippet))}
+          /> : <ReaderWorkspace reader={reader} compact={teaching.mobile} />}
         </>
       )}
 
-      <ReaderOverlays reader={reader} mobile />
+      <ReaderOverlays reader={reader} mobile={teaching.mobile} />
 
       <Suspense fallback={null}>
         {isScannerOpen && (
@@ -201,8 +234,9 @@ const MobileReader: React.FC = () => {
         theme={reader.theme}
         reader={reader}
         formFactor="mobile"
-        isBoardOpen={false}
-        onSetBoardOpen={() => {}}
+        preferredRole={receiver ? 'receiver' : 'sender'}
+        isBoardOpen={isBoardOpen}
+        onSetBoardOpen={setBoardOpen}
         onClose={() => setIsBeamOpen(false)}
       />
     </div>

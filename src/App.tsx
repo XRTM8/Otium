@@ -4,12 +4,14 @@ import type { FormFactor } from './platform/runtime';
 import { requestStoragePersistence } from './core/storage/persistence';
 import { DesktopShell } from './shells/DesktopShell';
 import { MobileShell } from './shells/MobileShell';
+import { useDisplayNavigation } from './platform/useDisplayNavigation';
 
 /**
  * Selects the platform shell. Everything below this line is shared: document
  * loading, search, annotations, bookmarks, preferences and update logic.
  */
 const App: React.FC = () => {
+  useDisplayNavigation();
   const [formFactor] = useState<FormFactor>(getFormFactor);
 
   useEffect(() => {

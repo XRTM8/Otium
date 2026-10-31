@@ -34,9 +34,9 @@ export function TeachingProvider({ children, mobile = false }: { children: React
   const setLayout = useCallback((next: TeachingValue['layout']) => {
     // The board is opt-in. A stale shortcut or an old saved layout must not
     // surface it on a teacher's phone or computer unexpectedly.
-    if (mobile || !prefs.boardEnabled) next = 'document';
+    if (!prefs.boardEnabled) next = 'document';
     setLayoutState(next); if (next !== 'split') setTarget(next);
-  }, [mobile, prefs.boardEnabled]);
+  }, [prefs.boardEnabled]);
   const updatePrefs = useCallback((patch: Partial<TeachingPreferences>) => setPrefs(prev => ({ ...prev, ...patch })), []);
   useEffect(() => saveTeaching(prefs), [prefs]);
   useEffect(() => {

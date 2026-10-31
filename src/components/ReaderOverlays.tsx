@@ -70,7 +70,7 @@ export const ReaderOverlays: React.FC<ReaderOverlaysProps> = ({ reader, mobile =
         onKeepScreenAwakeChange={reader.changeKeepScreenAwake}
         smartBoardEnabled={teaching.prefs.boardEnabled}
         onSmartBoardEnabledChange={enabled => {
-          if (!mobile) teaching.updatePrefs({ boardEnabled: enabled });
+          teaching.updatePrefs({ boardEnabled: enabled });
         }}
         onResetDefaults={reader.resetDefaults}
         onExportBackup={reader.exportBackup}

@@ -2,6 +2,7 @@ package com.otium.reader
 
 import android.content.ContentValues
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
@@ -130,6 +131,12 @@ class MainActivity : TauriActivity() {
 
   /** Lets the reader hide the Android status and navigation bars on a page tap. */
   private inner class UiBridge {
+    @JavascriptInterface
+    fun getDeviceType(): String {
+      val mode = resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK
+      return if (mode == Configuration.UI_MODE_TYPE_TELEVISION) "television" else "handheld"
+    }
+
     @JavascriptInterface
     fun setImmersive(enabled: Boolean) {
       runOnUiThread {

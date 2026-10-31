@@ -14,6 +14,7 @@ import {
   Scroll,
   Search,
   Settings2,
+  Presentation,
   X
 } from 'lucide-react';
 import type { ThemeMode, ViewMode } from '../core/types';
@@ -47,6 +48,8 @@ interface MobileToolbarProps {
   onOpenSidebar: () => void;
   onOpenScanner?: () => void;
   onOpenBeam?: () => void;
+  onToggleBoard?: () => void;
+  isBoardOpen?: boolean;
   isBeaming?: boolean;
   beamRoom?: string | null;
   beamRole?: 'receiver' | 'sender' | null;
@@ -92,6 +95,8 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
   onOpenSidebar,
   onOpenScanner,
   onOpenBeam,
+  onToggleBoard,
+  isBoardOpen = false,
   isBeaming = false,
   beamRoom,
   beamRole,
@@ -239,6 +244,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
           </button>
 
           {/* Active Beam Pill */}
+          {onToggleBoard && <button type="button" onClick={onToggleBoard} aria-pressed={isBoardOpen} aria-label={ar ? 'إظهار أو إغلاق السبورة' : 'Toggle whiteboard'} className="toolbar-icon min-h-11 min-w-11"><Presentation size={19} /></button>}
           {isBeaming && beamRoom && onOpenBeam && (
             <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-bold shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />

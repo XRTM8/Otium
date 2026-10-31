@@ -13,11 +13,16 @@ import { BoardSplitWorkspace } from '../board/components/BoardSplitWorkspace';
 import { BeamModal } from '../board/beam/BeamModal';
 import { DocumentInkProvider } from '../components/DocumentInk';
 import { TeachingProvider, useTeaching } from '../components/TeachingContext';
+import { useDeviceUsage } from '../platform/deviceUsage';
 import type { BoardSnippet } from '../board/types';
 
 /** Windows shell: floating desktop toolbar, Otium Board split-screen studio, and Smart Beam. */
-export const DesktopShell: React.FC = () => <TeachingProvider><DesktopReader /></TeachingProvider>;
+export const DesktopShell: React.FC = () => {
+  const { compact } = useDeviceUsage();
+  return <TeachingProvider mobile={compact}><DesktopReader /></TeachingProvider>;
+};
 const DesktopReader: React.FC = () => {
+  const { role, receiver } = useDeviceUsage();
   const reader = useReaderController({ keyboard: true, dragDrop: false });
   const teaching = useTeaching();
   const isBoardOpen = teaching.prefs.boardEnabled && teaching.layout !== 'document';
@@ -290,6 +295,7 @@ const DesktopReader: React.FC = () => {
         theme={reader.theme}
         reader={reader}
         formFactor="desktop"
+        preferredRole={receiver ? 'receiver' : role === 'handheld' ? 'sender' : undefined}
         isBoardOpen={isBoardOpen}
         onSetBoardOpen={setIsBoardOpen}
         onClose={() => setIsBeamOpen(false)}

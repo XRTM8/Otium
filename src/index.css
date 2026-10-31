@@ -1445,3 +1445,11 @@ button:focus:not(:focus-visible),
   .otium-tool-panel button { transition: none; transform: none; }
   .reader-viewport * { animation: none !important; transition-duration: 0ms !important; }
 }
+/* TV remotes need a visible focus target, including on transparent controls. */
+html[data-remote-navigation="true"] :is(button, a, input, select, [tabindex]):focus-visible {
+  outline: 3px solid var(--color-accent, #10b981);
+  outline-offset: 4px;
+}
+html[data-remote-navigation="true"] :is(button, select) {
+  min-height: 48px;
+}
