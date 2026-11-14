@@ -23,7 +23,9 @@ function dist(p1: StrokePoint, p2: StrokePoint): number {
 function calculatePathLength(points: StrokePoint[]): number {
   let len = 0;
   for (let i = 1; i < points.length; i++) {
-    len += dist(points[i - 1], points[i]);
+    const prev = points[i - 1];
+    const curr = points[i];
+    if (prev && curr) len += dist(prev, curr);
   }
   return len;
 }
@@ -47,6 +49,7 @@ function tryRecognizeLine(points: StrokePoint[]): RecognizedShape | null {
   if (points.length < 5) return null;
   const first = points[0];
   const last = points[points.length - 1];
+  if (!first || !last) return null;
   const directLen = dist(first, last);
 
   if (directLen < 40) return null; // Too short to distinguish from a tap/dot
@@ -98,10 +101,13 @@ function tryRecognizeLine(points: StrokePoint[]): RecognizedShape | null {
  */
 function tryRecognizeCircle(points: StrokePoint[]): RecognizedShape | null {
   if (points.length < 16) return null;
+  const first = points[0];
+  const last = points[points.length - 1];
+  if (!first || !last) return null;
   const xs = points.map(p => p.x), ys = points.map(p => p.y);
   const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
   const width = maxX - minX, height = maxY - minY;
-  if (width < 30 || height < 30 || dist(points[0], points[points.length - 1]) > Math.max(18, Math.hypot(width, height) * .18)) return null;
+  if (width < 30 || height < 30 || dist(first, last) > Math.max(18, Math.hypot(width, height) * .18)) return null;
   const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
   const radialError = points.reduce((sum, p) => sum + Math.abs(Math.hypot((p.x - cx) / (width / 2), (p.y - cy) / (height / 2)) - 1), 0) / points.length;
   if (radialError > .12) return null;
@@ -118,50 +124,76 @@ function tryRecognizeCircle(points: StrokePoint[]): RecognizedShape | null {
 
 /** Simplify a sampled edge while retaining real corners. */
 function simplify(points: StrokePoint[], tolerance: number): StrokePoint[] {
-  if (points.length < 3) return points;
+  const start = points[0];
+  const end = points[points.length - 1];
+  if (points.length < 3 || !start || !end) return points;
   let farthest = 0, index = 0;
   for (let i = 1; i < points.length - 1; i++) {
-    const d = distToSegment(points[i], points[0], points[points.length - 1]);
+    const pt = points[i];
+    if (!pt) continue;
+    const d = distToSegment(pt, start, end);
     if (d > farthest) { farthest = d; index = i; }
   }
-  if (farthest <= tolerance) return [points[0], points[points.length - 1]];
+  if (farthest <= tolerance) return [start, end];
   return [...simplify(points.slice(0, index + 1), tolerance).slice(0, -1), ...simplify(points.slice(index), tolerance)];
 }
 
 /** Corner detection supports rotated rectangles and triangles in any direction. */
 function tryRecognizePolygon(points: StrokePoint[]): RecognizedShape | null {
+  const start = points[0];
+  const end = points[points.length - 1];
+  if (!start || !end) return null;
   const xs = points.map(p => p.x), ys = points.map(p => p.y);
   const width = Math.max(...xs) - Math.min(...xs), height = Math.max(...ys) - Math.min(...ys);
   const diagonal = Math.hypot(width, height);
-  if (width < 25 || height < 25 || dist(points[0], points[points.length - 1]) > Math.max(18, diagonal * .18)) return null;
+  if (width < 25 || height < 25 || dist(start, end) > Math.max(18, diagonal * .18)) return null;
   const tolerance = diagonal * .04;
   let split = 1;
-  for (let i = 2; i < points.length; i++) if (dist(points[0], points[i]) > dist(points[0], points[split])) split = i;
-  const corners = [...simplify(points.slice(0, split + 1), tolerance).slice(0, -1), ...simplify([...points.slice(split), points[0]], tolerance).slice(0, -1)];
+  for (let i = 2; i < points.length; i++) {
+    const pt = points[i];
+    const best = points[split];
+    if (pt && best && dist(start, pt) > dist(start, best)) split = i;
+  }
+  const corners = [...simplify(points.slice(0, split + 1), tolerance).slice(0, -1), ...simplify([...points.slice(split), start], tolerance).slice(0, -1)];
   // A stroke may start halfway along an edge: remove that extra collinear point.
   let changed = true;
   while (changed && corners.length > 3) {
     changed = false;
     for (let i = 0; i < corners.length; i++) {
-      if (distToSegment(corners[i], corners[(i + corners.length - 1) % corners.length], corners[(i + 1) % corners.length]) < tolerance) {
+      const curr = corners[i];
+      const prev = corners[(i + corners.length - 1) % corners.length];
+      const next = corners[(i + 1) % corners.length];
+      if (curr && prev && next && distToSegment(curr, prev, next) < tolerance) {
         corners.splice(i, 1); changed = true; break;
       }
     }
   }
-  if (corners.length !== 3 && corners.length !== 4) return null;
-  const perimeter = calculatePathLength([...corners, corners[0]]);
+  const firstCorner = corners[0];
+  if ((corners.length !== 3 && corners.length !== 4) || !firstCorner) return null;
+  const perimeter = calculatePathLength([...corners, firstCorner]);
   const ratio = calculatePathLength(points) / perimeter;
   if (ratio < .7 || ratio > 1.4) return null;
-  const averageError = points.reduce((sum, p) => sum + Math.min(...corners.map((a, i) => distToSegment(p, a, corners[(i + 1) % corners.length]))), 0) / points.length;
+  const averageError = points.reduce((sum, p) => {
+    const minDist = Math.min(...corners.map((a, i) => {
+      const next = corners[(i + 1) % corners.length] ?? firstCorner;
+      return distToSegment(p, a, next);
+    }));
+    return sum + minDist;
+  }, 0) / points.length;
   if (averageError > diagonal * .035) return null;
-  if (corners.length === 3) return { type: 'triangle', confidence: .9, points: [...corners, corners[0]] };
+  if (corners.length === 3) return { type: 'triangle', confidence: .9, points: [...corners, firstCorner] };
   for (let i = 0; i < 4; i++) {
-    const a = corners[i], b = corners[(i + 1) % 4], c = corners[(i + 2) % 4];
+    const a = corners[i];
+    const b = corners[(i + 1) % 4];
+    const c = corners[(i + 2) % 4];
+    if (!a || !b || !c) return null;
     const dot = ((b.x - a.x) * (c.x - b.x) + (b.y - a.y) * (c.y - b.y)) / Math.max(1, dist(a, b) * dist(b, c));
     if (Math.abs(dot) > .45) return null;
   }
-  const origin = corners[0], length = dist(origin, corners[1]);
-  const ux = (corners[1].x - origin.x) / length, uy = (corners[1].y - origin.y) / length;
+  const secondCorner = corners[1];
+  if (!secondCorner) return null;
+  const origin = firstCorner, length = dist(origin, secondCorner);
+  const ux = (secondCorner.x - origin.x) / length, uy = (secondCorner.y - origin.y) / length;
   const px = corners.map(p => p.x * ux + p.y * uy), py = corners.map(p => -p.x * uy + p.y * ux);
   let x0 = Math.min(...px), x1 = Math.max(...px), y0 = Math.min(...py), y1 = Math.max(...py);
   const aspect = (x1 - x0) / (y1 - y0);
@@ -169,7 +201,8 @@ function tryRecognizePolygon(points: StrokePoint[]): RecognizedShape | null {
     const half = ((x1 - x0) + (y1 - y0)) / 4, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
     x0 = cx - half; x1 = cx + half; y0 = cy - half; y1 = cy + half;
   }
-  const result = [[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]].map(([x, y]) => ({ x: x * ux - y * uy, y: x * uy + y * ux, pressure: .5 }));
+  const rectPts: ReadonlyArray<[number, number]> = [[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]];
+  const result = rectPts.map(([x, y]) => ({ x: x * ux - y * uy, y: x * uy + y * ux, pressure: .5 }));
   return { type: 'rectangle', confidence: .9, points: result };
 }
 

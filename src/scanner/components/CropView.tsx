@@ -1,401 +1,48 @@
-import React, { useRef, useState, useCallback } from 'react';
+import type { Language } from '../../core/i18n/translations';
+import React from 'react';
 import type { Point, Quad } from '../core/types';
-import { getDefaultQuad, getFullFrameQuad, warpPerspective, isQuadConvex } from '../core/geometry';
-import { detectDocumentCorners } from '../core/edgeDetection';
-import { Check, RotateCcw, X, Wand2, RotateCw, Maximize2, Undo2, Redo2, FileText, CreditCard, Receipt } from 'lucide-react';
+import { isQuadConvex } from '../core/geometry';
+import { Check, RotateCcw, X, Wand2, RotateCw, Maximize2, Undo2, Redo2 } from 'lucide-react';
+import { useCropInteraction, type CornerKey, type EdgeKey } from './useCropInteraction';
 
 interface CropViewProps {
+  lang?: Language;
   imageSrc: string;
   initialQuad?: Quad;
-  onConfirm: (warpedCanvas: HTMLCanvasElement, quad: Quad) => void;
+  onConfirm: (warpedCanvas: HTMLCanvasElement, quad: Quad, source: string) => void | Promise<void>;
   onCancel: () => void;
 }
 
-type CornerKey = 'topLeft' | 'topRight' | 'bottomRight' | 'bottomLeft';
-type EdgeKey = 'top' | 'right' | 'bottom' | 'left';
-
-export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onConfirm, onCancel }) => {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const imageRef = useRef<HTMLImageElement | null>(null);
-  // Cache the image bounding rect at drag-start so coordinate mapping stays stable during the gesture
-  const imageBoundsRef = useRef<DOMRect | null>(null);
-  const [currentSrc, setCurrentSrc] = useState<string>(imageSrc);
-  const [quad, setQuad] = useState<Quad | null>(null);
-  const [activeCorner, setActiveCorner] = useState<CornerKey | null>(null);
-  const [activeEdge, setActiveEdge] = useState<EdgeKey | null>(null);
-  const [edgeDragStart, setEdgeDragStart] = useState<{ client: Point; quad: Quad } | null>(null);
-  const [pointerPos, setPointerPos] = useState<Point | null>(null);
-  const [imageSize, setImageSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
-  const hasInitializedRef = useRef(false);
-
-  // Undo / Redo History Stack
-  const [undoStack, setUndoStack] = useState<Quad[]>([]);
-  const [redoStack, setRedoStack] = useState<Quad[]>([]);
-
-  const triggerHaptic = useCallback((duration = 10) => {
-    if ('vibrate' in navigator) {
-      try {
-        navigator.vibrate(duration);
-      } catch {}
-    }
-  }, []);
-
-  const pushHistory = useCallback((currentQuad: Quad | null) => {
-    if (!currentQuad) return;
-    setUndoStack((prev) => [...prev.slice(-12), { ...currentQuad }]);
-    setRedoStack([]);
-  }, []);
-
-  const handleUndo = () => {
-    if (undoStack.length === 0 || !quad) return;
-    triggerHaptic(10);
-    const prev = undoStack[undoStack.length - 1];
-    setRedoStack((r) => [...r, { ...quad }]);
-    setUndoStack((u) => u.slice(0, -1));
-    setQuad(prev);
-  };
-
-  const handleRedo = () => {
-    if (redoStack.length === 0 || !quad) return;
-    triggerHaptic(10);
-    const next = redoStack[redoStack.length - 1];
-    setUndoStack((u) => [...u, { ...quad }]);
-    setRedoStack((r) => r.slice(0, -1));
-    setQuad(next);
-  };
-
-  const applyAspectRatio = (ratio: number) => {
-    if (!imageRef.current || imageSize.width === 0 || imageSize.height === 0 || !quad) return;
-    triggerHaptic(15);
-    pushHistory(quad);
-
-    const imgW = imageSize.width;
-    const imgH = imageSize.height;
-
-    let targetW = imgW * 0.90;
-    let targetH = targetW / ratio;
-
-    if (targetH > imgH * 0.90) {
-      targetH = imgH * 0.90;
-      targetW = targetH * ratio;
-    }
-
-    const x0 = Math.round((imgW - targetW) / 2);
-    const y0 = Math.round((imgH - targetH) / 2);
-    const x1 = Math.round(x0 + targetW);
-    const y1 = Math.round(y0 + targetH);
-
-    setQuad({
-      topLeft: { x: x0, y: y0 },
-      topRight: { x: x1, y: y0 },
-      bottomRight: { x: x1, y: y1 },
-      bottomLeft: { x: x0, y: y1 },
-    });
-  };
-
-  const handleImageLoad = () => {
-    if (!imageRef.current) return;
-    const { naturalWidth, naturalHeight } = imageRef.current;
-    setImageSize({ width: naturalWidth, height: naturalHeight });
-
-    // Use passed initialQuad or default to safe full frame
-    if (!hasInitializedRef.current) {
-      hasInitializedRef.current = true;
-      if (initialQuad && isQuadConvex(initialQuad)) {
-        setQuad(initialQuad);
-      } else {
-        // Safe full frame to guarantee zero accidental text cropping
-        setQuad(getFullFrameQuad(naturalWidth, naturalHeight, 0.005));
-      }
-    }
-  };
-
-  const handleAutoDetect = () => {
-    if (!imageRef.current || !quad) return;
-    triggerHaptic(15);
-    pushHistory(quad);
-    const detected = detectDocumentCorners(imageRef.current);
-    setQuad(detected);
-  };
-
-  const handleSelectFullImage = () => {
-    if (imageSize.width === 0 || imageSize.height === 0 || !quad) return;
-    triggerHaptic(15);
-    pushHistory(quad);
-    setQuad({
-      topLeft: { x: 0, y: 0 },
-      topRight: { x: imageSize.width, y: 0 },
-      bottomRight: { x: imageSize.width, y: imageSize.height },
-      bottomLeft: { x: 0, y: imageSize.height },
-    });
-  };
-
-  const handleResetQuad = () => {
-    if (!quad) return;
-    triggerHaptic(15);
-    pushHistory(quad);
-    setQuad(getDefaultQuad(imageSize.width, imageSize.height));
-  };
-
-  // Map viewport client coords to natural image coords
-  // Uses a cached bounding rect during drag so the mapping stays stable as React re-renders
-  const clientToImageCoords = useCallback(
-    (clientX: number, clientY: number): Point => {
-      if (!imageRef.current || imageSize.width <= 0 || imageSize.height <= 0) return { x: 0, y: 0 };
-      // Use cached rect if available (stable during pointer capture), otherwise measure live
-      const rect = imageBoundsRef.current ?? imageRef.current.getBoundingClientRect();
-      if (!rect || rect.width <= 0 || rect.height <= 0) return { x: 0, y: 0 };
-      const scaleX = imageSize.width / rect.width;
-      const scaleY = imageSize.height / rect.height;
-
-      const imgX = Math.max(0, Math.min(imageSize.width, (clientX - rect.left) * scaleX));
-      const imgY = Math.max(0, Math.min(imageSize.height, (clientY - rect.top) * scaleY));
-
-      return { x: imgX, y: imgY };
-    },
-    [imageSize]
-  );
-
-  // Map natural image coords to viewport client coords
-  const imageToClientCoords = useCallback(
-    (point: Point): Point => {
-      if (!imageRef.current || imageSize.width <= 0 || imageSize.height <= 0) return { x: 0, y: 0 };
-      const rect = imageRef.current.getBoundingClientRect();
-      if (!rect || rect.width <= 0 || rect.height <= 0) return { x: 0, y: 0 };
-      const scaleX = rect.width / imageSize.width;
-      const scaleY = rect.height / imageSize.height;
-
-      return {
-        x: rect.left + point.x * scaleX,
-        y: rect.top + point.y * scaleY,
-      };
-    },
-    [imageSize]
-  );
-
-  const handleCornerPointerDown = (corner: CornerKey, e: React.PointerEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    pushHistory(quad);
-    // Snapshot the image bounds BEFORE capture so the rect never shifts mid-drag
-    imageBoundsRef.current = imageRef.current?.getBoundingClientRect() ?? null;
-    // Capture on the stable container, NOT the moving corner element (avoids coordinate jump)
-    try { containerRef.current?.setPointerCapture(e.pointerId); } catch {}
-    setActiveCorner(corner);
-    setActiveEdge(null);
-    setPointerPos({ x: e.clientX, y: e.clientY });
-    triggerHaptic(15);
-  };
-
-  const handleEdgePointerDown = (edge: EdgeKey, e: React.PointerEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!quad) return;
-    pushHistory(quad);
-    // Snapshot the image bounds BEFORE capture so the rect never shifts mid-drag
-    imageBoundsRef.current = imageRef.current?.getBoundingClientRect() ?? null;
-    // Capture on the stable container, NOT the moving edge handle
-    try { containerRef.current?.setPointerCapture(e.pointerId); } catch {}
-    setActiveEdge(edge);
-    setActiveCorner(null);
-    setEdgeDragStart({ client: { x: e.clientX, y: e.clientY }, quad: { ...quad } });
-    setPointerPos({ x: e.clientX, y: e.clientY });
-    triggerHaptic(15);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!quad) return;
-
-    // Corner dragging with magnetic edge snapping and strict crossover prevention
-    if (activeCorner) {
-      e.preventDefault();
-      setPointerPos({ x: e.clientX, y: e.clientY });
-      const imgCoord = clientToImageCoords(e.clientX, e.clientY);
-
-      const rect = imageBoundsRef.current ?? imageRef.current?.getBoundingClientRect();
-      const scaleX = rect && rect.width > 0 ? imageSize.width / rect.width : 1;
-      const scaleY = rect && rect.height > 0 ? imageSize.height / rect.height : 1;
-      const snapX = 16 * scaleX;
-      const snapY = 16 * scaleY;
-
-      if (Math.abs(imgCoord.x - 0) < snapX) {
-        imgCoord.x = 0;
-        triggerHaptic(8);
-      } else if (Math.abs(imgCoord.x - imageSize.width) < snapX) {
-        imgCoord.x = imageSize.width;
-        triggerHaptic(8);
-      }
-
-      if (Math.abs(imgCoord.y - 0) < snapY) {
-        imgCoord.y = 0;
-        triggerHaptic(8);
-      } else if (Math.abs(imgCoord.y - imageSize.height) < snapY) {
-        imgCoord.y = imageSize.height;
-        triggerHaptic(8);
-      }
-
-      // Minimum gap between adjacent and opposite corners so quad can NEVER cross or invert
-      const minGapX = Math.max(24, Math.round(imageSize.width * 0.07));
-      const minGapY = Math.max(24, Math.round(imageSize.height * 0.07));
-
-      setQuad((prev) => {
-        if (!prev) return prev;
-        const nextCoord = { ...imgCoord };
-
-        if (activeCorner === 'topLeft') {
-          nextCoord.x = Math.max(0, Math.min(nextCoord.x, prev.topRight.x - minGapX));
-          nextCoord.y = Math.max(0, Math.min(nextCoord.y, prev.bottomLeft.y - minGapY));
-        } else if (activeCorner === 'topRight') {
-          nextCoord.x = Math.min(imageSize.width, Math.max(nextCoord.x, prev.topLeft.x + minGapX));
-          nextCoord.y = Math.max(0, Math.min(nextCoord.y, prev.bottomRight.y - minGapY));
-        } else if (activeCorner === 'bottomRight') {
-          nextCoord.x = Math.min(imageSize.width, Math.max(nextCoord.x, prev.bottomLeft.x + minGapX));
-          nextCoord.y = Math.min(imageSize.height, Math.max(nextCoord.y, prev.topRight.y + minGapY));
-        } else if (activeCorner === 'bottomLeft') {
-          nextCoord.x = Math.max(0, Math.min(nextCoord.x, prev.bottomRight.x - minGapX));
-          nextCoord.y = Math.min(imageSize.height, Math.max(nextCoord.y, prev.topLeft.y + minGapY));
-        }
-
-        return { ...prev, [activeCorner]: nextCoord };
-      });
-      return;
-    }
-
-    // Edge Midpoint dragging
-    if (activeEdge && edgeDragStart && imageRef.current) {
-      e.preventDefault();
-      setPointerPos({ x: e.clientX, y: e.clientY });
-
-      // Use cached rect if available so coords don't shift mid-gesture
-      const rect = imageBoundsRef.current ?? imageRef.current.getBoundingClientRect();
-      const scaleX = imageSize.width / rect.width;
-      const scaleY = imageSize.height / rect.height;
-
-      const dx = (e.clientX - edgeDragStart.client.x) * scaleX;
-      const dy = (e.clientY - edgeDragStart.client.y) * scaleY;
-      const orig = edgeDragStart.quad;
-
-      const clampPt = (pt: Point, deltaX: number, deltaY: number): Point => ({
-        x: Math.max(0, Math.min(imageSize.width, Math.round(pt.x + deltaX))),
-        y: Math.max(0, Math.min(imageSize.height, Math.round(pt.y + deltaY))),
-      });
-
-      setQuad((prev) => {
-        if (!prev) return prev;
-        const next = { ...prev };
-        if (activeEdge === 'top') {
-          next.topLeft = clampPt(orig.topLeft, dx, dy);
-          next.topRight = clampPt(orig.topRight, dx, dy);
-        } else if (activeEdge === 'right') {
-          next.topRight = clampPt(orig.topRight, dx, dy);
-          next.bottomRight = clampPt(orig.bottomRight, dx, dy);
-        } else if (activeEdge === 'bottom') {
-          next.bottomLeft = clampPt(orig.bottomLeft, dx, dy);
-          next.bottomRight = clampPt(orig.bottomRight, dx, dy);
-        } else if (activeEdge === 'left') {
-          next.topLeft = clampPt(orig.topLeft, dx, dy);
-          next.bottomLeft = clampPt(orig.bottomLeft, dx, dy);
-        }
-        return next;
-      });
-    }
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    if (activeCorner || activeEdge) {
-      try { containerRef.current?.releasePointerCapture(e.pointerId); } catch {}
-      imageBoundsRef.current = null;
-      setActiveCorner(null);
-      setActiveEdge(null);
-      setEdgeDragStart(null);
-      setPointerPos(null);
-      triggerHaptic(10);
-    }
-  };
-
-  const handleRotateCw = () => {
-    triggerHaptic(15);
-    if (!imageRef.current || imageSize.width === 0 || imageSize.height === 0) return;
-
-    // Create rotated canvas (90 deg clockwise)
-    const rotCanvas = document.createElement('canvas');
-    rotCanvas.width = imageSize.height;
-    rotCanvas.height = imageSize.width;
-    const ctx = rotCanvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, rotCanvas.width, rotCanvas.height);
-    ctx.translate(rotCanvas.width / 2, rotCanvas.height / 2);
-    ctx.rotate((90 * Math.PI) / 180);
-    ctx.drawImage(imageRef.current, -imageSize.width / 2, -imageSize.height / 2);
-
-    const rotatedDataUrl = rotCanvas.toDataURL('image/jpeg', 0.95);
-
-    const oldH = imageSize.height;
-    const rotPt = (p: Point): Point => ({
-      x: Math.round(oldH - p.y),
-      y: Math.round(p.x),
-    });
-
-    if (quad) {
-      setQuad({
-        topLeft: rotPt(quad.bottomLeft),
-        topRight: rotPt(quad.topLeft),
-        bottomRight: rotPt(quad.topRight),
-        bottomLeft: rotPt(quad.bottomRight),
-      });
-    }
-
-    setImageSize({ width: imageSize.height, height: imageSize.width });
-    setCurrentSrc(rotatedDataUrl);
-  };
-
-  const handleRotateCcw = () => {
-    triggerHaptic(15);
-    if (!imageRef.current || imageSize.width === 0 || imageSize.height === 0) return;
-
-    // Create rotated canvas (90 deg counter-clockwise)
-    const rotCanvas = document.createElement('canvas');
-    rotCanvas.width = imageSize.height;
-    rotCanvas.height = imageSize.width;
-    const ctx = rotCanvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, rotCanvas.width, rotCanvas.height);
-    ctx.translate(rotCanvas.width / 2, rotCanvas.height / 2);
-    ctx.rotate((-90 * Math.PI) / 180);
-    ctx.drawImage(imageRef.current, -imageSize.width / 2, -imageSize.height / 2);
-
-    const rotatedDataUrl = rotCanvas.toDataURL('image/jpeg', 0.95);
-
-    const oldW = imageSize.width;
-    const rotPt = (p: Point): Point => ({
-      x: Math.round(p.y),
-      y: Math.round(oldW - p.x),
-    });
-
-    if (quad) {
-      setQuad({
-        topLeft: rotPt(quad.topRight),
-        topRight: rotPt(quad.bottomRight),
-        bottomRight: rotPt(quad.bottomLeft),
-        bottomLeft: rotPt(quad.topLeft),
-      });
-    }
-
-    setImageSize({ width: imageSize.height, height: imageSize.width });
-    setCurrentSrc(rotatedDataUrl);
-  };
-
-  const handleApply = () => {
-    if (!imageRef.current || !quad) return;
-    triggerHaptic(20);
-
-    const warped = warpPerspective(imageRef.current, quad);
-    onConfirm(warped, quad);
-  };
+export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onConfirm, onCancel, lang = 'ar' }) => {
+  const ar = lang === 'ar';
+  const [detectFailed, setDetectFailed] = React.useState(false);
+  const {
+    containerRef,
+    imageRef,
+    currentSrc,
+    quad,
+    activeCorner,
+    activeEdge,
+    pointerPos,
+    imageSize,
+    isApplying,
+    applyError,
+    undoStack,
+    redoStack,
+    handleUndo,
+    handleRedo,
+    handleImageLoad,
+    handleAutoDetect,
+    handleSelectFullImage,
+    imageToClientCoords,
+    handleCornerPointerDown,
+    handleEdgePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    handleRotateCw,
+    handleRotateCcw,
+    handleApply,
+  } = useCropInteraction({ imageSrc, initialQuad, onConfirm });
 
   const renderPolyPoints = () => {
     if (!quad) return '';
@@ -464,15 +111,16 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
       >
         <button
           onClick={onCancel}
+          disabled={isApplying}
           className="fluid-press flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-button text-gray-300 active:text-white cursor-pointer"
           title="إلغاء / Cancel"
         >
           <X className="w-4 h-4" />
-          <span className="text-xs">إلغاء</span>
+          <span className="text-xs">{ar ? 'إلغاء' : 'Cancel'}</span>
         </button>
 
         <span className="text-xs font-bold text-white font-arabic">
-          تحديد أبعاد المستند
+          {ar ? 'تحديد أبعاد المستند' : 'Crop page'}
         </span>
 
         <div className="flex items-center gap-1.5">
@@ -493,21 +141,6 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
             <Redo2 className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={handleSelectFullImage}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full glass-button text-accent active:scale-95 text-[11px] font-bold"
-            title="تحديد كامل الصورة / Full Image"
-          >
-            <Maximize2 className="w-3.5 h-3.5" />
-            <span>الكل</span>
-          </button>
-          <button
-            onClick={handleAutoDetect}
-            className="p-2 rounded-full glass-button text-accent active:scale-90"
-            title="كشف ذكي / Auto Detect"
-          >
-            <Wand2 className="w-4 h-4" />
-          </button>
-          <button
             onClick={handleRotateCcw}
             className="p-2 rounded-full glass-button text-gray-300 active:scale-90"
             title="تدوير يساراً 90° / Rotate Left"
@@ -520,13 +153,6 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
             title="تدوير يميناً 90° / Rotate Right"
           >
             <RotateCw className="w-4 h-4" />
-          </button>
-          <button
-            onClick={handleResetQuad}
-            className="p-2 rounded-full glass-button text-gray-300 active:text-accent"
-            title="إعادة ضبط كامل الإطار / Reset"
-          >
-            <Maximize2 className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -645,72 +271,42 @@ export const CropView: React.FC<CropViewProps> = ({ imageSrc, initialQuad, onCon
         )}
       </div>
 
-      {/* Aspect Ratio Snapping Bar */}
-      <div className="relative z-30 flex items-center justify-center gap-1.5 px-4 py-2 bg-black/75 backdrop-blur-md border-t border-white/[0.08]">
-        <span className="text-[10px] text-gray-400 font-bold ml-1 font-arabic">المقاس:</span>
-        <button
-          onClick={() => applyAspectRatio(1 / 1.414)}
-          className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-accent/20 text-gray-300 hover:text-accent text-[11px] font-bold border border-white/10 flex items-center gap-1 active:scale-95 transition-all"
-          title="A4 Standard Document (1:1.414)"
-        >
-          <FileText className="w-3 h-3 text-accent" />
-          <span>A4 قياسي</span>
-        </button>
-        <button
-          onClick={() => applyAspectRatio(0.55)}
-          className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-accent/20 text-gray-300 hover:text-accent text-[11px] font-bold border border-white/10 flex items-center gap-1 active:scale-95 transition-all"
-          title="Receipt / Invoice"
-        >
-          <Receipt className="w-3 h-3 text-accent" />
-          <span>فاتورة</span>
-        </button>
-        <button
-          onClick={() => applyAspectRatio(1.586)}
-          className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-accent/20 text-gray-300 hover:text-accent text-[11px] font-bold border border-white/10 flex items-center gap-1 active:scale-95 transition-all"
-          title="ID Card / Business Card"
-        >
-          <CreditCard className="w-3 h-3 text-accent" />
-          <span>هوية / كرت</span>
-        </button>
-        <button
-          onClick={handleResetQuad}
-          className="px-2.5 py-1 rounded-lg bg-white/5 text-gray-400 hover:text-white text-[11px] font-semibold border border-white/5 active:scale-95 transition-all"
-          title="Free custom quad"
-        >
-          <span>حر</span>
-        </button>
-      </div>
-
       {/* Bottom Confirm Bar */}
       <div className="relative z-30 flex items-center justify-between px-5 pt-3 pb-8 glass-panel border-t-0">
+        {detectFailed && <p role="status" className="text-xs text-amber-300">{ar ? 'الحدود غير واضحة. عدّل الزوايا يدوياً.' : 'Edges are unclear. Adjust the corners manually.'}</p>}
+        {applyError && (
+          <p role="alert" className="absolute inset-x-0 bottom-full bg-[#201317] px-4 py-2 text-center text-xs text-rose-200">
+            {ar ? 'تعذّر تجهيز الصفحة أو حفظها. أعد المحاولة.' : 'Could not prepare or save the page. Try again.'}
+          </p>
+        )}
         <div className="flex items-center gap-2">
           <button
             onClick={handleSelectFullImage}
             className="px-3 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] text-gray-200 text-xs font-bold active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <Maximize2 className="w-3.5 h-3.5 text-accent" />
-            <span>كامل الصورة</span>
+            <span>{ar ? 'كامل الصورة' : 'Full image'}</span>
           </button>
           <button
-            onClick={handleAutoDetect}
+            onClick={() => setDetectFailed(handleAutoDetect() === false)}
             className="px-3 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] text-gray-200 text-xs font-bold active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <Wand2 className="w-3.5 h-3.5 text-accent" />
-            <span>كشف ذكي</span>
+            <span>{ar ? 'كشف الحواف' : 'Detect edges'}</span>
           </button>
         </div>
 
         <button
           onClick={handleApply}
-          disabled={!isValidQuad}
+          disabled={!isValidQuad || isApplying}
           className={`flex items-center gap-2 px-7 py-3 rounded-2xl font-black text-sm active:scale-95 transition-all shadow-xl cursor-pointer ${
-            isValidQuad
+            isValidQuad && !isApplying
               ? 'bg-accent text-on-accent shadow-accent/25'
               : 'bg-red-500/20 text-red-300 border border-red-500/30 opacity-70 cursor-not-allowed'
           }`}
         >
           <Check className="w-5 h-5 stroke-[3]" />
-          <span>{isValidQuad ? 'تطبيق القص' : 'زوايا متقاطعة'}</span>
+          <span>{isApplying ? (ar ? 'جارٍ الحفظ…' : 'Saving…') : (ar ? 'تطبيق القص' : 'Apply crop')}</span>
         </button>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
+import { generateQrWithRust } from '../../platform/rustEngine';
 
 interface QrCodeViewProps {
   value: string;
@@ -8,24 +9,31 @@ interface QrCodeViewProps {
 
 /**
  * Generates an authentic, standards-compliant SVG QR Code.
- * Scannable by any smartphone camera (iPhone, Samsung, Google Lens) or web scanner.
+ * Uses native Rust (`otium-beam`) in Tauri Desktop and falls back to `qrcode` on Web.
  */
 export const QrCodeView: React.FC<QrCodeViewProps> = ({ value, size = 180 }) => {
   const [svgString, setSvgString] = useState<string>('');
 
   useEffect(() => {
     let active = true;
-    QRCode.toString(value, {
-      type: 'svg',
-      margin: 1,
-      errorCorrectionLevel: 'M',
-      color: {
-        dark: '#0f172a',
-        light: '#ffffff'
-      }
-    })
-      .then((svg) => {
-        if (active) setSvgString(svg);
+
+    generateQrWithRust(value)
+      .then((rustSvg) => {
+        if (rustSvg) {
+          if (active) setSvgString(rustSvg);
+          return;
+        }
+        return QRCode.toString(value, {
+          type: 'svg',
+          margin: 1,
+          errorCorrectionLevel: 'M',
+          color: {
+            dark: '#0f172a',
+            light: '#ffffff',
+          },
+        }).then((svg) => {
+          if (active) setSvgString(svg);
+        });
       })
       .catch((err) => {
         console.error('Failed to generate QR Code SVG:', err);

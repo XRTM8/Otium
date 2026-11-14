@@ -1,5 +1,8 @@
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fingerprintDocument } from './documentIdentity';
+import { FILES_STORE } from './documentsDb';
 import {
+  adoptLegacyDocumentRecord,
   clearAllStoredDocuments,
   closeDocumentDatabase,
   getDocumentFromStorage,
@@ -97,5 +100,63 @@ describe('document storage', () => {
 
     const recent = (await getRecentDocumentsList()).find((item) => item.id === 'sha256:keep');
     expect(recent).toMatchObject({ name: 'renamed.pdf', lastPage: 20, available: true });
+  });
+
+  it.each(['throws before queuing file bytes', 'aborts after queuing file bytes'] as const)(
+    'keeps a previously stored PDF available after a replacement %s',
+    async (failure) => {
+      const id = 'sha256:previous-copy';
+      const original = bytes('%PDF-1.4\nprevious');
+      await saveDocumentToStorage(id, 'original.pdf', original, 30, 15);
+      vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const put = IDBObjectStore.prototype.put;
+      const fault = vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(function (this: IDBObjectStore, value, key) {
+        if (this.name !== FILES_STORE) return put.call(this, value, key);
+        if (failure === 'throws before queuing file bytes') throw new DOMException('Quota exceeded', 'QuotaExceededError');
+        const request = put.call(this, value, key);
+        request.addEventListener('success', () => this.transaction.abort());
+        return request;
+      });
+      await saveDocumentToStorage(id, 'replacement.pdf', bytes('%PDF-1.4\nreplacement'), 2);
+      fault.mockRestore();
+
+      await closeDocumentDatabase();
+      expect(await getDocumentFromStorage(id)).toEqual(original);
+      expect(await getRecentDocumentsList()).toEqual([
+        expect.objectContaining({ id, name: 'original.pdf', available: true, totalPages: 30, lastPage: 15 }),
+      ]);
+
+      const replacement = bytes('%PDF-1.4\nreplacement');
+      await saveDocumentToStorage(id, 'replacement.pdf', replacement, 2);
+      await closeDocumentDatabase();
+      expect(await getDocumentFromStorage(id)).toEqual(replacement);
+    },
+  );
+
+  it('keeps the only legacy PDF copy when the new entry has only metadata', async () => {
+    const original = bytes('%PDF-1.4\nlegacy');
+    const id = await fingerprintDocument(original);
+    await saveDocumentToStorage('legacy.pdf', 'legacy.pdf', original, 10, 4);
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const put = IDBObjectStore.prototype.put;
+    const fault = vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(function (this: IDBObjectStore, value, key) {
+      if (this.name === FILES_STORE) throw new DOMException('Quota exceeded', 'QuotaExceededError');
+      return put.call(this, value, key);
+    });
+    await saveDocumentToStorage(id, 'legacy.pdf', original, 10, 4);
+    fault.mockRestore();
+    await adoptLegacyDocumentRecord('legacy.pdf', id);
+    await closeDocumentDatabase();
+
+    expect(await getDocumentFromStorage('legacy.pdf')).toEqual(original);
+    expect(await getDocumentFromStorage(id)).toBeNull();
+    expect(await getRecentDocumentsList()).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id, available: false, lastPage: 4 }),
+    ]));
+
+    await saveDocumentToStorage(id, 'legacy.pdf', original, 10, 4);
+    await adoptLegacyDocumentRecord('legacy.pdf', id);
+    expect(await getDocumentFromStorage(id)).toEqual(original);
+    expect(await getDocumentFromStorage('legacy.pdf')).toBeNull();
   });
 });

@@ -4,7 +4,10 @@ import { createRoot } from 'react-dom/client';
 import { expect, it, vi } from 'vitest';
 
 const device = vi.hoisted(() => ({ form: 'mobile' }));
-vi.mock('./platform/runtime', () => ({ getFormFactor: () => device.form }));
+vi.mock('./platform/runtime', () => ({
+  getFormFactor: () => device.form,
+  getPlatformId: () => 'android'
+}));
 vi.mock('./core/storage/persistence', () => ({ requestStoragePersistence: vi.fn() }));
 vi.mock('./shells/MobileShell', () => ({ MobileShell: function Mobile() {
   const [page, setPage] = useState(1);

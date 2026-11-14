@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act } from 'react';
+import { act, useLayoutEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
@@ -10,11 +10,17 @@ const service = vi.hoisted(() => ({
   onTransferProgress: vi.fn(() => () => {}), sendDocument: vi.fn(), sendViewMode: vi.fn(), broadcastPageChange: vi.fn()
 }));
 vi.mock('./beamService', () => ({ beamService: service }));
-let root: Root, host: HTMLDivElement, result: ReturnType<typeof useAutoBeamDocument>;
+let root: Root, host: HTMLDivElement, result!: ReturnType<typeof useAutoBeamDocument>;
 const pdf = () => ({ getData: vi.fn(async () => new Uint8Array([37, 80, 68, 70])) }) as unknown as PDFDocumentProxy;
 let options: Parameters<typeof useAutoBeamDocument>[0];
-function Probe() { result = useAutoBeamDocument(options); return null; }
-const render = async () => { await act(async () => root.render(<Probe />)); };
+function Probe({ opts }: { opts: Parameters<typeof useAutoBeamDocument>[0] }) {
+  const value = useAutoBeamDocument(opts);
+  useLayoutEffect(() => {
+    result = value;
+  });
+  return null;
+}
+const render = async () => { await act(async () => root.render(<Probe opts={options} />)); };
 const tick = async () => { await act(async () => { vi.advanceTimersByTime(130); await Promise.resolve(); }); };
 beforeEach(() => {
   vi.useFakeTimers(); vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);

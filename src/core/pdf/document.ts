@@ -1,5 +1,5 @@
 import type { PDFDocumentLoadingTask, PDFDocumentProxy } from 'pdfjs-dist';
-import { pdfjsLib } from './worker';
+import { loadPdfjs } from './worker';
 
 export interface PdfPageSize {
   width: number;
@@ -23,8 +23,12 @@ export interface OpenPdfOptions {
   onProgress?: (loaded: number, total: number) => void;
 }
 
+export interface PdfLoadingTaskHandle {
+  destroy(): Promise<void>;
+}
+
 export interface PdfOpenHandle {
-  loadingTask: PDFDocumentLoadingTask;
+  loadingTask: PdfLoadingTaskHandle;
   promise: Promise<OpenedPdf>;
 }
 
@@ -65,25 +69,44 @@ export function openPdf(data: ArrayBuffer, options: OpenPdfOptions): PdfOpenHand
   // webview root. Resolve resources beside the app rather than at origin root.
   const pageUrl = typeof window === 'undefined' ? 'http://localhost/' : window.location.href;
   const baseUrl = new URL(import.meta.env.BASE_URL || './', pageUrl).href;
-  const loadingTask = pdfjsLib.getDocument({
-    data,
-    cMapUrl: `${baseUrl}cmaps/`,
-    cMapPacked: true,
-    standardFontDataUrl: `${baseUrl}standard_fonts/`,
-    wasmUrl: `${baseUrl}wasm/`,
-    enableXfa: true,
-    stopAtErrors: false
-  });
 
-  loadingTask.onPassword = (callback: (password: string) => void, reason: number) => {
-    options.onPassword({ callback, reason });
-  };
-  loadingTask.onProgress = (progress: { loaded: number; total: number }) => {
-    options.onProgress?.(progress.loaded, progress.total);
+  let activeTask: PDFDocumentLoadingTask | null = null;
+  let cancelled = false;
+
+  const loadingTask: PdfLoadingTaskHandle = {
+    async destroy() {
+      cancelled = true;
+      if (activeTask) {
+        await activeTask.destroy();
+      }
+    },
   };
 
   const promise = (async (): Promise<OpenedPdf> => {
-    const doc = await loadingTask.promise;
+    const pdfjsLib = await loadPdfjs();
+    if (cancelled) {
+      throw new Error('Cancelled before PDF engine loaded');
+    }
+
+    const task = pdfjsLib.getDocument({
+      data,
+      cMapUrl: `${baseUrl}cmaps/`,
+      cMapPacked: true,
+      standardFontDataUrl: `${baseUrl}standard_fonts/`,
+      wasmUrl: `${baseUrl}wasm/`,
+      enableXfa: true,
+      stopAtErrors: false,
+    });
+    activeTask = task;
+
+    task.onPassword = (callback: (password: string) => void, reason: number) => {
+      options.onPassword({ callback, reason });
+    };
+    task.onProgress = (progress: { loaded: number; total: number }) => {
+      options.onProgress?.(progress.loaded, progress.total);
+    };
+
+    const doc = await task.promise;
     let basePageSize = DEFAULT_PAGE_SIZE;
 
     try {

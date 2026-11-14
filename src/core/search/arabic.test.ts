@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { containsNormalized, normalizeSearchText, normalizeCopiedArabicText } from './arabic';
+import { containsNormalized, normalizeSearchText, normalizeCopiedArabicText, normalizeDigits } from './arabic';
 
 describe('Arabic search normalisation', () => {
   it('removes vocalisation and tatweel', () => {
@@ -49,5 +49,11 @@ describe('Arabic search normalisation', () => {
     // Preserves line breaks but cleans excessive empty lines
     const multiline = '  السطر الأول  \n\n\n\n  السطر الثاني  ';
     expect(normalizeCopiedArabicText(multiline)).toBe('السطر الأول\n\nالسطر الثاني');
+  });
+
+  it('normalises Eastern Arabic and Persian digits to standard ASCII numbers', () => {
+    expect(normalizeDigits('١٢٣٤٥٦٧٨٩٠')).toBe('1234567890');
+    expect(normalizeDigits('۰۱۲۳۴۵۶۷۸۹')).toBe('0123456789');
+    expect(normalizeDigits('صفحة ٤٢')).toBe('صفحة 42');
   });
 });

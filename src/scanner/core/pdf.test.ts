@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import sharp from 'sharp';
 import { createPdfFromCanvases, type OcrWordToken } from './pdf';
 
 function createMockCanvas(width = 800, height = 1000): HTMLCanvasElement {
@@ -72,24 +73,33 @@ describe('PDF Compiler (createPdfFromCanvases)', () => {
     expect(text).toContain('/Type /Page');
   });
 
-  it('sanitizes OCR word tokens and escapes parentheses and backslashes in PDF text layer', async () => {
-    const canvas = createMockCanvas(800, 1000);
+  it('round-trips Arabic, English, and literal punctuation through PDF.js', async () => {
+    const jpeg = await sharp({ create: { width: 8, height: 10, channels: 3, background: '#fff' } }).jpeg().toBuffer();
+    vi.mocked(document.createElement).mockImplementation(() => {
+      const target = createMockCanvas();
+      vi.mocked(target.toBlob).mockImplementation((callback) => callback(new Blob([new Uint8Array(jpeg)], { type: 'image/jpeg' })));
+      return target;
+    });
     const words: OcrWordToken[] = [
-      { text: 'Invoice (2026)', x: 0.1, y: 0.1, width: 0.2, height: 0.05 },
-      { text: 'Path\\File\x00\x08Name\n', x: 0.1, y: 0.2, width: 0.2, height: 0.05 },
-      { text: '   \r\n\t  ', x: 0.5, y: 0.5, width: 0.1, height: 0.05 }, // empty token
+      { text: 'مرحبا', x: 0.1, y: 0.1, width: 0.2, height: 0.05 },
+      { text: 'Invoice (2026)', x: 0.1, y: 0.2, width: 0.2, height: 0.05 },
+      { text: 'Path\\File\x00\x08Name\n', x: 0.1, y: 0.3, width: 0.2, height: 0.05 },
+      { text: 'فاتورةABC123', x: 0.1, y: 0.4, width: 0.3, height: 0.05 },
+      { text: 'مبلغ١٢٣٫٤٥', x: 0.1, y: 0.5, width: 0.3, height: 0.05 },
     ];
-
-    const pdfBlob = await createPdfFromCanvases([{ canvas, words }], 'balanced', 'a4');
-    const buffer = await pdfBlob.arrayBuffer();
-    const text = new TextDecoder().decode(buffer);
-
-    // Parentheses must be escaped: \(2026\)
-    expect(text).toContain('(Invoice \\(2026\\)) Tj');
-    // Backslash must be escaped: Path\\\\FileName, and control characters stripped
-    expect(text).toContain('(Path\\\\FileName) Tj');
-    // Invisible text rendering mode 3
-    expect(text).toContain('3 Tr');
+    const blob = await createPdfFromCanvases([{ canvas: createMockCanvas(), words }]);
+    vi.unstubAllGlobals();
+    const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const task = getDocument({ data: new Uint8Array(await blob.arrayBuffer()), useSystemFonts: false });
+    try {
+      const page = await (await task.promise).getPage(1);
+      const { items } = await page.getTextContent();
+      expect(items.flatMap((item) => 'str' in item && item.str ? [item.str] : [])).toEqual([
+        'مرحبا', 'Invoice (2026)', 'Path\\FileName', 'فاتورةABC123', 'مبلغ١٢٣٫٤٥',
+      ]);
+    } finally {
+      await task.destroy();
+    }
   });
 
   it('applies diagonal and tiled watermarks without crashing', async () => {

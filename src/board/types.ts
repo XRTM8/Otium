@@ -54,6 +54,8 @@ export interface BeamPayload {
   theme: ThemeMode;
   pdfBase64?: string;
   pdfData?: ArrayBuffer;
+  fileName?: string;
+  fileData?: ArrayBuffer;
   pdfUrl?: string;
   chunks?: string[];
   totalSize?: number;
@@ -103,6 +105,8 @@ export interface BeamMessage {
   receiptId?: string;
   annotationReceipt?: { documentId: string; id: string };
   ink?: { documentId: string; upsert?: InkMark[]; deleted?: string[] };
+  annotationRevision?: number;
+  annotationSnapshot?: boolean;
   annotationSync?: { documentId: string; upsert?: TextAnnotation[]; deleted?: string[] };
   selection?: { documentId: string; page: number; rects: AnnotationRect[] };
   payload?: BeamPayload;

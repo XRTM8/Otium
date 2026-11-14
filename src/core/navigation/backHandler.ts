@@ -26,6 +26,7 @@ export function registerBackHandler(handler: BackHandler): () => void {
 export function executeBackStep(): boolean {
   for (let i = backHandlers.length - 1; i >= 0; i--) {
     const handler = backHandlers[i];
+    if (!handler) continue;
     try {
       if (handler()) {
         return true;

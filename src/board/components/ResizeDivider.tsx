@@ -33,7 +33,9 @@ export const ResizeDivider: React.FC<ResizeDividerProps> = ({
       setIsDragging(false);
       try {
         divider.releasePointerCapture(e.pointerId);
-      } catch {}
+      } catch (err) {
+        console.debug('[ResizeDivider] releasePointerCapture skipped:', err);
+      }
       lastTapRef.current = 0;
       return;
     }
@@ -73,7 +75,9 @@ export const ResizeDivider: React.FC<ResizeDividerProps> = ({
     if (divider && divider.hasPointerCapture(e.pointerId)) {
       try {
         divider.releasePointerCapture(e.pointerId);
-      } catch {}
+      } catch (err) {
+        console.debug('[ResizeDivider] releasePointerCapture skipped:', err);
+      }
     }
     setIsDragging(false);
   };

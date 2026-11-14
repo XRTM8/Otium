@@ -1,10 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
 import { check, type Update } from '@tauri-apps/plugin-updater';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { getCurrentVersion } from '../../core/updates/currentVersion';
 import {
-  OTIUM_RELEASES_URL,
   isNewerVersion,
   parseReleaseInfo,
   type ReleaseInfo
@@ -45,7 +43,7 @@ function toAvailableSnapshot(
   canAutoInstall: boolean
 ): UpdateSnapshot {
   const feed = releaseInfoFromUpdate(update);
-  const portableUrl = feed?.assets.windowsPortable?.url ?? feed?.assets.windowsInstaller?.url;
+  const portable = feed?.assets.windowsPortable;
 
   return {
     phase: 'available',
@@ -54,10 +52,11 @@ function toAvailableSnapshot(
     notes: update.body || feed?.notes || '',
     publishedAt: update.date || feed?.pubDate || '',
     canAutoInstall,
-    manualDownloadUrl: portableUrl ?? OTIUM_RELEASES_URL,
+    manualDownloadUrl: portable?.url,
+    downloadSha256: portable?.sha256,
     message: canAutoInstall
       ? 'Download and install the new version.'
-      : 'Portable edition: download the new EXE, then replace the old file.'
+      : 'Download the new portable EXE to your Downloads folder.'
   };
 }
 
@@ -69,9 +68,26 @@ export const desktopUpdateAdapter: UpdateAdapter = {
   async check(signal) {
     const current = getCurrentVersion();
     const installed = await isInstalledBuild();
-    const update = await check({ timeout: 20_000 });
+    let update: Update | null;
+    try {
+      update = await check({ timeout: 20_000 });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      // An Android-only release feed without Windows platform signatures should not surface as an error on Windows.
+      if (/platforms/i.test(msg)) {
+        return {
+          phase: 'up-to-date',
+          currentVersion: current,
+          latestVersion: current,
+          canAutoInstall: installed
+        };
+      }
+      throw error;
+    }
     if (signal?.aborted) {
-      await update?.close().catch(() => {});
+      await update?.close().then(undefined, (err: unknown) => {
+        console.debug('[DesktopUpdater] Aborted update close skipped:', err);
+      });
       throw new Error('Update check cancelled.');
     }
 
@@ -85,12 +101,16 @@ export const desktopUpdateAdapter: UpdateAdapter = {
     }
 
     if (pendingUpdate && pendingUpdate !== update) {
-      await pendingUpdate.close().catch(() => {});
+      await pendingUpdate.close().then(undefined, (err: unknown) => {
+        console.debug('[DesktopUpdater] Stale update close skipped:', err);
+      });
     }
     pendingUpdate = update;
 
     if (!isNewerVersion(update.version, current)) {
-      await update.close().catch(() => {});
+      await update.close().then(undefined, (err: unknown) => {
+        console.debug('[DesktopUpdater] Current update close skipped:', err);
+      });
       pendingUpdate = null;
       return {
         phase: 'up-to-date',
@@ -160,7 +180,12 @@ export const desktopUpdateAdapter: UpdateAdapter = {
   },
 
   async openManualDownload(snapshot) {
-    const url = snapshot.manualDownloadUrl ?? OTIUM_RELEASES_URL;
-    await openUrl(url);
+    if (!snapshot.manualDownloadUrl || !snapshot.downloadSha256) {
+      throw new Error('The release is missing a verified portable EXE.');
+    }
+    await invoke('download_portable_update', {
+      url: snapshot.manualDownloadUrl,
+      sha256: snapshot.downloadSha256,
+    });
   }
 };

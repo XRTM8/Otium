@@ -77,7 +77,7 @@ jobs:
 
       - uses: swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri -> target
+          workspaces: . -> target
 
       - run: npm ci
 
@@ -95,7 +95,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force release | Out-Null
 
-          $setup = Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe |
+          $setup = Get-ChildItem target/release/bundle/nsis/*-setup.exe |
             Sort-Object LastWriteTime -Descending |
             Select-Object -First 1
           if (-not $setup) { throw 'No NSIS installer was produced.' }
@@ -105,7 +105,7 @@ jobs:
             throw 'No updater signature was produced. Check TAURI_SIGNING_PRIVATE_KEY.'
           }
 
-          $portable = 'src-tauri/target/release/otium.exe'
+          $portable = 'target/release/otium.exe'
           if (-not (Test-Path $portable)) { throw 'No portable EXE was produced.' }
 
           Copy-Item $setup.FullName "release/Otium_${env:VERSION}_x64-setup.exe"
@@ -142,7 +142,7 @@ jobs:
 
       - uses: swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri -> target
+          workspaces: . -> target
           key: android
 
       - uses: android-actions/setup-android@v3
@@ -157,7 +157,7 @@ jobs:
           set -euo pipefail
           for attempt in 1 2 3; do
             echo "Installing SDK packages (attempt $attempt/3)..."
-            if sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "ndk;27.0.12077973"; then
+            if sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"; then
               echo "SDK packages installed successfully."
               break
             fi
@@ -169,8 +169,8 @@ jobs:
             sleep 5
           done
           yes | sdkmanager --licenses > /dev/null || true
-          echo "NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> "$GITHUB_ENV"
-          echo "$ANDROID_HOME/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin" >> "$GITHUB_PATH"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
+          echo "$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin" >> "$GITHUB_PATH"
 
       - run: npm ci
 
@@ -223,8 +223,9 @@ jobs:
           # Split APKs are the primary phone download (~one ABI each). The
           # universal APK stays as a fallback and keeps latest.json compatible.
           # Passing empty beforeBuildCommand skips redundant frontend rebuilds.
-          npm run tauri:android:split -- -c '{"build":{"beforeBuildCommand":""}}'
-          npm run tauri:android -- -c '{"build":{"beforeBuildCommand":""}}'
+          chmod +x src-tauri/gen/android/gradlew
+          npm run tauri:android:split -- -c '{"build":{"beforeBuildCommand":""}}' -- --locked
+          npm run tauri:android -- -c '{"build":{"beforeBuildCommand":""}}' -- --locked
 
       - name: Stage canonical APKs
         shell: bash
@@ -233,7 +234,6 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p release
-          found=0
           while IFS= read -r apk; do
             name="$(basename "$apk")"
             # Tauri writes outputs/apk/<abi>/release/app-<abi>-release.apk,
@@ -256,13 +256,10 @@ jobs:
                 ;;
             esac
             cp "$apk" "release/Otium_${VERSION}_${abi}.apk"
-            found=$((found + 1))
           done < <(find src-tauri/gen/android/app/build/outputs/apk -path '*/release/*.apk' -print)
-          if [ "$found" -eq 0 ]; then
-            echo 'No release APKs were produced.'
-            find src-tauri/gen/android/app/build/outputs/apk -name '*.apk' -print || true
-            exit 1
-          fi
+          for abi in arm64-v8a armeabi-v7a x86 x86_64 universal; do
+            test -s "release/Otium_${VERSION}_${abi}.apk"
+          done
           ls -lh release/*.apk
 
       - name: Verify APKs (signature, key, version, ABI, 16 KB alignment)
@@ -275,6 +272,8 @@ jobs:
           node scripts/verify-apk.mjs \
             --expect-cert "$EXPECTED_CERT" \
             --expect-version "$VERSION" \
+            --expect-package com.otium.reader \
+            --after-code 1009015 \
             release/*.apk
 
       - uses: actions/upload-artifact@v4
@@ -314,7 +313,7 @@ jobs:
             --apk "upload/Otium_${VERSION}_universal.apk" \
             --output-dir upload
 
-      - name: Publish GitHub release
+      - name: Stage GitHub release for upgrade verification
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.verify.outputs.tag }}
@@ -322,4 +321,4 @@ jobs:
           body_path: release-notes.md
           files: upload/*
           fail_on_unmatched_files: true
-          make_latest: true
+          draft: true

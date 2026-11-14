@@ -19,13 +19,17 @@ const localStorageMock: Storage = {
 };
 
 Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: localStorageMock });
-if (typeof (globalThis as any).window === 'undefined') {
-  (globalThis as any).window = {
-    indexedDB: globalThis.indexedDB,
-    localStorage: localStorageMock,
-    setTimeout: globalThis.setTimeout.bind(globalThis),
-    clearTimeout: globalThis.clearTimeout.bind(globalThis)
-  };
+if (typeof window === 'undefined') {
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    writable: true,
+    value: {
+      indexedDB: globalThis.indexedDB,
+      localStorage: localStorageMock,
+      setTimeout: globalThis.setTimeout.bind(globalThis),
+      clearTimeout: globalThis.clearTimeout.bind(globalThis)
+    }
+  });
 } else {
   Object.defineProperty(window, 'localStorage', { configurable: true, value: localStorageMock });
   Object.defineProperty(window, 'indexedDB', { configurable: true, value: globalThis.indexedDB });

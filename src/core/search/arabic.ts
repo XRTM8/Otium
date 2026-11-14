@@ -50,6 +50,11 @@ const ARABIC_DIGITS: Record<string, string> = {
   '\u06f9': '9'
 };
 
+export function normalizeDigits(input: string): string {
+  if (!input) return '';
+  return input.replace(/[\u0660-\u0669\u06f0-\u06f9]/g, (digit) => ARABIC_DIGITS[digit] ?? digit);
+}
+
 export function normalizeSearchText(input: string): string {
   if (!input) return '';
 

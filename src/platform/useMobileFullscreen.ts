@@ -15,7 +15,16 @@ export function useMobileFullscreen() {
       const request = root.requestFullscreen ? () => root.requestFullscreen({ navigationUI: 'hide' }) : root.webkitRequestFullscreen?.bind(root);
       if (!request) return;
       pending = true;
-      try { Promise.resolve(request()).catch(() => {}).finally(() => { pending = false; }); } catch { pending = false; }
+      try {
+        Promise.resolve(request())
+          .then(undefined, (err: unknown) => {
+            console.debug('[Fullscreen] Request skipped:', err);
+          })
+          .finally(() => { pending = false; });
+      } catch (err) {
+        console.debug('[Fullscreen] Synchronous request skipped:', err);
+        pending = false;
+      }
     };
     document.addEventListener('pointerup', enter);
     return () => document.removeEventListener('pointerup', enter);

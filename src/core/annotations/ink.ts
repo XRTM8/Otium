@@ -1,3 +1,4 @@
+import { appIndexedDB } from '../../platform/storage';
 export interface InkPoint { x: number; y: number }
 export interface InkMark {
   id: string;
@@ -20,8 +21,14 @@ export function inkHistory(state: InkHistory, action: InkAction): InkHistory {
     return { past: state.past.map(apply), present: apply(state.present), future: state.future.map(apply), revision: state.revision + 1 };
   }
   if (action.type === 'change') return { past: [...state.past, state.present].slice(-60), present: action.marks, future: [], revision: state.revision + 1 };
-  if (action.type === 'undo' && state.past.length) return { past: state.past.slice(0, -1), present: state.past[state.past.length - 1], future: [state.present, ...state.future], revision: state.revision + 1 };
-  if (action.type === 'redo' && state.future.length) return { past: [...state.past, state.present], present: state.future[0], future: state.future.slice(1), revision: state.revision + 1 };
+  if (action.type === 'undo') {
+    const prev = state.past[state.past.length - 1];
+    if (prev) return { past: state.past.slice(0, -1), present: prev, future: [state.present, ...state.future], revision: state.revision + 1 };
+  }
+  if (action.type === 'redo') {
+    const next = state.future[0];
+    if (next) return { past: [...state.past, state.present], present: next, future: state.future.slice(1), revision: state.revision + 1 };
+  }
   return state;
 }
 
@@ -55,7 +62,9 @@ export function hitInk(mark: InkMark, point: InkPoint, width: number, height: nu
   }
   const tolerance = Math.max(10, mark.width * width / 2 + 5);
   for (let i = 0; i < mark.points.length; i++) {
-    const a = mark.points[Math.max(0, i - 1)], b = mark.points[i];
+    const a = mark.points[Math.max(0, i - 1)];
+    const b = mark.points[i];
+    if (!a || !b) continue;
     const ax = a.x * width, ay = a.y * height, dx = (b.x - a.x) * width, dy = (b.y - a.y) * height;
     const length = dx * dx + dy * dy;
     const t = length ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / length)) : 0;
@@ -67,12 +76,13 @@ export function hitInk(mark: InkMark, point: InkPoint, width: number, height: nu
 export function paintInk(ctx: CanvasRenderingContext2D, marks: InkMark[], width: number, height: number): void {
   for (const mark of marks) {
     if (!mark.points.length) continue;
+    const first = mark.points[0];
+    if (!first) continue;
     ctx.save();
     ctx.strokeStyle = ctx.fillStyle = mark.color;
     ctx.globalAlpha = mark.type === 'highlighter' ? 0.3 : 1;
     ctx.lineWidth = mark.width * width;
     ctx.lineCap = ctx.lineJoin = 'round';
-    const first = mark.points[0];
     if (mark.type === 'note') {
       ctx.font = `${mark.width * width}px Tajawal, Arial, sans-serif`;
       ctx.textBaseline = 'top';
@@ -91,35 +101,59 @@ export function paintInk(ctx: CanvasRenderingContext2D, marks: InkMark[], width:
   }
 }
 
+let inkDbCache: { opener: typeof appIndexedDB; promise: Promise<IDBDatabase> } | null = null;
+
 function inkDatabase(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('otium-page-ink', 1);
-    request.onupgradeneeded = () => request.result.createObjectStore('documents');
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+  if (inkDbCache && inkDbCache.opener === appIndexedDB) {
+    return inkDbCache.promise;
+  }
+  const promise = new Promise<IDBDatabase>((resolve, reject) => {
+    const request = appIndexedDB.open('otium-page-ink', 1);
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains('documents')) {
+        request.result.createObjectStore('documents');
+      }
+    };
+    request.onsuccess = () => {
+      const db = request.result;
+      db.onversionchange = () => {
+        try { db.close(); } catch (err) { console.debug('[InkStorage] db close skipped:', err); }
+        if (inkDbCache?.promise === promise) inkDbCache = null;
+      };
+      db.onclose = () => {
+        if (inkDbCache?.promise === promise) inkDbCache = null;
+      };
+      resolve(db);
+    };
+    request.onerror = () => {
+      if (inkDbCache?.promise === promise) inkDbCache = null;
+      reject(request.error);
+    };
+    request.onblocked = () => {
+      if (inkDbCache?.promise === promise) inkDbCache = null;
+      reject(new Error('Annotations database is blocked'));
+    };
   });
+  inkDbCache = { opener: appIndexedDB, promise };
+  return promise;
 }
 
 export async function readInk(id: string): Promise<InkMark[]> {
   const db = await inkDatabase();
-  try {
-    return await new Promise((resolve, reject) => {
-      const request = db.transaction('documents').objectStore('documents').get(id);
-      request.onsuccess = () => resolve(request.result || []);
-      request.onerror = () => reject(request.error);
-    });
-  } finally { db.close(); }
+  return await new Promise((resolve, reject) => {
+    const request = db.transaction('documents').objectStore('documents').get(id);
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
 }
 
 export async function writeInk(id: string, marks: InkMark[]): Promise<void> {
   const db = await inkDatabase();
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const transaction = db.transaction('documents', 'readwrite');
-      transaction.objectStore('documents').put(marks, id);
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
-      transaction.onabort = () => reject(transaction.error || new Error('Saving annotations was interrupted'));
-    });
-  } finally { db.close(); }
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction('documents', 'readwrite');
+    transaction.objectStore('documents').put(marks, id);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error || new Error('Saving annotations was interrupted'));
+  });
 }

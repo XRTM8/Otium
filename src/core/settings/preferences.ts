@@ -1,3 +1,4 @@
+import { localStorage } from '../../platform/storage';
 import type { ReadingDirection, ThemeMode, ViewMode } from '../types';
 import type { Language } from '../i18n/translations';
 
@@ -29,7 +30,7 @@ const KEYS = {
 function storage(): Storage | null {
   if (typeof window === 'undefined') return null;
   try {
-    return window.localStorage;
+    return localStorage;
   } catch {
     return null;
   }

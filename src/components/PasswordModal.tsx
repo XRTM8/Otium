@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Lock, Eye, EyeOff, X, KeyRound, Loader2 } from 'lucide-react';
 import type { Language } from '../core/i18n/translations';
 import { getTranslations } from '../core/i18n/translations';
+import { trapModalFocus } from '../core/utils/a11y';
 
 interface PasswordModalProps {
   isOpen: boolean;
@@ -29,15 +30,17 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
   const t = getTranslations(lang);
 
+  const wasOpenRef = useRef(isOpen);
   useEffect(() => {
-    if (!isOpen) {
+    if (wasOpenRef.current && !isOpen) {
       setPassword('');
       if (previousActiveElementRef.current && typeof previousActiveElementRef.current.focus === 'function') {
         previousActiveElementRef.current.focus();
         previousActiveElementRef.current = null;
       }
-      return;
     }
+    wasOpenRef.current = isOpen;
+    if (!isOpen) return;
 
     previousActiveElementRef.current = document.activeElement as HTMLElement | null;
     const timer = window.setTimeout(() => inputRef.current?.focus(), 50);
@@ -51,24 +54,7 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
       }
 
       if (e.key === 'Tab' && modalRef.current) {
-        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        );
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-
-        if (e.shiftKey) {
-          if (document.activeElement === first) {
-            e.preventDefault();
-            last.focus();
-          }
-        } else {
-          if (document.activeElement === last) {
-            e.preventDefault();
-            first.focus();
-          }
-        }
+        trapModalFocus(modalRef.current, e);
       }
     };
     window.addEventListener('keydown', handleKeyDown);

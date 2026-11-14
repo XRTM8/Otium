@@ -1,9 +1,12 @@
 // @vitest-environment happy-dom
-import { act, useEffect } from 'react';
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+import { localStorage } from '../platform/storage';
+import { act, useEffect, useLayoutEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, expect, it, vi } from 'vitest';
 import { detectDeviceRole, readDeviceUsage, saveDeviceUsage, useDeviceUsage } from './deviceUsage';
-import { TeachingProvider, useTeaching } from '../components/TeachingContext';
+import { TeachingProvider } from '../components/TeachingContext';
+import { useTeaching } from '../components/teachingContextValue';
 import { getPlatformId } from './runtime';
 afterEach(() => { vi.unstubAllGlobals(); });
 it('uses Android television hints but never mistakes a rotated phone or generic Android board for a TV', () => {
@@ -27,15 +30,28 @@ it('recognizes native Android even when the WebView requests a desktop user agen
   Object.defineProperty(window, '__TAURI_INTERNALS__', { configurable: true, value: {} });
   Object.defineProperty(window, 'OtiumUi', { configurable: true, value: { getDeviceType: () => 'handheld' } });
   try { expect(getPlatformId()).toBe('android'); expect(detectDeviceRole()).toBe('handheld'); }
-  finally { delete (window as any).__TAURI_INTERNALS__; delete (window as any).OtiumUi; }
+  finally {
+    const win = window as unknown as { __TAURI_INTERNALS__?: unknown; OtiumUi?: unknown };
+    delete win.__TAURI_INTERNALS__;
+    delete win.OtiumUi;
+  }
 });
 it('changes roles without remounting children, losing the active board, or changing roles on rotation', async () => {
   vi.stubGlobal('navigator', { userAgent: 'Android Mobile', maxTouchPoints: 5 });
   const host = document.createElement('div'); document.body.append(host);
   const root = createRoot(host);
-  let mounts = 0, current: ReturnType<typeof useTeaching>, profile: ReturnType<typeof useDeviceUsage>;
-  function Child() { current = useTeaching(); useEffect(() => { mounts++; }, []); return null; }
-  function Harness() { profile = useDeviceUsage(); return <TeachingProvider mobile={profile.compact}><Child /></TeachingProvider>; }
+  let mounts = 0, current!: ReturnType<typeof useTeaching>, profile!: ReturnType<typeof useDeviceUsage>;
+  function Child() {
+    const t = useTeaching();
+    useLayoutEffect(() => { current = t; });
+    useEffect(() => { mounts++; }, []);
+    return null;
+  }
+  function Harness() {
+    const p = useDeviceUsage();
+    useLayoutEffect(() => { profile = p; });
+    return <TeachingProvider mobile={p.compact}><Child /></TeachingProvider>;
+  }
   try {
     await act(async () => root.render(<Harness />));
     expect(current!.mobile).toBe(true);

@@ -1,13 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
-import { TextLayer } from 'pdfjs-dist';
+import React, { useLayoutEffect, useMemo, useState } from 'react';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { AlertTriangle, RefreshCw, StickyNote, Trash2, X } from 'lucide-react';
 import type { ThemeMode, TextAnnotation } from '../core/types';
 import type { Language } from '../core/i18n/translations';
-import { getCanvasPixelRatio } from '../core/reader/device';
-import { scheduleIdleWork, scheduleRender } from '../core/reader/renderScheduler';
-import { normalizeAnnotationRects } from '../core/annotations/geometry';
-import { DocumentInkLayer, useDocumentInteraction } from './DocumentInk';
+import { DocumentInkLayer } from './DocumentInk';
+import { useDocumentInteraction } from './documentInkContext';
+import { drawAnnotationLayer, PAGE_BACKGROUND } from './pdfPageCanvas';
+import { usePdfPageRender } from './usePdfPageRender';
 
 interface PdfPageProps {
   doc: PDFDocumentProxy;
@@ -33,152 +32,14 @@ interface ActiveAnnotation {
   y: number;
 }
 
-const PAGE_BACKGROUND: Record<ThemeMode, string> = {
-  amoled: '#000000',
-  midnight: '#06090f',
-  amber: '#140f0c',
-  parchment: '#fbf6ea',
-  eink: '#e5e7eb',
-  pure: '#ffffff',
-  paper: '#fdfcf8',
-  sakura: '#fdf6f7',
-  forest: '#0c1813',
-  nordic: '#15181e'
-};
-
-const THEME_FILTERS: Partial<Record<ThemeMode, string>> = {
-  amoled: 'invert(1) hue-rotate(180deg)',
-  midnight: 'invert(0.92) hue-rotate(185deg) contrast(1.02) brightness(0.96)',
-  amber: 'invert(0.90) sepia(0.55) hue-rotate(-15deg) contrast(1.02) brightness(0.96)',
-  forest: 'invert(0.92) sepia(0.35) hue-rotate(90deg) contrast(1.02) brightness(0.96)',
-  nordic: 'invert(0.92) hue-rotate(175deg) contrast(1.02) brightness(0.94)',
-  eink: 'grayscale(1) contrast(1.08) brightness(0.98)'
-};
-
-function themeFilter(theme: ThemeMode): string | null {
-  return THEME_FILTERS[theme] ?? null;
-}
-
-/**
- * A full-page CSS filter is repainted on every scroll frame in Android's
- * WebView and is the main reason dark themes felt like 30 fps. Applying the
- * same filter once while copying the finished raster into the visible canvas
- * gives identical colours with no per-frame cost. The CSS path remains as a
- * fallback for a WebView whose Canvas2D implementation ignores `filter`.
- */
-let canvasFilterSupport: boolean | null = null;
-
-function supportsCanvasFilter(): boolean {
-  if (canvasFilterSupport !== null) return canvasFilterSupport;
-
-  try {
-    const probe = document.createElement('canvas');
-    probe.width = 1;
-    probe.height = 1;
-    const context = probe.getContext('2d');
-    if (!context) {
-      canvasFilterSupport = false;
-      return false;
-    }
-    context.filter = 'invert(1)';
-    context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, 1, 1);
-    canvasFilterSupport = context.getImageData(0, 0, 1, 1).data[0] < 64;
-  } catch {
-    canvasFilterSupport = false;
-  }
-
-  return canvasFilterSupport;
-}
-
-function hexToRgb(hex: string): [number, number, number] {
-  const value = hex.replace('#', '').trim();
-  const full = value.length === 3
-    ? value.split('').map((character) => character + character).join('')
-    : value;
-  if (/^[0-9a-f]{6}$/i.test(full)) {
-    return [
-      Number.parseInt(full.slice(0, 2), 16),
-      Number.parseInt(full.slice(2, 4), 16),
-      Number.parseInt(full.slice(4, 6), 16)
-    ];
-  }
-  return [253, 224, 71];
-}
-
-function drawAnnotationLayer(
-  canvas: HTMLCanvasElement,
-  annotations: TextAnnotation[],
-  width: number,
-  height: number,
-  dark: boolean
-): void {
-  const ratio = Math.min(
-    getCanvasPixelRatio(2.5),
-    Math.sqrt(3_600_000 / Math.max(1, width * height))
-  );
-  const backingWidth = Math.max(1, Math.round(width * ratio));
-  const backingHeight = Math.max(1, Math.round(height * ratio));
-
-  if (canvas.width !== backingWidth) canvas.width = backingWidth;
-  if (canvas.height !== backingHeight) canvas.height = backingHeight;
-
-  const context = canvas.getContext('2d');
-  if (!context) return;
-
-  context.setTransform(ratio, 0, 0, ratio, 0, 0);
-  context.clearRect(0, 0, width, height);
-
-  for (const annotation of annotations) {
-    const [red, green, blue] = hexToRgb(annotation.color);
-    const rects = normalizeAnnotationRects(annotation.rects);
-
-    if (annotation.type === 'underline') {
-      context.strokeStyle = `rgba(${red}, ${green}, ${blue}, 0.92)`;
-      context.lineWidth = 2.2;
-      context.lineCap = 'round';
-      for (const rect of rects) {
-        const x = rect.xPct * width;
-        const y = (rect.yPct + rect.heightPct) * height - 1;
-        context.beginPath();
-        context.moveTo(x, y);
-        context.lineTo(x + rect.widthPct * width, y);
-        context.stroke();
-      }
-      continue;
-    }
-
-    for (const rect of rects) {
-      const x = rect.xPct * width;
-      const y = rect.yPct * height;
-      const rectWidth = rect.widthPct * width;
-      const rectHeight = rect.heightPct * height;
-
-      // Clean physical highlighter gradient without blur or muddy halos
-      const gradient = context.createLinearGradient(0, y, 0, y + rectHeight);
-      gradient.addColorStop(0, `rgba(${red}, ${green}, ${blue}, ${dark ? 0.65 : 0.48})`);
-      gradient.addColorStop(0.65, `rgba(${red}, ${green}, ${blue}, ${dark ? 0.55 : 0.40})`);
-      gradient.addColorStop(1, `rgba(${red}, ${green}, ${blue}, ${dark ? 0.45 : 0.32})`);
-      context.fillStyle = gradient;
-
-      const radius = Math.min(3, rectHeight / 2);
-      context.beginPath();
-      if (typeof context.roundRect === 'function') {
-        context.roundRect(x, y, rectWidth, rectHeight, radius);
-      } else {
-        context.rect(x, y, rectWidth, rectHeight);
-      }
-      context.fill();
-    }
-  }
-}
+const EMPTY_ANNOTATIONS: TextAnnotation[] = [];
 
 const PdfPageView: React.FC<PdfPageProps> = ({
   doc,
   pageNumber,
   scale,
   theme,
-  annotations = [],
+  annotations = EMPTY_ANNOTATIONS,
   onDeleteAnnotation,
   baseAspectRatio,
   searchQuery,
@@ -187,380 +48,31 @@ const PdfPageView: React.FC<PdfPageProps> = ({
   renderPriority = 0
 }) => {
   const { mode } = useDocumentInteraction();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const textLayerRef = useRef<HTMLDivElement>(null);
-  const annotationCanvasRef = useRef<HTMLCanvasElement>(null);
-  const currentRenderTaskRef = useRef<{ cancel: () => void } | null>(null);
-  const renderedKeyRef = useRef('');
-  const priorityRef = useRef(renderPriority);
-
-  const [isVisible, setIsVisible] = useState(false);
-  const [hasRenderedOnce, setHasRenderedOnce] = useState(false);
-  const [renderError, setRenderError] = useState<string | null>(null);
-  const [retryKey, setRetryKey] = useState(0);
-  const [textLayerVersion, setTextLayerVersion] = useState(0);
   const [activeAnno, setActiveAnno] = useState<ActiveAnnotation | null>(null);
-  const isDark = theme === 'amoled' || theme === 'midnight' || theme === 'amber' || theme === 'forest' || theme === 'nordic';
-  const cssThemeFilter = useMemo(() => {
-    const filter = themeFilter(theme);
-    return filter && !supportsCanvasFilter() ? filter : undefined;
-  }, [theme]);
-
-  useEffect(() => {
-    priorityRef.current = renderPriority;
-  }, [renderPriority]);
-
-  // The PDF page's unscaled size is fixed; scaling it synchronously keeps
-  // gesture zoom anchored to the fingers instead of waiting for a render.
-  const [pageSize, setPageSize] = useState<{ width: number; height: number }>(() => ({
-    width: 600,
-    height: 600 / (baseAspectRatio || 0.707)
-  }));
-
-  useEffect(() => {
-    let active = true;
-    let pageRef: PDFPageProxy | null = null;
-    doc
-      .getPage(pageNumber)
-      .then((page: PDFPageProxy) => {
-        pageRef = page;
-        if (!active) return;
-        const unscaledViewport = page.getViewport({ scale: 1 });
-        setPageSize({ width: unscaledViewport.width, height: unscaledViewport.height });
-      })
-      .catch(() => {})
-      .finally(() => {
-        try {
-          pageRef?.cleanup();
-        } catch {}
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [doc, pageNumber]);
-
-  const dimensions = useMemo(
-    () => ({
-      width: Math.max(1, Math.round(pageSize.width * scale)),
-      height: Math.max(1, Math.round(pageSize.height * scale))
-    }),
-    [pageSize, scale]
-  );
-
-  // A reused component (dual mode) must never show the previous page while
-  // the next one is still rasterising.
-  useEffect(() => {
-    setHasRenderedOnce(false);
-    setRenderError(null);
-    if (textLayerRef.current) {
-      delete textLayerRef.current.dataset.pageRendered;
-    }
-  }, [pageNumber, doc]);
-
-  // Auto-heal canvas on GPU context restoration (e.g. after low-memory resume)
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const handleContextRestored = () => {
-      setRetryKey((k) => k + 1);
-    };
-    canvas.addEventListener('contextrestored', handleContextRestored);
-    return () => {
-      canvas.removeEventListener('contextrestored', handleContextRestored);
-    };
-  }, []);
-
-  // Mount pages a little before they enter the viewport, but let the shared
-  // scheduler decide when the canvas may actually start rendering.
-  useEffect(() => {
-    const element = containerRef.current;
-    if (!element) return;
-
-    if (typeof IntersectionObserver === 'undefined') {
-      setIsVisible(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        setIsVisible(entries[0]?.isIntersecting ?? false);
-      },
-      { rootMargin: '640px 0px 640px 0px', threshold: 0.01 }
-    );
-
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-
-  // Canvas lifecycle. Text layers deliberately live in a separate effect:
-  // finishing a render must never cancel the pending text-layer job again.
-  // Immediate GPU texture release on unmount prevents VRAM accumulation in mobile WebViews.
-  useEffect(() => {
-    return () => {
-      if (canvasRef.current) {
-        canvasRef.current.width = 1;
-        canvasRef.current.height = 1;
-      }
-      if (annotationCanvasRef.current) {
-        annotationCanvasRef.current.width = 1;
-        annotationCanvasRef.current.height = 1;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isVisible) return;
-
-    const renderKey = `${pageNumber}:${scale.toFixed(4)}:${theme}`;
-    if (renderedKeyRef.current === renderKey) return;
-
-    let cancelled = false;
-
-    const run = async () => {
-      if (cancelled || !canvasRef.current) return;
-
-      let page: PDFPageProxy | null = null;
-      let staging: HTMLCanvasElement | null = null;
-
-      try {
-        page = await doc.getPage(pageNumber);
-        if (cancelled || !canvasRef.current) return;
-
-        const dpr = getCanvasPixelRatio();
-        // Safe bitmap ceiling (4.5M pixels = ~18MB buffer) prevents mobile WebView OOM
-        // crashes and GPU texture exhaustion when zooming in to 250%+ on Retina displays.
-        const MAX_CANVAS_PIXELS = 4_500_000;
-        const rawPixels = (pageSize.width * scale * dpr) * (pageSize.height * scale * dpr);
-        const dprAdjustment = rawPixels > MAX_CANVAS_PIXELS ? Math.sqrt(MAX_CANVAS_PIXELS / rawPixels) : 1;
-        const effectiveDpr = Math.max(1, dpr * dprAdjustment);
-
-        const viewport = page.getViewport({ scale: scale * effectiveDpr });
-        const cssViewport = page.getViewport({ scale });
-
-        // Render into a staging canvas first. The visible canvas is updated in
-        // one synchronous copy, so zooming never flashes a blank page.
-        staging = document.createElement('canvas');
-        staging.width = Math.max(1, Math.floor(viewport.width));
-        staging.height = Math.max(1, Math.floor(viewport.height));
-        const stagingContext = staging.getContext('2d', {
-          alpha: false,
-          willReadFrequently: false
-        });
-        if (!stagingContext) return;
-
-        stagingContext.imageSmoothingEnabled = true;
-        stagingContext.imageSmoothingQuality = 'high';
-        stagingContext.fillStyle = '#ffffff';
-        stagingContext.fillRect(0, 0, staging.width, staging.height);
-
-        const task = page.render({
-          canvas: staging,
-          canvasContext: stagingContext,
-          viewport,
-          intent: 'display'
-        });
-        currentRenderTaskRef.current = task;
-
-        try {
-          await task.promise;
-        } catch (error) {
-          const name = (error as { name?: string } | null)?.name;
-          if (!cancelled && name !== 'RenderingCancelledException') {
-            console.warn(`Render notice on page ${pageNumber}:`, error);
-          }
-          return;
-        }
-
-        if (cancelled || !canvasRef.current) return;
-
-        const canvas = canvasRef.current;
-        if (canvas.width !== staging.width) canvas.width = staging.width;
-        if (canvas.height !== staging.height) canvas.height = staging.height;
-
-        const context = canvas.getContext('2d', { alpha: false });
-        if (context) {
-          context.imageSmoothingEnabled = true;
-          context.imageSmoothingQuality = 'high';
-          const filter = themeFilter(theme);
-          const canFilter = Boolean(filter && supportsCanvasFilter());
-          if (canFilter && filter) context.filter = filter;
-          context.drawImage(staging, 0, 0);
-          if (canFilter) context.filter = 'none';
-        }
-
-        // Release backing GPU memory for staging canvas immediately
-        staging.width = 1;
-        staging.height = 1;
-
-        currentRenderTaskRef.current = null;
-        renderedKeyRef.current = renderKey;
-        setHasRenderedOnce(true);
-        setRenderError(null);
-
-        // Keep the CSS viewport values on record for debugging and for the
-        // text layer, which must match the raster at every scale.
-        canvas.dataset.viewportWidth = String(Math.floor(cssViewport.width));
-        canvas.dataset.viewportHeight = String(Math.floor(cssViewport.height));
-      } catch (error) {
-        const name = (error as { name?: string } | null)?.name;
-        if (!cancelled && name !== 'RenderingCancelledException') {
-          console.warn(`Render notice on page ${pageNumber}:`, error);
-          setRenderError((error as Error)?.message || 'Render failed');
-        }
-      } finally {
-        if (staging) {
-          staging.width = 1;
-          staging.height = 1;
-        }
-        try {
-          page?.cleanup();
-        } catch {
-          // Cleanup is best-effort
-        }
-      }
-    };
-
-    const cancelQueued = scheduleRender(priorityRef.current, run);
-
-    return () => {
-      cancelled = true;
-      cancelQueued();
-      const task = currentRenderTaskRef.current;
-      if (task) {
-        try {
-          task.cancel();
-        } catch {
-          // A finished render task cannot be cancelled.
-        }
-        currentRenderTaskRef.current = null;
-      }
-    };
-  }, [doc, pageNumber, scale, theme, isVisible, retryKey]);
-
-  // The text layer is laid out once at the page's natural size and scaled with
-  // a CSS transform. Rebuilding it on every zoom step destroyed any selection
-  // in progress and left the old glyph boxes under the new page size, which
-  // made Android's selection handles select the wrong range.
-  useEffect(() => {
-    if (!isVisible) return;
-    let cancelled = false;
-
-    const cancelIdle = scheduleIdleWork(async () => {
-      const container = textLayerRef.current;
-      if (!container || cancelled) return;
-
-      // Avoid re-extracting text and re-generating DOM nodes if already rendered for this page
-      if (container.dataset.pageRendered === String(pageNumber) && container.hasChildNodes()) {
-        return;
-      }
-
-      let page: PDFPageProxy | null = null;
-      try {
-        page = await doc.getPage(pageNumber);
-        if (cancelled || !textLayerRef.current) return;
-
-        const baseViewport = page.getViewport({ scale: 1 });
-        const textContent = await page.getTextContent();
-        if (cancelled || !textLayerRef.current) return;
-
-        const target = textLayerRef.current;
-        target.innerHTML = '';
-        target.style.setProperty('--total-scale-factor', '1');
-        target.style.setProperty('--scale-round-x', '1px');
-        target.style.setProperty('--scale-round-y', '1px');
-
-        const textLayer = new TextLayer({
-          textContentSource: textContent,
-          container: target,
-          viewport: baseViewport
-        });
-        await textLayer.render();
-
-        if (!cancelled) {
-          target.dataset.renderedScale = '1';
-          target.dataset.pageRendered = String(pageNumber);
-          setTextLayerVersion((version) => version + 1);
-        }
-      } catch {
-        // Text layer generation is non-fatal
-      } finally {
-        try {
-          page?.cleanup();
-        } catch {
-          // Cleanup is best-effort
-        }
-      }
-    }, 300);
-
-    return () => {
-      cancelled = true;
-      cancelIdle();
-    };
-  }, [doc, pageNumber, isVisible]);
-
-  // Search markers are applied after the text layer exists, then restored
-  // without touching the canvas or annotations.
-  useEffect(() => {
-    const container = textLayerRef.current;
-    if (!container || textLayerVersion === 0) return;
-
-    container.querySelectorAll('mark.search-highlight').forEach((mark) => {
-      const parent = mark.parentNode;
-      if (!parent) return;
-      while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
-      parent.removeChild(mark);
-    });
-    container.normalize();
-
-    const term = searchQuery?.trim() ?? '';
-    if (term.length < 2) return;
-
-    const safeTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    let regex: RegExp;
-    try {
-      regex = new RegExp(safeTerm, 'gi');
-    } catch {
-      return;
-    }
-    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
-    const textNodes: Text[] = [];
-
-    let currentNode = walker.nextNode();
-    while (currentNode) {
-      if (currentNode.nodeValue) textNodes.push(currentNode as Text);
-      currentNode = walker.nextNode();
-    }
-
-    for (const textNode of textNodes) {
-      const text = textNode.nodeValue || '';
-      if (!text) continue;
-
-      regex.lastIndex = 0;
-      const matches = Array.from(text.matchAll(regex));
-      if (matches.length === 0) continue;
-
-      const fragment = document.createDocumentFragment();
-      let cursor = 0;
-
-      for (const match of matches) {
-        const start = match.index ?? 0;
-        if (start > cursor) fragment.appendChild(document.createTextNode(text.slice(cursor, start)));
-
-        const marker = document.createElement('mark');
-        marker.className = isCurrentSearchPage
-          ? 'search-highlight active-search-highlight'
-          : 'search-highlight';
-        marker.textContent = match[0];
-        fragment.appendChild(marker);
-        cursor = start + match[0].length;
-      }
-
-      if (cursor < text.length) fragment.appendChild(document.createTextNode(text.slice(cursor)));
-      textNode.parentNode?.replaceChild(fragment, textNode);
-    }
-  }, [searchQuery, isCurrentSearchPage, textLayerVersion]);
+  const {
+    containerRef,
+    canvasRef,
+    textLayerRef,
+    annotationCanvasRef,
+    isVisible,
+    hasRenderedOnce,
+    renderError,
+    dimensions,
+    pageSize,
+    pageTheme,
+    isDark,
+    cssThemeFilter,
+    retryRender,
+  } = usePdfPageRender({
+    doc,
+    pageNumber,
+    scale,
+    theme,
+    baseAspectRatio,
+    searchQuery,
+    isCurrentSearchPage,
+    renderPriority,
+  });
 
   const pageAnnotations = useMemo(
     () => annotations.filter((annotation) => annotation.pageNumber === pageNumber),
@@ -570,7 +82,7 @@ const PdfPageView: React.FC<PdfPageProps> = ({
   // Highlights are painted once into one canvas per page. The previous DOM
   // implementation created a blended, animated layer for every line box,
   // which became both visually muddy and expensive on long highlighted pages.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const canvas = annotationCanvasRef.current;
     if (!canvas) return;
 
@@ -581,7 +93,7 @@ const PdfPageView: React.FC<PdfPageProps> = ({
       pageSize.height,
       isDark
     );
-  }, [pageAnnotations, pageSize.width, pageSize.height, isDark]);
+  }, [pageAnnotations, pageSize.width, pageSize.height, isDark, annotationCanvasRef]);
 
   const handlePageClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (mode !== 'select') { setActiveAnno(null); return; }
@@ -633,7 +145,7 @@ const PdfPageView: React.FC<PdfPageProps> = ({
       style={{
         width: `${dimensions.width}px`,
         height: `${dimensions.height}px`,
-        backgroundColor: PAGE_BACKGROUND[theme]
+        backgroundColor: PAGE_BACKGROUND[pageTheme]
       }}
     >
       {(isVisible || hasRenderedOnce) && (
@@ -759,10 +271,7 @@ const PdfPageView: React.FC<PdfPageProps> = ({
           </span>
           <button
             type="button"
-            onClick={() => {
-              setRenderError(null);
-              setRetryKey((k) => k + 1);
-            }}
+            onClick={retryRender}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-hover border border-line text-xs font-medium text-ink hover:bg-hover-strong active:scale-95 transition-all cursor-pointer shadow-xs"
           >
             <RefreshCw className="w-3 h-3" />

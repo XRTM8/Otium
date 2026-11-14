@@ -1,5 +1,7 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { normalizeSearchText } from './arabic';
+import { isTauriRuntime } from '../../platform/runtime';
+import { searchDocumentPagesWithRust } from '../../platform/rustEngine';
 
 export class SearchCancelledError extends Error {
   constructor() {
@@ -19,6 +21,17 @@ function yieldToUi(): Promise<void> {
  * A WeakMap lets the cache disappear with the document itself.
  */
 const pageTextCache = new WeakMap<PDFDocumentProxy, Map<number, string>>();
+const rustDocKeyMap = new WeakMap<PDFDocumentProxy, string>();
+let nextDocKeySeq = 1;
+
+function getDocSearchKey(doc: PDFDocumentProxy): string {
+  let key = rustDocKeyMap.get(doc);
+  if (!key) {
+    key = `doc_${nextDocKeySeq++}`;
+    rustDocKeyMap.set(doc, key);
+  }
+  return key;
+}
 
 function cacheFor(doc: PDFDocumentProxy): Map<number, string> {
   let cache = pageTextCache.get(doc);
@@ -30,7 +43,10 @@ function cacheFor(doc: PDFDocumentProxy): Map<number, string> {
 }
 
 export function clearSearchTextCache(doc: PDFDocumentProxy | null): void {
-  if (doc) pageTextCache.delete(doc);
+  if (doc) {
+    pageTextCache.delete(doc);
+    rustDocKeyMap.delete(doc);
+  }
 }
 
 async function getPageText(
@@ -78,6 +94,19 @@ export async function searchDocumentPages(
   const term = normalizeSearchText(query);
   if (term.length < 2) return [];
 
+  const docKey = getDocSearchKey(doc);
+  const cache = cacheFor(doc);
+
+  // Fast native path when all pages are already extracted & Tauri runtime is active:
+  // queries the cached Rust ArabicTrigramIndex without resending page text over IPC.
+  if (isTauriRuntime() && cache.size === doc.numPages) {
+    const cachedRustHits = await searchDocumentPagesWithRust(docKey, query, null);
+    if (signal?.aborted) throw new SearchCancelledError();
+    if (cachedRustHits !== null) {
+      return cachedRustHits;
+    }
+  }
+
   const matches: number[] = [];
 
   for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber += 1) {
@@ -92,6 +121,16 @@ export async function searchDocumentPages(
     if (pageNumber % 8 === 0) {
       await yieldToUi();
     }
+  }
+
+  // Warm the native Rust trigram index once extraction finishes so follow-up
+  // queries run in sub-millisecond Rust without holding extra JS work.
+  if (isTauriRuntime() && cache.size === doc.numPages && !signal?.aborted) {
+    const orderedPages: string[] = [];
+    for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber += 1) {
+      orderedPages.push(cache.get(pageNumber) ?? '');
+    }
+    void searchDocumentPagesWithRust(docKey, query, orderedPages);
   }
 
   if (signal?.aborted) throw new SearchCancelledError();

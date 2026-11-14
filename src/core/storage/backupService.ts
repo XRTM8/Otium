@@ -83,8 +83,7 @@ export interface RestoreOutcome {
 
 /**
  * Merges a backup into local storage. Highlights and bookmarks are keyed by id
- * and the incoming copy wins a collision, so restoring an old backup never
- * creates duplicates and never discards newer local notes.
+ * and the incoming copy wins a collision. Entries with other IDs are retained.
  */
 export async function applyBackupJson(text: string): Promise<RestoreOutcome> {
   const file = parseBackupFile(text);
@@ -93,24 +92,26 @@ export async function applyBackupJson(text: string): Promise<RestoreOutcome> {
 
   for (const document of file.documents) {
     if (document.annotations.length > 0) {
-      const existing = await loadStoredAnnotations(document.id, document.name).catch(() => []);
-      await saveStoredAnnotations(
+      const existing = await loadStoredAnnotations(document.id, document.name, { requireReadable: true });
+      const saved = await saveStoredAnnotations(
         document.id,
         mergeAnnotations(existing, document.annotations)
       );
+      if (!saved) throw new Error('Could not save the restored annotations.');
       annotationCount += document.annotations.length;
     }
 
     if (document.bookmarks.length > 0) {
-      const existing = getStoredBookmarks(document.id, document.name);
-      saveStoredBookmarks(
+      const existing = getStoredBookmarks(document.id, document.name, { requireReadable: true });
+      const saved = saveStoredBookmarks(
         document.id,
         mergeBookmarks(existing, document.bookmarks)
       );
+      if (!saved) throw new Error('Could not save the restored bookmarks.');
       bookmarkCount += document.bookmarks.length;
     }
 
-    await restoreDocumentMetadata({
+    const saved = await restoreDocumentMetadata({
       id: document.id,
       name: document.name,
       totalPages: document.totalPages,
@@ -118,6 +119,7 @@ export async function applyBackupJson(text: string): Promise<RestoreOutcome> {
       lastOpened: document.lastOpened,
       sizeBytes: document.sizeBytes
     });
+    if (!saved) throw new Error('Could not save the restored document metadata.');
   }
 
   return {

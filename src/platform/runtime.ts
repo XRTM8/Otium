@@ -56,15 +56,27 @@ export function getPlatformLabel(platform: PlatformId = getPlatformId()): string
  * in standard web browsers, it opens a secure new tab.
  */
 export async function openExternalLink(url: string): Promise<void> {
+  if (typeof url !== 'string' || !url.trim()) return;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return;
+  }
+  if (!['https:', 'http:', 'mailto:'].includes(parsed.protocol)) {
+    console.warn('Blocked attempt to open untrusted URI scheme:', parsed.protocol);
+    return;
+  }
+  const safeUrl = parsed.toString();
   if (isTauriRuntime()) {
     try {
-      await openUrl(url);
+      await openUrl(safeUrl);
       return;
     } catch (e) {
       console.warn('Failed to open external URL via Tauri plugin-opener:', e);
     }
   }
   if (typeof window !== 'undefined') {
-    window.open(url, '_blank', 'noopener,noreferrer');
+    window.open(safeUrl, '_blank', 'noopener,noreferrer');
   }
 }

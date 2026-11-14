@@ -1,0 +1,27 @@
+[package]
+name = "otium-app"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Pure Rust native application orchestrator and GUI engine for Otium Sovereign Reader"
+
+[dependencies]
+otium-core.workspace = true
+otium-slides.workspace = true
+otium-scanner.workspace = true
+otium-ink.workspace = true
+otium-pdf.workspace = true
+otium-vault.workspace = true
+otium-beam.workspace = true
+rfd = "0.15"
+image.workspace = true
+slint = "1.18"
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+log.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+memmap2.workspace = true
+mimalloc.workspace = true

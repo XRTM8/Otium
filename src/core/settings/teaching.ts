@@ -1,3 +1,4 @@
+import { localStorage } from '../../platform/storage';
 export interface TeachingPreferences {
   position: 'left' | 'center' | 'right';
   offset: number;

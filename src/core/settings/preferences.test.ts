@@ -1,3 +1,4 @@
+import { localStorage } from '../../platform/storage';
 import { describe, expect, it, beforeEach } from 'vitest';
 import {
   loadTheme,

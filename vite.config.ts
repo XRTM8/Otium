@@ -15,6 +15,18 @@ export default defineConfig({
   },
   plugins: [
     {
+      name: 'strip-woff-fontsource',
+      enforce: 'pre',
+      transform(code, id) {
+        if (id.includes('@fontsource') && id.endsWith('.css')) {
+          return {
+            code: code.replace(/,\s*url\([^)]+\.woff\)\s*format\(['"]woff['"]\)/g, ''),
+            map: null,
+          };
+        }
+      },
+    },
+    {
       name: 'development-csp',
       apply: 'serve',
       transformIndexHtml(html) {
@@ -37,6 +49,9 @@ export default defineConfig({
           }
           if (id.includes('node_modules/tesseract.js')) {
             return 'tesseract-ocr';
+          }
+          if (id.includes('node_modules/pdf-lib')) {
+            return 'vendor-pdflib';
           }
           if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
             return 'vendor-react';

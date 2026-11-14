@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Crop, X } from 'lucide-react';
 import type { Language } from '../../core/i18n/translations';
 import type { BoardSnippet } from '../types';
+import { computeCanvasCropRegion } from './areaSnippetGeometry';
 
 interface AreaSnippetModalProps {
   isOpen: boolean;
@@ -45,7 +46,9 @@ export const AreaSnippetModal: React.FC<AreaSnippetModalProps> = ({
     if (!overlay) return;
     try {
       overlay.setPointerCapture(e.pointerId);
-    } catch {}
+    } catch (err) {
+      console.debug('[AreaSnippetModal] setPointerCapture skipped:', err);
+    }
 
     const rect = overlay.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -79,7 +82,9 @@ export const AreaSnippetModal: React.FC<AreaSnippetModalProps> = ({
     if (overlay && overlay.hasPointerCapture(e.pointerId)) {
       try {
         overlay.releasePointerCapture(e.pointerId);
-      } catch {}
+      } catch (err) {
+        console.debug('[AreaSnippetModal] releasePointerCapture skipped:', err);
+      }
     }
 
     setIsSelecting(false);
@@ -118,20 +123,21 @@ export const AreaSnippetModal: React.FC<AreaSnippetModalProps> = ({
     }
 
     const canvasRect = pageCanvas.getBoundingClientRect();
+    const region = computeCanvasCropRegion(
+      screenLeft,
+      screenTop,
+      screenWidth,
+      screenHeight,
+      pageCanvas.width,
+      pageCanvas.height,
+      canvasRect
+    );
 
-    // Map screen coordinates to canvas pixels
-    const scaleX = pageCanvas.width / canvasRect.width;
-    const scaleY = pageCanvas.height / canvasRect.height;
-
-    const cropX = Math.max(0, (screenLeft - canvasRect.left) * scaleX);
-    const cropY = Math.max(0, (screenTop - canvasRect.top) * scaleY);
-    const cropW = Math.min(pageCanvas.width - cropX, screenWidth * scaleX);
-    const cropH = Math.min(pageCanvas.height - cropY, screenHeight * scaleY);
-
-    if (cropW <= 0 || cropH <= 0) {
+    if (!region) {
       onClose();
       return;
     }
+    const { cropX, cropY, cropW, cropH } = region;
 
     try {
       const tempCanvas = document.createElement('canvas');

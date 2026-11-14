@@ -18,7 +18,7 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
   const [penColor, setPenColor] = useState<string>('#1e3a8a'); // Classic blue ink
-  const [lineWidth, setLineWidth] = useState<number>(3);
+  const [lineWidth, setLineWidth] = useState<number>(3.5);
 
   // Setup canvas size once when modal opens
   useEffect(() => {
@@ -81,7 +81,9 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
     if (!canvas) return;
     try {
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    } catch {}
+    } catch (err) {
+      console.debug('[SignatureModal] setPointerCapture skipped:', err);
+    }
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -111,7 +113,9 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
     if (!isDrawing) return;
     try {
       (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {}
+    } catch (err) {
+      console.debug('[SignatureModal] releasePointerCapture skipped:', err);
+    }
     setIsDrawing(false);
   };
 

@@ -56,18 +56,18 @@ export interface Translations {
 
 const translations: Record<Language, Translations> = {
   ar: {
-    themeLabel: 'بيئة القراءة',
+    themeLabel: 'اللون',
     themes: {
-      paper: 'ورق دافئ',
-      midnight: 'ليلي عميق',
-      eink: 'حبر إلكتروني',
-      amber: 'كهرماني هادئ',
-      pure: 'أبيض استوديو',
-      amoled: 'أسود مطلق',
-      parchment: 'ورق قديم',
-      sakura: 'ساكورا وردي',
-      forest: 'غابة هادئة',
-      nordic: 'حجر نوردي'
+      paper: 'ورقي',
+      amber: 'كهرماني',
+      amoled: 'أسود',
+      eink: 'رمادي',
+      midnight: 'أزرق',
+      pure: 'أبيض',
+      parchment: 'بيج',
+      sakura: 'وردي',
+      forest: 'أخضر',
+      nordic: 'سماوي'
     },
     dropzoneTitle: 'اسحب وأفلت ملف PDF هنا',
     dropzoneSubtitle: 'أو انقر للاستعراض من جهازك',
@@ -101,7 +101,7 @@ const translations: Record<Language, Translations> = {
     passwordIncorrect: 'كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى',
     unlockButton: 'فتح الوثيقة',
     moreTools: 'المزيد من الأدوات',
-    readingThemesTitle: 'بيئات القراءة',
+    readingThemesTitle: 'الألوان',
     settingsTitle: 'إعدادات القارئ',
     typographyTitle: 'الخط والطباعة',
     fontsTitle: 'مكتبة الخطوط المدعومة',
@@ -112,15 +112,15 @@ const translations: Record<Language, Translations> = {
     themeLabel: 'Reading Theme',
     themes: {
       paper: 'Paper',
-      midnight: 'Midnight',
-      eink: 'E-Ink',
       amber: 'Amber',
-      pure: 'Pure',
-      amoled: 'AMOLED',
-      parchment: 'Parchment',
-      sakura: 'Sakura',
-      forest: 'Forest Sage',
-      nordic: 'Nordic Slate'
+      amoled: 'Black',
+      eink: 'Gray',
+      midnight: 'Blue',
+      pure: 'White',
+      parchment: 'Beige',
+      sakura: 'Pink',
+      forest: 'Green',
+      nordic: 'Slate'
     },
     dropzoneTitle: 'Drag & drop a PDF file here',
     dropzoneSubtitle: 'or click to browse from your device',

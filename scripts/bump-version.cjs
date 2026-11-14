@@ -1,7 +1,8 @@
 const fs = require('fs');
 
 const targetVersion = process.argv[2] || '1.5.3';
-const numericCode = targetVersion.replace(/\D/g, '');
+const [major, minor, patch] = targetVersion.split('-')[0].split('.').map(Number);
+const numericCode = major * 1_000_000 + minor * 1_000 + patch;
 
 // 1. package.json
 const pkgPath = 'package.json';
@@ -31,11 +32,11 @@ cargoToml = cargoToml.replace(/^version\s*=\s*"[^"]+"/m, `version = "${targetVer
 fs.writeFileSync(cargoTomlPath, cargoToml, 'utf8');
 
 // 5. Cargo.lock
-const cargoLockPath = 'src-tauri/Cargo.lock';
+const cargoLockPath = 'Cargo.lock';
 if (fs.existsSync(cargoLockPath)) {
-  let lock = fs.readFileSync(cargoLockPath, 'utf8');
-  lock = lock.replace(/(name = "otium"\r?\nversion = ")[^"]+(")/, `$1${targetVersion}$2`);
-  fs.writeFileSync(cargoLockPath, lock, 'utf8');
+  const cargoLock = fs.readFileSync(cargoLockPath, 'utf8');
+  fs.writeFileSync(cargoLockPath, cargoLock.replace(/(name = "otium"\r?\nversion = ")[^"]+(")/,
+    (_, opening, closing) => opening + targetVersion + closing), 'utf8');
 }
 
 // 6. updater.ts

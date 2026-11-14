@@ -5,7 +5,7 @@ import { PasswordModal } from './PasswordModal';
 import { SearchBar } from './SearchBar';
 import { SettingsModal } from './SettingsModal';
 import { Sidebar } from './Sidebar';
-import { useTeaching } from './TeachingContext';
+import { useTeaching } from './teachingContextValue';
 
 interface ReaderOverlaysProps {
   reader: ReaderController;

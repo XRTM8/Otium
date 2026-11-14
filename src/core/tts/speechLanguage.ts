@@ -8,6 +8,8 @@
  * voice from the script of the selected text avoids that class of error.
  */
 
+import { stripControlChars } from '../utils/textSanitize';
+
 const ARABIC_LETTER = /[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff\ufb50-\ufdff\ufe70-\ufeff]/;
 const LATIN_LETTER = /[A-Za-z\u00c0-\u024f]/;
 
@@ -36,9 +38,7 @@ export function detectSpeechLanguage(
  * whitespace, no control characters, and no soft hyphens left by line wraps.
  */
 export function prepareTextForSpeech(text: string): string {
-  // eslint-disable-next-line no-control-regex
-  return text
-    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, ' ')
+  return stripControlChars(text, { keepLineBreaks: true, replacement: ' ' })
     .replace(/[\u00ad\u200b-\u200d\u2060\ufeff]/g, '')
     .replace(/\s+/g, ' ')
     .trim();

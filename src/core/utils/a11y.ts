@@ -51,6 +51,7 @@ export function trapModalFocus(container: HTMLElement, event: KeyboardEvent): vo
 
   const firstElement = focusableElements[0];
   const lastElement = focusableElements[focusableElements.length - 1];
+  if (!firstElement || !lastElement) return;
 
   if (event.shiftKey) {
     if (document.activeElement === firstElement) {

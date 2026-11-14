@@ -5,7 +5,7 @@ import { getThemeBackground } from '../../app/themeBackground';
 export function boardAppearance(background: BoardBackground, theme: ThemeMode, followTheme: boolean, color: string) {
   const fill = followTheme ? getThemeBackground(theme) : background === 'dark' ? '#000000' : color;
   const rgb = fill.replace('#', '');
-  const [r, g, b] = [0, 2, 4].map(offset => parseInt(rgb.slice(offset, offset + 2), 16) / 255);
+  const [r = 0, g = 0, b = 0] = [0, 2, 4].map(offset => parseInt(rgb.slice(offset, offset + 2), 16) / 255);
   const dark = r * .2126 + g * .7152 + b * .0722 < .45;
   return { color: fill, dark, pattern: dark ? '#ffffff24' : '#00000020' };
 }

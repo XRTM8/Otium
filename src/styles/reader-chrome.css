@@ -1,0 +1,355 @@
+/* =====================================================
+   Shared chrome primitives. Components compose these
+   instead of hard-coding colours, so every theme behaves.
+   ===================================================== */
+.chrome-surface {
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.12) inset,
+    0 12px 36px -12px rgba(0, 0, 0, 0.32);
+}
+
+.theme-amoled .chrome-surface {
+  background: rgba(10, 10, 12, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(32px) saturate(1.4);
+  -webkit-backdrop-filter: blur(32px) saturate(1.4);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.12) inset,
+    0 16px 44px -12px rgba(0, 0, 0, 0.75);
+}
+
+.theme-amber .chrome-surface {
+  background: rgba(26, 18, 12, 0.75);
+  border: 1px solid rgba(245, 158, 11, 0.24);
+  backdrop-filter: blur(30px) saturate(1.3);
+  -webkit-backdrop-filter: blur(30px) saturate(1.3);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 14px 40px -12px rgba(0, 0, 0, 0.55);
+}
+
+.theme-paper .chrome-surface {
+  background: rgba(248, 243, 233, 0.78);
+  border: 1px solid rgba(45, 38, 30, 0.18);
+  backdrop-filter: blur(28px) saturate(1.2);
+  -webkit-backdrop-filter: blur(28px) saturate(1.2);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.45) inset,
+    0 12px 32px -10px rgba(45, 38, 30, 0.16);
+}
+
+.theme-eink .chrome-surface {
+  background: rgba(234, 234, 234, 0.82);
+  border: 1px solid rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(24px) saturate(1.1);
+  -webkit-backdrop-filter: blur(24px) saturate(1.1);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.50) inset,
+    0 12px 28px -10px rgba(0, 0, 0, 0.20);
+}
+
+.theme-midnight .chrome-surface,
+.theme-forest .chrome-surface,
+.theme-nordic .chrome-surface {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 14px 40px -12px rgba(0, 0, 0, 0.55);
+}
+
+/* Mobile chrome surface: placed AFTER theme chrome overrides so 32px desktop blur
+   never crushes mobile WebView scroll/zoom frame times. */
+@media (max-width: 640px) {
+  .chrome-surface,
+  .theme-amoled .chrome-surface,
+  .theme-amber .chrome-surface,
+  .theme-paper .chrome-surface,
+  .theme-eink .chrome-surface {
+    transition: background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+
+.otium-panel {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: 16px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 24px 60px -20px rgba(0, 0, 0, 0.45);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+  transition:
+    filter 140ms ease,
+    transform 140ms var(--ease-spring),
+    box-shadow 140ms ease;
+  will-change: transform;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.06);
+}
+
+.btn-primary:active {
+  transform: scale(0.96);
+  filter: brightness(0.96);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border-radius: 10px;
+  background: var(--surface-hover-subtle);
+  border: 1px solid var(--line-subtle);
+  color: var(--ink);
+  font-weight: 500;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 140ms var(--ease-spring);
+  will-change: transform;
+}
+
+.btn-secondary:hover {
+  background: var(--surface-hover);
+  border-color: var(--line);
+}
+
+.btn-secondary:active {
+  transform: scale(0.96);
+}
+
+.segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--surface-hover-subtle);
+  border: 1px solid var(--line-subtle);
+}
+
+.segmented > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  border-radius: 9px;
+  padding: 0.35rem 0.55rem;
+  color: var(--ink-muted);
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms var(--ease-spring);
+  will-change: transform;
+}
+
+.segmented > button:hover {
+  color: var(--ink);
+  background: var(--surface-hover-subtle);
+}
+
+.segmented > button:active {
+  transform: scale(0.94);
+}
+
+.segmented > button[data-active='true'] {
+  background: var(--surface-2);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16), 0 0 0 1px var(--line-subtle);
+}
+
+.action-chip {
+  display: inline-flex;
+  min-width: 0;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.25rem;
+  border-radius: 8px;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    transform 140ms var(--ease-spring);
+  will-change: transform;
+}
+
+.action-chip:hover {
+  background: var(--surface-hover);
+  color: var(--ink);
+}
+
+.action-chip:active {
+  background: var(--surface-hover-strong);
+  transform: scale(0.95);
+}
+
+.toolbar-icon {
+  display: inline-flex;
+  height: 32px;
+  width: 32px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    transform 140ms var(--ease-spring);
+  will-change: transform;
+}
+
+.toolbar-icon:hover {
+  background: var(--surface-hover);
+  color: var(--ink);
+}
+
+.toolbar-icon:active {
+  transform: scale(0.92);
+  background: var(--surface-hover-strong);
+}
+
+/* Dual page book spine curvature gutter shadow */
+.book-gutter-inner-right {
+  position: relative;
+}
+.book-gutter-inner-right::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 28px;
+  background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.08));
+  pointer-events: none;
+  z-index: 15;
+}
+
+.book-gutter-inner-left {
+  position: relative;
+}
+.book-gutter-inner-left::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 28px;
+  background: linear-gradient(to left, transparent, rgba(0, 0, 0, 0.08));
+  pointer-events: none;
+  z-index: 15;
+}
+
+.theme-amoled .book-gutter-inner-right::after,
+.theme-amoled .book-gutter-inner-left::after {
+  display: none;
+}
+
+.theme-midnight .book-gutter-inner-right::after,
+.theme-midnight .book-gutter-inner-left::after,
+.theme-amber .book-gutter-inner-right::after,
+.theme-amber .book-gutter-inner-left::after {
+  opacity: 0.45;
+}
+
+.paged-arrow {
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  opacity: 0.38;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 8px 24px -10px rgba(0, 0, 0, 0.4);
+  transition:
+    opacity 160ms ease,
+    background-color 160ms ease,
+    transform 140ms var(--ease-spring);
+  will-change: transform;
+}
+
+.paged-arrow:hover {
+  opacity: 1;
+  background: var(--surface-2);
+}
+
+.paged-arrow:active {
+  transform: translateY(-50%) scale(0.90);
+}
+
+.pdf-page-slot {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  border-radius: 3px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.18),
+    0 18px 46px -24px rgba(0, 0, 0, 0.55);
+  transition: box-shadow 180ms ease;
+}
+
+/* AMOLED true-black: zero ambient light bleed and zero edge shadow */
+.theme-amoled .reader-viewport {
+  background-image: none !important;
+  background-color: #000000 !important;
+}
+
+.theme-amoled .pdf-page-slot {
+  box-shadow: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Keep native selection handles in charge of their gesture. Changing
+   touch-action after selection starts cancels handle dragging on Android. */
+body[data-has-selection='true'] .teacher-dock {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.reader-viewport {
+  scroll-behavior: smooth;
+  overflow-anchor: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  transform: translateZ(0);
+  background-image: radial-gradient(
+    120% 90% at 50% 0%,
+    color-mix(in srgb, var(--accent) 5%, transparent) 0%,
+    transparent 60%
+  );
+}
+
+.reader-viewport[data-reader-resizing="true"] {
+  transition: none !important;
+}
+
+/* Android webview suppresses its own context menu; the in-app action bar
+   replaces it while text remains selectable. */
+.pdf-page-slot,
+.chrome-surface {
+  -webkit-touch-callout: none;
+}

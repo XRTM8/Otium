@@ -1,9 +1,12 @@
+import { localStorage } from '../platform/storage';
 // @vitest-environment happy-dom
-import { act } from 'react';
+import { act, useContext, useLayoutEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { TeachingProvider, useTeaching } from './TeachingContext';
+import { TeachingProvider } from './TeachingContext';
+import { useTeaching } from './teachingContextValue';
 import { DocumentInkProvider, DocumentInkLayer } from './DocumentInk';
+import { InkContext, type InkContextValue } from './documentInkContext';
 import { BoardCanvas } from '../board/components/BoardCanvas';
 import { readBoard, writeBoard } from '../board/utils/boardStorage';
 import { readInk, writeInk } from '../core/annotations/ink';
@@ -14,7 +17,13 @@ import type { ReaderController } from '../app/useReaderController';
 let root: Root, host: HTMLDivElement;
 let teaching: ReturnType<typeof useTeaching>;
 const restore = vi.fn();
-function Probe() { teaching = useTeaching(); return null; }
+function Probe() {
+  const value = useTeaching();
+  useLayoutEffect(() => {
+    teaching = value;
+  });
+  return null;
+}
 const initialStroke = { id: 'line', tool: 'pen' as const, color: '#e11d48', width: 4, points: [{ x: 100, y: 100 }, { x: 400, y: 100 }] };
 function reader(id: string, linked = false) {
   return { doc: {}, docId: id, docTitle: 'Lesson', annotations: [], annotationSaveStatus: 'saved',
@@ -152,8 +161,67 @@ describe('unified teacher workspace', () => {
     expect(tracked.length).toBeGreaterThan(0);
     await act(async () => { for (const message of tracked) for (const callback of listeners) callback({ type: 'BEAM_ANNOTATION_ACK', roomCode: 'OTM-1234', timestamp: Date.now(), annotationReceipt: { documentId: 'wrong-document', id: message.receiptId! } }); });
     expect(host.textContent).not.toContain('وصل الشرح للجهاز الآخر');
-    await act(async () => { for (const message of tracked) for (const callback of listeners) callback({ type: 'BEAM_ANNOTATION_ACK', roomCode: 'OTM-1234', timestamp: Date.now(), annotationReceipt: { documentId: 'lesson-receipts', id: message.receiptId! } }); });
+    await act(async () => {
+      for (const message of outgoing) {
+        if (!message.receiptId) continue;
+        for (const callback of listeners) callback({ type: 'BEAM_ANNOTATION_ACK', roomCode: 'OTM-1234',
+          timestamp: Date.now(), annotationReceipt: { documentId: 'lesson-receipts', id: message.receiptId } });
+      }
+    });
     expect(host.textContent).toContain('وصل الشرح للجهاز الآخر');
+  });
+  it('queues a real reader erasure while offline and rejects a stale reconnect snapshot', async () => {
+    const id = 'lesson-offline-ink';
+    const mark = { id: 'erase-me', type: 'pen' as const, page: 1, color: '#e11d48', width: 0.004, points: [{ x: 0.1, y: 0.1 }] };
+    await writeInk(id, [mark]);
+    let ink: InkContextValue | null = null;
+    function InkProbe() {
+      const context = useContext(InkContext);
+      useLayoutEffect(() => { ink = context; }, [context]);
+      return null;
+    }
+    const listeners = new Set<(message: BeamMessage, via: 'p2p') => unknown>();
+    const subscribe = vi.spyOn(beamService, 'subscribe').mockImplementation(callback => {
+      listeners.add(callback);
+      return () => { listeners.delete(callback); };
+    });
+    const outbound: BeamMessage[] = [];
+    const broadcast = vi.spyOn(beamService, 'broadcast').mockImplementation(async message => {
+      if (!message.receiptId) return;
+      outbound.push(message);
+      for (const callback of listeners) callback({
+        type: 'BEAM_ANNOTATION_ACK', roomCode: message.roomCode, timestamp: 1,
+        annotationReceipt: { documentId: id, id: message.receiptId },
+      }, 'p2p');
+    });
+    const linkedReader = reader(id, true);
+    const show = (connected: boolean) => act(async () => {
+      root.render(<TeachingProvider><DocumentInkProvider reader={{ ...linkedReader, beamPeerConnected: connected }}>
+        <InkProbe />
+      </DocumentInkProvider></TeachingProvider>);
+    });
+    const view = () => ink;
+    try {
+      await show(true);
+      await settled(() => view()?.marks.length === 1);
+      await show(false);
+      const before = outbound.length;
+      await act(async () => view()?.change([]));
+      expect(outbound).toHaveLength(before);
+      await show(true);
+      expect(outbound.slice(before).filter(message => message.ink?.deleted?.includes(mark.id))).toHaveLength(1);
+      await act(async () => {
+        for (const callback of listeners) callback({
+          type: 'BEAM_INK_UPDATE', roomCode: linkedReader.beamRoom!, timestamp: 1,
+          annotationSnapshot: true, ink: { documentId: id, upsert: [mark] },
+        }, 'p2p');
+      });
+      expect(view()?.marks).toEqual([]);
+      expect(await readInk(id)).toEqual([]);
+    } finally {
+      subscribe.mockRestore();
+      broadcast.mockRestore();
+    }
   });
   it('keeps finger input from writing when stylus-only mode is enabled', async () => {
     await render('lesson-stylus'); await click('قلم');

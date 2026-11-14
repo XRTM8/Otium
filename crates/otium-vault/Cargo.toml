@@ -1,0 +1,18 @@
+[package]
+name = "otium-vault"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Sovereign local encrypted vault powered by redb and ChaCha20-Poly1305 for private documents and progress"
+
+[dependencies]
+otium-core.workspace = true
+redb.workspace = true
+chacha20poly1305.workspace = true
+argon2.workspace = true
+rand.workspace = true
+zeroize.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true

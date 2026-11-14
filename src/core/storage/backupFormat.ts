@@ -1,6 +1,7 @@
 import type { BookmarkItem, FontFamilyId, TextAnnotation, ThemeMode, ViewMode } from '../types';
 import type { Language } from '../i18n/translations';
 import { normalizeAnnotation } from './annotations';
+import { stripControlChars } from '../utils/textSanitize';
 
 export const BACKUP_FORMAT = 'otium-backup';
 export const BACKUP_VERSION = 1;
@@ -102,8 +103,8 @@ export function sanitiseBackupDocument(raw: unknown): BackupDocument | null {
     .map((bookmark) => sanitiseBookmark(bookmark, totalPages))
     .filter((bookmark): bookmark is BookmarkItem => bookmark !== null);
 
-  const cleanId = value.id.trim().replace(/[\x00-\x1f\x7f]/g, '').slice(0, 128);
-  const cleanName = value.name.trim().replace(/[\x00-\x1f\x7f]/g, '').slice(0, 256);
+  const cleanId = stripControlChars(value.id.trim()).slice(0, 128);
+  const cleanName = stripControlChars(value.name.trim()).slice(0, 256);
   if (!cleanId || !cleanName) return null;
 
   return {

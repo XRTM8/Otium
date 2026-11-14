@@ -1,10 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { getFormFactor } from './platform/runtime';
 import type { FormFactor } from './platform/runtime';
 import { requestStoragePersistence } from './core/storage/persistence';
-import { DesktopShell } from './shells/DesktopShell';
-import { MobileShell } from './shells/MobileShell';
+
+const DesktopShell = lazy(() =>
+  import('./shells/DesktopShell').then((mod) => ({ default: mod.DesktopShell }))
+);
+const MobileShell = lazy(() =>
+  import('./shells/MobileShell').then((mod) => ({ default: mod.MobileShell }))
+);
 import { useDisplayNavigation } from './platform/useDisplayNavigation';
+import { AutoUpdateBanner } from './components/AutoUpdateBanner';
 
 /**
  * Selects the platform shell. Everything below this line is shared: document
@@ -23,7 +29,14 @@ const App: React.FC = () => {
     // orientation changes must never unmount the reader and discard its state.
   }, []);
 
-  return formFactor === 'mobile' ? <MobileShell /> : <DesktopShell />;
+  return (
+    <>
+      <AutoUpdateBanner />
+      <Suspense fallback={null}>
+        {formFactor === 'mobile' ? <MobileShell /> : <DesktopShell />}
+      </Suspense>
+    </>
+  );
 };
 
 export default App;

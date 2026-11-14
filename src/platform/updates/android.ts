@@ -2,6 +2,8 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { getCurrentVersion } from '../../core/updates/currentVersion';
 import {
   OTIUM_RELEASES_URL,
+  OTIUM_RELEASE_FEED_URL,
+  OTIUM_RELEASE_FEED_FALLBACK_URL,
   isNewerVersion,
   parseReleaseInfo,
   type ReleaseInfo
@@ -29,14 +31,6 @@ let feedSequence = 0;
 
 function androidWindow(): AndroidWindow {
   return window as AndroidWindow;
-}
-
-function requireBridge(): AndroidUpdateBridge {
-  const bridge = androidWindow().OtiumAndroid;
-  if (!bridge || typeof bridge.fetchReleaseFeed !== 'function') {
-    throw new Error('Android update bridge is not ready. Reopen Otium and try again.');
-  }
-  return bridge;
 }
 
 function fetchFeedWithBridge(bridge: AndroidUpdateBridge, timeoutMs = 20_000): Promise<ReleaseInfo> {
@@ -86,6 +80,29 @@ function fetchFeedWithBridge(bridge: AndroidUpdateBridge, timeoutMs = 20_000): P
   });
 }
 
+async function fetchReleaseFeed(): Promise<ReleaseInfo> {
+  const bridge = androidWindow().OtiumAndroid;
+  if (bridge && typeof bridge.fetchReleaseFeed === 'function') {
+    try {
+      return await fetchFeedWithBridge(bridge);
+    } catch (e) {
+      console.warn('Native update bridge failed, falling back to direct HTTP:', e);
+    }
+  }
+
+  try {
+    const res = await fetch(OTIUM_RELEASE_FEED_URL, { cache: 'no-cache' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return parseReleaseInfo(data);
+  } catch {
+    const fallbackRes = await fetch(OTIUM_RELEASE_FEED_FALLBACK_URL, { cache: 'no-cache' });
+    if (!fallbackRes.ok) throw new Error('Could not reach the update server.');
+    const fallbackData = await fallbackRes.json();
+    return parseReleaseInfo(fallbackData);
+  }
+}
+
 /**
  * Android updates never install silently. The native bridge downloads the APK,
  * verifies its SHA-256, and hands it to the system Package Installer UI.
@@ -93,7 +110,7 @@ function fetchFeedWithBridge(bridge: AndroidUpdateBridge, timeoutMs = 20_000): P
 export const androidUpdateAdapter: UpdateAdapter = {
   async check() {
     const current = getCurrentVersion();
-    const feed = await fetchFeedWithBridge(requireBridge());
+    const feed = await fetchReleaseFeed();
 
     if (!isNewerVersion(feed.version, current)) {
       return {
@@ -124,14 +141,19 @@ export const androidUpdateAdapter: UpdateAdapter = {
   },
 
   async install(snapshot, onProgress, signal) {
-    const bridge = requireBridge();
+    const bridge = androidWindow().OtiumAndroid;
     const url = snapshot.manualDownloadUrl;
     const sha256 = snapshot.downloadSha256;
-    if (!url || !snapshot.canAutoInstall) {
+    if (!url) {
       throw new Error('This release has no installable APK.');
     }
-    if (!sha256) {
-      throw new Error('This release has no APK checksum, so Otium will not install it.');
+    if (!bridge || typeof bridge.downloadAndInstall !== 'function' || !sha256) {
+      await openUrl(url);
+      return {
+        ...snapshot,
+        phase: 'ready',
+        message: 'Opening download link in browser.'
+      };
     }
 
     const target = androidWindow();

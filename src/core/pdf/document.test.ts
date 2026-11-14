@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('./worker', () => ({ pdfjsLib: { getDocument: vi.fn() } }));
-import { pdfjsLib } from './worker';
+const pdfWorkerMocks = vi.hoisted(() => ({
+  getDocument: vi.fn(),
+}));
+
+vi.mock('./worker', () => ({
+  loadPdfjs: async () => ({ getDocument: pdfWorkerMocks.getDocument }),
+}));
 import { openPdf } from './document';
 
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
@@ -14,7 +19,7 @@ describe('PDF resources on deployed application paths', () => {
   ])('loads decoder and font resources beside the application at %s', async (href, base, expected) => {
     vi.stubGlobal('window', { location: { href } });
     vi.stubEnv('BASE_URL', base);
-    const getDocument = vi.mocked(pdfjsLib.getDocument);
+    const getDocument = pdfWorkerMocks.getDocument;
     getDocument.mockReturnValue({ promise: Promise.resolve({
       numPages: 1, getPage: async () => ({ getViewport: () => ({ width: 595, height: 842 }), cleanup() {} })
     }) } as any);

@@ -40,6 +40,31 @@ export function applyDomTheme(theme: ThemeMode): void {
   if (meta) meta.setAttribute('content', background);
 }
 
+let themePaintFrame: number | undefined;
+
+/** Commit the new palette before CSS can interpolate text and surfaces independently. */
+export function applyThemeWithoutTransition(updateTheme: () => void): void {
+  if (typeof document === 'undefined') {
+    updateTheme();
+    return;
+  }
+
+  const root = document.documentElement;
+  if (themePaintFrame !== undefined) window.cancelAnimationFrame(themePaintFrame);
+  root.classList.add('theme-transitioning');
+  try {
+    updateTheme();
+  } finally {
+    // Keep transitions disabled through the first paint of the new palette.
+    themePaintFrame = window.requestAnimationFrame(() => {
+      themePaintFrame = window.requestAnimationFrame(() => {
+        root.classList.remove('theme-transitioning');
+        themePaintFrame = undefined;
+      });
+    });
+  }
+}
+
 /**
  * Keeps the native chrome in step with the in-app theme:
  * - Windows: native dark/light title bar and resize background.
@@ -54,11 +79,7 @@ export function syncNativeTheme(theme: ThemeMode): void {
   // Android: status/navigation bar colour plus icon appearance via OtiumTheme bridge
   if (typeof window !== 'undefined') {
     try {
-      const bridge = (window as unknown as {
-        OtiumTheme?: {
-          setTheme?: (mode: string, background: string, lightTheme: boolean) => void;
-        };
-      }).OtiumTheme;
+      const bridge = window.OtiumTheme;
       if (bridge?.setTheme) {
         bridge.setTheme(light ? 'light' : 'dark', background, light);
         return;
@@ -73,8 +94,12 @@ export function syncNativeTheme(theme: ThemeMode): void {
   void import('@tauri-apps/api/window')
     .then(({ getCurrentWindow }) => {
       const current = getCurrentWindow();
-      void current.setTheme(light ? 'light' : 'dark').catch(() => {});
-      void current.setBackgroundColor(background).catch(() => {});
+      void current.setTheme(light ? 'light' : 'dark').then(undefined, (err: unknown) => {
+        console.debug('[Theme] Native window setTheme skipped:', err);
+      });
+      void current.setBackgroundColor(background).then(undefined, (err: unknown) => {
+        console.debug('[Theme] Native window setBackgroundColor skipped:', err);
+      });
     })
     .catch(() => {
       // Browser previews do not expose the Tauri window API.

@@ -1,0 +1,15 @@
+[package]
+name = "otium-pdf"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "High-performance PDF document inspection, metadata and rendering engine for Otium"
+
+[dependencies]
+otium-core.workspace = true
+lopdf.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+memmap2.workspace = true

@@ -54,6 +54,7 @@ export function buildPdfFromJpegPages(pages: PdfImagePage[]): Uint8Array {
 
   for (let i = 0; i < totalPages; i++) {
     const page = pages[i];
+    if (!page) continue;
     const pageObjId = 3 + i * 3;
     const contentObjId = pageObjId + 1;
     const imageObjId = pageObjId + 2;

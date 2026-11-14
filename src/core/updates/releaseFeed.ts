@@ -20,20 +20,33 @@ export interface ReleaseInfo {
 export const OTIUM_RELEASES_URL = 'https://github.com/XRTM8/Otium/releases/latest';
 export const OTIUM_RELEASE_FEED_URL =
   'https://github.com/XRTM8/Otium/releases/latest/download/latest.json';
+export const OTIUM_RELEASE_FEED_FALLBACK_URL =
+  'https://xrtm8.github.io/Otium/latest.json';
 
 function normalizeVersion(version: string): string {
   return version.trim().replace(/^v/i, '');
 }
 
-function parseVersionPart(version: string): { numbers: number[]; prerelease: string } {
+function parseVersionPart(version: string): { numbers: number[]; labNumber: number; labOnly: boolean; prerelease: string } {
   const normalized = normalizeVersion(version);
-  const [main, prerelease = ''] = normalized.split('-', 2);
+  // Match bare lab tags like "lab-07" or "lab-14"
+  const labMatch = normalized.match(/^lab-(\d+)/i);
+  if (labMatch?.[1]) {
+    const num = Number.parseInt(labMatch[1], 10);
+    return { numbers: [0, 0, 0], labNumber: num, labOnly: true, prerelease: `lab.${num}` };
+  }
+  const [main = '', prerelease = ''] = normalized.split('-', 2);
   const numbers = main.split('.').map((part) => {
     const value = Number.parseInt(part, 10);
     return Number.isFinite(value) ? value : 0;
   });
   while (numbers.length < 3) numbers.push(0);
-  return { numbers, prerelease };
+
+  // Extract lab number from prerelease like "lab.7" or "lab.04"
+  const preLabMatch = prerelease.match(/lab\.?(\d+)/i);
+  const labNumber = preLabMatch?.[1] ? Number.parseInt(preLabMatch[1], 10) : 0;
+
+  return { numbers, labNumber, labOnly: false, prerelease };
 }
 
 /** Returns a positive number when candidate is newer than current. */
@@ -41,15 +54,23 @@ export function compareVersions(candidate: string, current: string): number {
   const left = parseVersionPart(candidate);
   const right = parseVersionPart(current);
 
+  if ((left.labOnly || right.labOnly) && left.labNumber > 0 && right.labNumber > 0) {
+    return left.labNumber - right.labNumber;
+  }
+
   for (let index = 0; index < 3; index += 1) {
-    const difference = left.numbers[index] - right.numbers[index];
+    const difference = (left.numbers[index] ?? 0) - (right.numbers[index] ?? 0);
     if (difference !== 0) return difference;
+  }
+
+  if (left.labNumber !== right.labNumber) {
+    return left.labNumber - right.labNumber;
   }
 
   if (left.prerelease === right.prerelease) return 0;
   if (!left.prerelease) return 1;
   if (!right.prerelease) return -1;
-  return left.prerelease.localeCompare(right.prerelease);
+  return left.prerelease.localeCompare(right.prerelease, undefined, { numeric: true });
 }
 
 export function isNewerVersion(candidate: string, current: string): boolean {
@@ -109,29 +130,4 @@ export function parseReleaseInfo(value: unknown): ReleaseInfo {
       androidApk: parseAsset(rawAssets.androidApk)
     }
   };
-}
-
-export async function fetchReleaseInfo(
-  url: string = OTIUM_RELEASE_FEED_URL,
-  signal?: AbortSignal
-): Promise<ReleaseInfo> {
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 15_000);
-  const abort = () => controller.abort();
-  signal?.addEventListener('abort', abort, { once: true });
-
-  try {
-    const response = await fetch(url, {
-      cache: 'no-store',
-      headers: { Accept: 'application/json' },
-      signal: controller.signal
-    });
-    if (!response.ok) {
-      throw new Error(`Release feed returned ${response.status}`);
-    }
-    return parseReleaseInfo(await response.json());
-  } finally {
-    window.clearTimeout(timeout);
-    signal?.removeEventListener('abort', abort);
-  }
 }

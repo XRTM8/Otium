@@ -20,9 +20,6 @@ export interface DocumentAnalysisResult {
   quad: Quad;
   confidence: number;
   isDocumentPresent: boolean;
-  orientation: 'portrait' | 'landscape';
-  aspectCategory: 'a4' | 'idcard' | 'receipt' | 'book' | 'unknown';
-  sharpness: number;
 }
 
 export interface ScannedPage {
@@ -31,6 +28,9 @@ export interface ScannedPage {
   quad: Quad;
   filter: FilterType;
   timestamp: number;
+  needsCropReview?: boolean;
+  suggestedQuad?: Quad;
+  redacted?: boolean;
 }
 
 export type ScanStep = 'camera' | 'crop' | 'review';

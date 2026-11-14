@@ -1,7 +1,7 @@
 [package]
 name = "otium"
-version = "1.9.15"
-description = "A quiet, aesthetic, high-performance PDF reader"
+version = "2.0.0"
+description = "PDF reader, document scanner and presentation app"
 authors = ["XRTM8"]
 edition = "2024"
 rust-version = "1.90"
@@ -16,10 +16,21 @@ tauri-build = { version = "2.7.4", features = [] }
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-log = "0.4"
-tauri = { version = "2.12.5", features = ["devtools"] }
-tauri-plugin-log = "2"
+chacha20poly1305.workspace = true
+rand.workspace = true
+tokio = { version = "1", features = ["io-util", "net", "sync", "time"] }
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
+image = "0.25"
+mimalloc = { version = "0.1", default-features = false }
+tauri = { version = "2.12.5", features = [] }
 tauri-plugin-opener = "2"
+otium-core = { path = "../crates/otium-core" }
+otium-slides = { path = "../crates/otium-slides" }
+otium-scanner = { path = "../crates/otium-scanner" }
+otium-beam = { path = "../crates/otium-beam" }
+otium-ink = { path = "../crates/otium-ink" }
+otium-pdf = { path = "../crates/otium-pdf" }
+otium-vault = { path = "../crates/otium-vault" }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"
@@ -27,10 +38,9 @@ tauri-plugin-process = "2"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider"] }
+sha2 = "0.10"
+windows-sys = { version = "0.61", features = ["Win32_NetworkManagement_IpHelper", "Win32_NetworkManagement_Ndis", "Win32_Networking_WinSock"] }
 
-[profile.release]
-# Strip debug symbols and enable thin LTO with parallel codegen units
-strip = "symbols"
-lto = "thin"
-codegen-units = 16
-opt-level = "s"
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

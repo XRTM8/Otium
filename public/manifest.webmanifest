@@ -1,7 +1,7 @@
 {
-  "name": "Otium — The Quiet Reader & Studio",
+  "name": "Otium",
   "short_name": "Otium",
-  "description": "A distraction-free, sovereign, local-first PDF reader and intelligent document scanner",
+  "description": "قراءة PDF ومسح المستندات وعرض الملفات",
   "start_url": "./",
   "display": "standalone",
   "dir": "rtl",
@@ -9,7 +9,11 @@
   "background_color": "#06090f",
   "theme_color": "#f4ede1",
   "orientation": "any",
-  "categories": ["productivity", "utilities", "books"],
+  "categories": [
+    "productivity",
+    "utilities",
+    "books"
+  ],
   "icons": [
     {
       "src": "./pwa-192x192.png",

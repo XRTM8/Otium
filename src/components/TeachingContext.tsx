@@ -1,29 +1,17 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { readTeaching, saveTeaching, type TeachingPreferences } from '../core/settings/teaching';
-import type { BoardBackground, BoardTool } from '../board/types';
+import {
+  TeachingContext,
+  type BoardControls,
+  type SaveStatus,
+  type TeachingValue,
+} from './teachingContextValue';
 
-export type SaveStatus = 'loading' | 'saved' | 'saving' | 'error';
-export interface BoardControls {
-  ready: boolean; tool: BoardTool; color: string; width: number; background: BoardBackground; isDark?: boolean;
-  page: number; pages: number; canUndo: boolean; canRedo: boolean; exporting: boolean; status: SaveStatus; error: string;
-  setTool: (tool: BoardTool) => void; setColor: (color: string) => void; setWidth: (width: number) => void;
-  setBackground: (background: BoardBackground) => void;
-  undo: () => void; redo: () => void; clear: () => void; addPage: () => void; goToPage: (page: number) => void;
-  exportPdf: () => void; exportPng: () => void; clip: () => void;
-}
-interface TeachingValue {
-  mobile: boolean; layout: 'document' | 'split' | 'board'; setLayout: (layout: 'document' | 'split' | 'board') => void;
-  target: 'document' | 'board'; setTarget: (target: 'document' | 'board') => void;
-  prefs: TeachingPreferences; updatePrefs: (patch: Partial<TeachingPreferences>) => void;
-  presentation: boolean; setPresentation: (value: boolean) => void;
-  readerTools: boolean; setReaderTools: (value: boolean) => void;
-  reachMode: boolean; setReachMode: (value: boolean) => void;
-  board: BoardControls | null; registerBoard: (controls: BoardControls | null) => void;
-}
-const TeachingContext = createContext<TeachingValue | null>(null);
+export type { BoardControls, SaveStatus };
+
 export function TeachingProvider({ children, mobile = false }: { children: ReactNode; mobile?: boolean }) {
-  const [layout, setLayoutState] = useState<TeachingValue['layout']>('document');
-  const [target, setTarget] = useState<TeachingValue['target']>('document');
+  const [rawLayout, setRawLayout] = useState<TeachingValue['layout']>('document');
+  const [rawTarget, setRawTarget] = useState<TeachingValue['target']>('document');
   const [prefs, setPrefs] = useState(readTeaching);
   const [presentation, setPresentation] = useState(false);
   // Reading is the calm default: the familiar top toolbar is immediately
@@ -31,23 +19,48 @@ export function TeachingProvider({ children, mobile = false }: { children: React
   const [readerTools, setReaderTools] = useState(true);
   const [reachMode, setReachMode] = useState(false);
   const [board, registerBoard] = useState<BoardControls | null>(null);
+
+  const layout = prefs.boardEnabled ? rawLayout : 'document';
+  const target = prefs.boardEnabled ? rawTarget : 'document';
+
   const setLayout = useCallback((next: TeachingValue['layout']) => {
     // The board is opt-in. A stale shortcut or an old saved layout must not
     // surface it on a teacher's phone or computer unexpectedly.
     if (!prefs.boardEnabled) next = 'document';
-    setLayoutState(next); if (next !== 'split') setTarget(next);
+    setRawLayout(next);
+    if (next !== 'split') setRawTarget(next);
   }, [prefs.boardEnabled]);
-  const updatePrefs = useCallback((patch: Partial<TeachingPreferences>) => setPrefs(prev => ({ ...prev, ...patch })), []);
+
+  const setTarget = useCallback((next: TeachingValue['target']) => {
+    setRawTarget(prefs.boardEnabled ? next : 'document');
+  }, [prefs.boardEnabled]);
+
+  const updatePrefs = useCallback((patch: Partial<TeachingPreferences>) => {
+    setPrefs((prev) => ({ ...prev, ...patch }));
+  }, []);
+
   useEffect(() => saveTeaching(prefs), [prefs]);
-  useEffect(() => {
-    if (!prefs.boardEnabled) { setLayoutState('document'); setTarget('document'); }
-  }, [prefs.boardEnabled]);
-  const value = useMemo(() => ({ mobile, layout, setLayout, target, setTarget, prefs, updatePrefs, presentation, setPresentation,
-    readerTools, setReaderTools, reachMode, setReachMode, board, registerBoard }), [mobile, layout, setLayout, target, prefs, updatePrefs, presentation, readerTools, reachMode, board]);
+
+  const value = useMemo(
+    () => ({
+      mobile,
+      layout,
+      setLayout,
+      target,
+      setTarget,
+      prefs,
+      updatePrefs,
+      presentation,
+      setPresentation,
+      readerTools,
+      setReaderTools,
+      reachMode,
+      setReachMode,
+      board,
+      registerBoard,
+    }),
+    [mobile, layout, setLayout, target, setTarget, prefs, updatePrefs, presentation, readerTools, reachMode, board]
+  );
+
   return <TeachingContext.Provider value={value}>{children}</TeachingContext.Provider>;
-}
-export function useTeaching() {
-  const context = useContext(TeachingContext);
-  if (!context) throw new Error('TeachingProvider missing');
-  return context;
 }

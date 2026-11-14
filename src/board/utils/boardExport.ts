@@ -2,6 +2,7 @@ import type { BoardBackground, BoardSnippet, BoardStroke } from '../types';
 import { buildPdfFromJpegPages, type PdfImagePage } from './pdfWriter';
 import { drawBoardInk } from './boardInk';
 import { boardAppearance } from './boardAppearance';
+import { prepareExportInk } from './boardExportInk';
 
 export interface ExportableBoardPage {
   id: string;
@@ -130,7 +131,8 @@ export async function exportPageToPng(
   if (!ctx) throw new Error('Could not prepare the image export.');
 
   const images = await loadSnippetImages(snippets);
-  renderBoardPageToContext(ctx, page, canvas.width, canvas.height, snippets, images);
+  const strokes = await prepareExportInk(page.strokes);
+  renderBoardPageToContext(ctx, { ...page, strokes }, canvas.width, canvas.height, snippets, images);
 
   return new Promise<void>((resolve, reject) => {
     canvas.toBlob((blob) => {
@@ -165,7 +167,9 @@ export async function exportAllPagesToPdf(
 
   for (let i = 0; i < pages.length; i++) {
     const page = pages[i];
-    renderBoardPageToContext(ctx, page, targetWidth, targetHeight, snippets, images);
+    if (!page) continue;
+    const strokes = await prepareExportInk(page.strokes);
+    renderBoardPageToContext(ctx, { ...page, strokes }, targetWidth, targetHeight, snippets, images);
 
     const jpegBlob = await new Promise<Blob | null>((resolve) => {
       canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.98);
@@ -184,7 +188,7 @@ export async function exportAllPagesToPdf(
   if (pdfPages.length !== pages.length) throw new Error('Could not encode all whiteboard pages.');
 
   const pdfBytes = buildPdfFromJpegPages(pdfPages);
-  const pdfBlob = new Blob([pdfBytes as unknown as BlobPart], { type: 'application/pdf' });
+  const pdfBlob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
   const dateStr = new Date().toISOString().slice(0, 10);
   triggerFileDownload(pdfBlob, `Otium_Lecture_Notes_${dateStr}.pdf`);
 }

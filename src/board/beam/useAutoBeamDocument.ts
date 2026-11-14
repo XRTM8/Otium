@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { ThemeMode, ViewMode } from '../../core/types';
 import { beamService } from './beamService';
@@ -12,18 +12,24 @@ interface AutoBeamDocument {
 /** One automatic transfer per opened document; the latest file waits its turn. */
 export function useAutoBeamDocument(options: AutoBeamDocument) {
   const latest = useRef(options);
-  latest.current = options;
+  useLayoutEffect(() => {
+    latest.current = options;
+  }, [options]);
   const [transfer, setTransfer] = useState(() => beamService.getTransferState());
-  const [error, setError] = useState<string | null>(null);
+  const scopeKey = `${options.docId}:${options.room ?? ''}`;
+  const [errorState, setErrorState] = useState<{ scope: string; message: string } | null>(null);
+  const error = errorState?.scope === scopeKey ? errorState.message : null;
+  const setError = useCallback((message: string | null) => {
+    setErrorState(message ? { scope: scopeKey, message } : null);
+  }, [scopeKey]);
   const [wake, setWake] = useState(0);
   const attempt = useRef<string | null>(null);
   const busy = useRef(false);
   const { doc, docId, room, role, peerConnected, loading } = options;
   useEffect(() => beamService.onTransferProgress(setTransfer), []);
-  useEffect(() => { setError(null); }, [docId, room]);
   useEffect(() => {
     if (!room || role !== 'sender' || !peerConnected) { attempt.current = null; return; }
-    if (!doc || !docId || loading || transfer.active || busy.current) return;
+    if (!doc || !docId || loading || transfer.active || busy.current || wake < 0) return;
     const key = `${room}:${docId}`;
     if (attempt.current === key) return;
     let cancelled = false;
@@ -52,7 +58,7 @@ export function useAutoBeamDocument(options: AutoBeamDocument) {
       }
     }, 120);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [doc, docId, room, role, peerConnected, loading, transfer.active, wake]);
-  const retry = useCallback(() => { attempt.current = null; setError(null); setWake(value => value + 1); }, []);
+  }, [doc, docId, room, role, peerConnected, loading, transfer.active, wake, setError]);
+  const retry = useCallback(() => { attempt.current = null; setError(null); setWake(value => value + 1); }, [setError]);
   return { active: role === 'sender' && transfer.active, progress: transfer.progress, error, retry, dismiss: () => setError(null) };
 }

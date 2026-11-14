@@ -21,7 +21,9 @@ createRoot(document.getElementById('root')!).render(
 // Register resilient offline Service Worker for smartboard & classroom offline resilience
 if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && window.location.protocol === 'https:') {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js').then(undefined, (err: unknown) => {
+      console.debug('[SW] Service worker registration skipped:', err);
+    });
   });
 }
 

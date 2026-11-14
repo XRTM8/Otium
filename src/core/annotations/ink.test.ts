@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { forceCloseDatabase } from 'fake-indexeddb';
+import { describe, expect, it, vi } from 'vitest';
 import { clampPoint, EMPTY_INK, hitInk, inkHistory, mergeInk, readInk, writeInk, type InkMark } from './ink';
 
 const mark: InkMark = { id: 'pen', page: 1, type: 'pen', color: '#e11d48', width: 0.004, points: [{ x: 0.2, y: 0.3 }, { x: 0.8, y: 0.3 }] };
@@ -46,5 +47,34 @@ describe('page-relative document ink', () => {
     expect(await readInk('book-b')).toEqual([]);
     await writeInk('book-a', []);
     expect(await readInk('book-a')).toEqual([]);
+  });
+
+  it('reopens the last committed ink after an interrupted write and can retry', async () => {
+    const id = 'book-interrupted-save';
+    await writeInk(id, [mark]);
+    const replacement = { ...mark, color: '#000000' };
+    const put = IDBObjectStore.prototype.put;
+    const abort = vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementationOnce(function (this: IDBObjectStore, value, key) {
+      const request = put.call(this, value, key);
+      request.addEventListener('success', () => this.transaction.abort());
+      return request;
+    });
+    await expect(writeInk(id, [replacement])).rejects.toThrow('Saving annotations was interrupted');
+    abort.mockRestore();
+
+    const transaction = vi.spyOn(IDBDatabase.prototype, 'transaction');
+    expect(await readInk(id)).toEqual([mark]);
+    const connection = transaction.mock.contexts.at(-1);
+    if (!connection) throw new Error('Expected an open ink database connection');
+    transaction.mockRestore();
+    const closed = new Promise<void>((resolve) => {
+      connection.addEventListener('close', () => resolve(), { once: true });
+    });
+    forceCloseDatabase(connection);
+    await closed;
+
+    expect(await readInk(id)).toEqual([mark]);
+    await writeInk(id, [replacement]);
+    expect(await readInk(id)).toEqual([replacement]);
   });
 });

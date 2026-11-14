@@ -1,0 +1,241 @@
+/* Paint the complete reader palette together when changing themes. */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: none !important;
+}
+
+.glass-panel {
+  background: rgba(24, 24, 27, 0.65);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lab-confirm { max-width: min(440px, calc(100vw - 32px)); padding: 28px; border: 1px solid var(--line); border-radius: 22px; background: var(--surface-1); color: var(--ink); margin: auto; box-shadow: 0 25px 80px #0004; line-height: 1.9; }
+.lab-confirm::backdrop { background: #0007; backdrop-filter: blur(5px); }
+.lab-confirm h2 { font-size: 20px; font-weight: 750; margin: 0 0 12px; }
+.lab-confirm p { color: var(--ink-muted); font-size: 13px; }
+.lab-confirm strong { display: block; overflow-wrap: anywhere; font-size: 13px; }
+.lab-confirm-actions { display: flex; justify-content: end; gap: 10px; margin-top: 24px; }
+.lab-confirm button { min-height: 44px; padding: 8px 22px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); color: var(--ink); font-size: 12px; cursor: pointer; touch-action: manipulation; }
+.lab-confirm button:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+.lab-confirm .lab-danger { background: var(--danger-ink); color: var(--surface-1); border-color: transparent; }
+
+/* Touch bottom sheets. The sheet is reachable one-handed; its close action
+   lives in the footer instead of the top edge. */
+@keyframes mobileSheetIn {
+  from {
+    transform: translate3d(0, 36px, 0);
+    opacity: 0.5;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+.mobile-sheet {
+  animation: mobileSheetIn 240ms var(--ease-spring);
+  will-change: transform, opacity;
+}
+
+/* Immersive reading: a page tap slides both bars fully off-screen. */
+.mobile-chrome-shell {
+  transition:
+    transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 220ms ease;
+  will-change: transform, opacity;
+}
+
+.mobile-chrome-shell[data-immersive='true'] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mobile-chrome-shell[data-position='top'][data-immersive='true'] {
+  transform: translate3d(0, -140%, 0);
+}
+
+.mobile-chrome-shell[data-position='bottom'][data-immersive='true'] {
+  transform: translate3d(0, 140%, 0);
+}
+
+/* A 900-page book must not lay out 900 thumbnails before the first paint.
+   Off-screen page buttons keep their remembered size and render on approach.
+   Scope to the mobile sheet: the desktop drawer uses a shorter two-column
+   cell, so a shared intrinsic height would make its scrollbar jump. */
+.mobile-sheet .page-thumb {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 180px;
+}
+
+@keyframes selectionBarIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.selection-bar-mobile {
+  animation: selectionBarIn 200ms var(--ease-spring);
+  will-change: transform, opacity;
+}
+
+/* Ambient glow breathing optimizations on small screens */
+@media (max-width: 640px) {
+  .animate-glow-amber,
+  .animate-glow-indigo {
+    animation: none;
+  }
+}
+
+/* Landscape phones need slimmer chrome so the page keeps the height. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .mobile-chrome-bar {
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+  }
+
+  .mobile-chrome-bar button {
+    padding: 0.35rem;
+  }
+
+  .mobile-chrome-extra {
+    display: none;
+  }
+}
+
+/* =====================================================
+   Dual-Page Book Flip Animations (3D Spring Curvature & Lighting)
+   Forward  = قلب للأمام  (3D subtle page curl from right)
+   Backward = قلب للخلف  (3D subtle page curl from left)
+   ===================================================== */
+@keyframes dualPageFlipForward {
+  0% {
+    opacity: 0.82;
+    transform: perspective(1600px) rotateY(-4deg) translateX(22px) scale(0.99);
+    filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.20)) brightness(0.97);
+  }
+  50% {
+    opacity: 0.95;
+    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.14)) brightness(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(1600px) rotateY(0deg) translateX(0) scale(1);
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.08)) brightness(1);
+  }
+}
+
+@keyframes dualPageFlipBackward {
+  0% {
+    opacity: 0.82;
+    transform: perspective(1600px) rotateY(4deg) translateX(-22px) scale(0.99);
+    filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.20)) brightness(0.97);
+  }
+  50% {
+    opacity: 0.95;
+    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.14)) brightness(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(1600px) rotateY(0deg) translateX(0) scale(1);
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.08)) brightness(1);
+  }
+}
+
+/* =====================================================
+   Paged reading transitions — horizontal spring slide.
+   ===================================================== */
+@keyframes pagedTurnForward {
+  0% {
+    opacity: 0.78;
+    transform: translate3d(22px, 0, 0) scale(0.988);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes pagedTurnBackward {
+  0% {
+    opacity: 0.78;
+    transform: translate3d(-22px, 0, 0) scale(0.988);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+/* Fluid spring interactive primitives (Apple / Nothing OS physics) */
+@keyframes fluidPopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.94) translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes fluidSheetIn {
+  0% {
+    opacity: 0.5;
+    transform: translate3d(0, 32px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes fluidFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+
+.fluid-pop {
+  animation: fluidPopIn 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: top right;
+  will-change: transform, opacity;
+}
+
+[dir="rtl"] .fluid-pop {
+  transform-origin: top left;
+}
+
+.fluid-sheet {
+  animation: fluidSheetIn 240ms var(--ease-spring) both;
+  will-change: transform, opacity;
+}
+
+.fluid-fade {
+  animation: fluidFadeIn 200ms ease both;
+}
+
+.fluid-press {
+  transition: transform 140ms var(--ease-spring), filter 140ms ease, background-color 140ms ease;
+  will-change: transform;
+}
+
+.fluid-press:active {
+  transform: scale(0.95);
+  filter: brightness(0.96);
+}

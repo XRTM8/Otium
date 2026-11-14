@@ -7,13 +7,15 @@ let audioCtx: AudioContext | null = null;
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
-  const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   if (!AudioContextClass) return null;
   if (!audioCtx) {
     audioCtx = new AudioContextClass();
   }
   if (audioCtx.state === 'suspended') {
-    audioCtx.resume().catch(() => {});
+    audioCtx.resume().then(undefined, (err: unknown) => {
+      console.debug('[Audio] AudioContext resume skipped:', err);
+    });
   }
   return audioCtx;
 }

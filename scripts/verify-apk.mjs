@@ -35,6 +35,8 @@ const argv = process.argv.slice(2);
 const options = {
   expectCert: null,
   expectVersion: null,
+  expectPackage: null,
+  afterCode: 0,
   minSdk: 24,
   targetSdk: null,
   check16kb: true,
@@ -45,6 +47,8 @@ for (let i = 0; i < argv.length; i += 1) {
   const arg = argv[i];
   if (arg === '--expect-cert') options.expectCert = argv[++i];
   else if (arg === '--expect-version') options.expectVersion = argv[++i];
+  else if (arg === '--expect-package') options.expectPackage = argv[++i];
+  else if (arg === '--after-code') options.afterCode = Number(argv[++i]);
   else if (arg === '--min-sdk') options.minSdk = Number(argv[++i]);
   else if (arg === '--target-sdk') options.targetSdk = Number(argv[++i]);
   else if (arg === '--skip-16kb') options.check16kb = false;
@@ -182,6 +186,13 @@ function verifyOne(file) {
   facts.abis = [...new Set(facts.abis)];
 
   if (!facts.package) problems.push('unreadable APK manifest (aapt2 failed)');
+  if (options.expectPackage && facts.package !== options.expectPackage) {
+    problems.push(`package is ${facts.package}, expected ${options.expectPackage}`);
+  }
+  const versionCode = Number(facts.versionCode);
+  if (!Number.isSafeInteger(versionCode) || !(versionCode > options.afterCode)) {
+    problems.push(`versionCode ${facts.versionCode} must exceed ${options.afterCode}`);
+  }
   if (options.expectVersion && facts.versionName !== options.expectVersion) {
     problems.push(`versionName is ${facts.versionName}, expected ${options.expectVersion}`);
   }

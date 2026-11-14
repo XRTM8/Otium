@@ -37,10 +37,8 @@ export async function acquireScreenWakeLock(): Promise<boolean> {
 
   isAcquirePending = true;
   try {
-    const nav = navigator as unknown as {
-      wakeLock: { request: (type: string) => Promise<WakeLockSentinelLike> };
-    };
-    const sentinel = await nav.wakeLock.request('screen');
+    if (!navigator.wakeLock) return false;
+    const sentinel = await navigator.wakeLock.request('screen');
     currentSentinel = sentinel;
     sentinel.addEventListener('release', () => {
       if (currentSentinel === sentinel) {

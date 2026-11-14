@@ -1,0 +1,15 @@
+[package]
+name = "otium-slides"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Pure Rust offline presentation engine for PPTX/PPSX slide decks without MS Office or cloud services"
+
+[dependencies]
+otium-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+quick-xml.workspace = true
+zip.workspace = true

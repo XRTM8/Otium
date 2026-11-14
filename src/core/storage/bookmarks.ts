@@ -1,11 +1,13 @@
+import { localStorage } from '../../platform/storage';
 import type { BookmarkItem } from '../types';
 
 const STORAGE_PREFIX = 'otium_bookmarks_';
 
-function readRaw(key: string): string | null {
+function readRaw(key: string, requireReadable: boolean): string | null {
   try {
     return localStorage.getItem(`${STORAGE_PREFIX}${key}`);
-  } catch {
+  } catch (error) {
+    if (requireReadable) throw error;
     return null;
   }
 }
@@ -31,28 +33,34 @@ function parse(raw: string | null): BookmarkItem[] | null {
  * Bookmarks follow the document fingerprint. `legacyTitle` reads an older
  * filename-keyed snapshot once and copies it to the stable key.
  */
-export function getStoredBookmarks(docKey: string, legacyTitle?: string): BookmarkItem[] {
+export function getStoredBookmarks(
+  docKey: string,
+  legacyTitle?: string,
+  { requireReadable = false }: { requireReadable?: boolean } = {}
+): BookmarkItem[] {
   if (!docKey || typeof window === 'undefined') return [];
 
-  const current = parse(readRaw(docKey));
+  const current = parse(readRaw(docKey, requireReadable));
   if (current !== null) return current;
 
   const legacyKey = legacyTitle && legacyTitle !== docKey ? legacyTitle : '';
   if (!legacyKey) return [];
 
-  const legacy = parse(readRaw(legacyKey));
+  const legacy = parse(readRaw(legacyKey, requireReadable));
   if (legacy === null) return [];
 
   saveStoredBookmarks(docKey, legacy);
   return legacy;
 }
 
-export function saveStoredBookmarks(docKey: string, bookmarks: BookmarkItem[]): void {
-  if (!docKey || typeof window === 'undefined') return;
+export function saveStoredBookmarks(docKey: string, bookmarks: BookmarkItem[]): boolean {
+  if (!docKey || typeof window === 'undefined') return false;
   try {
     localStorage.setItem(`${STORAGE_PREFIX}${docKey}`, JSON.stringify(bookmarks));
+    return true;
   } catch (err) {
     console.error('Failed to save bookmarks:', err);
+    return false;
   }
 }
 

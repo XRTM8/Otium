@@ -99,10 +99,13 @@ export function useUpdateChecker(adapter: UpdateAdapter | null): UpdateChecker {
 
   const openManualDownload = useCallback(async () => {
     if (!adapter || !snapshot) return;
+    setIsInstalling(true);
     try {
       await adapter.openManualDownload(snapshot);
     } catch (error) {
       setSnapshot(errorSnapshot(error));
+    } finally {
+      setIsInstalling(false);
     }
   }, [adapter, snapshot]);
 

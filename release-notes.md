@@ -1,3 +1,11 @@
+# Otium 2.0.0
+
+- بث ملفات PDF والصور والفيديو وعروض PowerPoint. يدعم الربط شبكة محلية بدون إنترنت، والربط عبر الإنترنت بكود Beam.
+- تقليب الصفحات والشرائح بأزرار الصوت على Android، مع إصلاح التكبير بإصبعين والحفاظ على موضع القراءة عند تدوير الشاشة.
+- تحسين اكتشاف الورقة ومراجعة القص وفلتر الأبيض والأسود واستيراد دفعات المسح.
+- تصدير شروحات PDF كمتجهات، وتحسين ممحاة السبورة والاتصال بالشاشات المحلية الأخيرة.
+- تبسيط شاشة البداية وخيارات البث والتحديث.
+
 # Otium 1.9.15 — Android displays and interactive boards
 
 - Allow Android devices to enable and use the complete whiteboard and split workspace; keep it opt-in and remember the setting.

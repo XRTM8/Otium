@@ -29,7 +29,7 @@ export function measureRefreshRate(callback?: (hz: number) => void): void {
       // Calculate median frame time to avoid outliers
       frameTimes.sort((a, b) => a - b);
       const medianDelta = frameTimes[Math.floor(frameTimes.length / 2)];
-      if (medianDelta > 0) {
+      if (medianDelta && medianDelta > 0) {
         const rawHz = 1000 / medianDelta;
         // Snap to common standard display refresh rates
         let hz = 60;
@@ -63,7 +63,7 @@ export function getCanvasPixelRatio(limit?: number): number {
   const isMobile =
     (typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches) ||
     (typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
-  const maxLimit = limit ?? (isMobile ? 2.5 : 2.5);
+  const maxLimit = limit ?? (isMobile ? 1.85 : 2);
   return Math.min(maxLimit, Math.max(1, raw));
 }
 

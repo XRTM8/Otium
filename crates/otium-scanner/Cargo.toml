@@ -1,0 +1,15 @@
+[package]
+name = "otium-scanner"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Pure Rust document scanner engine with perspective warp, edge detection, clean binarization and ID card stitcher"
+
+[dependencies]
+otium-scan-math = { path = "../otium-scan-math" }
+otium-core.workspace = true
+image.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true

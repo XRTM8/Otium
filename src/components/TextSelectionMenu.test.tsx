@@ -3,7 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 const publishSelection = vi.hoisted(() => vi.fn());
-vi.mock('./DocumentInk', () => ({ useDocumentInteraction: () => ({ mode: 'select', publishSelection }) }));
+vi.mock('./documentInkContext', () => ({ useDocumentInteraction: () => ({ mode: 'select', publishSelection }) }));
 import { TextSelectionMenu } from './TextSelectionMenu';
 
 let root: Root, host: HTMLDivElement, page: HTMLDivElement, text: HTMLSpanElement;

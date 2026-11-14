@@ -1,0 +1,62 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/otium-core",
+    "crates/otium-slides",
+    "crates/otium-scanner",
+    "crates/otium-scan-math",
+    "crates/otium-ink",
+    "crates/otium-pdf",
+    "crates/otium-vault",
+    "crates/otium-beam",
+    "crates/otium-wasm",
+    # Standalone experimental Slint desktop prototype (isolated from Web/Tauri CI targets)
+    "crates/otium-app",
+    "src-tauri",
+]
+
+[workspace.package]
+version = "2.0.0-lab"
+edition = "2021"
+authors = ["XRTM8"]
+license = "GPL-3.0"
+repository = "https://github.com/XRTM8/Otium-Lab"
+homepage = "https://xrtm8.github.io/Otium-Lab/"
+
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.10", features = ["v4", "serde"] }
+image = "0.25"
+quick-xml = { version = "0.37", features = ["serialize"] }
+zip = { version = "2.2", default-features = false, features = ["deflate"] }
+redb = "2.3"
+chacha20poly1305 = "0.10"
+argon2 = "0.5"
+rand = "0.8"
+zeroize = { version = "1.8", features = ["derive"] }
+qrcode = { version = "0.14", default-features = false, features = ["svg"] }
+log = "0.4"
+lopdf = "0.34"
+memmap2 = "0.9"
+mimalloc = { version = "0.1", default-features = false }
+bytemuck = { version = "1.18", features = ["derive"] }
+bumpalo = { version = "3.16", features = ["collections"] }
+
+# Internal workspace crates
+otium-core = { path = "crates/otium-core" }
+otium-slides = { path = "crates/otium-slides" }
+otium-scanner = { path = "crates/otium-scanner" }
+otium-ink = { path = "crates/otium-ink" }
+otium-pdf = { path = "crates/otium-pdf" }
+otium-vault = { path = "crates/otium-vault" }
+otium-beam = { path = "crates/otium-beam" }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true

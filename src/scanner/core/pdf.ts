@@ -1,6 +1,8 @@
+import { stripControlChars } from '../../core/utils/textSanitize';
+
 export interface OcrWordToken {
   text: string;
-  x: number; // percentage (0 to 1) or natural px
+  x: number; // normalized page coordinate
   y: number;
   width: number;
   height: number;
@@ -16,10 +18,20 @@ export type PdfPageFormat = 'a4' | 'fit';
 export type PdfWatermarkStyle = 'diagonal' | 'tiled';
 
 const textEncoder = new TextEncoder();
+const graphemes = typeof Intl.Segmenter === 'function' ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
+
+// PDF text operators put glyphs in visual order, including for invisible text.
+function visualOcrWord(word: string): string {
+  if (!/[\p{Script=Arabic}\p{Script=Hebrew}]/u.test(word)) return word;
+  const reverse = (text: string) => (graphemes
+    ? Array.from(graphemes.segment(text), ({ segment }) => segment)
+    : text.match(/[^\p{M}]\p{M}*|\p{M}+/gu) ?? []).reverse().join('');
+  // Preserve the order within Latin and decimal runs after reversing the RTL token.
+  return reverse(word).replace(/[\p{Script=Latin}\p{Nd}]+(?:[.,٫٬/_-][\p{Script=Latin}\p{Nd}]+)*/gu, reverse);
+}
 
 /**
- * Enterprise Searchable PDF 1.4 Compiler with Smart Multi-Tier Compression
- * and Standard ISO A4 Page Normalization (595x842 pt).
+ * Builds a PDF from canvases already available to the caller.
  */
 export async function createPdfFromCanvases(
   pagesInput: (HTMLCanvasElement | PdfPageInput)[],
@@ -28,68 +40,37 @@ export async function createPdfFromCanvases(
   watermarkText?: string,
   watermarkStyle: PdfWatermarkStyle = 'diagonal'
 ): Promise<Blob> {
-  const pages: PdfPageInput[] = pagesInput.map((item) =>
-    'canvas' in item ? item : { canvas: item, words: [] }
-  );
+  const pages = pagesInput.map((item) => 'canvas' in item ? item : { canvas: item });
+  return createScannedPdf(pages, pages.length, compressionPreset, pageFormat, watermarkText, watermarkStyle);
+}
 
+export async function createScannedPdf(
+  pages: Iterable<PdfPageInput> | AsyncIterable<PdfPageInput>,
+  pageCount: number,
+  compressionPreset: PdfCompressionPreset,
+  pageFormat: PdfPageFormat,
+  watermarkText?: string,
+  watermarkStyle: PdfWatermarkStyle = 'diagonal',
+): Promise<Blob> {
   const offsets: number[] = [];
-
-  // Convert canvases to optimized JPEG bytes in controlled batches to avoid mobile OOM crashes
-  const BATCH_SIZE = 2;
-  const imageSpecs: {
-    width: number;
-    height: number;
-    bytes: Uint8Array;
-    words: OcrWordToken[];
-  }[] = [];
-
-  for (let i = 0; i < pages.length; i += BATCH_SIZE) {
-    const chunk = pages.slice(i, i + BATCH_SIZE);
-    const chunkResults = await Promise.all(
-      chunk.map(async ({ canvas, words }) => {
-        const { optCanvas, quality } = getOptimizedCanvas(canvas, compressionPreset);
-
-        // Render high-fidelity Unicode/Arabic watermark directly onto canvas pixels
-        if (watermarkText && watermarkText.trim().length > 0) {
-          applyCanvasWatermark(optCanvas, watermarkText.trim(), watermarkStyle);
-        }
-
-        const blob = await new Promise<Blob>((res) =>
-          optCanvas.toBlob((b) => res(b || new Blob()), 'image/jpeg', quality)
-        );
-        const buffer = await blob.arrayBuffer();
-        const bytes = new Uint8Array(buffer);
-        const result = {
-          width: optCanvas.width,
-          height: optCanvas.height,
-          bytes,
-          words: words || [],
-        };
-
-        // Promptly release internal canvas backing store memory
-        optCanvas.width = 1;
-        optCanvas.height = 1;
-
-        return result;
-      })
-    );
-    imageSpecs.push(...chunkResults);
-  }
-
   const catalogIndex = 1;
   const pagesContainerIndex = 2;
   const fontObjIndex = 3;
-
-  const pageObjIndices: number[] = [];
-  let currentIndex = 4;
-
-  for (let i = 0; i < imageSpecs.length; i++) {
-    currentIndex++; // Image XObject
-    pageObjIndices.push(currentIndex++); // Page Object
-    currentIndex++; // Content stream
-  }
-
-  const pageRefs = pageObjIndices.map((idx) => `${idx} 0 R`).join(' ');
+  const descendantIndex = 4;
+  const unicodeIndex = 5;
+  const descriptorIndex = 6;
+  const firstImageIndex = 7;
+  const pageRefs = Array.from({ length: pageCount }, (_, index) => `${firstImageIndex + index * 3 + 1} 0 R`).join(' ');
+  const characters = new Map<string, string>();
+  const encodeText = (value: string) => Array.from(value, (character) => {
+    let code = characters.get(character);
+    if (!code) {
+      if (characters.size >= 0xfffe) throw new Error('Too many distinct characters in the scan');
+      code = (characters.size + 1).toString(16).padStart(4, '0');
+      characters.set(character, code);
+    }
+    return code;
+  }).join('');
 
   const finalChunks: (Uint8Array | string)[] = [];
   const header = '%PDF-1.4\n%\xE2\xE3\xCF\xD3\n';
@@ -117,15 +98,26 @@ export async function createPdfFromCanvases(
 
   // 2: Pages
   recordOffset(pagesContainerIndex);
-  writeText(`${pagesContainerIndex} 0 obj\n<< /Type /Pages /Kids [ ${pageRefs} ] /Count ${pageObjIndices.length} >>\nendobj\n`);
+  writeText(`${pagesContainerIndex} 0 obj\n<< /Type /Pages /Kids [ ${pageRefs} ] /Count ${pageCount} >>\nendobj\n`);
 
-  // 3: Base Font (Helvetica for invisible search layer)
-  recordOffset(fontObjIndex);
-  writeText(`${fontObjIndex} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n`);
-
-  let objCounter = 4;
-  for (let i = 0; i < imageSpecs.length; i++) {
-    const spec = imageSpecs[i];
+  let objCounter = firstImageIndex;
+  let written = 0;
+  for await (const { canvas, words = [] } of pages) {
+    const { optCanvas, quality } = getOptimizedCanvas(canvas, compressionPreset);
+    const width = optCanvas.width;
+    const height = optCanvas.height;
+    let bytes: Uint8Array;
+    try {
+      if (watermarkText?.trim()) applyCanvasWatermark(optCanvas, watermarkText.trim(), watermarkStyle);
+      const blob = await new Promise<Blob>((resolve, reject) =>
+        optCanvas.toBlob((result) => result?.size ? resolve(result) : reject(new Error('Could not encode a PDF page')), 'image/jpeg', quality)
+      );
+      bytes = new Uint8Array(await blob.arrayBuffer());
+    } finally {
+      optCanvas.width = optCanvas.height = 1;
+    }
+    const spec = { width, height, bytes, words };
+    written++;
     const imgObjIdx = objCounter++;
     const pageObjIdx = objCounter++;
     const contentObjIdx = objCounter++;
@@ -176,25 +168,21 @@ export async function createPdfFromCanvases(
       for (const w of spec.words) {
         if (!w || typeof w.text !== 'string') continue;
         // Sanitize control characters (\x00-\x1f, except space) and collapse newlines/tabs
-        const sanitized = w.text
-          .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '')
+        const sanitized = stripControlChars(w.text, { keepLineBreaks: true })
           .replace(/[\r\n\t]+/g, ' ')
           .trim();
         if (!sanitized) continue;
 
-        // Escape backslashes, opening and closing parentheses for PDF literal strings
-        const escaped = sanitized
-          .replace(/\\/g, '\\\\')
-          .replace(/\(/g, '\\(')
-          .replace(/\)/g, '\\)');
-
-        const wx = Math.round(drawX + (w.x || 0) * drawW);
-        const wy = Math.round(drawY + drawH - (w.y || 0) * drawH - 10);
-        textOperators += `1 0 0 1 ${wx} ${wy} Tm (${escaped}) Tj\n`;
+        const wx = (drawX + w.x * drawW).toFixed(2);
+        const fontSize = Math.max(1, (w.height || 0.015) * drawH);
+        const wy = (drawY + drawH - w.y * drawH - fontSize * 0.82).toFixed(2);
+        const charCount = Array.from(sanitized).length;
+        const scale = w.width > 0 ? Math.max(1, w.width * drawW / (charCount * fontSize) * 100) : 100;
+        textOperators += `/F1 ${fontSize.toFixed(2)} Tf ${scale.toFixed(2)} Tz 1 0 0 1 ${wx} ${wy} Tm <${encodeText(visualOcrWord(sanitized))}> Tj\n`;
       }
 
       if (textOperators.length > 0) {
-        contentStream += `BT\n/F1 10 Tf\n3 Tr\n${textOperators}ET\n`;
+        contentStream += `BT\n3 Tr\n${textOperators}ET\n`;
       }
     }
 
@@ -209,6 +197,27 @@ export async function createPdfFromCanvases(
       `${pageObjIdx} 0 obj\n<< /Type /Page /Parent ${pagesContainerIndex} 0 R /MediaBox [ 0 0 ${pagePtWidth} ${pagePtHeight} ] /Contents ${contentObjIdx} 0 R /Resources << /XObject << /Im0 ${imgObjIdx} 0 R >> /Font << /F1 ${fontObjIndex} 0 R >> >> >>\nendobj\n`
     );
   }
+
+  if (written !== pageCount) throw new Error('Scan page count changed during PDF export');
+
+  recordOffset(fontObjIndex);
+  writeText(`${fontObjIndex} 0 obj\n<< /Type /Font /Subtype /Type0 /BaseFont /OtiumOCR /Encoding /Identity-H /DescendantFonts [${descendantIndex} 0 R] /ToUnicode ${unicodeIndex} 0 R >>\nendobj\n`);
+  recordOffset(descendantIndex);
+  writeText(`${descendantIndex} 0 obj\n<< /Type /Font /Subtype /CIDFontType2 /BaseFont /OtiumOCR /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor ${descriptorIndex} 0 R /DW 1000 /CIDToGIDMap /Identity >>\nendobj\n`);
+  recordOffset(descriptorIndex);
+  writeText(`${descriptorIndex} 0 obj\n<< /Type /FontDescriptor /FontName /OtiumOCR /Flags 4 /FontBBox [0 -200 1000 900] /ItalicAngle 0 /Ascent 900 /Descent -200 /CapHeight 700 /StemV 80 >>\nendobj\n`);
+  const entries = Array.from(characters, ([character, code]) => {
+    const utf16 = character.split('').map((unit) => unit.charCodeAt(0).toString(16).padStart(4, '0')).join('');
+    return `<${code}> <${utf16}>`;
+  });
+  let cmap = '/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n/CMapName /OtiumOCRUnicode def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n';
+  for (let i = 0; i < entries.length; i += 100) {
+    const chunk = entries.slice(i, i + 100);
+    cmap += `${chunk.length} beginbfchar\n${chunk.join('\n')}\nendbfchar\n`;
+  }
+  cmap += 'endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n';
+  recordOffset(unicodeIndex);
+  writeText(`${unicodeIndex} 0 obj\n<< /Length ${cmap.length} >>\nstream\n${cmap}endstream\nendobj\n`);
 
   // Cross-reference table
   const xrefStart = byteOffset;
@@ -276,8 +285,8 @@ function getOptimizedCanvas(
     maxDimension = 1900; // ~200 DPI
     quality = 0.78;
   } else {
-    maxDimension = 3200; // Optimal high-res print
-    quality = 0.90;
+    maxDimension = 3600;
+    quality = 0.94;
   }
 
   const w = canvas.width;
@@ -295,8 +304,8 @@ function getOptimizedCanvas(
   }
 
   const scale = maxDimension / currentMax;
-  const targetW = Math.round(w * scale);
-  const targetH = Math.round(h * scale);
+  const targetW = Math.max(1, Math.round(w * scale));
+  const targetH = Math.max(1, Math.round(h * scale));
 
   const scaledCanvas = document.createElement('canvas');
   scaledCanvas.width = targetW;

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { getDefaultQuad, getFullFrameQuad, isQuadConvex, orderCorners } from './geometry';
+import {
+  computeQuadArea,
+  dewarpBookCurvatureAsync,
+  getDefaultQuad,
+  getFullFrameQuad,
+  isQuadConvex,
+  orderCorners,
+} from './geometry';
 import type { Point, Quad } from './types';
 
 describe('geometry calculations', () => {
@@ -59,5 +66,21 @@ describe('geometry calculations', () => {
     expect(quad.bottomRight.x).toBe(920);
     expect(quad.bottomRight.y).toBe(920);
     expect(isQuadConvex(quad)).toBe(true);
+  });
+
+  it('computes accurate shoelace quad area for asymmetric trapezoids regardless of winding order', () => {
+    // Non-square trapezoid where bl.x != bl.y to guard against shoelace axis typos
+    // Top base = 200 (x: 100..300 at y=20), Bottom base = 400 (x: 0..400 at y=120), height = 100 => area = 30,000
+    const tl = { x: 100, y: 20 };
+    const tr = { x: 300, y: 20 };
+    const br = { x: 400, y: 120 };
+    const bl = { x: 0, y: 120 };
+    expect(computeQuadArea(tl, tr, br, bl)).toBeCloseTo(30_000, 5);
+    expect(computeQuadArea(bl, br, tr, tl)).toBeCloseTo(30_000, 5);
+  });
+
+  it('returns source canvas unchanged when dewarping curvature is zero', async () => {
+    const mockCanvas = { width: 120, height: 160 } as HTMLCanvasElement;
+    expect(await dewarpBookCurvatureAsync(mockCanvas, 0, 0.5)).toBe(mockCanvas);
   });
 });

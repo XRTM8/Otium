@@ -2,6 +2,7 @@
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { expect, it } from 'vitest';
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 import { nextRemoteTarget, useDisplayNavigation } from './useDisplayNavigation';
 import { saveDeviceUsage } from './deviceUsage';
 const box = (x: number, y: number) => {

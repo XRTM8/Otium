@@ -27,7 +27,7 @@ function fallbackDigest(bytes: Uint8Array): string {
   let a = 0x811c9dc5;
   let b = 0x9e3779b9 ^ bytes.length;
   for (let index = 0; index < bytes.length; index += 1) {
-    const byte = bytes[index];
+    const byte = bytes[index] ?? 0;
     a ^= byte;
     a = Math.imul(a, 0x01000193) >>> 0;
     b ^= byte + index;

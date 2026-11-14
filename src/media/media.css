@@ -1,0 +1,68 @@
+.otium-media-viewer{display:flex;flex-direction:column;flex:1;min-height:0;height:100%;width:100%;color:var(--ink);background:var(--app-bg)}
+.otium-media-viewer .toolbar-icon{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:auto;height:auto;min-width:44px;min-height:44px;padding:8px 12px;white-space:nowrap;font-size:12px}
+.otium-media-viewer .toolbar-icon svg{flex-shrink:0}
+.otium-media-viewer .media-notice{font-size:11px;padding:6px 16px;margin:0;border-bottom:1px solid var(--line);line-height:1.7}
+.otium-media-viewer .media-stage{position:relative;flex:1;min-height:0;min-width:0;display:flex;align-items:center;justify-content:center;overflow:auto;padding:16px}
+.otium-media-viewer .media-surface{position:relative;flex-shrink:0;overflow:hidden;max-width:100%;max-height:100%;background:#050706;border-radius:10px}
+.otium-media-viewer .media-surface>video,.otium-media-viewer .media-surface>img,.otium-media-viewer .pptx-slide{display:block;width:100%;height:100%;object-fit:contain}
+.otium-media-viewer .ink{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.otium-media-viewer .ink.active{pointer-events:auto;touch-action:none;cursor:crosshair}
+.otium-media-viewer .slide-text{display:flex;flex-direction:column;overflow:hidden;white-space:pre-wrap;overflow-wrap:break-word;font-family:Arial,'Cairo Variable',sans-serif;line-height:1.2}
+.otium-media-viewer .slide-text p{margin:0;flex-shrink:0}
+.otium-media-viewer .slide-loading{padding:20px}
+.otium-media-viewer .player-controls{position:absolute;bottom:0;left:0;right:0;padding:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;direction:ltr;background:linear-gradient(transparent,#000d 25%);color:#fff;z-index:2}
+.otium-media-viewer .player-controls button,.otium-media-viewer .player-controls select{min-height:44px;border:1px solid #ffffff40;border-radius:12px;background:#17241feb;padding:8px 12px;color:#fff}
+.otium-media-viewer .player-controls input[type=range]{min-width:60px;flex:1;accent-color:var(--accent)}
+.otium-media-viewer .clock{font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.otium-media-viewer .audio-element{opacity:0}
+.otium-media-viewer .audio-art{position:absolute;inset:0;display:grid;place-content:center;text-align:center;color:var(--ink);background:var(--surface-1)}
+.otium-media-viewer .audio-art>span{font-size:96px;color:var(--accent)}
+.otium-media-viewer .media-bottom{padding:10px 12px;padding-bottom:max(10px,env(safe-area-inset-bottom,0px))}
+.otium-media-viewer .media-bottom button[aria-pressed=true]{background:var(--accent);color:var(--on-accent,#fff)}
+.otium-media-viewer .media-bottom input[type=color]{width:44px;height:44px;padding:4px;background:transparent}
+.otium-media-viewer .media-text{width:100%;max-width:900px;height:100%;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:24px;background:var(--surface-1);font:inherit;line-height:2}
+.otium-media-viewer.media-focused .media-stage{padding:0}
+.otium-media-viewer.media-focused .player-controls{display:none}
+.otium-media-viewer .media-restore{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);z-index:45}
+.otium-media-viewer .media-loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:3;background:var(--surface-1);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:12px 18px;font-size:12px;pointer-events:none;white-space:nowrap}
+.otium-media-viewer .media-size{min-height:44px;padding:6px 10px;background:var(--surface-1);color:var(--ink);border:1px solid var(--line);border-radius:12px}
+.otium-media-viewer .media-save-status{margin:4px 0 0;text-align:center;font-size:10px;color:var(--ink-muted)}
+.otium-media-viewer .player-controls button{position:relative;display:grid;place-items:center;min-width:44px;padding:8px}
+.otium-media-viewer .player-skip{position:absolute;font-size:8px;inset:19px 0 auto;text-align:center}
+.otium-media-viewer button:disabled{opacity:.4;cursor:default}
+@media(max-width:600px){.otium-media-viewer header>button:first-child span,.otium-media-viewer header>span{display:none}.otium-media-viewer .player-controls{gap:6px;padding:10px}.otium-media-viewer .player-timeline{order:-1;flex-basis:100%}.otium-media-viewer .player-controls .clock{margin-inline:auto}.otium-media-viewer .media-bottom>div{gap:4px}.otium-media-viewer .media-bottom button{padding-inline:8px;font-size:11px}}
+@media(max-height:500px){.otium-media-viewer .media-stage{padding:4px}.otium-media-viewer .media-notice{padding:2px 12px;font-size:10px}.otium-media-viewer .media-bottom{padding:4px}}
+/* Lab 04: keep the document central and group secondary actions. */
+.otium-media-viewer{position:relative}
+.otium-media-viewer>header{min-height:64px;background:var(--surface-1)}
+.otium-media-viewer .media-stage{padding:12px}
+.otium-media-viewer .media-surface{border:1px solid var(--line);border-radius:14px;box-shadow:0 4px 24px #0000000b}
+.otium-media-viewer .media-stage.media-zoomed{display:block;overflow:auto;touch-action:pan-x pan-y}
+.otium-media-viewer .media-zoomed>.media-surface{max-width:none;max-height:none;margin-inline:auto}
+.otium-media-viewer .media-bottom{align-self:center;max-width:calc(100% - 24px);margin:4px 12px 12px;padding:8px 10px;border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 30px #0000000a}
+.otium-media-viewer .media-bottom>div>*{flex-shrink:0}
+.otium-media-viewer .media-bottom .toolbar-icon{border-radius:11px}
+.otium-media-viewer .media-tool-group{display:flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:12px;background:var(--surface-1)}
+.otium-media-viewer .media-fit{font-size:10px;gap:6px}
+.otium-media-viewer .media-page-control label{display:flex;align-items:center;gap:5px;font-size:11px;font-variant-numeric:tabular-nums;padding:0 5px}
+.otium-media-viewer .media-page-control input{width:36px;min-height:36px;text-align:center;border:1px solid var(--line);border-radius:8px;background:var(--app-bg);color:var(--ink);appearance:textfield}
+.otium-media-viewer .media-page-control input::-webkit-inner-spin-button{appearance:none}
+.otium-media-viewer .media-go{font-size:10px;min-height:36px;padding:4px 10px;color:var(--accent);background:transparent;border:0}
+.otium-media-viewer .media-feedback{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 16px;margin:0;background:var(--surface-1);font-size:12px;color:var(--ink);border-bottom:1px solid var(--line);line-height:1.7}
+.otium-media-viewer .media-feedback button{min-width:36px;min-height:32px;background:none;border:0;color:var(--ink-muted);font-size:20px}
+.otium-media-viewer .media-popup>summary{min-width:44px;min-height:44px;list-style:none;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:8px 12px;cursor:pointer;color:var(--ink-muted);font-size:12px;white-space:nowrap}
+.otium-media-viewer .media-popup>summary::-webkit-details-marker{display:none}
+.otium-media-viewer .media-popup>summary:hover,.otium-media-viewer .media-popup[open]>summary{background:var(--surface-hover);color:var(--ink)}
+.otium-media-viewer .media-popup>div{position:fixed;inset-inline-end:18px;top:74px;z-index:70;width:min(310px,calc(100vw - 32px));padding:16px;border:1px solid var(--line);border-radius:17px;background:var(--surface-1);color:var(--ink);box-shadow:0 15px 60px #0002;line-height:1.8;font-size:12px}
+.otium-media-viewer .media-popup strong{display:block;font-size:13px;overflow-wrap:anywhere}.otium-media-viewer .media-popup span{font-size:10px;color:var(--ink-muted)}
+.otium-media-viewer .media-popup p{font-size:11px;color:var(--ink-muted);margin:10px 0 0}
+.otium-media-viewer .media-export>div{top:auto;bottom:110px}
+.otium-media-viewer .media-export button{width:100%;min-height:44px;border:0;background:none;color:var(--ink);display:flex;align-items:center;gap:9px;text-align:start;font-size:12px;padding:8px;border-radius:10px}
+.otium-media-viewer .media-export button:hover{background:var(--surface-hover)}
+.otium-media-viewer :is(button,input,select,summary):focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+@media(max-width:700px){.otium-media-viewer .media-bottom{align-self:stretch;max-width:none;margin:4px 8px 8px;padding:6px}.otium-media-viewer .media-bottom>div{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;padding-bottom:5px;scrollbar-width:thin}.otium-media-viewer .media-bottom .toolbar-icon{font-size:11px;padding-inline:9px}.otium-media-viewer .media-stage{padding:6px}.otium-media-viewer .media-bottom .media-save-status{font-size:9px;margin-top:2px}}
+@media(max-width:430px){.otium-media-viewer header>svg,.otium-media-viewer header>button[aria-label="تغيير الثيم"],.otium-media-viewer header>button[aria-label="Change theme"]{display:none}.otium-media-viewer>header{gap:2px;padding-inline:6px}.otium-media-viewer .media-popup>summary{padding:8px}.otium-media-viewer .media-stage{padding:4px}}
+.otium-media-viewer .media-feedback{position:absolute;top:76px;inset-inline:12px;z-index:65;max-width:460px;margin-inline:auto;border:1px solid var(--line);border-radius:13px;box-shadow:0 8px 30px #0001}
+
+@media(max-height:500px) and (max-width:1100px){.otium-media-viewer .media-bottom{align-self:stretch;max-width:none;margin:4px 8px 8px;padding:6px}.otium-media-viewer .media-bottom>div{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;padding-bottom:5px;scrollbar-width:thin}.otium-media-viewer .media-stage{padding:4px}.otium-media-viewer .media-popup>div{max-height:calc(100dvh - 24px);overflow-y:auto}}
+@media(max-width:700px),(max-height:500px){.otium-media-viewer .media-page-control{order:-1}}

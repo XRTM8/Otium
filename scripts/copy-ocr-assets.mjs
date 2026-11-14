@@ -11,10 +11,10 @@
  * with OEM 1. A device without SIMD support falls back to the plain build, so
  * all three variants have to be present.
  *
- * The language models (`*.traineddata.gz`) are intentionally NOT vendored:
- * they are downloaded once on first use and cached locally in IndexedDB.
+ * Language models are stored in compressed `.traineddata.gz` format:
+ * tesseract.js decompresses them directly in WebAssembly/IndexedDB.
  */
-import { copyFileSync, existsSync, mkdirSync, statSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -69,23 +69,28 @@ for (const file of coreFiles) {
   }
 }
 
-// Ensure offline OCR language models (Arabic + English) are bundled
+// Ensure offline OCR language models (Arabic + English) are bundled in compressed .gz form
 const ocrModels = ['ara', 'eng'];
 for (const lang of ocrModels) {
   const gzFile = path.join(tessdataTarget, `${lang}.traineddata.gz`);
   const rawFile = path.join(tessdataTarget, `${lang}.traineddata`);
+
+  // Remove redundant uncompressed raw file if present to save 5.5MB of bundle space
+  if (existsSync(rawFile)) {
+    try {
+      rmSync(rawFile);
+    } catch (err) {
+      console.debug(`Note: Could not remove uncompressed ${rawFile}:`, err);
+    }
+  }
+
   if (!existsSync(gzFile) || statSync(gzFile).size < 10000) {
     console.log(`Downloading offline OCR model: ${lang}.traineddata.gz...`);
     try {
       const res = await fetch(`https://raw.githubusercontent.com/naptha/tessdata/gh-pages/4.0.0_fast/${lang}.traineddata.gz`);
       if (res.ok) {
         const buffer = Buffer.from(await res.arrayBuffer());
-        const { writeFileSync } = await import('node:fs');
-        const { gunzipSync } = await import('node:zlib');
         writeFileSync(gzFile, buffer);
-        if (!existsSync(rawFile) || statSync(rawFile).size < 10000) {
-          writeFileSync(rawFile, gunzipSync(buffer));
-        }
       }
     } catch (err) {
       console.warn(`Warning: Could not fetch ${lang} traineddata over network:`, err);
@@ -94,5 +99,5 @@ for (const lang of ocrModels) {
 }
 
 console.log(
-  `OCR engine staged in public/tesseract (worker + ${coreFiles.length} WASM core variants + offline models).`
+  `OCR engine staged in public/tesseract (worker + ${coreFiles.length} WASM core variants + offline compressed models).`
 );

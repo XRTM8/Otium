@@ -1,0 +1,13 @@
+[package]
+name = "otium-wasm"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Pure-Rust WebAssembly acceleration kernels for Otium Scanner (homography warp, dewarping, document filters, CV metrics)"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+otium-scan-math = { path = "../otium-scan-math" }
