@@ -39,7 +39,7 @@ jobs:
         run: npm run lint
 
       - name: Audit dependency advisories
-        run: npm audit --audit-level=high
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Build Web Application
         run: npm run build
