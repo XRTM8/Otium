@@ -50,6 +50,7 @@ export function useBoardLiveInk({
   const strokeRectRef = useRef<DOMRect | null>(null);
   const undoSnapshotRef = useRef<BoardStroke[] | null>(null);
   const erasedInCurrentGestureRef = useRef(false);
+  const isGestureErasingRef = useRef(false);
   const pointer = useRef<number | null>(null);
   const lastPen = useRef(0);
   const isDrawingRef = useRef(false);
@@ -190,7 +191,13 @@ export function useBoardLiveInk({
       return;
     }
 
-    if (activeTool === 'eraser') {
+    const isEraserInput =
+      activeTool === 'eraser' ||
+      (e.pointerType === 'pen' &&
+        (e.button === 5 || (e.buttons & 32) !== 0 || (e.nativeEvent as { pointerType?: string })?.pointerType === 'eraser'));
+    isGestureErasingRef.current = isEraserInput;
+
+    if (isEraserInput) {
       undoSnapshotRef.current = strokes;
       erasedInCurrentGestureRef.current = false;
       eraseStrokesNearPoint(coords.x, coords.y);
@@ -235,7 +242,12 @@ export function useBoardLiveInk({
 
     if (!isDrawingRef.current) return;
 
-    if (activeTool === 'eraser') {
+    if (
+      isGestureErasingRef.current ||
+      activeTool === 'eraser' ||
+      (e.pointerType === 'pen' &&
+        (e.button === 5 || (e.buttons & 32) !== 0 || (e.nativeEvent as { pointerType?: string })?.pointerType === 'eraser'))
+    ) {
       eraseStrokesNearPoint(coords.x, coords.y);
       return;
     }
@@ -291,6 +303,7 @@ export function useBoardLiveInk({
       console.debug('[BoardLiveInk] releasePointerCapture skipped:', err);
     }
     isDrawingRef.current = false;
+    isGestureErasingRef.current = false;
     currentPointsRef.current = [];
 
     const finished = liveStrokeRef.current;
