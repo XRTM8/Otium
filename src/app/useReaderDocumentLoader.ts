@@ -7,7 +7,7 @@ import {
   updateDocumentCover,
   updateDocumentPage,
 } from '../core/storage/documents';
-import { extractPdfCover, getCachedCover, setCachedCover } from '../core/pdf/cover';
+import { extractPdfCover, getCachedCover, setCachedCover, setCoverForDoc } from '../core/pdf/cover';
 import { fingerprintDocument } from '../core/storage/documentIdentity';
 import { loadStoredAnnotations } from '../core/storage/annotations';
 import { getStoredBookmarks } from '../core/storage/bookmarks';
@@ -319,6 +319,7 @@ export function useReaderDocumentLoader(opts: UseReaderDocumentLoaderOptions) {
       const cachedCover = getCachedCover(documentId);
       if (cachedCover) {
         setDocCoverUrl?.(cachedCover);
+        setCoverForDoc(opened.doc, cachedCover);
       }
 
       if (storageBuffer.byteLength > 0) {
@@ -333,6 +334,7 @@ export function useReaderDocumentLoader(opts: UseReaderDocumentLoaderOptions) {
           if (coverUrl && generation === loadGenerationRef.current) {
             setDocCoverUrl?.(coverUrl);
             setCachedCover(documentId, coverUrl);
+            setCoverForDoc(opened.doc, coverUrl);
             void updateDocumentCover(documentId, coverUrl);
           }
         });

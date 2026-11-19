@@ -17,9 +17,12 @@ describe('Arabic search normalisation', () => {
     expect(normalizeSearchText('مسؤول')).toBe(normalizeSearchText('مسوول'));
   });
 
-  it('folds Persian letters used in Arabic typesetting', () => {
+  it('folds Persian and Urdu letters used in Arabic typesetting', () => {
     expect(normalizeSearchText('گل')).toBe(normalizeSearchText('كل'));
     expect(normalizeSearchText('پدر')).toBe(normalizeSearchText('بدر'));
+    expect(normalizeSearchText('کتاب')).toBe(normalizeSearchText('كتاب'));
+    expect(normalizeSearchText('علی')).toBe(normalizeSearchText('علي'));
+    expect(normalizeSearchText('دَاوُۥدَ')).toBe(normalizeSearchText('داود'));
   });
 
   it('converts Arabic-Indic and Persian digits to Latin digits', () => {

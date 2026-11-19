@@ -6,6 +6,15 @@ html.theme-transitioning *::after {
   transition: none !important;
 }
 
+/* Eliminate ghosting on E-Ink readers by skipping all CSS animations and transitions */
+html.theme-eink,
+html.theme-eink *,
+html.theme-eink *::before,
+html.theme-eink *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
 .glass-panel {
   background: rgba(24, 24, 27, 0.65);
   backdrop-filter: blur(24px);

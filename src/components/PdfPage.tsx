@@ -7,6 +7,7 @@ import { DocumentInkLayer } from './DocumentInk';
 import { useDocumentInteraction } from './documentInkContext';
 import { drawAnnotationLayer, PAGE_BACKGROUND } from './pdfPageCanvas';
 import { usePdfPageRender } from './usePdfPageRender';
+import { getCoverForDoc } from '../core/pdf/cover';
 
 interface PdfPageProps {
   doc: PDFDocumentProxy;
@@ -73,6 +74,8 @@ const PdfPageView: React.FC<PdfPageProps> = ({
     isCurrentSearchPage,
     renderPriority,
   });
+
+  const coverPlaceholder = pageNumber === 1 && !hasRenderedOnce ? getCoverForDoc(doc) : undefined;
 
   const pageAnnotations = useMemo(
     () => annotations.filter((annotation) => annotation.pageNumber === pageNumber),
@@ -148,6 +151,16 @@ const PdfPageView: React.FC<PdfPageProps> = ({
         backgroundColor: PAGE_BACKGROUND[pageTheme]
       }}
     >
+      {coverPlaceholder && (
+        <img
+          src={coverPlaceholder}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none transition-opacity duration-200"
+          style={{ filter: cssThemeFilter }}
+        />
+      )}
+
       {(isVisible || hasRenderedOnce) && (
         <canvas
           ref={canvasRef}

@@ -24,7 +24,16 @@ const LETTER_FOLDS: Record<string, string> = {
   '\u067e': '\u0628', // پ
   '\u0686': '\u062c', // چ
   '\u0698': '\u0632', // ژ
-  '\u06a4': '\u0641' // ڤ
+  '\u06a4': '\u0641', // ڤ
+  '\u06a9': '\u0643', // ک (Keheh / Farsi Kaf)
+  '\u06cc': '\u064a', // ی (Farsi / Urdu Yeh)
+  '\u06c1': '\u0647', // ہ (Urdu Heh)
+  '\u06be': '\u0647', // ھ (Urdu Heh Doachashmee)
+  '\u06e5': '\u0648', // ۥ (Quranic Small Waw)
+  '\u06e6': '\u064a', // ۦ (Quranic Small Yeh)
+  '\u0679': '\u062a', // ٹ (Urdu Teh)
+  '\u0688': '\u062f', // ڈ (Urdu Dal)
+  '\u0691': '\u0631' // ڑ (Urdu Reh)
 };
 
 const ARABIC_DIGITS: Record<string, string> = {
@@ -68,7 +77,7 @@ export function normalizeSearchText(input: string): string {
   // Fold alef/hamza/taa-marbuta variants after the mark removal so combining
   // sequences do not split a letter from its base form.
   text = text.replace(
-    /[\u0623\u0625\u0622\u0671\u0649\u0626\u0624\u0629\u06af\u067e\u0686\u0698\u06a4]/g,
+    /[\u0622\u0623\u0624\u0625\u0626\u0629\u0649\u0671\u0679\u067e\u0686\u0688\u0691\u0698\u06a4\u06a9\u06af\u06be\u06c1\u06cc\u06e5\u06e6]/g,
     (letter) => LETTER_FOLDS[letter] ?? letter
   );
   text = text.replace(/[\u0660-\u0669\u06f0-\u06f9]/g, (digit) => ARABIC_DIGITS[digit] ?? digit);

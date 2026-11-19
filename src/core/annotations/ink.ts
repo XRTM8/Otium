@@ -92,9 +92,25 @@ export function paintInk(ctx: CanvasRenderingContext2D, marks: InkMark[], width:
       (mark.text || '').split('\n').forEach((line, i) => ctx.fillText(line, first.x * width, first.y * height + i * mark.width * width * 1.35));
     } else if (mark.points.length === 1) {
       ctx.beginPath(); ctx.arc(first.x * width, first.y * height, ctx.lineWidth / 2, 0, Math.PI * 2); ctx.fill();
+    } else if (mark.points.length === 2) {
+      const second = mark.points[1];
+      ctx.beginPath();
+      ctx.moveTo(first.x * width, first.y * height);
+      if (second) ctx.lineTo(second.x * width, second.y * height);
+      ctx.stroke();
     } else {
-      ctx.beginPath(); ctx.moveTo(first.x * width, first.y * height);
-      for (const p of mark.points.slice(1)) ctx.lineTo(p.x * width, p.y * height);
+      ctx.beginPath();
+      ctx.moveTo(first.x * width, first.y * height);
+      for (let i = 1; i < mark.points.length - 1; i++) {
+        const p = mark.points[i];
+        const next = mark.points[i + 1];
+        if (!p || !next) continue;
+        const midX = ((p.x + next.x) / 2) * width;
+        const midY = ((p.y + next.y) / 2) * height;
+        ctx.quadraticCurveTo(p.x * width, p.y * height, midX, midY);
+      }
+      const last = mark.points[mark.points.length - 1];
+      if (last) ctx.lineTo(last.x * width, last.y * height);
       ctx.stroke();
     }
     ctx.restore();

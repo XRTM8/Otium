@@ -11,6 +11,17 @@ export class SearchCancelledError extends Error {
 }
 
 function yieldToUi(): Promise<void> {
+  const schedulerObj = (globalThis as { scheduler?: { yield?: () => Promise<void> } }).scheduler;
+  if (typeof schedulerObj?.yield === 'function') {
+    return schedulerObj.yield();
+  }
+  if (typeof MessageChannel !== 'undefined') {
+    return new Promise((resolve) => {
+      const channel = new MessageChannel();
+      channel.port1.onmessage = () => resolve();
+      channel.port2.postMessage(null);
+    });
+  }
   return new Promise((resolve) => window.setTimeout(resolve, 0));
 }
 
@@ -118,7 +129,7 @@ export async function searchDocumentPages(
       matches.push(pageNumber);
     }
 
-    if (pageNumber % 8 === 0) {
+    if (pageNumber % 4 === 0) {
       await yieldToUi();
     }
   }

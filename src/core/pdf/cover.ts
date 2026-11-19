@@ -1,6 +1,19 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 
 const coverMemoryCache = new Map<string, string>();
+const docCoverWeakMap = new WeakMap<PDFDocumentProxy, string>();
+
+/** Retrieve a previously cached cover data URL for a specific document proxy. */
+export function getCoverForDoc(doc: PDFDocumentProxy): string | undefined {
+  if (!doc) return undefined;
+  return docCoverWeakMap.get(doc);
+}
+
+/** Associate a cover data URL directly with a document proxy in memory. */
+export function setCoverForDoc(doc: PDFDocumentProxy, url: string): void {
+  if (!doc || !url) return;
+  docCoverWeakMap.set(doc, url);
+}
 
 /** Retrieve a previously cached cover data URL from memory. */
 export function getCachedCover(id: string): string | undefined {
@@ -72,7 +85,9 @@ export async function extractPdfCover(
     });
 
     await renderTask.promise;
-    return canvas.toDataURL('image/jpeg', 0.8);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    setCoverForDoc(doc, dataUrl);
+    return dataUrl;
   } catch (err) {
     console.debug('Failed to extract PDF cover:', err);
     return null;
