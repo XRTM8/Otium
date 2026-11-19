@@ -42,8 +42,17 @@ export const WelcomeHeroResumeCard: React.FC<WelcomeHeroResumeCardProps> = ({
       className="fluid-press w-full p-3.5 px-4 rounded-2xl chrome-surface hover:border-accent hover:-translate-y-0.5 shadow-lg hover:shadow-xl flex items-center justify-between gap-3 text-start cursor-pointer group transition-all duration-200"
     >
       <div className="flex items-center gap-3 min-w-0">
-        <div className="w-10 h-10 rounded-xl bg-accent/15 border border-accent/30 flex items-center justify-center text-accent shrink-0 group-hover:scale-105 group-hover:bg-accent/25 transition-all">
-          <BookOpen className="w-5 h-5 text-accent" />
+        <div className="w-10 h-14 rounded-lg bg-accent/15 border border-accent/30 flex items-center justify-center text-accent shrink-0 overflow-hidden shadow-xs group-hover:scale-105 group-hover:bg-accent/25 transition-all">
+          {heroRecent.coverUrl ? (
+            <img
+              src={heroRecent.coverUrl}
+              alt=""
+              className="w-full h-full object-cover"
+              decoding="async"
+            />
+          ) : (
+            <BookOpen className="w-5 h-5 text-accent" />
+          )}
         </div>
         <div className="flex flex-col min-w-0">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-accent font-mono">

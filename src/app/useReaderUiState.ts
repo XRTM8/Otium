@@ -32,6 +32,7 @@ function useOverlayFlag(onOpen: () => void) {
 export function useReaderUiState() {
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
   const [docTitle, setDocTitle] = useState('');
+  const [docCoverUrl, setDocCoverUrl] = useState('');
   /** SHA-256 content identity used for every persisted reading record. */
   const [docId, setDocId] = useState('');
   const [numPages, setNumPages] = useState(0);
@@ -93,6 +94,8 @@ export function useReaderUiState() {
     docRef,
     docTitle,
     setDocTitle,
+    docCoverUrl,
+    setDocCoverUrl,
     docId,
     setDocId,
     docIdRef,

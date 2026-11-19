@@ -23,6 +23,7 @@ export interface RecentDocItem {
   /** False for a restored entry whose PDF has not been re-imported yet. */
   available: boolean;
   scrollOffsetRatio?: number;
+  coverUrl?: string;
 }
 
 export interface StoredDocumentRecord {
@@ -36,6 +37,7 @@ export interface StoredDocumentRecord {
   fingerprint?: string;
   hasFile?: boolean;
   metadataOnly?: boolean;
+  coverUrl?: string;
   /** Legacy v1 records kept their bytes inline. Read lazily and migrated. */
   data?: ArrayBuffer;
 }
@@ -64,6 +66,13 @@ export function normalizeRecord(raw: StoredDocumentRecord): StoredDocumentRecord
   const totalPages = Math.max(1, Math.round(Number(raw.totalPages) || 1));
   const lastPage = Math.min(totalPages, Math.max(1, Math.round(Number(raw.lastPage) || 1)));
   const hasFile = raw.hasFile ?? Boolean(raw.data);
+  const coverUrl =
+    typeof raw.coverUrl === 'string' &&
+    (raw.coverUrl.startsWith('data:image/') ||
+      raw.coverUrl.startsWith('blob:') ||
+      raw.coverUrl.startsWith('http'))
+      ? raw.coverUrl
+      : undefined;
 
   return {
     ...raw,
@@ -74,7 +83,8 @@ export function normalizeRecord(raw: StoredDocumentRecord): StoredDocumentRecord
     totalPages,
     sizeBytes: Math.max(0, Number(raw.sizeBytes) || (raw.data?.byteLength ?? 0)),
     hasFile,
-    metadataOnly: raw.metadataOnly ?? !hasFile
+    metadataOnly: raw.metadataOnly ?? !hasFile,
+    coverUrl,
   };
 }
 
@@ -88,7 +98,8 @@ export function toRecentDoc(raw: StoredDocumentRecord): RecentDocItem {
     totalPages: record.totalPages,
     sizeBytes: record.sizeBytes,
     available: Boolean(record.hasFile || record.data),
-    scrollOffsetRatio: record.scrollOffsetRatio
+    scrollOffsetRatio: record.scrollOffsetRatio,
+    coverUrl: record.coverUrl,
   };
 }
 

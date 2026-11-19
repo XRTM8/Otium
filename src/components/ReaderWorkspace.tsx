@@ -223,10 +223,26 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
         }}
         onPointerUp={event => {
           mousePan.current = null;
+          try {
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }
+          } catch {}
           event.currentTarget.style.cursor = interactionMode === 'hand' ? 'grab' : '';
         }}
-        onPointerCancel={() => { mousePan.current = null; }}
-        onLostPointerCapture={() => { mousePan.current = null; }}
+        onPointerCancel={event => {
+          mousePan.current = null;
+          try {
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }
+          } catch {}
+          event.currentTarget.style.cursor = interactionMode === 'hand' ? 'grab' : '';
+        }}
+        onLostPointerCapture={event => {
+          mousePan.current = null;
+          event.currentTarget.style.cursor = interactionMode === 'hand' ? 'grab' : '';
+        }}
         onTouchStart={interactionMode === 'hand' ? handleTouchStart : undefined}
         onTouchMove={interactionMode === 'hand' ? handleTouchMove : undefined}
         onTouchEnd={interactionMode === 'hand' ? handleTouchEnd : undefined}

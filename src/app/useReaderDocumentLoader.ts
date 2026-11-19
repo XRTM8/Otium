@@ -4,8 +4,10 @@ import { mergeTextAnnotations } from '../core/annotations/textSync';
 import {
   adoptLegacyDocumentRecord,
   saveDocumentToStorage,
+  updateDocumentCover,
   updateDocumentPage,
 } from '../core/storage/documents';
+import { extractPdfCover, getCachedCover, setCachedCover } from '../core/pdf/cover';
 import { fingerprintDocument } from '../core/storage/documentIdentity';
 import { loadStoredAnnotations } from '../core/storage/annotations';
 import { getStoredBookmarks } from '../core/storage/bookmarks';
@@ -57,6 +59,7 @@ export function useReaderDocumentLoader(opts: UseReaderDocumentLoaderOptions) {
     setPasswordModal,
     setDoc,
     setDocTitle,
+    setDocCoverUrl,
     setDocId,
     setNumPages,
     setCurrentPage,
@@ -113,6 +116,7 @@ export function useReaderDocumentLoader(opts: UseReaderDocumentLoaderOptions) {
     bookmarksHydratedRef.current = false;
     setDoc(null);
     setDocTitle('');
+    setDocCoverUrl?.('');
     setDocId('');
     setNumPages(0);
     setCurrentPage(1);
@@ -147,6 +151,7 @@ export function useReaderDocumentLoader(opts: UseReaderDocumentLoaderOptions) {
     setBookmarks,
     setCurrentPage,
     setDoc,
+    setDocCoverUrl,
     setDocId,
     setDocTitle,
     setDocumentError,
@@ -311,11 +316,26 @@ export function useReaderDocumentLoader(opts: UseReaderDocumentLoaderOptions) {
         changeTheme,
       });
 
+      const cachedCover = getCachedCover(documentId);
+      if (cachedCover) {
+        setDocCoverUrl?.(cachedCover);
+      }
+
       if (storageBuffer.byteLength > 0) {
-        void saveDocumentToStorage(documentId, title, storageBuffer, opened.numPages, initialPage)
+        void saveDocumentToStorage(documentId, title, storageBuffer, opened.numPages, initialPage, cachedCover)
           .then(() => adoptLegacyDocumentRecord(title, documentId));
       } else {
         void updateDocumentPage(documentId, initialPage, savedOffset);
+      }
+
+      if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+        void extractPdfCover(opened.doc).then((coverUrl) => {
+          if (coverUrl && generation === loadGenerationRef.current) {
+            setDocCoverUrl?.(coverUrl);
+            setCachedCover(documentId, coverUrl);
+            void updateDocumentCover(documentId, coverUrl);
+          }
+        });
       }
 
       if (previousDoc && previousDoc !== opened.doc) {

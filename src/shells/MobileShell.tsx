@@ -176,6 +176,7 @@ const MobileReader: React.FC = () => {
         <>
           <div hidden={reader.isImmersive || !teaching.readerTools || teaching.presentation}><MobileToolbar
             title={reader.docTitle}
+            coverUrl={reader.docCoverUrl}
             currentPage={reader.currentPage}
             totalPages={reader.numPages}
             theme={reader.theme}

@@ -143,8 +143,10 @@ const DesktopReader: React.FC = () => {
 
     // Tauri native OS file drop event listener
     let tauriUnlisten: (() => void) | undefined;
+    let active = true;
     if (isTauriRuntime()) {
       void import('@tauri-apps/api/webview').then(({ getCurrentWebview }) => {
+        if (!active) return;
         void getCurrentWebview().onDragDropEvent((event) => {
           const payload = event.payload;
           if (payload.type === 'enter' || payload.type === 'over') {
@@ -189,12 +191,17 @@ const DesktopReader: React.FC = () => {
             }
           }
         }).then((fn) => {
-          tauriUnlisten = fn;
+          if (!active) {
+            fn();
+          } else {
+            tauriUnlisten = fn;
+          }
         });
       });
     }
 
     return () => {
+      active = false;
       window.removeEventListener('dragenter', handleDragEnter);
       window.removeEventListener('dragover', handleDragOver);
       window.removeEventListener('dragleave', handleDragLeave);
@@ -259,6 +266,7 @@ const DesktopReader: React.FC = () => {
               replace it. */}
           <div hidden={!teaching.readerTools || teaching.presentation}><Toolbar
             title={reader.docTitle}
+            coverUrl={reader.docCoverUrl}
             currentPage={reader.currentPage}
             totalPages={reader.numPages}
             zoom={reader.zoom}

@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { ViewMode } from '../core/types';
 import { saveLastPage, saveScrollOffset } from '../core/settings/preferences';
@@ -187,6 +187,16 @@ export function useReaderNavigation({
     [docId, persistVisiblePage, scrollContainerRef, setCurrentPage]
   );
 
+  const bounceTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (bounceTimerRef.current !== null) {
+        window.clearTimeout(bounceTimerRef.current);
+      }
+    };
+  }, []);
+
   const triggerBoundaryBounce = useCallback(
     (position: 'start' | 'end') => {
       const el = scrollContainerRef.current;
@@ -196,7 +206,11 @@ export function useReaderNavigation({
       el.classList.remove('animate-bounce-start', 'animate-bounce-end');
       void el.offsetWidth;
       el.classList.add(cls);
-      window.setTimeout(() => {
+      if (bounceTimerRef.current !== null) {
+        window.clearTimeout(bounceTimerRef.current);
+      }
+      bounceTimerRef.current = window.setTimeout(() => {
+        bounceTimerRef.current = null;
         el.classList.remove(cls);
       }, 350);
     },

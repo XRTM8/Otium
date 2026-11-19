@@ -20,6 +20,7 @@ import { getThemeOptions } from './themeCatalog';
 
 interface ToolbarProps {
   title: string;
+  coverUrl?: string;
   currentPage: number;
   totalPages: number;
   zoom: number;
@@ -66,6 +67,7 @@ const VIEW_MODES: { id: ViewMode; icon: React.ReactNode; key: keyof ReturnType<t
 
 export const Toolbar: React.FC<ToolbarProps> = ({
   title,
+  coverUrl,
   currentPage,
   totalPages,
   zoom,
@@ -250,6 +252,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
         <ToolbarDocumentInspector
           title={title}
+          coverUrl={coverUrl}
           currentPage={currentPage}
           totalPages={totalPages}
           zoom={zoom}

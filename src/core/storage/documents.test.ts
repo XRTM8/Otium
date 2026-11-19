@@ -11,6 +11,7 @@ import {
   removeDocumentFromStorage,
   restoreDocumentMetadata,
   saveDocumentToStorage,
+  updateDocumentCover,
   updateDocumentPage
 } from './documents';
 
@@ -51,6 +52,18 @@ describe('document storage', () => {
     const summary = await getStorageSummary();
     expect(summary.documents).toBe(2);
     expect(summary.bytes).toBeGreaterThan(0);
+  });
+
+  it('persists and updates book cover thumbnail data url', async () => {
+    await saveDocumentToStorage('sha256:cover-doc', 'cover.pdf', bytes('book with cover'), 15, 1, 'data:image/jpeg;base64,initialCover');
+    let recents = await getRecentDocumentsList();
+    const docWithCover = recents.find((item) => item.id === 'sha256:cover-doc');
+    expect(docWithCover?.coverUrl).toBe('data:image/jpeg;base64,initialCover');
+
+    await updateDocumentCover('sha256:cover-doc', 'data:image/jpeg;base64,updatedCover');
+    recents = await getRecentDocumentsList();
+    const updated = recents.find((item) => item.id === 'sha256:cover-doc');
+    expect(updated?.coverUrl).toBe('data:image/jpeg;base64,updatedCover');
   });
 
   it('keeps a metadata-only entry after its PDF is evicted', async () => {

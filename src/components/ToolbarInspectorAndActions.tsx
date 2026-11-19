@@ -7,6 +7,7 @@ export { ToolbarThemeAndActions } from './ToolbarThemeAndActions';
 
 interface ToolbarDocumentInspectorProps {
   title: string;
+  coverUrl?: string;
   currentPage: number;
   totalPages: number;
   zoom: number;
@@ -30,6 +31,7 @@ interface ToolbarDocumentInspectorProps {
 
 export const ToolbarDocumentInspector: React.FC<ToolbarDocumentInspectorProps> = ({
   title,
+  coverUrl,
   currentPage,
   totalPages,
   zoom,
@@ -56,13 +58,20 @@ export const ToolbarDocumentInspector: React.FC<ToolbarDocumentInspectorProps> =
       onClick={onToggleInspector}
       title={ar ? 'معلومات المستند والتقدم' : 'Document Info & Progress'}
       dir="auto"
-      className={`max-w-[100px] md:max-w-[160px] xl:max-w-[220px] shrink-0 truncate rounded-lg px-2 py-1 text-xs font-medium transition-all cursor-pointer ${
+      className={`max-w-[120px] md:max-w-[180px] xl:max-w-[240px] shrink-0 truncate rounded-lg px-2 py-1 text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
         showInspector
           ? 'bg-hover text-ink font-semibold'
           : 'text-ink-muted hover:bg-hover-subtle hover:text-ink'
       }`}
     >
-      <bdi>{title}</bdi>
+      {coverUrl ? (
+        <img
+          src={coverUrl}
+          alt=""
+          className="w-3.5 h-4.5 rounded-[2px] object-cover shadow-2xs border border-line/60 shrink-0"
+        />
+      ) : null}
+      <bdi className="truncate">{title}</bdi>
     </button>
 
     {showInspector && (
@@ -70,9 +79,16 @@ export const ToolbarDocumentInspector: React.FC<ToolbarDocumentInspectorProps> =
         <div className="fixed inset-0 z-40" onClick={onCloseInspector} />
         <div
           dir={ar ? 'rtl' : 'ltr'}
-          className="chrome-surface absolute start-0 top-full z-50 mt-2 w-64 rounded-2xl p-3.5 text-ink shadow-2xl fluid-pop select-none text-start"
+          className="chrome-surface absolute start-0 top-full z-50 mt-2 w-72 rounded-2xl p-3.5 text-ink shadow-2xl fluid-pop select-none text-start"
         >
-          <div className="flex items-start justify-between gap-2 border-b border-line pb-2.5">
+          <div className="flex items-start gap-2.5 border-b border-line pb-2.5">
+            {coverUrl && (
+              <img
+                src={coverUrl}
+                alt=""
+                className="w-10 h-14 rounded-md object-cover shadow-md border border-line shrink-0"
+              />
+            )}
             <div className="min-w-0 flex-1">
               <div className={`text-[10px] uppercase text-ink-faint ${ar ? 'font-sans' : 'font-mono tracking-wider'}`}>
                 {ar ? 'المستند الحالي' : 'Current Document'}

@@ -5,6 +5,7 @@ import type { RecentDocItem } from '../core/storage/documents';
 import { describeDocumentError, SAMPLE_DOCUMENT_NAME } from './readerControllerHelpers';
 import { readRecentDocumentBytes } from './readerDocumentLoaderHelpers';
 import { useReaderDragDrop } from './useReaderDragDrop';
+import { setCachedCover } from '../core/pdf/cover';
 
 interface UseReaderFileOpenersOptions {
   dragDropEnabled: boolean;
@@ -83,6 +84,9 @@ export function useReaderFileOpeners({
 
   const openRecent = useCallback(
     async (recent: RecentDocItem) => {
+      if (recent.coverUrl) {
+        setCachedCover(recent.id, recent.coverUrl);
+      }
       if (recent.name === SAMPLE_DOCUMENT_NAME) {
         return await openSample();
       }

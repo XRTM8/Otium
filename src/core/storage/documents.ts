@@ -104,20 +104,22 @@ export async function saveDocumentToStorage(
   name: string,
   data: ArrayBuffer,
   totalPages: number,
-  page: number = 1
+  page: number = 1,
+  coverUrl?: string
 ): Promise<void> {
   if (!id) return;
 
   try {
     if (!data || data.byteLength === 0) {
       await updateDocumentPage(id, page);
+      if (coverUrl) await updateDocumentCover(id, coverUrl);
       return;
     }
 
     const db = await openDB();
     const total = Math.max(1, Math.round(totalPages) || 1);
     const lastPage = Math.min(total, Math.max(1, Math.round(page) || 1));
-    const metadata = {
+    const metadata: StoredDocumentRecord = {
       id,
       name,
       lastOpened: Date.now(),
@@ -125,6 +127,7 @@ export async function saveDocumentToStorage(
       totalPages: total,
       sizeBytes: data.byteLength,
       fingerprint: id,
+      coverUrl,
     };
 
     try {
@@ -154,6 +157,29 @@ export async function saveDocumentToStorage(
     }
   } catch (err) {
     console.warn('IndexedDB save failed:', err);
+  }
+}
+
+export async function updateDocumentCover(
+  id: string,
+  coverUrl: string
+): Promise<void> {
+  if (!id || !coverUrl) return;
+  try {
+    const db = await openDB();
+    const record = await readMetadata(db, id);
+    if (!record) return;
+
+    const normalized = normalizeRecord(record);
+    const { data: _data, ...metadata } = normalized;
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).put({
+      ...metadata,
+      coverUrl,
+    });
+    await transactionDone(tx);
+  } catch {
+    // Cover update is best-effort
   }
 }
 

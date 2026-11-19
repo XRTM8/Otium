@@ -109,8 +109,18 @@ export const WelcomeRecentsShelf: React.FC<WelcomeRecentsShelfProps> = ({
             >
               <div className="absolute inset-y-0 start-0 w-[3px] group-hover:w-[5px] bg-accent/40 group-hover:bg-accent transition-all duration-200" />
               <div className="flex items-center gap-3 min-w-0 pr-1">
-                <div className="w-9 h-9 rounded-xl border border-line bg-surface/50 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                  <OtiumLogo theme={currentTheme} size={22} />
+                <div className="w-9 h-12 rounded-lg border border-line/60 bg-surface/60 flex items-center justify-center shrink-0 overflow-hidden shadow-xs group-hover:scale-105 group-hover:shadow-md transition-all duration-200">
+                  {r.coverUrl ? (
+                    <img
+                      src={r.coverUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <OtiumLogo theme={currentTheme} size={20} />
+                  )}
                 </div>
                 <div className="flex flex-col min-w-0 gap-1 text-start">
                   <span className="truncate font-semibold text-xs sm:text-sm text-ink group-hover:text-accent transition-colors">

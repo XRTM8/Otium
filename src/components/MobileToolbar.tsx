@@ -19,6 +19,7 @@ import { THEME_DOTS } from './themeCatalog';
 
 interface MobileToolbarProps {
   title: string;
+  coverUrl?: string;
   currentPage: number;
   totalPages: number;
   theme: ThemeMode;
@@ -59,6 +60,7 @@ const VIEW_MODES: ViewMode[] = ['continuous', 'dual', 'single'];
 /** Touch-first chrome. The shared reader supplies all reading behaviour. */
 export const MobileToolbar: React.FC<MobileToolbarProps> = ({
   title,
+  coverUrl,
   currentPage,
   totalPages,
   theme,
@@ -198,9 +200,16 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             onClick={() => setShowMenu((open) => !open)}
             title={ar ? 'أدوات ومعلومات المستند' : 'Document Info & Tools'}
             dir="auto"
-            className="fluid-press flex-1 min-w-0 truncate text-start px-2 py-1 rounded-lg text-[11px] font-medium text-ink-muted hover:text-ink hover:bg-hover-subtle cursor-pointer"
+            className="fluid-press flex-1 min-w-0 truncate text-start px-2 py-1 rounded-lg text-[11px] font-medium text-ink-muted hover:text-ink hover:bg-hover-subtle cursor-pointer flex items-center gap-1.5"
           >
-            <bdi>{title}</bdi>
+            {coverUrl ? (
+              <img
+                src={coverUrl}
+                alt=""
+                className="w-3.5 h-4.5 rounded-[2px] object-cover shadow-2xs border border-line/60 shrink-0"
+              />
+            ) : null}
+            <bdi className="truncate">{title}</bdi>
           </button>
 
           {/* Active Beam Pill */}

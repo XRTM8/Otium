@@ -41,6 +41,7 @@ export interface UseReaderDocumentLoaderOptions {
   setPasswordModal: React.Dispatch<React.SetStateAction<PasswordModalState>>;
   setDoc: React.Dispatch<React.SetStateAction<PDFDocumentProxy | null>>;
   setDocTitle: React.Dispatch<React.SetStateAction<string>>;
+  setDocCoverUrl?: React.Dispatch<React.SetStateAction<string>>;
   setDocId: React.Dispatch<React.SetStateAction<string>>;
   setNumPages: React.Dispatch<React.SetStateAction<number>>;
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
