@@ -20,8 +20,6 @@ version = "2.0.0"
 edition = "2021"
 authors = ["XRTM8"]
 license = "GPL-3.0"
-repository = "https://github.com/XRTM8/Otium"
-homepage = "https://xrtm8.github.io/Otium/"
 
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }
