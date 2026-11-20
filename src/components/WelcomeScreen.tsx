@@ -32,6 +32,7 @@ import {
 } from './welcomeRecentsHelpers';
 import { WelcomeThemeMenu } from './WelcomeThemeMenu';
 import { WelcomeHeroResumeCard } from './WelcomeHeroResumeCard';
+import { triggerHaptic } from '../core/utils/haptics';
 
 type LibraryItem = WelcomeLibraryItem;
 
@@ -251,44 +252,70 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         <WelcomeFooterDock currentLang={currentLang} />
       </main>
 
-      {/* Mobile Floating Bottom Bar */}
-      <nav className="mobile-dock" aria-label={ar ? 'التنقل السريع' : 'Quick navigation'}>
-        <button
-          type="button"
-          className={`dock-btn ${!libraryOpen ? 'active' : ''}`}
-          onClick={() => setLibraryOpen(false)}
-        >
-          <House size={19} />
-          <span>{ar ? 'الرئيسية' : 'Home'}</span>
-        </button>
+      {/* Mobile Floating Bottom Bar with Spring Transition */}
+      <nav
+        className="mobile-dock"
+        data-active-tab={libraryOpen ? 'library' : 'home'}
+        aria-label={ar ? 'التنقل السريع' : 'Quick navigation'}
+      >
+        {/* Animated Sliding Background Indicator */}
+        <div className="dock-active-pill" aria-hidden="true" />
 
         <button
           type="button"
-          className="dock-fab"
-          onClick={() => fileInputRef.current?.click()}
-          title={ar ? 'فتح ملف جديد' : 'Open new file'}
-          aria-label={ar ? 'فتح ملف جديد' : 'Open new file'}
+          className={`dock-btn ${!libraryOpen ? 'active' : ''}`}
+          onClick={() => {
+            triggerHaptic('light');
+            setLibraryOpen(false);
+          }}
+          aria-current={!libraryOpen ? 'page' : undefined}
         >
-          <Upload size={19} />
+          <House size={18} className="dock-icon" />
+          <span className="dock-label">{ar ? 'الرئيسية' : 'Home'}</span>
         </button>
 
         <button
           type="button"
           className={`dock-btn ${libraryOpen ? 'active' : ''}`}
-          onClick={() => setLibraryOpen(true)}
+          onClick={() => {
+            triggerHaptic('light');
+            setLibraryOpen(true);
+          }}
+          aria-current={libraryOpen ? 'page' : undefined}
         >
-          <LibraryBig size={19} />
-          <span>{ar ? 'المكتبة' : 'Library'}</span>
+          <LibraryBig size={18} className="dock-icon" />
+          <span className="dock-label">{ar ? 'المكتبة' : 'Library'}</span>
+        </button>
+
+        <button
+          type="button"
+          className="dock-btn dock-btn-action"
+          onClick={() => {
+            triggerHaptic('medium');
+            fileInputRef.current?.click();
+          }}
+          title={ar ? 'فتح ملف جديد' : 'Open new file'}
+          aria-label={ar ? 'فتح ملف جديد' : 'Open new file'}
+        >
+          <div className="dock-action-badge">
+            <Upload size={16} />
+          </div>
+          <span className="dock-label">{ar ? 'فتح ملف' : 'Open'}</span>
         </button>
 
         {onOpenScanner && (
           <button
             type="button"
             className="dock-btn"
-            onClick={onOpenScanner}
+            onClick={() => {
+              triggerHaptic('light');
+              onOpenScanner();
+            }}
+            title={ar ? 'الماسح الضوئي' : 'Document Scanner'}
+            aria-label={ar ? 'الماسح الضوئي' : 'Document Scanner'}
           >
-            <ScanLine size={19} />
-            <span>{ar ? 'الماسح' : 'Scan'}</span>
+            <ScanLine size={18} className="dock-icon" />
+            <span className="dock-label">{ar ? 'الماسح' : 'Scan'}</span>
           </button>
         )}
       </nav>

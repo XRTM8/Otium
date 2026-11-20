@@ -894,60 +894,98 @@
   .mobile-dock {
     display: flex;
     align-items: center;
-    justify-content: space-around;
+    justify-content: space-between;
     position: fixed;
-    bottom: max(0.85rem, env(safe-area-inset-bottom));
+    bottom: max(0.95rem, calc(env(safe-area-inset-bottom, 0px) + 0.5rem));
     left: 50%;
     transform: translateX(-50%);
-    width: min(calc(100% - 1.5rem), 22rem);
-    padding: .35rem .65rem;
-    background: color-mix(in srgb, var(--surface-1) 86%, transparent);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--line-strong);
+    width: min(calc(100% - 1.5rem), 22.5rem);
+    padding: 4px;
+    background: color-mix(in srgb, var(--surface-1) 95%, transparent);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid color-mix(in srgb, var(--line-strong) 85%, transparent);
     border-radius: 9999px;
-    box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.32), 0 2px 8px rgba(0, 0, 0, 0.14);
+    box-shadow: 0 16px 40px -6px rgba(0, 0, 0, 0.42), 0 4px 14px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08);
     z-index: 45;
   }
+  .dock-active-pill {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    width: calc((100% - 8px) / 4);
+    inset-inline-start: 4px;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface-hover));
+    border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+    box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.16);
+    pointer-events: none;
+    z-index: 1;
+    transition: transform 260ms cubic-bezier(0.34, 1.4, 0.64, 1);
+  }
+  [dir="rtl"] .mobile-dock[data-active-tab="home"] .dock-active-pill {
+    transform: translateX(0);
+  }
+  [dir="rtl"] .mobile-dock[data-active-tab="library"] .dock-active-pill {
+    transform: translateX(-100%);
+  }
+  [dir="ltr"] .mobile-dock[data-active-tab="home"] .dock-active-pill {
+    transform: translateX(0);
+  }
+  [dir="ltr"] .mobile-dock[data-active-tab="library"] .dock-active-pill {
+    transform: translateX(100%);
+  }
   .dock-btn {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
-    padding: .3rem .75rem;
+    gap: 3px;
+    padding: .42rem .2rem;
     border-radius: 9999px;
     color: var(--ink-muted);
     font-size: .68rem;
-    font-weight: 650;
-    transition: all 180ms ease;
+    font-weight: 600;
+    transition: color 180ms ease, transform 140ms ease;
     cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .dock-btn:active {
+    transform: scale(0.92);
   }
   .dock-btn.active {
     color: var(--ink);
   }
-  .dock-btn.active svg {
+  .dock-btn.active .dock-icon {
     color: var(--accent);
+    transform: scale(1.08);
   }
-  .dock-fab {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: var(--surface-1);
+  .dock-btn.active .dock-label {
     color: var(--ink);
-    border: 1px solid var(--line-strong);
+    font-weight: 750;
+  }
+  .dock-icon {
+    transition: transform 200ms cubic-bezier(0.34, 1.4, 0.64, 1), color 180ms ease;
+  }
+  .dock-action-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--accent) 18%, var(--surface-hover));
+    color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.18);
-    transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 160ms ease;
-    cursor: pointer;
+    box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.14);
+    transition: transform 160ms cubic-bezier(0.34, 1.4, 0.64, 1), background-color 160ms ease;
   }
-  .dock-fab:active {
-    transform: scale(0.92);
-  }
-  .dock-fab:hover {
-    border-color: var(--accent);
-    color: var(--accent);
+  .dock-btn:active .dock-action-badge {
+    transform: scale(0.90);
   }
 }
