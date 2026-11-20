@@ -206,13 +206,17 @@ class AndroidUpdateBridge(
   }
 
   private fun httpGet(url: String): String {
-    val connection = (URL(url).openConnection() as HttpURLConnection).apply {
+    val bustUrl = if (url.contains("?")) "$url&t=${System.currentTimeMillis()}" else "$url?t=${System.currentTimeMillis()}"
+    val connection = (URL(bustUrl).openConnection() as HttpURLConnection).apply {
       instanceFollowRedirects = true
       connectTimeout = 15_000
       readTimeout = 20_000
       requestMethod = "GET"
+      useCaches = false
       setRequestProperty("Accept", "application/json")
       setRequestProperty("User-Agent", "Otium-Android-Updater")
+      setRequestProperty("Cache-Control", "no-cache, no-store")
+      setRequestProperty("Pragma", "no-cache")
     }
 
     try {

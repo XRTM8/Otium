@@ -90,13 +90,20 @@ async function fetchReleaseFeed(): Promise<ReleaseInfo> {
     }
   }
 
+  const cacheBust = `?t=${Date.now()}`;
   try {
-    const res = await fetch(OTIUM_RELEASE_FEED_URL, { cache: 'no-cache' });
+    const res = await fetch(`${OTIUM_RELEASE_FEED_URL}${cacheBust}`, {
+      cache: 'no-cache',
+      headers: { 'Cache-Control': 'no-cache, no-store', Pragma: 'no-cache' }
+    });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     return parseReleaseInfo(data);
   } catch {
-    const fallbackRes = await fetch(OTIUM_RELEASE_FEED_FALLBACK_URL, { cache: 'no-cache' });
+    const fallbackRes = await fetch(`${OTIUM_RELEASE_FEED_FALLBACK_URL}${cacheBust}`, {
+      cache: 'no-cache',
+      headers: { 'Cache-Control': 'no-cache, no-store', Pragma: 'no-cache' }
+    });
     if (!fallbackRes.ok) throw new Error('Could not reach the update server.');
     const fallbackData = await fallbackRes.json();
     return parseReleaseInfo(fallbackData);

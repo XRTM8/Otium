@@ -112,7 +112,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  const previousActiveElementRef = useRef<HTMLElement | null>(null);
+
   const {
+    sheetRef,
     isExpanded,
     dragOffset,
     isDragging,
@@ -151,9 +154,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       onImportBackup,
     });
 
-  const modalRef = useRef<HTMLDivElement>(null);
-  const previousActiveElementRef = useRef<HTMLElement | null>(null);
-
   useEffect(() => {
     if (!isOpen) {
       if (previousActiveElementRef.current && typeof previousActiveElementRef.current.focus === 'function') {
@@ -173,13 +173,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         return;
       }
 
-      if (e.key === 'Tab' && modalRef.current) {
-        trapModalFocus(modalRef.current, e);
+      if (e.key === 'Tab' && sheetRef.current) {
+        trapModalFocus(sheetRef.current, e);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, sheetRef]);
 
   if (!isOpen) return null;
 
@@ -202,7 +202,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       <div className="fixed inset-0 bg-scrim fluid-fade backdrop-blur-xs" onClick={onClose} />
 
       <div
-        ref={modalRef}
+        ref={sheetRef}
         style={{
           transform: dragOffset !== 0 ? `translate3d(0, ${dragOffset}px, 0)` : undefined,
           opacity: dragOffset > 0 ? Math.max(0.35, 1 - dragOffset / 320) : 1,
@@ -212,8 +212,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         }}
         className={`otium-panel relative z-10 flex w-full max-w-lg sm:max-w-xl flex-col overflow-hidden rounded-t-[32px] sm:rounded-3xl p-5 text-ink sm:p-6 shadow-2xl mobile-sheet sm:fluid-pop ${
           isExpanded
-            ? 'h-[96vh] max-h-[96vh] sm:h-[720px] sm:max-h-[92vh]'
-            : 'h-[82vh] max-h-[85vh] sm:h-[620px] sm:max-h-[88vh]'
+            ? 'h-[96dvh] max-h-[96dvh] sm:h-[720px] sm:max-h-[92vh]'
+            : 'h-[82dvh] max-h-[85dvh] sm:h-[620px] sm:max-h-[88vh]'
         }`}
       >
         {/* Draggable Handle with extended touch hit-target */}
@@ -226,7 +226,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          className="w-full py-2.5 -mt-3.5 mb-1 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none group shrink-0"
+          className="w-full py-3 -mt-3.5 mb-1 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none group shrink-0"
           title={
             ar
               ? isExpanded

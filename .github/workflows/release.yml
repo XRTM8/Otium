@@ -307,7 +307,7 @@ jobs:
             --apk "upload/Otium_${VERSION}_universal.apk" \
             --output-dir upload
 
-      - name: Stage GitHub release for upgrade verification
+      - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.verify.outputs.tag }}
@@ -315,4 +315,5 @@ jobs:
           body_path: release-notes.md
           files: upload/*
           fail_on_unmatched_files: true
-          draft: true
+          make_latest: true
+          draft: false
