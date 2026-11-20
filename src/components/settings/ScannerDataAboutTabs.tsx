@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   AlertTriangle,
   Camera,
@@ -295,63 +295,93 @@ export const AboutTabPanel: React.FC<{
   lang: Language;
   hasUpdateAdapter: boolean;
   updates: UpdateControls;
-}> = ({ ar, lang, hasUpdateAdapter, updates }) => (
-  <div className="space-y-3 animate-in fade-in-50 duration-150">
-    <div className="rounded-2xl bg-hover-subtle border border-line-subtle p-4 flex items-center justify-between gap-3">
-      <div>
-        <div className="text-sm font-bold text-ink">Otium</div>
-        <div className="text-[11px] text-ink-muted font-mono mt-0.5">
-          v{getCurrentVersion()} · {getPlatformLabel()}
+}> = ({ ar, lang, hasUpdateAdapter, updates }) => {
+  useEffect(() => {
+    if (hasUpdateAdapter && !updates.snapshot && !updates.isChecking) {
+      void updates.check();
+    }
+  }, [hasUpdateAdapter, updates]);
+
+  return (
+    <div className="space-y-3 animate-in fade-in-50 duration-150">
+      <div className="rounded-2xl bg-hover-subtle border border-line-subtle p-4 flex items-center justify-between gap-3">
+        <div>
+          <div className="text-sm font-bold text-ink">Otium</div>
+          <div className="text-[11px] text-ink-muted font-mono mt-0.5">
+            v{getCurrentVersion()} · {getPlatformLabel()}
+          </div>
         </div>
-      </div>
-      <div className="text-[10px] px-2 py-1 rounded-full bg-accent/15 border border-accent/25 text-highlight">
-        {ar ? 'أحدث إصدار' : 'Latest version'}
-      </div>
-    </div>
-
-    {hasUpdateAdapter ? (
-      <button
-        type="button"
-        onClick={() => void updates.check()}
-        disabled={updates.isChecking || updates.isInstalling}
-        className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-2xl bg-hover-subtle border border-line hover:bg-hover text-xs font-medium text-ink disabled:opacity-60 transition-colors"
-      >
-        {updates.isChecking ? (
-          <Loader2 className="w-4 h-4 animate-spin text-highlight" />
+        {updates.snapshot?.phase === 'available' ? (
+          <div className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400">
+            {ar ? `يتوفر إصدار ${updates.snapshot.latestVersion}` : `v${updates.snapshot.latestVersion} available`}
+          </div>
+        ) : updates.snapshot?.phase === 'ready' ? (
+          <div className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
+            {ar ? 'جاهز للتثبيت' : 'Ready to install'}
+          </div>
+        ) : updates.snapshot?.phase === 'downloading' ? (
+          <div className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-accent/15 border border-accent/25 text-highlight animate-pulse">
+            {ar ? 'جارٍ التنزيل…' : 'Downloading…'}
+          </div>
+        ) : updates.snapshot?.phase === 'up-to-date' ? (
+          <div className="text-[10px] px-2.5 py-1 rounded-full bg-accent/15 border border-accent/25 text-highlight">
+            {ar ? 'أحدث إصدار' : 'Latest version'}
+          </div>
+        ) : updates.snapshot?.phase === 'error' ? (
+          <div className="text-[10px] px-2.5 py-1 rounded-full bg-red-500/15 border border-red-500/25 text-red-500">
+            {ar ? 'تعذر الفحص' : 'Check failed'}
+          </div>
         ) : (
-          <RefreshCw className="w-4 h-4 text-highlight" />
+          <div className="text-[10px] px-2.5 py-1 rounded-full bg-hover-subtle border border-line-subtle text-ink-muted">
+            {ar ? 'النسخة المثبتة' : 'Installed'}
+          </div>
         )}
-        {updates.isChecking
-          ? ar
-            ? 'جارٍ التحقق…'
-            : 'Checking…'
-          : ar
-            ? 'التحقق من التحديثات'
-            : 'Check for updates'}
-      </button>
-    ) : (
-      <div className="text-[11px] text-ink-muted leading-relaxed px-1">
-        {ar
-          ? 'افتح نسخة Otium المثبتة على Windows أو Android للتحقق من التحديثات وتثبيتها.'
-          : 'Open the installed Windows or Android app to check for and install updates.'}
       </div>
-    )}
 
-    {updates.snapshot && (
-      <UpdateStatus
-        snapshot={updates.snapshot}
-        lang={lang}
-        isInstalling={updates.isInstalling}
-        onInstall={() => void updates.install()}
-        onManualDownload={() => void updates.openManualDownload()}
-        onRetry={() => void updates.check()}
-      />
-    )}
+      {hasUpdateAdapter ? (
+        <button
+          type="button"
+          onClick={() => void updates.check()}
+          disabled={updates.isChecking || updates.isInstalling}
+          className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-2xl bg-hover-subtle border border-line hover:bg-hover text-xs font-medium text-ink disabled:opacity-60 transition-colors"
+        >
+          {updates.isChecking ? (
+            <Loader2 className="w-4 h-4 animate-spin text-highlight" />
+          ) : (
+            <RefreshCw className="w-4 h-4 text-highlight" />
+          )}
+          {updates.isChecking
+            ? ar
+              ? 'جارٍ التحقق…'
+              : 'Checking…'
+            : ar
+              ? 'التحقق من التحديثات'
+              : 'Check for updates'}
+        </button>
+      ) : (
+        <div className="text-[11px] text-ink-muted leading-relaxed px-1">
+          {ar
+            ? 'افتح نسخة Otium المثبتة على Windows أو Android للتحقق من التحديثات وتثبيتها.'
+            : 'Open the installed Windows or Android app to check for and install updates.'}
+        </div>
+      )}
 
-    <p className="text-[10px] text-ink-faint leading-relaxed px-1">
-      {ar
-        ? 'يشارك Windows وAndroid نفس الإصدار ونفس ملاحظات الإصدار. يختلف شكل الواجهة فقط.'
-        : 'Windows and Android share the same version and release notes. Only the interface shell differs.'}
-    </p>
-  </div>
-);
+      {updates.snapshot && (
+        <UpdateStatus
+          snapshot={updates.snapshot}
+          lang={lang}
+          isInstalling={updates.isInstalling}
+          onInstall={() => void updates.install()}
+          onManualDownload={() => void updates.openManualDownload()}
+          onRetry={() => void updates.check()}
+        />
+      )}
+
+      <p className="text-[10px] text-ink-faint leading-relaxed px-1">
+        {ar
+          ? 'يشارك Windows وAndroid نفس الإصدار ونفس ملاحظات الإصدار. يختلف شكل الواجهة فقط.'
+          : 'Windows and Android share the same version and release notes. Only the interface shell differs.'}
+      </p>
+    </div>
+  );
+};

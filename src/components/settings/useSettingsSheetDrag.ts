@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { triggerHaptic } from '../../core/utils/haptics';
 
 function applyDomTransform(el: HTMLDivElement | null, offset: number) {
@@ -62,6 +62,14 @@ export function useSettingsSheetDrag(isOpen: boolean, onClose: () => void) {
   const isDraggingActiveRef = useRef(false);
   const activePointerIdRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
+  const cleanupGlobalListenersRef = useRef<(() => void) | null>(null);
+
+  const clearGlobalListeners = useCallback(() => {
+    if (cleanupGlobalListenersRef.current) {
+      cleanupGlobalListenersRef.current();
+      cleanupGlobalListenersRef.current = null;
+    }
+  }, []);
 
   const scheduleDomTransform = (offset: number) => {
     if (typeof requestAnimationFrame === 'function') {
@@ -79,6 +87,7 @@ export function useSettingsSheetDrag(isOpen: boolean, onClose: () => void) {
 
   useEffect(() => {
     if (!isOpen) {
+      clearGlobalListeners();
       isDraggingActiveRef.current = false;
       activePointerIdRef.current = null;
       if (rafRef.current !== null && typeof cancelAnimationFrame === 'function') {
@@ -87,17 +96,18 @@ export function useSettingsSheetDrag(isOpen: boolean, onClose: () => void) {
       }
       resetDomStyles(sheetRef.current);
     }
-  }, [isOpen]);
+  }, [isOpen, clearGlobalListeners]);
 
   useEffect(() => {
     const el = sheetRef.current;
     return () => {
+      clearGlobalListeners();
       if (rafRef.current !== null && typeof cancelAnimationFrame === 'function') {
         cancelAnimationFrame(rafRef.current);
       }
       resetDomStyles(el);
     };
-  }, []);
+  }, [clearGlobalListeners]);
 
   const processDragMove = (clientY: number) => {
     if (!isDraggingActiveRef.current) return;
@@ -118,6 +128,7 @@ export function useSettingsSheetDrag(isOpen: boolean, onClose: () => void) {
   };
 
   const processDragEnd = () => {
+    clearGlobalListeners();
     if (!isDraggingActiveRef.current) return;
     isDraggingActiveRef.current = false;
     activePointerIdRef.current = null;
@@ -213,6 +224,11 @@ export function useSettingsSheetDrag(isOpen: boolean, onClose: () => void) {
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
+    if (e.cancelable) {
+      e.preventDefault();
+    }
+    clearGlobalListeners();
+
     dragStartYRef.current = e.clientY;
     currentDragOffsetRef.current = 0;
     dragStartTimeRef.current = Date.now();
@@ -240,17 +256,19 @@ export function useSettingsSheetDrag(isOpen: boolean, onClose: () => void) {
     };
 
     const onGlobalUp = (ev: PointerEvent) => {
-      if (!isDraggingActiveRef.current) return;
       if (activePointerIdRef.current !== null && ev.pointerId !== activePointerIdRef.current) return;
-      window.removeEventListener('pointermove', onGlobalMove);
-      window.removeEventListener('pointerup', onGlobalUp);
-      window.removeEventListener('pointercancel', onGlobalUp);
       processDragEnd();
     };
 
     window.addEventListener('pointermove', onGlobalMove, { passive: true });
     window.addEventListener('pointerup', onGlobalUp);
     window.addEventListener('pointercancel', onGlobalUp);
+
+    cleanupGlobalListenersRef.current = () => {
+      window.removeEventListener('pointermove', onGlobalMove);
+      window.removeEventListener('pointerup', onGlobalUp);
+      window.removeEventListener('pointercancel', onGlobalUp);
+    };
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {

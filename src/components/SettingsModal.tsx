@@ -117,7 +117,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const {
     sheetRef,
     isExpanded,
-    dragOffset,
     isDragging,
     handlePointerDown,
     handlePointerMove,
@@ -203,13 +202,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
       <div
         ref={sheetRef}
-        style={{
-          transform: dragOffset !== 0 ? `translate3d(0, ${dragOffset}px, 0)` : undefined,
-          opacity: dragOffset > 0 ? Math.max(0.35, 1 - dragOffset / 320) : 1,
-          transition: isDragging
-            ? 'none'
-            : 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease-out, height 0.28s cubic-bezier(0.16, 1, 0.3, 1), max-height 0.28s cubic-bezier(0.16, 1, 0.3, 1)'
-        }}
         className={`otium-panel relative z-10 flex w-full max-w-lg sm:max-w-xl flex-col overflow-hidden rounded-t-[32px] sm:rounded-3xl p-5 text-ink sm:p-6 shadow-2xl mobile-sheet sm:fluid-pop ${
           isExpanded
             ? 'h-[96dvh] max-h-[96dvh] sm:h-[720px] sm:max-h-[92vh]'

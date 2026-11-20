@@ -31,7 +31,12 @@ pub(crate) async fn download_portable_update(
     let dir = app.path().download_dir().map_err(|e| e.to_string())?;
     let target = dir.join(&name);
     let partial = dir.join(format!("{name}.download"));
-    let mut file = OpenOptions::new().write(true).create_new(true).open(&partial)
+    let _ = std::fs::remove_file(&partial);
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&partial)
         .map_err(|e| format!("Could not start the download in Downloads: {e}"))?;
     let result = async {
         let client = reqwest::Client::builder()
@@ -64,7 +69,12 @@ pub(crate) async fn download_portable_update(
         Ok::<_, String>(())
     }.await;
     drop(file);
-    let result = result.and_then(|()| std::fs::rename(&partial, &target).map_err(|e| e.to_string()));
+    let result = result.and_then(|()| {
+        if target.exists() {
+            let _ = std::fs::remove_file(&target);
+        }
+        std::fs::rename(&partial, &target).map_err(|e| e.to_string())
+    });
     if result.is_err() {
         let _ = std::fs::remove_file(&partial);
     }

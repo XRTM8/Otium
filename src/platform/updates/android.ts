@@ -200,6 +200,10 @@ export const androidUpdateAdapter: UpdateAdapter = {
         });
       };
 
+      if (signal?.aborted) {
+        fail(new Error('Update cancelled.'));
+        return;
+      }
       const handleAbort = () => fail(new Error('Update cancelled.'));
       signal?.addEventListener('abort', handleAbort, { once: true });
 

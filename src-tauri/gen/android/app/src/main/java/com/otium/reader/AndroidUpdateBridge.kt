@@ -87,6 +87,53 @@ class AndroidUpdateBridge(
     Thread { downloadApk(url, expectedSha256) }.start()
   }
 
+  private fun openHttpsConnectionFollowingRedirects(
+    initialUrl: String,
+    headers: Map<String, String>,
+    connectTimeoutMs: Int = 20_000,
+    readTimeoutMs: Int = 30_000,
+    maxHops: Int = 7
+  ): HttpURLConnection {
+    var currentUrl = initialUrl
+    var hops = 0
+
+    while (hops < maxHops) {
+      if (!currentUrl.startsWith("https://")) {
+        throw IOException("Insecure redirect to non-HTTPS URL refused.")
+      }
+
+      val conn = (URL(currentUrl).openConnection() as HttpURLConnection).apply {
+        instanceFollowRedirects = false
+        connectTimeout = connectTimeoutMs
+        readTimeout = readTimeoutMs
+        useCaches = false
+        requestMethod = "GET"
+        headers.forEach { (k, v) -> setRequestProperty(k, v) }
+      }
+
+      val status = conn.responseCode
+      if (status in 300..399) {
+        val location = conn.getHeaderField("Location")
+          ?: run {
+            conn.disconnect()
+            throw IOException("HTTP $status redirect missing Location header.")
+          }
+        conn.disconnect()
+        currentUrl = URL(URL(currentUrl), location).toString()
+        hops++
+        continue
+      }
+
+      if (status !in 200..299) {
+        conn.disconnect()
+        throw IOException("Update server returned HTTP $status.")
+      }
+
+      return conn
+    }
+    throw IOException("Too many redirects while reaching update server.")
+  }
+
   private fun downloadApk(url: String, expectedSha256: String) {
     val updateDir = File(activity.cacheDir, "updates").apply { mkdirs() }
     val target = File(updateDir, "otium-update.apk")
@@ -94,19 +141,11 @@ class AndroidUpdateBridge(
 
     var connection: HttpURLConnection? = null
     try {
-      connection = (URL(url).openConnection() as HttpURLConnection).apply {
-        instanceFollowRedirects = true
-        connectTimeout = 20_000
-        readTimeout = 30_000
-        requestMethod = "GET"
-        setRequestProperty("Accept", "application/vnd.android.package-archive")
-        setRequestProperty("User-Agent", "Otium-Android-Updater")
-      }
-
-      val status = connection.responseCode
-      if (status !in 200..299) {
-        throw IOException("Update server returned HTTP $status.")
-      }
+      val headers = mapOf(
+        "Accept" to "application/vnd.android.package-archive",
+        "User-Agent" to "Otium-Android-Updater"
+      )
+      connection = openHttpsConnectionFollowingRedirects(url, headers, 20_000, 30_000)
 
       val total = connection.contentLengthLong.takeIf { it > 0 } ?: -1L
       val digest = MessageDigest.getInstance("SHA-256")
@@ -207,23 +246,15 @@ class AndroidUpdateBridge(
 
   private fun httpGet(url: String): String {
     val bustUrl = if (url.contains("?")) "$url&t=${System.currentTimeMillis()}" else "$url?t=${System.currentTimeMillis()}"
-    val connection = (URL(bustUrl).openConnection() as HttpURLConnection).apply {
-      instanceFollowRedirects = true
-      connectTimeout = 15_000
-      readTimeout = 20_000
-      requestMethod = "GET"
-      useCaches = false
-      setRequestProperty("Accept", "application/json")
-      setRequestProperty("User-Agent", "Otium-Android-Updater")
-      setRequestProperty("Cache-Control", "no-cache, no-store")
-      setRequestProperty("Pragma", "no-cache")
-    }
+    val headers = mapOf(
+      "Accept" to "application/json",
+      "User-Agent" to "Otium-Android-Updater",
+      "Cache-Control" to "no-cache, no-store",
+      "Pragma" to "no-cache"
+    )
+    val connection = openHttpsConnectionFollowingRedirects(bustUrl, headers, 15_000, 20_000)
 
     try {
-      val status = connection.responseCode
-      if (status !in 200..299) {
-        throw IOException("Update server returned HTTP $status.")
-      }
       return connection.inputStream.bufferedReader(Charsets.UTF_8).use { reader ->
         val buffer = CharArray(16 * 1024)
         val body = StringBuilder()

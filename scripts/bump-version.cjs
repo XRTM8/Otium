@@ -73,4 +73,15 @@ for (const swPath of ['public/sw.js', 'docs/sw.js']) {
   }
 }
 
+// 10. latest.json version in docs and public
+for (const feedPath of ['public/latest.json', 'docs/latest.json']) {
+  if (fs.existsSync(feedPath)) {
+    try {
+      const feed = JSON.parse(fs.readFileSync(feedPath, 'utf8'));
+      feed.version = targetVersion;
+      fs.writeFileSync(feedPath, JSON.stringify(feed, null, 2) + '\n', 'utf8');
+    } catch {}
+  }
+}
+
 console.log(`Bumped Otium Reader to ${targetVersion}`);
