@@ -81,4 +81,8 @@ describe('backHandler stack', () => {
     expect(buggy).toHaveBeenCalledTimes(1);
     expect(fallback).toHaveBeenCalledTimes(1);
   });
+
+  it('exposes __OTIUM_HANDLE_BACK__ globally on window for Android native bridge', () => {
+    expect(window.__OTIUM_HANDLE_BACK__).toBe(executeBackStep);
+  });
 });

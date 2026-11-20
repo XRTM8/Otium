@@ -51,3 +51,7 @@ export function getRegisteredBackHandlerCount(): number {
 export function clearBackHandlers(): void {
   backHandlers.length = 0;
 }
+
+if (typeof window !== 'undefined') {
+  window.__OTIUM_HANDLE_BACK__ = executeBackStep;
+}

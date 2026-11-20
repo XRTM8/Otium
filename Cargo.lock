@@ -4997,7 +4997,7 @@ dependencies = [
 
 [[package]]
 name = "otium"
-version = "2.0.7"
+version = "2.0.8"
 dependencies = [
  "chacha20poly1305",
  "futures-util",

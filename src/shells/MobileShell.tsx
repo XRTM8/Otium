@@ -25,7 +25,18 @@ const BeamModal = React.lazy(() => import('../board/beam/BeamModal').then(module
 /** Android shell: touch-first bars, swipe gestures and no keyboard shortcuts. */
 export const MobileShell: React.FC = () => {
   React.useEffect(() => {
-    notifyAppReady();
+    // Ensure the initial frame is committed and painted before Android fades out splash
+    let active = true;
+    const raf1 = requestAnimationFrame(() => {
+      const raf2 = requestAnimationFrame(() => {
+        if (active) notifyAppReady();
+      });
+      if (!active) cancelAnimationFrame(raf2);
+    });
+    return () => {
+      active = false;
+      cancelAnimationFrame(raf1);
+    };
   }, []);
   const { compact } = useDeviceUsage();
   return <TeachingProvider mobile={compact}><MobileReader /></TeachingProvider>;

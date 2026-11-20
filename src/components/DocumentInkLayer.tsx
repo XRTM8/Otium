@@ -283,11 +283,17 @@ export function DocumentInkLayer({ page, width, height, lang }: { page: number; 
           return;
         }
         if (!drawing.current || drawing.current.points.length >= 5000) return;
-        const p = point(e, true);
-        const last = drawing.current.points[drawing.current.points.length - 1];
-        if (last && Math.hypot((p.x - last.x) * width, (p.y - last.y) * height) < 1) return;
-        drawing.current.points.push(p);
-        draftPointsStrRef.current += ` ${p.x * width},${p.y * height}`;
+        const nativeEvents = typeof (e.nativeEvent as PointerEvent).getCoalescedEvents === 'function'
+          ? (e.nativeEvent as PointerEvent).getCoalescedEvents()
+          : [e];
+        for (const evt of nativeEvents) {
+          if (drawing.current.points.length >= 5000) break;
+          const p = point(evt, true);
+          const last = drawing.current.points[drawing.current.points.length - 1];
+          if (last && Math.hypot((p.x - last.x) * width, (p.y - last.y) * height) < 1) continue;
+          drawing.current.points.push(p);
+          draftPointsStrRef.current += ` ${p.x * width},${p.y * height}`;
+        }
         if (draftPolylineRef.current) {
           draftPolylineRef.current.setAttribute('points', draftPointsStrRef.current);
         }

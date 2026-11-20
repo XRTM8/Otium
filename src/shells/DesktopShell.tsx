@@ -26,7 +26,17 @@ import type { BoardSnippet } from '../board/types';
 /** Windows shell: floating desktop toolbar, Otium Board split-screen studio, and Smart Beam. */
 export const DesktopShell: React.FC = () => {
   React.useEffect(() => {
-    notifyAppReady();
+    let active = true;
+    const raf1 = requestAnimationFrame(() => {
+      const raf2 = requestAnimationFrame(() => {
+        if (active) notifyAppReady();
+      });
+      if (!active) cancelAnimationFrame(raf2);
+    });
+    return () => {
+      active = false;
+      cancelAnimationFrame(raf1);
+    };
   }, []);
   const { compact } = useDeviceUsage();
   return <TeachingProvider mobile={compact}><DesktopReader /></TeachingProvider>;
