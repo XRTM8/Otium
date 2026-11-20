@@ -883,9 +883,16 @@
   .welcome-nav {
     display: none;
   }
+  .welcome-open {
+    display: none !important;
+  }
+  .welcome-resume {
+    flex: 1 1 100%;
+    width: 100%;
+    padding: 1rem 1.15rem;
+  }
   .welcome-tools-strip {
-    grid-template-columns: 1fr;
-    gap: .55rem;
+    display: none !important;
   }
   .shelf-recents { grid-template-columns: 1fr; }
   .shelf-books { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.4rem .85rem; }

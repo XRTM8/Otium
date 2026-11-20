@@ -157,6 +157,21 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               </span>
             </button>
 
+            {onOpenBeam && (
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('light');
+                  onOpenBeam();
+                }}
+                title={ar ? 'بث واستقبال السبورة (Smart Beam)' : 'Smart Beam & Cast'}
+                aria-label={ar ? 'بث واستقبال السبورة (Smart Beam)' : 'Smart Beam & Cast'}
+                className="welcome-circle-btn"
+              >
+                <Cast size={18} className="text-ink-muted hover:text-accent transition-colors" />
+              </button>
+            )}
+
             {onOpenSettings && (
               <button
                 onClick={onOpenSettings}
@@ -205,32 +220,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 <strong>{ar ? 'فتح ملف' : 'Open file'}</strong>
                 <span>PDF · PPTX · {ar ? 'صور ووسائط' : 'Images and media'}</span>
               </button>
-            )}
-            {(onOpenScanner || onOpenBeam) && (
-              <div className="welcome-tools-strip">
-                {onOpenScanner && (
-                  <button type="button" className="tool-tile" onClick={onOpenScanner}>
-                    <span className="tool-icon-box">
-                      <ScanLine size={19} />
-                    </span>
-                    <span className="tool-texts">
-                      <strong>{ar ? 'الماسح بالكاميرا' : 'Document Scanner'}</strong>
-                      <small>{ar ? 'تصوير الورق وتصديره PDF' : 'Capture & export to PDF'}</small>
-                    </span>
-                  </button>
-                )}
-                {onOpenBeam && (
-                  <button type="button" className="tool-tile" onClick={onOpenBeam}>
-                    <span className="tool-icon-box">
-                      <Cast size={19} />
-                    </span>
-                    <span className="tool-texts">
-                      <strong>{ar ? 'بث واستقبال السبورة' : 'Smart Beam & Board'}</strong>
-                      <small>{ar ? 'عرض تفاعلي وشاشة ثانية' : 'Second screen & wireless ink'}</small>
-                    </span>
-                  </button>
-                )}
-              </div>
             )}
           </section>
         )}
