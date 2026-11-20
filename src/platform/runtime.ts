@@ -80,3 +80,16 @@ export async function openExternalLink(url: string): Promise<void> {
     window.open(safeUrl, '_blank', 'noopener,noreferrer');
   }
 }
+
+/**
+ * Signals native splashscreen (Android) that the web shell has mounted
+ * and rendered its first frame, allowing the splash to smoothly fade out.
+ */
+export function notifyAppReady(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    (window as unknown as { OtiumUi?: { onAppReady?: () => void } }).OtiumUi?.onAppReady?.();
+  } catch {
+    // Non-Android platforms ignore this
+  }
+}

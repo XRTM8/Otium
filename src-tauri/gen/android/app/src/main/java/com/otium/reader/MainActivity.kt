@@ -18,6 +18,10 @@ import android.provider.OpenableColumns
 import android.util.Base64
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import android.animation.ObjectAnimator
+import android.view.View
+import androidx.core.animation.doOnEnd
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -34,6 +38,7 @@ import java.net.URL
 import java.nio.charset.StandardCharsets
 
 class MainActivity : TauriActivity() {
+  private var isAppReady = false
   private var appWebView: WebView? = null
   private var ttsBridge: AndroidTtsBridge? = null
   private var immersive = true
@@ -62,6 +67,18 @@ class MainActivity : TauriActivity() {
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
+    val splashScreen = installSplashScreen()
+    val splashStartTime = System.currentTimeMillis()
+    splashScreen.setKeepOnScreenCondition {
+      !isAppReady && (System.currentTimeMillis() - splashStartTime < 3500)
+    }
+    splashScreen.setOnExitAnimationListener { splashScreenViewProvider ->
+      val fadeOut = ObjectAnimator.ofFloat(splashScreenViewProvider.view, View.ALPHA, 1f, 0f)
+      fadeOut.duration = 240L
+      fadeOut.doOnEnd { splashScreenViewProvider.remove() }
+      fadeOut.start()
+    }
+
     clearLegacyServiceWorker()
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
@@ -97,8 +114,10 @@ class MainActivity : TauriActivity() {
 
   override fun onWebViewCreate(webView: WebView) {
     appWebView = webView
-    // Dark initial background eliminates any white flash while web content loads
-    webView.setBackgroundColor(android.graphics.Color.parseColor("#15181e"))
+    // Match initial window background to active night/light mode to prevent any flash before web content mounts
+    val nightMode = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+    val initialBg = if (nightMode) Color.parseColor("#0B0906") else Color.parseColor("#f4ede1")
+    webView.setBackgroundColor(initialBg)
     // The document scanner renders a live camera stream into a <video> element.
     // Without this the WebView can refuse to start playback until another tap.
     webView.settings.mediaPlaybackRequiresUserGesture = false
@@ -147,6 +166,10 @@ class MainActivity : TauriActivity() {
 
   /** Lets the reader hide the Android status and navigation bars on a page tap. */
   private inner class UiBridge {
+    @JavascriptInterface
+    fun onAppReady() {
+      runOnUiThread { isAppReady = true }
+    }
     @JavascriptInterface
     fun setVolumePageKeys(enabled: Boolean) {
       runOnUiThread { volumePageKeys = enabled }

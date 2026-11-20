@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
-import { getFormFactor } from './platform/runtime';
+import { getFormFactor, notifyAppReady } from './platform/runtime';
 import type { FormFactor } from './platform/runtime';
 import { requestStoragePersistence } from './core/storage/persistence';
 
@@ -24,6 +24,12 @@ const App: React.FC = () => {
     // Request persistent storage on startup so user documents and notes
     // are never evicted by Android/iOS/Chromium under storage pressure
     void requestStoragePersistence();
+
+    // Safety fallback: dismiss native splash after short delay if shell hasn't already
+    const readyTimer = setTimeout(() => {
+      notifyAppReady();
+    }, 150);
+    return () => clearTimeout(readyTimer);
 
     // Keep the shell stable for the lifetime of this app. In particular,
     // orientation changes must never unmount the reader and discard its state.

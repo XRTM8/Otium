@@ -15,6 +15,7 @@ import { useMobileFullscreen } from '../platform/useMobileFullscreen';
 import { useBeamRemoteKeys } from '../board/beam/useBeamRemoteKeys';
 import { beamService } from '../board/beam/beamService';
 import { useDeviceUsage } from '../platform/deviceUsage';
+import { notifyAppReady } from '../platform/runtime';
 import type { BoardSnippet } from '../board/types';
 import { useAppMedia } from '../media/useAppMedia';
 const MediaWorkspace = React.lazy(() => import('../media/MediaWorkspace').then(module => ({ default: module.MediaWorkspace })));
@@ -23,6 +24,9 @@ const BeamModal = React.lazy(() => import('../board/beam/BeamModal').then(module
 
 /** Android shell: touch-first bars, swipe gestures and no keyboard shortcuts. */
 export const MobileShell: React.FC = () => {
+  React.useEffect(() => {
+    notifyAppReady();
+  }, []);
   const { compact } = useDeviceUsage();
   return <TeachingProvider mobile={compact}><MobileReader /></TeachingProvider>;
 };

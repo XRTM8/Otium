@@ -1,7 +1,7 @@
 {
   "name": "otium-reader",
   "private": true,
-  "version": "2.0.6",
+  "version": "2.0.7",
   "type": "module",
   "scripts": {
     "lab:media": "vite --config experiments/media-lab/vite.config.ts",

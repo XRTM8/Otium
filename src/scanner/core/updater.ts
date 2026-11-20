@@ -8,7 +8,7 @@ import { nativeFetchUrl } from './nativeBridge';
 import { getCurrentVersion } from '../../core/updates/currentVersion';
 import { isNewerVersion as isNewerReleaseVersion } from '../../core/updates/releaseFeed';
 
-export const APP_CURRENT_VERSION = '2.0.6';
+export const APP_CURRENT_VERSION = '2.0.7';
 
 export interface ReleaseAsset {
   name: string;

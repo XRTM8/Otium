@@ -1,6 +1,14 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+    <!-- Premium SplashScreen API starting theme for Night Mode -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_bg_dark</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.otium</item>
+    </style>
+
+    <!-- Base application theme for Night Mode -->
     <style name="Theme.otium" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your theme here. -->
+        <item name="android:windowBackground">@color/splash_bg_dark</item>
+        <item name="android:colorBackground">@color/splash_bg_dark</item>
     </style>
 </resources>

@@ -31,6 +31,7 @@
             android:launchMode="singleTask"
             android:label="@string/main_activity_title"
             android:name="com.otium.reader.MainActivity"
+            android:theme="@style/Theme.App.Starting"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

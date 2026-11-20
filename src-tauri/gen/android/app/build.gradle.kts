@@ -128,6 +128,7 @@ rust {
 }
 
 dependencies {
+    implementation("androidx.core:core-splashscreen:1.0.1")
     debugImplementation("androidx.camera:camera-camera2:1.6.2")
     debugImplementation("androidx.camera:camera-lifecycle:1.6.2")
     debugImplementation("androidx.camera:camera-view:1.6.2")

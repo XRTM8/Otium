@@ -20,10 +20,14 @@ import { beamService } from '../board/beam/beamService';
 const MediaWorkspace = React.lazy(() => import('../media/MediaWorkspace').then(module => ({ default: module.MediaWorkspace })));
 const BoardSplitWorkspace = React.lazy(() => import('../board/components/BoardSplitWorkspace').then(module => ({ default: module.BoardSplitWorkspace })));
 const BeamModal = React.lazy(() => import('../board/beam/BeamModal').then(module => ({ default: module.BeamModal })));
+import { notifyAppReady } from '../platform/runtime';
 import type { BoardSnippet } from '../board/types';
 
 /** Windows shell: floating desktop toolbar, Otium Board split-screen studio, and Smart Beam. */
 export const DesktopShell: React.FC = () => {
+  React.useEffect(() => {
+    notifyAppReady();
+  }, []);
   const { compact } = useDeviceUsage();
   return <TeachingProvider mobile={compact}><DesktopReader /></TeachingProvider>;
 };
