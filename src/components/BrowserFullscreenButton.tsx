@@ -13,7 +13,7 @@ export function BrowserFullscreenButton({ ar }: { ar: boolean }) {
   if (isTauriRuntime()) return null;
   const label = active ? (ar ? 'خروج من ملء الشاشة' : 'Exit fullscreen') : (ar ? 'ملء الشاشة' : 'Fullscreen');
   return <>
-    <button type="button" aria-label={label} title={label} aria-pressed={active} className="fluid-press flex min-h-11 items-center gap-1.5 px-3 py-1.5 rounded-full chrome-surface text-xs text-ink cursor-pointer" onClick={async () => {
+    <button type="button" aria-label={label} title={label} aria-pressed={active} className="welcome-circle-btn" onClick={async () => {
       setError(false);
       const doc = document as FullscreenDocument;
       const root = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> | void };
@@ -25,7 +25,7 @@ export function BrowserFullscreenButton({ ar }: { ar: boolean }) {
         else setError(true);
       } catch { setError(true); }
     }}>
-      {active ? <Minimize size={16} /> : <Maximize size={16} />}<span className="hidden sm:inline">{label}</span>
+      {active ? <Minimize size={17} /> : <Maximize size={17} />}
     </button>
     {error && <span role="status" className="text-xs text-danger-ink">{ar ? 'ملء الشاشة غير متاح أو لم يسمح به المتصفح.' : 'Fullscreen is unavailable or blocked by this browser.'}</span>}
   </>;

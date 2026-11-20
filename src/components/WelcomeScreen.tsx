@@ -1,7 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import {
   Cast,
-  Globe,
   House,
   LibraryBig,
   ScanLine,
@@ -138,39 +137,35 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
       dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
       className="welcome-page flex-1 min-h-0 overflow-y-auto bg-[var(--app-bg)] text-ink"
     >
-      <main className="welcome-content">
-        <header className="welcome-header">
-          <div className="flex items-center gap-2" dir="ltr">
-            <OtiumLogo theme={currentTheme} size={34} />
+      <header className="welcome-header">
+        <div className="welcome-header-inner">
+          <div className="flex items-center gap-2.5" dir="ltr">
+            <OtiumLogo theme={currentTheme} size={32} />
             <span className="welcome-brand">Otium</span>
           </div>
-          <div dir="ltr" className="flex flex-wrap items-center justify-end gap-2">
-            <div className="pointer-events-auto flex items-center gap-2">
-              <BrowserFullscreenButton ar={currentLang === 'ar'} />
-              <button
-                onClick={onToggleLanguage}
-                title={currentLang === 'ar' ? 'Switch to English' : 'التحويل إلى العربية'}
-                className="fluid-press group flex items-center gap-1.5 px-3 py-1.5 rounded-full chrome-surface text-xs text-ink cursor-pointer hover:border-line-strong hover:-translate-y-0.5 hover:shadow-md transition-all duration-200"
-              >
-                <Globe className="w-3.5 h-3.5 text-ink-muted group-hover:text-ink transition-colors" />
-                <span className={`text-[11px] font-semibold ${currentLang === 'ar' ? 'font-mono tracking-wider' : 'font-sans'}`}>
-                  {currentLang === 'ar' ? 'EN' : 'عربي'}
-                </span>
-              </button>
+          <div dir="ltr" className="flex items-center gap-2">
+            <BrowserFullscreenButton ar={currentLang === 'ar'} />
+            <button
+              onClick={onToggleLanguage}
+              title={currentLang === 'ar' ? 'Switch to English' : 'التحويل إلى العربية'}
+              aria-label={currentLang === 'ar' ? 'Switch to English' : 'التحويل إلى العربية'}
+              className="welcome-circle-btn"
+            >
+              <span className={`text-[12px] font-bold ${currentLang === 'ar' ? 'font-mono' : 'font-sans'}`}>
+                {currentLang === 'ar' ? 'EN' : 'ع'}
+              </span>
+            </button>
 
-              {onOpenSettings && (
-                <button
-                  onClick={onOpenSettings}
-                  title={t.settingsTitle}
-                  className="fluid-press group flex items-center gap-1.5 px-3 py-1.5 rounded-full chrome-surface text-xs text-ink cursor-pointer hover:border-line-strong hover:-translate-y-0.5 hover:shadow-md transition-all duration-200"
-                >
-                  <Settings2 className="w-3.5 h-3.5 text-ink-muted group-hover:text-ink transition-colors" />
-                  <span className="text-[11px] font-medium hidden sm:inline">
-                    {t.settingsTitle}
-                  </span>
-                </button>
-              )}
-            </div>
+            {onOpenSettings && (
+              <button
+                onClick={onOpenSettings}
+                title={t.settingsTitle}
+                aria-label={t.settingsTitle}
+                className="welcome-circle-btn"
+              >
+                <Settings2 size={18} className="text-ink-muted hover:text-ink transition-colors" />
+              </button>
+            )}
 
             <WelcomeThemeMenu
               currentTheme={currentTheme}
@@ -179,7 +174,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               onThemeChange={onThemeChange}
             />
           </div>
-        </header>
+        </div>
+      </header>
+
+      <main className="welcome-content">
         <nav className="welcome-nav" aria-label={ar ? 'التنقل الرئيسي' : 'Main navigation'}>
           <button type="button" onClick={() => setLibraryOpen(false)} aria-current={!libraryOpen ? 'page' : undefined}>
             <House size={17} />{ar ? 'الرئيسية' : 'Home'}
@@ -207,10 +205,32 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 <span>PDF · PPTX · {ar ? 'صور ووسائط' : 'Images and media'}</span>
               </button>
             )}
-            {(onOpenScanner || onOpenBeam) && <div className="welcome-tools">
-              {onOpenScanner && <button type="button" onClick={onOpenScanner}><ScanLine size={21} />{ar ? 'الماسح بالكاميرا' : 'Scan with Camera'}</button>}
-              {onOpenBeam && <button type="button" onClick={onOpenBeam}><Cast size={21} />{ar ? 'بث واستقبال السبورة' : 'Smart Beam & Board'}</button>}
-            </div>}
+            {(onOpenScanner || onOpenBeam) && (
+              <div className="welcome-tools-strip">
+                {onOpenScanner && (
+                  <button type="button" className="tool-tile" onClick={onOpenScanner}>
+                    <span className="tool-icon-box">
+                      <ScanLine size={19} />
+                    </span>
+                    <span className="tool-texts">
+                      <strong>{ar ? 'الماسح بالكاميرا' : 'Document Scanner'}</strong>
+                      <small>{ar ? 'تصوير الورق وتصديره PDF' : 'Capture & export to PDF'}</small>
+                    </span>
+                  </button>
+                )}
+                {onOpenBeam && (
+                  <button type="button" className="tool-tile" onClick={onOpenBeam}>
+                    <span className="tool-icon-box">
+                      <Cast size={19} />
+                    </span>
+                    <span className="tool-texts">
+                      <strong>{ar ? 'بث واستقبال السبورة' : 'Smart Beam & Board'}</strong>
+                      <small>{ar ? 'عرض تفاعلي وشاشة ثانية' : 'Second screen & wireless ink'}</small>
+                    </span>
+                  </button>
+                )}
+              </div>
+            )}
           </section>
         )}
         <WelcomeRecentsShelf
@@ -230,6 +250,48 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
         <WelcomeFooterDock currentLang={currentLang} />
       </main>
+
+      {/* Mobile Floating Bottom Bar */}
+      <nav className="mobile-dock" aria-label={ar ? 'التنقل السريع' : 'Quick navigation'}>
+        <button
+          type="button"
+          className={`dock-btn ${!libraryOpen ? 'active' : ''}`}
+          onClick={() => setLibraryOpen(false)}
+        >
+          <House size={19} />
+          <span>{ar ? 'الرئيسية' : 'Home'}</span>
+        </button>
+
+        <button
+          type="button"
+          className="dock-fab"
+          onClick={() => fileInputRef.current?.click()}
+          title={ar ? 'فتح ملف جديد' : 'Open new file'}
+          aria-label={ar ? 'فتح ملف جديد' : 'Open new file'}
+        >
+          <Upload size={19} />
+        </button>
+
+        <button
+          type="button"
+          className={`dock-btn ${libraryOpen ? 'active' : ''}`}
+          onClick={() => setLibraryOpen(true)}
+        >
+          <LibraryBig size={19} />
+          <span>{ar ? 'المكتبة' : 'Library'}</span>
+        </button>
+
+        {onOpenScanner && (
+          <button
+            type="button"
+            className="dock-btn"
+            onClick={onOpenScanner}
+          >
+            <ScanLine size={19} />
+            <span>{ar ? 'الماسح' : 'Scan'}</span>
+          </button>
+        )}
+      </nav>
 
       {deleting && (
         <ConfirmDialog

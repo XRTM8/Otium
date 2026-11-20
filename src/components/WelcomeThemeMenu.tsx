@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, ChevronDown, Palette } from 'lucide-react';
+import { Check, Palette } from 'lucide-react';
 import type { ThemeMode } from '../core/types';
 import type { Language } from '../core/i18n/translations';
 import { getTranslations } from '../core/i18n/translations';
@@ -60,22 +60,15 @@ export const WelcomeThemeMenu: React.FC<WelcomeThemeMenuProps> = ({
             setShowTopThemeMenu((prev) => !prev);
           }}
           title={t.themeLabel}
-          className={`fluid-press group flex items-center gap-2 px-3.5 py-1.5 rounded-full chrome-surface text-xs cursor-pointer hover:border-line-strong hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 ${
+          aria-label={t.themeLabel}
+          className={`welcome-circle-btn relative ${
             showTopThemeMenu ? 'border-accent/60 shadow-md ring-1 ring-accent/25' : ''
           }`}
         >
+          <Palette size={18} className="text-ink-muted group-hover:text-ink transition-colors" />
           <span
-            className="w-2.5 h-2.5 rounded-full ring-2 ring-line-strong transition-all duration-300 group-hover:scale-110"
-            style={{ backgroundColor: activeThemeMeta?.dot ?? '#7b8a82' }}
-          />
-          <span className="font-semibold text-[11px] text-ink">
-            {activeThemeMeta?.label ?? currentTheme}
-          </span>
-          <Palette className="w-3.5 h-3.5 text-ink-muted group-hover:text-ink transition-colors" />
-          <ChevronDown
-            className={`w-3 h-3 text-ink-muted transition-transform duration-300 ${
-              showTopThemeMenu ? 'rotate-180' : ''
-            }`}
+            className="absolute top-1 end-1 w-2.5 h-2.5 rounded-full ring-2 ring-[var(--surface-1)] transition-transform duration-200 group-hover:scale-110"
+            style={{ backgroundColor: activeThemeMeta?.dot ?? 'var(--accent)' }}
           />
         </button>
 

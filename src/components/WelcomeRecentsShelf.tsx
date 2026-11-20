@@ -3,7 +3,7 @@ import { Download, ExternalLink, Search, Trash2 } from 'lucide-react';
 import type { Language, getTranslations } from '../core/i18n/translations';
 import { isTauriRuntime, openExternalLink } from '../platform/runtime';
 import { getCurrentVersion } from '../core/updates/currentVersion';
-import { selectFiles, type LibrarySort } from '../library/model';
+import { kindOf, selectFiles, type LibrarySort } from '../library/model';
 import { BookCover } from './BookCover';
 import {
   formatLibraryDate,
@@ -48,9 +48,30 @@ export function WelcomeRecentsShelf({ fullLibrary, loaded, currentLang, t, recen
     setSortState(s);
   };
 
-  const items = useMemo(() => fullLibrary
+  type FilterChip = 'all' | 'pdf' | 'reading' | 'media';
+  const [filterChip, setFilterChip] = useState<FilterChip>('all');
+
+  const baseItems = useMemo(() => fullLibrary
     ? selectFiles(recents, query, 'all', [], false, sort)
     : recents.slice(0, 4), [fullLibrary, query, recents, sort]);
+
+  const items = useMemo(() => {
+    if (!fullLibrary || filterChip === 'all') return baseItems;
+    if (filterChip === 'pdf') {
+      return baseItems.filter(item => kindOf(item) === 'pdf');
+    }
+    if (filterChip === 'reading') {
+      return baseItems.filter(item => isPagedLibraryItem(item) && item.lastPage > 1);
+    }
+    if (filterChip === 'media') {
+      return baseItems.filter(item => !!item.mediaKind || /doc-|scan-/i.test(item.name));
+    }
+    return baseItems;
+  }, [baseItems, fullLibrary, filterChip]);
+
+  const totalSizeBytes = useMemo(() => {
+    return recents.reduce((acc, item) => acc + (item.sizeBytes || 0), 0);
+  }, [recents]);
 
   useEffect(() => {
     const lastId = getLibraryNavigationState().lastOpenedId;
@@ -87,6 +108,47 @@ export function WelcomeRecentsShelf({ fullLibrary, loaded, currentLang, t, recen
         <option value="size">{ar ? 'الأكبر حجماً' : 'Largest first'}</option>
       </select>
     </div>}
+    {fullLibrary && recents.length > 0 && (
+      <div className="shelf-chips" role="tablist" aria-label={ar ? 'تصفية المكتبة' : 'Filter library'}>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={filterChip === 'all'}
+          className={`shelf-chip ${filterChip === 'all' ? 'active' : ''}`}
+          onClick={() => setFilterChip('all')}
+        >
+          {ar ? 'الكل' : 'All'}
+          <span className="chip-count">{recents.length}</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={filterChip === 'pdf'}
+          className={`shelf-chip ${filterChip === 'pdf' ? 'active' : ''}`}
+          onClick={() => setFilterChip('pdf')}
+        >
+          {ar ? 'مستندات PDF' : 'PDFs'}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={filterChip === 'reading'}
+          className={`shelf-chip ${filterChip === 'reading' ? 'active' : ''}`}
+          onClick={() => setFilterChip('reading')}
+        >
+          {ar ? 'قيد القراءة' : 'In Progress'}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={filterChip === 'media'}
+          className={`shelf-chip ${filterChip === 'media' ? 'active' : ''}`}
+          onClick={() => setFilterChip('media')}
+        >
+          {ar ? 'وسائط ومسح' : 'Media & Scans'}
+        </button>
+      </div>
+    )}
     {recents.length > 0 && <div className="shelf-label">
       <h2>{fullLibrary ? (ar ? 'الملفات' : 'Files') : (ar ? 'فُتح مؤخراً' : 'Recently opened')} <span>{items.length}</span></h2>
       {fullLibrary && !query.trim() && <button type="button" onClick={() => onRequestDelete('all')}>{t.clearAll}</button>}
@@ -103,12 +165,15 @@ export function WelcomeRecentsShelf({ fullLibrary, loaded, currentLang, t, recen
           <BookCover item={item} large={fullLibrary} />
           <span className="shelf-caption">
             <strong title={item.name}><bdi>{item.name}</bdi></strong>
-            <small className={!item.available ? 'text-amber-500 dark:text-amber-400 font-medium' : undefined}>
-              {item.available
-                ? formatLibraryProgressLabel(item, currentLang, t)
-                : (ar ? 'النسخة المحلية غير متوفرة · انقر للاستيراد' : 'Local copy missing · Click to re-import')}
-            </small>
-            <small className="file-detail">{fullLibrary ? <bdi dir="ltr">{formatLibrarySize(item.sizeBytes)}</bdi> : formatLibraryDate(item.lastOpened, referenceNow, currentLang, t)}</small>
+            <div className="shelf-meta-row">
+              <small className={!item.available ? 'text-amber-500 dark:text-amber-400 font-medium' : undefined}>
+                {item.available
+                  ? formatLibraryProgressLabel(item, currentLang, t)
+                  : (ar ? 'النسخة غير متوفرة' : 'Local copy missing')}
+              </small>
+              <span className="shelf-meta-dot">·</span>
+              <small className="file-detail">{fullLibrary ? <bdi dir="ltr">{formatLibrarySize(item.sizeBytes)}</bdi> : formatLibraryDate(item.lastOpened, referenceNow, currentLang, t)}</small>
+            </div>
             {fullLibrary && isPagedLibraryItem(item) && item.totalPages > 0 &&
               <span className="shelf-progress"><i style={{width: `${Math.max(0, Math.min(100, item.lastPage / item.totalPages * 100))}%`}} /></span>}
           </span>
@@ -137,6 +202,14 @@ export function WelcomeRecentsShelf({ fullLibrary, loaded, currentLang, t, recen
       <p className="text-xs text-ink-muted mb-3 max-w-sm mx-auto">{ar ? 'تعذر الوصول إلى قاعدة البيانات المحلية لقراءة كتبك المحفوظة.' : 'Could not access local storage to load your saved books.'}</p>
       <button type="button" className="px-3 py-1.5 rounded-lg bg-hover border border-line text-xs font-semibold" onClick={onRetryLoad}>{ar ? 'إعادة المحاولة' : 'Retry'}</button>
     </div>}
+    {fullLibrary && recents.length > 0 && (
+      <div className="shelf-footer-summary">
+        <span>{ar ? `${recents.length} ملفات محفوظة` : `${recents.length} saved files`}</span>
+        <span className="summary-dot">·</span>
+        <bdi dir="ltr">{formatLibrarySize(totalSizeBytes)}</bdi>
+        <span>{ar ? 'مساحة محلية مستخدمة' : 'local storage used'}</span>
+      </div>
+    )}
   </section>;
 }
 
