@@ -30,7 +30,7 @@ export function useReaderWorkspaceSync({
   zoom,
   viewMode,
   basePageSize,
-  isImmersive,
+  isImmersive: _isImmersive,
   handlePageVisible,
   scrollContainerRef,
   touchZoomActiveRef,
@@ -39,12 +39,36 @@ export function useReaderWorkspaceSync({
 }: UseReaderWorkspaceSyncOptions) {
   const [compactLandscape, setCompactLandscape] = useState(false);
   const [showScrubberPill, setShowScrubberPill] = useState(false);
+  const [isPageFlipping, setIsPageFlipping] = useState(false);
   const [settledPage, setSettledPage] = useState(currentPage);
   const scrubberTimeoutRef = useRef<number | null>(null);
+  const pageFlipTimerRef = useRef<number | null>(null);
+  const previousPageRef = useRef<number>(currentPage);
   const lastScrollPageRef = useRef<number>(currentPage);
   const scrollFrameRef = useRef<number | null>(null);
   const [scrubState, setScrubState] = useState<{ page: number; x: number } | null>(null);
   const isScrubbingRef = useRef(false);
+
+  useEffect(() => {
+    if (previousPageRef.current !== currentPage) {
+      previousPageRef.current = currentPage;
+      setIsPageFlipping(true);
+      if (pageFlipTimerRef.current !== null) {
+        window.clearTimeout(pageFlipTimerRef.current);
+      }
+      pageFlipTimerRef.current = window.setTimeout(() => {
+        setIsPageFlipping(false);
+      }, 1600);
+    }
+  }, [currentPage]);
+
+  useEffect(() => {
+    return () => {
+      if (pageFlipTimerRef.current !== null) {
+        window.clearTimeout(pageFlipTimerRef.current);
+      }
+    };
+  }, []);
 
   const calculateScrubPage = (clientX: number) => {
     if (typeof window === 'undefined') return { page: 1, x: clientX };
@@ -192,12 +216,12 @@ export function useReaderWorkspaceSync({
   }, [viewMode, doc, currentPage, numPages, basePageSize, zoom, handlePageVisible, scrollContainerRef, touchZoomActiveRef, viewportResizingRef]);
 
   useEffect(() => {
-    if (isImmersive || settledPage === currentPage) return;
+    if (settledPage === currentPage) return;
     const timer = window.setTimeout(() => {
       setSettledPage(currentPage);
     }, 1600);
     return () => window.clearTimeout(timer);
-  }, [currentPage, isImmersive, settledPage]);
+  }, [currentPage, settledPage]);
 
   useEffect(() => {
     return () => {
@@ -210,6 +234,7 @@ export function useReaderWorkspaceSync({
   return {
     compactLandscape,
     showScrubberPill,
+    isPageFlipping,
     settledPage,
     scrubState,
     handleScrubberPointerDown,

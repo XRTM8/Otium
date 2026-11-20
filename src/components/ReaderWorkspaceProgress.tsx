@@ -11,6 +11,7 @@ interface ReaderWorkspaceProgressProps {
   numPages: number;
   scrubState: { page: number; x: number } | null;
   showScrubberPill: boolean;
+  isPageFlipping?: boolean;
   settledPage: number;
   numberJumpDisplay: string | null;
   arrivalGlowKey: number;
@@ -23,6 +24,7 @@ interface ReaderWorkspaceProgressProps {
 
 export const ReaderWorkspaceProgressBar: React.FC<ReaderWorkspaceProgressProps> = ({
   lang,
+  compact,
   isImmersive,
   currentPage,
   numPages,
@@ -40,15 +42,15 @@ export const ReaderWorkspaceProgressBar: React.FC<ReaderWorkspaceProgressProps> 
       aria-valuemin={1}
       aria-valuemax={Math.max(1, numPages)}
       aria-valuenow={currentPage}
-      onPointerDown={onScrubberPointerDown}
-      onPointerMove={onScrubberPointerMove}
-      onPointerUp={onScrubberPointerUp}
-      onPointerLeave={onScrubberPointerLeave}
-      className={`fixed top-0 inset-x-0 h-4 group cursor-pointer z-40 transition-opacity duration-300 flex items-start select-none ${
+      onPointerDown={compact ? undefined : onScrubberPointerDown}
+      onPointerMove={compact ? undefined : onScrubberPointerMove}
+      onPointerUp={compact ? undefined : onScrubberPointerUp}
+      onPointerLeave={compact ? undefined : onScrubberPointerLeave}
+      className={`fixed top-0 inset-x-0 ${compact ? 'h-[2.5px] pointer-events-none' : 'h-3 group cursor-pointer'} z-40 transition-opacity duration-300 flex items-start select-none ${
         isImmersive ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
-      <div className="w-full h-[2.5px] group-hover:h-[4.5px] bg-line/40 transition-all duration-150 relative">
+      <div className="w-full h-[2.5px] group-hover:h-[4px] bg-line/30 transition-all duration-150 relative">
         <div
           className="h-full bg-accent relative transition-all duration-300 ease-out will-change-[width]"
           style={{
@@ -58,18 +60,18 @@ export const ReaderWorkspaceProgressBar: React.FC<ReaderWorkspaceProgressProps> 
         >
           <div
             aria-hidden="true"
-            className="absolute -top-[1px] end-0 w-3 h-1 bg-accent rounded-full shadow-[0_0_8px_var(--accent)] opacity-85"
+            className="absolute -top-[1px] end-0 w-2.5 h-1 bg-accent rounded-full shadow-[0_0_8px_var(--accent)] opacity-85"
           />
         </div>
       </div>
 
-      {scrubState && (
+      {!compact && scrubState && (
         <div
           dir={lang === 'ar' ? 'rtl' : 'ltr'}
           style={{
             left: `${scrubState.x}px`,
             transform: 'translateX(-50%)',
-            top: '12px',
+            top: '48px',
           }}
           className="fixed pointer-events-none z-50 chrome-surface px-3 py-1 rounded-full shadow-2xl border border-line text-[11px] font-mono text-ink flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-100 backdrop-blur-md"
         >
@@ -101,6 +103,7 @@ export const ReaderWorkspaceReadingPill: React.FC<
     | 'currentPage'
     | 'numPages'
     | 'showScrubberPill'
+    | 'isPageFlipping'
     | 'settledPage'
     | 'numberJumpDisplay'
     | 'arrivalGlowKey'
@@ -114,83 +117,88 @@ export const ReaderWorkspaceReadingPill: React.FC<
   currentPage,
   numPages,
   showScrubberPill,
+  isPageFlipping = false,
   settledPage,
   numberJumpDisplay,
   arrivalGlowKey,
   onExitImmersive,
-}) => (
-  <div
-    dir={isRtl ? 'rtl' : 'ltr'}
-    style={
-      isImmersive && compact
-        ? { top: 'max(0.75rem, calc(env(safe-area-inset-top, 0px) + 0.5rem))' }
-        : undefined
-    }
-    className={`fixed z-40 transition-all duration-200 ease-out ${
-      compact
-        ? isImmersive
-          ? 'top-4 end-3 sm:end-4'
-          : 'bottom-24 start-4'
-        : isImmersive
-          ? 'top-4 end-4 sm:end-6'
-          : 'bottom-6 start-6'
-    } ${
-      isImmersive || showScrubberPill || (!isImmersive && settledPage !== currentPage) || Boolean(numberJumpDisplay)
-        ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
-        : 'opacity-0 translate-y-2 scale-90 pointer-events-none'
-    }`}
-  >
-    <button
-      type="button"
-      onClick={() => {
-        if (isImmersive) onExitImmersive();
-      }}
-      disabled={!isImmersive && !numberJumpDisplay}
-      title={
-        isImmersive
-          ? lang === 'ar'
-            ? 'انقر لإظهار القوائم وأدوات المستند'
-            : 'Click to show menus and document tools'
-          : lang === 'ar'
-            ? `صفحة ${currentPage} من ${numPages}`
-            : `Page ${currentPage} of ${numPages}`
+}) => {
+  // Page number appears ONLY while flipping pages, scrubbing/scrolling, or jumping
+  const isPagingActive = Boolean(numberJumpDisplay) || showScrubberPill || isPageFlipping || (!isImmersive && settledPage !== currentPage);
+
+  return (
+    <div
+      dir={isRtl ? 'rtl' : 'ltr'}
+      style={
+        compact
+          ? {
+              bottom: isImmersive
+                ? 'max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem))'
+                : 'max(5.5rem, calc(env(safe-area-inset-bottom, 0px) + 5rem))',
+              left: '50%',
+              transform: 'translateX(-50%)',
+            }
+          : undefined
       }
-      aria-label={
-        isImmersive
-          ? lang === 'ar'
-            ? `صفحة ${currentPage} من ${numPages} - انقر لإظهار القوائم`
-            : `Page ${currentPage} of ${numPages} - Click to show menus`
-          : lang === 'ar'
-            ? `صفحة ${currentPage} من ${numPages}`
-            : `Page ${currentPage} of ${numPages}`
-      }
-      key={`page-pill-${arrivalGlowKey || 0}`}
-      className={`chrome-surface spring-press flex items-center gap-2 rounded-full px-3.5 py-1.5 font-mono text-[11px] text-ink shadow-xl backdrop-blur-xl border border-line-subtle select-none ${
-        isImmersive ? 'cursor-pointer hover:bg-hover active:scale-95' : ''
-      } ${arrivalGlowKey ? 'soft-arrival-glow' : ''}`}
+      className={`fixed z-40 transition-all duration-300 ease-out select-none ${
+        compact
+          ? ''
+          : isImmersive
+            ? 'bottom-8 end-8'
+            : 'bottom-6 start-6'
+      } ${
+        isPagingActive
+          ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
+          : 'opacity-0 translate-y-3 scale-95 pointer-events-none'
+      }`}
     >
-      {numberJumpDisplay ? (
-        <span className="flex items-center gap-1.5 text-accent font-semibold font-mono">
-          <span>{lang === 'ar' ? 'انتقال إلى صفحة' : 'Jump to:'}</span>
-          <span className="text-ink text-xs underline decoration-accent font-bold">{numberJumpDisplay}</span>
-          <span className="text-[10px] text-ink-muted">(Enter ↵)</span>
-        </span>
-      ) : isImmersive && compact ? (
-        <span dir="ltr"><AnimatedCounter value={currentPage} /> / {numPages}</span>
-      ) : (
-        <>
-          <span className="font-sans font-medium text-ink inline-flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => {
+          if (isImmersive) onExitImmersive();
+        }}
+        disabled={!isImmersive && !numberJumpDisplay}
+        title={
+          isImmersive
+            ? lang === 'ar'
+              ? 'انقر لإظهار القوائم وأدوات المستند'
+              : 'Click to show menus and document tools'
+            : lang === 'ar'
+              ? `صفحة ${currentPage} من ${numPages}`
+              : `Page ${currentPage} of ${numPages}`
+        }
+        aria-label={
+          isImmersive
+            ? lang === 'ar'
+              ? `صفحة ${currentPage} من ${numPages} - انقر لإظهار القوائم`
+              : `Page ${currentPage} of ${numPages} - Click to show menus`
+            : lang === 'ar'
+              ? `صفحة ${currentPage} من ${numPages}`
+              : `Page ${currentPage} of ${numPages}`
+        }
+        key={`page-pill-${arrivalGlowKey || 0}`}
+        className={`chrome-surface spring-press flex items-center gap-2 rounded-full px-4 py-1.5 font-mono text-[12px] text-ink shadow-2xl backdrop-blur-2xl border border-line-subtle select-none ${
+          isImmersive ? 'cursor-pointer hover:bg-hover active:scale-95' : ''
+        } ${arrivalGlowKey ? 'soft-arrival-glow' : ''}`}
+      >
+        {numberJumpDisplay ? (
+          <span className="flex items-center gap-1.5 text-accent font-semibold font-mono">
+            <span>{lang === 'ar' ? 'انتقال إلى صفحة' : 'Jump to:'}</span>
+            <span className="text-ink text-xs underline decoration-accent font-bold">{numberJumpDisplay}</span>
+            <span className="text-[10px] text-ink-muted">(Enter ↵)</span>
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 font-sans font-medium text-ink text-xs">
             <span>{lang === 'ar' ? 'صفحة' : 'Page'}</span>
-            <AnimatedCounter value={currentPage} />
-            <span>{lang === 'ar' ? `من ${numPages}` : `of ${numPages}`}</span>
+            <span className="font-mono font-semibold text-accent"><AnimatedCounter value={currentPage} /></span>
+            <span className="text-ink-muted">/ {numPages}</span>
+            <span className="text-ink-faint text-[9px] mx-0.5">•</span>
+            <span className="text-ink-muted font-mono text-[11px]">
+              <AnimatedCounter value={Math.min(100, Math.round((currentPage / Math.max(1, numPages)) * 100))} />%
+            </span>
           </span>
-          <span className="text-ink-faint text-[9px]">•</span>
-          <span className="text-accent font-semibold text-[10px] inline-flex items-center font-mono">
-            <AnimatedCounter value={Math.min(100, Math.round((currentPage / Math.max(1, numPages)) * 100))} />
-            <span>%</span>
-          </span>
-        </>
-      )}
-    </button>
-  </div>
-);
+        )}
+      </button>
+    </div>
+  );
+};

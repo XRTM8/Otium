@@ -65,6 +65,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
   const {
     compactLandscape,
     showScrubberPill,
+    isPageFlipping,
     settledPage,
     scrubState,
     handleScrubberPointerDown,
@@ -326,6 +327,7 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
         currentPage={currentPage}
         numPages={numPages}
         showScrubberPill={showScrubberPill}
+        isPageFlipping={isPageFlipping}
         settledPage={settledPage}
         numberJumpDisplay={numberJumpDisplay}
         arrivalGlowKey={reader.arrivalGlowKey || 0}

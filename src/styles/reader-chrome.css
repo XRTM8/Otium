@@ -96,7 +96,7 @@
   font-weight: 600;
   transition:
     filter 140ms ease,
-    transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    transform 120ms ease-out,
     box-shadow 140ms ease;
   will-change: transform;
 }
@@ -106,8 +106,8 @@
 }
 
 .btn-primary:active {
-  transform: scale(0.95);
-  transition-duration: 65ms;
+  transform: scale(0.97);
+  transition-duration: 60ms;
   filter: brightness(0.96);
 }
 
@@ -124,7 +124,7 @@
   transition:
     background 140ms ease,
     border-color 140ms ease,
-    transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform 120ms ease-out;
   will-change: transform;
 }
 
@@ -134,8 +134,8 @@
 }
 
 .btn-secondary:active {
-  transform: scale(0.95);
-  transition-duration: 65ms;
+  transform: scale(0.97);
+  transition-duration: 60ms;
 }
 
 .segmented {
@@ -195,7 +195,7 @@
   transition:
     background-color 140ms ease,
     color 140ms ease,
-    transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform 120ms ease-out;
   will-change: transform;
 }
 
@@ -206,8 +206,8 @@
 
 .action-chip:active {
   background: var(--surface-hover-strong);
-  transform: scale(0.94);
-  transition-duration: 65ms;
+  transform: scale(0.96);
+  transition-duration: 60ms;
 }
 
 .toolbar-icon {
@@ -223,7 +223,7 @@
   transition:
     background-color 140ms ease,
     color 140ms ease,
-    transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform 120ms ease-out;
   will-change: transform;
 }
 
@@ -233,8 +233,8 @@
 }
 
 .toolbar-icon:active {
-  transform: scale(0.92);
-  transition-duration: 65ms;
+  transform: scale(0.96);
+  transition-duration: 60ms;
   background: var(--surface-hover-strong);
 }
 

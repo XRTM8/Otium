@@ -241,14 +241,12 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         <WelcomeFooterDock currentLang={currentLang} />
       </main>
 
-      {/* Mobile Floating Bottom Bar with Spring Transition */}
+      {/* Mobile Floating Bottom Bar */}
       <nav
         className="mobile-dock"
         data-active-tab={libraryOpen ? 'library' : 'home'}
         aria-label={ar ? 'التنقل السريع' : 'Quick navigation'}
       >
-        {/* Animated Sliding Background Indicator */}
-        <div className="dock-active-pill" aria-hidden="true" />
 
         <button
           type="button"

@@ -29,10 +29,13 @@ export function WelcomeHeroResumeCard({ heroRecent, currentLang, t, onOpenRecent
       <BookCover item={heroRecent} />
       <span className="resume-info">
         <span className="resume-badge">
-          <span className="resume-badge-dot" />
           {heroRecent.mediaKind ? (ar ? 'متابعة العرض' : 'Resume viewing') : (ar ? 'متابعة القراءة' : 'Resume reading')}
         </span>
-        <strong className="resume-title"><bdi>{heroRecent.name}</bdi></strong>
+        <strong className="resume-title" title={heroRecent.name}>
+          <span className="resume-title-text" dir="auto">
+            {heroRecent.name}
+          </span>
+        </strong>
         <span className="resume-meta">
           <small>{formatLibraryProgressLabel(heroRecent, currentLang, t)}</small>
           {hasPages && (

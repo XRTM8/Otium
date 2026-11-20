@@ -19,17 +19,13 @@ export function BookCover({ item, large = false }: { item: LibraryItem; large?: 
             decoding="async"
             onError={() => setFailedUrl(item.coverUrl)}
           />
-          <span className="book-spine-crease" />
-          <span className="book-edge-highlight" />
         </span>
       ) : (
         <span className="book-jacket">
           <span className="book-jacket-header">
-            <Icon size={large ? 28 : 19} strokeWidth={1.5} />
+            <Icon size={large ? 26 : 18} strokeWidth={1.75} />
           </span>
           {large && <bdi>{item.name.replace(/\.[^.]+$/, '') || item.name}</bdi>}
-          <span className="book-spine-crease" />
-          <span className="book-edge-highlight" />
         </span>
       )}
     </span>
