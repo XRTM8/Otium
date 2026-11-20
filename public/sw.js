@@ -1,5 +1,5 @@
 // Otium offline cache is scoped to this application, including /Otium/ on Pages.
-const CACHE_NAME = 'otium-offline-v2.0.3';
+const CACHE_NAME = 'otium-offline-v2.0.4';
 const APP_ROOT = self.registration.scope;
 const PRECACHE_URLS = ['./', './index.html', './manifest.webmanifest', './theme-init.js'].map(path => new URL(path, APP_ROOT).href);
 self.addEventListener('install', event => {
