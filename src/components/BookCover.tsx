@@ -8,12 +8,30 @@ export function BookCover({ item, large = false }: { item: LibraryItem; large?: 
   const [failedUrl, setFailedUrl] = useState<string>();
   const kind = item.mediaKind ?? 'pdf';
   const Icon = icons[kind];
-  return <span className={`book-cover cover-${kind}`} aria-hidden="true">
-    {item.coverUrl && failedUrl !== item.coverUrl
-      ? <img src={item.coverUrl} alt="" loading="lazy" decoding="async" onError={() => setFailedUrl(item.coverUrl)} />
-      : <span className="book-jacket">
-          <Icon size={large ? 28 : 19} strokeWidth={1.5} />
+  return (
+    <span className={`book-cover cover-${kind}`} aria-hidden="true">
+      {item.coverUrl && failedUrl !== item.coverUrl ? (
+        <span className="book-cover-frame">
+          <img
+            src={item.coverUrl}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            onError={() => setFailedUrl(item.coverUrl)}
+          />
+          <span className="book-spine-crease" />
+          <span className="book-edge-highlight" />
+        </span>
+      ) : (
+        <span className="book-jacket">
+          <span className="book-jacket-header">
+            <Icon size={large ? 28 : 19} strokeWidth={1.5} />
+          </span>
           {large && <bdi>{item.name.replace(/\.[^.]+$/, '') || item.name}</bdi>}
-        </span>}
-  </span>;
+          <span className="book-spine-crease" />
+          <span className="book-edge-highlight" />
+        </span>
+      )}
+    </span>
+  );
 }

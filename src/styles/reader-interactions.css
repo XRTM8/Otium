@@ -4,12 +4,12 @@
 
 /* Hydraulic spring press for tactile buttons */
 .spring-press {
-  transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 150ms ease-out, background-color 150ms ease-out;
+  transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 150ms ease-out, background-color 150ms ease-out, filter 150ms ease-out;
   will-change: transform;
 }
 .spring-press:active {
-  transform: scale(0.92);
-  transition-duration: 75ms;
+  transform: scale(0.93);
+  transition-duration: 65ms;
 }
 
 @keyframes bookmarkPop {

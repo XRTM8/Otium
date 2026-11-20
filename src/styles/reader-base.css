@@ -75,6 +75,17 @@
     font-weight: 470;
   }
 
+  /* Absolute protection for Arabic cursive typography:
+     Arabic script must NEVER have positive or negative letter-spacing,
+     as tracking breaks cursive glyph connections in HarfBuzz / DirectWrite. */
+  :lang(ar),
+  [dir="rtl"],
+  [dir="rtl"] *,
+  .font-arabic,
+  bdi {
+    letter-spacing: normal !important;
+  }
+
   :root {
     --sat: env(safe-area-inset-top, 0px);
     --sab: env(safe-area-inset-bottom, 0px);

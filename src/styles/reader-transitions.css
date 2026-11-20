@@ -240,11 +240,12 @@ html.theme-eink *::after {
 }
 
 .fluid-press {
-  transition: transform 140ms var(--ease-spring), filter 140ms ease, background-color 140ms ease;
+  transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1), filter 160ms ease, background-color 160ms ease;
   will-change: transform;
 }
 
 .fluid-press:active {
-  transform: scale(0.95);
+  transform: scale(0.94);
+  transition-duration: 65ms;
   filter: brightness(0.96);
 }
