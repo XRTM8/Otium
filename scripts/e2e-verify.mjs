@@ -749,6 +749,23 @@ async function auditLocalBuild() {
     return res;
   });
 
+  await runAudit('MOBILE LIBRARY BROWSE AND REOPEN', true, async (cdp) => {
+    await cdp.evalJs(`[...document.querySelectorAll('nav button')].find(button => button.textContent === 'المكتبة').click()`);
+    await waitForBrowser(cdp, `!!document.querySelector('input[type=search]')`, 'library search');
+    const geometry = await cdp.evalJs(`(() => {
+      const cards = [...document.querySelectorAll('.shelf-books .shelf-file')];
+      return { count: cards.length, cardWidth: cards[0].getBoundingClientRect().width, overflow: document.querySelector('main').scrollWidth > innerWidth };
+    })()`);
+    if (geometry.count < 2 || geometry.overflow || geometry.cardWidth >= 260) throw new Error('Library grid does not fit the phone');
+    await cdp.evalJs("document.querySelector('input[type=search]').focus()");
+    await cdp.send('Input.insertText', { text: 'test-sample' });
+    await waitForBrowser(cdp, "document.querySelectorAll('.shelf-file').length === 1", 'filtered PDF');
+    await waitForBrowser(cdp, "document.querySelector('.shelf-file img')?.naturalWidth > 0", 'saved first-page cover');
+    await cdp.evalJs("document.querySelector('.shelf-file').click()");
+    await waitForBrowser(cdp, "!!document.querySelector('[data-pdf-page] canvas')", 'PDF reopened from library');
+    return geometry;
+  });
+
   await runAudit('MOBILE READER PINCH AND ONE-FINGER SCROLL', true, async (cdp) => {
     await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
     const doc = await cdp.send('DOM.getDocument', { depth: -1 });

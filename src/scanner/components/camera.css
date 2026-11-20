@@ -1,0 +1,13 @@
+@media (orientation: landscape) and (max-height: 540px) {
+  .scan-camera {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(10rem, 24%);
+    grid-template-rows: auto auto 1fr;
+  }
+  .scan-topbar { grid-column: 1 / -1; padding-block: max(.3rem, env(safe-area-inset-top)) .3rem !important; }
+  .scan-viewfinder { grid-column: 1; grid-row: 2 / 4; height: 100%; }
+  .scan-modes { grid-column: 2; grid-row: 2; flex-wrap: wrap; }
+  .scan-modes button { padding-inline: .6rem; }
+  .scan-shutter { grid-column: 2; grid-row: 3; flex-direction: column; gap: .25rem; padding: .25rem .5rem max(.25rem, env(safe-area-inset-bottom)) !important; }
+  .scan-shutter > button { padding: .25rem; }
+}

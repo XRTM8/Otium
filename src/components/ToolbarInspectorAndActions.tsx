@@ -68,7 +68,7 @@ export const ToolbarDocumentInspector: React.FC<ToolbarDocumentInspectorProps> =
         <img
           src={coverUrl}
           alt=""
-          className="w-3.5 h-4.5 rounded-[2px] object-cover shadow-2xs border border-line/60 shrink-0"
+          className="w-5 h-7 rounded-[2px] object-contain shadow-2xs border border-line/60 shrink-0"
         />
       ) : null}
       <bdi className="truncate">{title}</bdi>
@@ -86,7 +86,7 @@ export const ToolbarDocumentInspector: React.FC<ToolbarDocumentInspectorProps> =
               <img
                 src={coverUrl}
                 alt=""
-                className="w-10 h-14 rounded-md object-cover shadow-md border border-line shrink-0"
+                className="w-10 h-14 rounded-md object-contain shadow-md border border-line shrink-0"
               />
             )}
             <div className="min-w-0 flex-1">

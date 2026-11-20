@@ -20,6 +20,8 @@ interface MediaTrackFocusConstraintSet extends MediaTrackConstraintSet {
   pointsOfInterest?: { x: number; y: number }[];
 }
 
+export type ScanHint = 'frame' | 'ready' | 'steady' | 'next';
+
 export interface UseCameraCaptureOptions {
   cropMode: CropMode;
   viewfinderFit: 'contain' | 'cover';
@@ -64,10 +66,12 @@ export function useCameraCapture(options: UseCameraCaptureOptions) {
   const previousSignature = useRef<Int8Array | null>(null);
 
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [cameraIssue, setCameraIssue] = useState<'permission' | 'missing' | 'busy' | 'unavailable'>('unavailable');
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturing, setCapturing] = useState(false);
   const [flashAnimation, setFlashAnimation] = useState(false);
   const [stabilityProgress, setStabilityProgress] = useState<number>(0);
+  const [scanHint, setScanHint] = useState<ScanHint>('frame');
   const [liveQuad, setLiveQuad] = useState<Quad | null>(null);
   const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
   const [renderedBounds, setRenderedBounds] = useState<{
@@ -87,7 +91,9 @@ export function useCameraCapture(options: UseCameraCaptureOptions) {
     stopCamera();
     const request = cameraRequestRef.current;
     setStream(null);
+    setScanHint('frame');
     setHasPermission(null);
+    setCameraIssue('unavailable');
     setLiveQuad(null);
     setStabilityProgress(0);
     stabilityStepRef.current = 0;
@@ -117,10 +123,14 @@ export function useCameraCapture(options: UseCameraCaptureOptions) {
         if (acquiredStream) break;
       } catch (err) {
         if (request !== cameraRequestRef.current) return;
-        if (err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) {
+        const name = err instanceof Error ? err.name : '';
+        if (name === 'NotAllowedError' || name === 'SecurityError') {
+          setCameraIssue('permission');
           setHasPermission(false);
           return;
         }
+        if (name === 'NotFoundError') setCameraIssue('missing');
+        if (name === 'NotReadableError') setCameraIssue('busy');
         console.warn('Camera constraint tier failed, trying next:', err);
       }
     }
@@ -191,8 +201,13 @@ export function useCameraCapture(options: UseCameraCaptureOptions) {
 
   useEffect(() => {
     updateRenderedBounds();
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateRenderedBounds) : null;
+    if (viewfinderRef.current) observer?.observe(viewfinderRef.current);
     window.addEventListener('resize', updateRenderedBounds);
-    return () => window.removeEventListener('resize', updateRenderedBounds);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', updateRenderedBounds);
+    };
   }, [updateRenderedBounds]);
 
   const handleViewfinderTap = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -332,6 +347,12 @@ export function useCameraCapture(options: UseCameraCaptureOptions) {
         previousSignature.current = signature;
         const differentContent = capturedSignature.current && signature && previousContent &&
           pageContentChanged(capturedSignature.current, signature) && !pageContentChanged(previousContent, signature);
+        let hint: ScanHint = 'frame';
+        if (metrics.reliableCrop && normalized) {
+          hint = autoCaptureRef.current ? 'steady' : 'ready';
+          if (autoCaptureRef.current && waitingForNextPage.current && !differentContent) hint = 'next';
+        }
+        setScanHint(hint);
         if (autoCaptureRef.current && metrics.reliableCrop && (!waitingForNextPage.current || differentContent) && stable && metrics.motionScore < 8.5 && metrics.sharpness >= 15) {
           stabilityStepRef.current += 1;
           setStabilityProgress(Math.min(100, Math.round(stabilityStepRef.current / 3 * 100)));
@@ -350,6 +371,7 @@ export function useCameraCapture(options: UseCameraCaptureOptions) {
       } catch (error) {
         if (cancelled) return;
         console.warn('Camera frame analysis failed:', error);
+        setScanHint('frame');
         stabilityStepRef.current = 0;
         setLiveQuad(null);
         setStabilityProgress(0);
@@ -368,7 +390,7 @@ export function useCameraCapture(options: UseCameraCaptureOptions) {
   }, [capturing, cropMode, hasPermission, paused, scanMode, stream]);
 
   return {
-    videoRef, viewfinderRef, hasPermission, stream, capturing, flashAnimation, renderedBounds,
+    videoRef, viewfinderRef, hasPermission, cameraIssue, scanHint, stream, capturing, flashAnimation, renderedBounds,
     visibleQuad, effectiveStabilityProgress, focusPoint,
     initCamera, updateRenderedBounds, handleViewfinderTap, handleCapture,
   };

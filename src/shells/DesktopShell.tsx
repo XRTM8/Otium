@@ -1,11 +1,12 @@
 import React, { useEffect, useLayoutEffect, useState, useCallback } from 'react';
-import { Cast, Upload } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { useReaderController } from '../app/useReaderController';
 import { getThemeBackground } from '../app/themeBackground';
 import { isTauriRuntime } from '../platform/runtime';
 import { invoke } from '@tauri-apps/api/core';
 import { ReaderOverlays } from '../components/ReaderOverlays';
 import { TextSelectionMenu } from '../components/TextSelectionMenu';
+import { ScannerOverlay } from './ScannerOverlay';
 import { Toolbar } from '../components/Toolbar';
 import { WelcomeScreen } from '../components/WelcomeScreen';
 import { ReaderWorkspace } from '../components/ReaderWorkspace';
@@ -54,6 +55,7 @@ const DesktopReader: React.FC = () => {
       t.setReaderTools(true);
     }
   }, []);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isBeamOpen, setIsBeamOpen] = useState(() => {
     if (typeof window === 'undefined') return false;
     try {
@@ -240,22 +242,15 @@ const DesktopReader: React.FC = () => {
             onThemeChange={reader.changeTheme}
             onToggleLanguage={reader.changeLanguage}
             onOpenSettings={() => reader.setIsSettingsOpen(true)}
+            onOpenScanner={() => setIsScannerOpen(true)}
             onOpenFile={media.open}
             onOpenSample={reader.openSample}
             onOpenRecent={media.openRecent}
             onOpenBeam={() => setIsBeamOpen(true)}
           />
-          {reader.isLoading && (
-            <div className="absolute inset-0 z-40 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center text-white select-none animate-in fade-in duration-200">
-              <div className="w-16 h-16 rounded-3xl bg-accent/25 border border-accent/40 flex items-center justify-center mb-4 text-accent animate-pulse shadow-lg">
-                <Cast className="w-8 h-8" />
-              </div>
-              <h3 className="text-base sm:text-lg font-bold text-white">
-                {reader.lang === 'ar' ? 'جارٍ استلام وعرض المحاضرة من الهاتف...' : 'Receiving beamed document from phone...'}
-              </h3>
-              <p className="text-xs text-white/75 mt-1.5 max-w-sm">
-                {reader.lang === 'ar' ? 'لحظات ويتم تشغيل الملزمة والسبورة الذكية تلقائياً' : 'Preparing slides and interactive board...'}
-              </p>
+          {reader.isLoading && !media.pending && !reader.passwordModal.isOpen && (
+            <div role="status" className="absolute inset-0 z-40 grid place-items-center bg-scrim text-ink">
+              {reader.lang === 'ar' ? 'جارٍ فتح الملف…' : 'Opening file…'}
             </div>
           )}
         </>
@@ -333,6 +328,9 @@ const DesktopReader: React.FC = () => {
       <ReaderOverlays reader={reader} />
       {media.pending && !reader.passwordModal.isOpen && <div role="status" className="fixed inset-0 z-[60] flex items-center justify-center bg-scrim text-ink">{reader.lang === 'ar' ? 'جارٍ فتح الملف…' : 'Opening file…'}</div>}
 
+      {isScannerOpen && <ScannerOverlay theme={reader.theme} lang={reader.lang}
+        onClose={() => setIsScannerOpen(false)} onPdfGenerated={reader.openFile} />}
+
       {/* Otium Smart Beam Modal */}
       {isBeamOpen && (
         <React.Suspense fallback={null}>
@@ -366,13 +364,8 @@ const DesktopReader: React.FC = () => {
             </div>
             <div className="space-y-1">
               <h3 className="text-xl font-bold text-ink">
-                {reader.lang === 'ar' ? 'أفلت ملف الـ PDF هنا لفتحه فوراً' : 'Drop your PDF here to open immediately'}
+                {reader.lang === 'ar' ? 'أفلت الملف هنا لفتحه' : 'Drop file to open'}
               </h3>
-              <p className="text-xs text-ink-muted">
-                {reader.lang === 'ar'
-                  ? 'يدعم جميع كتب ووثائق PDF بجودة فائقة'
-                  : 'Supports all PDF documents and books in pristine quality'}
-              </p>
             </div>
           </div>
         </div>

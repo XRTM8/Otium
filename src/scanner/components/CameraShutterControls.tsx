@@ -34,7 +34,7 @@ export const CameraShutterControls: React.FC<CameraShutterControlsProps> = ({
   <>
     <div
       style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px) + 16px, 32px)' }}
-      className="relative z-20 flex items-center justify-around px-8 pt-3 bg-gradient-to-t from-black via-black/80 to-transparent border-t border-white/[0.06]"
+      className="scan-shutter relative z-20 flex items-center justify-around px-8 pt-3 bg-gradient-to-t from-black via-black/80 to-transparent border-t border-white/[0.06]"
     >
       <button
         onClick={() => fileInputRef.current?.click()}
@@ -94,21 +94,21 @@ export const CameraShutterControls: React.FC<CameraShutterControlsProps> = ({
           disabled={capturing}
           title={ar ? 'مراجعة الصفحات' : 'Review pages'}
         >
-          <div className="relative w-14 h-14 rounded-2xl border-2 border-emerald-500/80 bg-black overflow-hidden shadow-xl ring-2 ring-emerald-500/30">
+          <div className="relative w-12 h-16 rounded-md border border-white/35 bg-black">
             {lastThumbnail ? (
-              <img src={lastThumbnail} alt="Page preview" className="w-full h-full object-cover" />
+              <img src={lastThumbnail} alt="" className="w-full h-full object-contain rounded-md" />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-black/40">
                 <FileText className="w-6 h-6 text-emerald-400" />
               </div>
             )}
-            <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 text-white text-xs font-black flex items-center justify-center ring-2 ring-black shadow-md">
+            <div className="absolute -top-1 -end-1 w-6 h-6 rounded-full bg-emerald-500 text-white text-xs font-black flex items-center justify-center ring-2 ring-black shadow-md">
               {pagesCount}
             </div>
           </div>
           <span className="text-[11px] font-bold text-emerald-400 font-arabic flex items-center gap-1">
             <span>{ar ? 'مراجعة' : 'Review'}</span>
-            <ArrowLeft className="w-3 h-3 rtl:rotate-180" />
+            <ArrowLeft className="w-3 h-3 ltr:rotate-180" />
           </span>
         </button>
       ) : (

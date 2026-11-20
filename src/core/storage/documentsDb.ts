@@ -280,15 +280,11 @@ export function transactionDone(tx: IDBTransaction): Promise<void> {
 }
 
 export function readAllMetadata(db: IDBDatabase): Promise<StoredDocumentRecord[]> {
-  return new Promise((resolve) => {
-    try {
-      const tx = db.transaction(STORE_NAME, 'readonly');
-      const request = tx.objectStore(STORE_NAME).getAll();
-      request.onsuccess = () => resolve((request.result || []) as StoredDocumentRecord[]);
-      request.onerror = () => resolve([]);
-    } catch {
-      resolve([]);
-    }
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const request = tx.objectStore(STORE_NAME).getAll();
+    request.onsuccess = () => resolve(request.result as StoredDocumentRecord[]);
+    request.onerror = () => reject(request.error);
   });
 }
 

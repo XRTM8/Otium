@@ -60,3 +60,16 @@ it('shows a recoverable error even when the entire library fails to load',async(
  await act(async()=>[...host.querySelectorAll('button')].find(b=>b.textContent==='إعادة المحاولة')!.click());
  expect(host.querySelector('[aria-label="فتح Lesson.pdf"]')).not.toBeNull();
 });
+
+it('sorts the full library by size and restores recent order on Home', async () => {
+  const nav = host.querySelectorAll<HTMLButtonElement>('nav button');
+  await act(async () => nav[1]!.click());
+  const select = host.querySelector('select')!;
+  await act(async () => {
+    select.value = 'size';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  expect(host.querySelector('.shelf-file')?.getAttribute('aria-label')).toBe('فتح Video.mp4');
+  await act(async () => nav[0]!.click());
+  expect(host.querySelector('.shelf-file')?.getAttribute('aria-label')).toBe('فتح Lesson.pdf');
+});

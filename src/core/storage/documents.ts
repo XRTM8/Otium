@@ -263,14 +263,10 @@ export async function getDocumentFromStorage(id: string): Promise<ArrayBuffer | 
 }
 
 export async function getRecentDocumentsList(): Promise<RecentDocItem[]> {
-  try {
-    const db = await openDB();
-    const all = (await readAllMetadata(db)).map(toRecentDoc);
-    all.sort((a, b) => b.lastOpened - a.lastOpened);
-    return all;
-  } catch {
-    return [];
-  }
+  const db = await openDB();
+  const all = (await readAllMetadata(db)).map(toRecentDoc);
+  all.sort((a, b) => b.lastOpened - a.lastOpened);
+  return all;
 }
 
 export async function getStorageSummary(): Promise<StorageSummary> {
@@ -298,27 +294,19 @@ export async function getStorageSummary(): Promise<StorageSummary> {
 
 export async function removeDocumentFromStorage(id: string): Promise<void> {
   if (!id) return;
-  try {
-    const db = await openDB();
-    const tx = db.transaction([STORE_NAME, FILES_STORE], 'readwrite');
-    tx.objectStore(STORE_NAME).delete(id);
-    tx.objectStore(FILES_STORE).delete(id);
-    await transactionDone(tx);
-  } catch {
-    // ignore
-  }
+  const db = await openDB();
+  const tx = db.transaction([STORE_NAME, FILES_STORE], 'readwrite');
+  tx.objectStore(STORE_NAME).delete(id);
+  tx.objectStore(FILES_STORE).delete(id);
+  await transactionDone(tx);
 }
 
 export async function clearAllStoredDocuments(): Promise<void> {
-  try {
-    const db = await openDB();
-    const tx = db.transaction([STORE_NAME, FILES_STORE], 'readwrite');
-    tx.objectStore(STORE_NAME).clear();
-    tx.objectStore(FILES_STORE).clear();
-    await transactionDone(tx);
-  } catch {
-    // ignore
-  }
+  const db = await openDB();
+  const tx = db.transaction([STORE_NAME, FILES_STORE], 'readwrite');
+  tx.objectStore(STORE_NAME).clear();
+  tx.objectStore(FILES_STORE).clear();
+  await transactionDone(tx);
 }
 
 /**

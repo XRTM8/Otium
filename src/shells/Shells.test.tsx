@@ -212,12 +212,12 @@ describe('DesktopShell and MobileShell', () => {
       });
       window.dispatchEvent(enterEvent);
     });
-    expect(host.textContent).toContain('أفلت ملف الـ PDF هنا لفتحه فوراً');
+    expect(host.textContent).toContain('أفلت الملف هنا لفتحه');
 
     await act(async () => {
       window.dispatchEvent(new Event('dragleave', { bubbles: true, cancelable: true }));
     });
-    expect(host.textContent).not.toContain('أفلت ملف الـ PDF هنا لفتحه فوراً');
+    expect(host.textContent).not.toContain('أفلت الملف هنا لفتحه');
 
     // Rerender with an open document and open Smart Beam.
     shellMocks.reader = makeReader(true);

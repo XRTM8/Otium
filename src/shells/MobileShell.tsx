@@ -1,9 +1,8 @@
 import React, { Suspense, useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { ScannerOverlay } from './ScannerOverlay';
 import { useReaderController } from '../app/useReaderController';
 import { getThemeBackground } from '../app/themeBackground';
 import { registerBackHandler } from '../core/navigation/backHandler';
-import { ErrorBoundary } from '../components/ErrorBoundary';
 import { MobileToolbar } from '../components/MobileToolbar';
 import { ReaderOverlays } from '../components/ReaderOverlays';
 import { ReaderWorkspace } from '../components/ReaderWorkspace';
@@ -21,47 +20,6 @@ import { useAppMedia } from '../media/useAppMedia';
 const MediaWorkspace = React.lazy(() => import('../media/MediaWorkspace').then(module => ({ default: module.MediaWorkspace })));
 const BoardSplitWorkspace = React.lazy(() => import('../board/components/BoardSplitWorkspace').then(module => ({ default: module.BoardSplitWorkspace })));
 const BeamModal = React.lazy(() => import('../board/beam/BeamModal').then(module => ({ default: module.BeamModal })));
-
-const ScannerModal = React.lazy(() =>
-  import('../scanner/ScannerModal').then((m) => ({ default: m.ScannerModal }))
-);
-const preloadScanner = () => import('../scanner/ScannerModal');
-
-function makeScannerErrorFallback(lang: 'ar' | 'en', onClose: () => void) {
-  return (_err: Error, reset: () => void) => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4 select-none backdrop-blur-sm">
-      <div className="chrome-surface flex max-w-sm flex-col items-center gap-3 rounded-2xl p-6 text-center text-ink shadow-2xl border border-line">
-        <div className="w-12 h-12 rounded-xl bg-danger-ink/10 flex items-center justify-center text-danger-ink">
-          <AlertTriangle className="w-6 h-6" />
-        </div>
-        <h3 className="font-bold text-sm">
-          {lang === 'ar' ? 'تعذر تشغيل الماسح الضوئي' : 'Scanner Error'}
-        </h3>
-        <p className="text-xs text-ink-muted leading-relaxed">
-          {lang === 'ar'
-            ? 'حدث خطأ غير متوقع أثناء تشغيل الماسح. يمكنك إعادة المحاولة أو العودة للقارئ.'
-            : 'An unexpected scanner error occurred. You can retry or return to the reader.'}
-        </p>
-        <div className="flex items-center gap-2 mt-2 w-full">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 px-3 py-2 rounded-xl bg-hover border border-line text-xs font-medium text-ink cursor-pointer hover:bg-hover-strong transition-colors"
-          >
-            {lang === 'ar' ? 'العودة للقارئ' : 'Back to Reader'}
-          </button>
-          <button
-            type="button"
-            onClick={reset}
-            className="flex-1 px-3 py-2 rounded-xl bg-accent text-on-accent text-xs font-medium cursor-pointer hover:bg-accent-strong transition-colors"
-          >
-            {lang === 'ar' ? 'إعادة المحاولة' : 'Retry'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /** Android shell: touch-first bars, swipe gestures and no keyboard shortcuts. */
 export const MobileShell: React.FC = () => {
@@ -127,26 +85,6 @@ const MobileReader: React.FC = () => {
       return true;
     });
   }, [isBeamOpen]);
-
-  // Preload scanner chunk during idle moments so opening is 100% instant and lag-free
-  React.useEffect(() => {
-    let timer: number | null = null;
-    if (typeof window !== 'undefined') {
-      const win = window as Window & {
-        requestIdleCallback?: (cb: () => void) => number;
-      };
-      if (typeof win.requestIdleCallback === 'function') {
-        win.requestIdleCallback(() => {
-          void preloadScanner();
-        });
-      } else {
-        timer = window.setTimeout(() => void preloadScanner(), 1200);
-      }
-    }
-    return () => {
-      if (timer !== null) window.clearTimeout(timer);
-    };
-  }, []);
 
   return (
     <DocumentInkProvider reader={reader}>
@@ -234,21 +172,8 @@ const MobileReader: React.FC = () => {
       <ReaderOverlays reader={reader} mobile={teaching.mobile} />
       {media.pending && !reader.passwordModal.isOpen && <div role="status" className="fixed inset-0 z-[60] flex items-center justify-center bg-scrim text-ink">{reader.lang === 'ar' ? 'جارٍ فتح الملف…' : 'Opening file…'}</div>}
 
-      <Suspense fallback={null}>
-        {isScannerOpen && (
-          <ErrorBoundary
-            fallback={makeScannerErrorFallback(reader.lang, () => setIsScannerOpen(false))}
-          >
-            <ScannerModal
-              isOpen={isScannerOpen}
-              theme={reader.theme}
-              lang={reader.lang}
-              onClose={() => setIsScannerOpen(false)}
-              onPdfGenerated={(file) => reader.openFile(file)}
-            />
-          </ErrorBoundary>
-        )}
-      </Suspense>
+      {isScannerOpen && <ScannerOverlay theme={reader.theme} lang={reader.lang}
+        onClose={() => setIsScannerOpen(false)} onPdfGenerated={reader.openFile} />}
 
       {/* Otium Smart Beam Modal */}
       {isBeamOpen && (

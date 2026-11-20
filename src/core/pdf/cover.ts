@@ -44,8 +44,8 @@ export function clearCoverCache(): void {
  */
 export async function extractPdfCover(
   doc: PDFDocumentProxy,
-  maxWidth = 140,
-  maxHeight = 190
+  maxWidth = 320,
+  maxHeight = 440
 ): Promise<string | null> {
   if (!doc || typeof document === 'undefined') return null;
 

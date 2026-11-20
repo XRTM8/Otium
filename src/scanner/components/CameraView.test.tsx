@@ -57,19 +57,17 @@ describe('CameraView', () => {
     expect(host.textContent).toContain('الكاميرا غير متاحة');
     expect(host.textContent).toContain('2 صفحة');
 
-    await act(async () => findButtonByTitle('المزيد')?.click());
     await act(async () => findButtonByText('تصوير هوية')?.click());
     expect(host.textContent).toContain('الوجه الأمامي للبطاقة');
 
-    await act(async () => findButtonByTitle('المزيد')?.click());
     await act(async () => findButtonByText('مستند')?.click());
     expect(host.textContent).toContain('2 صفحة');
 
-    await act(async () => findButtonByTitle('المزيد')?.click());
     await act(async () => findButtonByText('يدوي')?.click());
     expect(host.textContent).toContain('تلقائي');
     expect(labStorage.getItem('otium_scan_auto_capture')).toBe('true');
 
+    await act(async () => findButtonByTitle('المزيد')?.click());
     await act(async () => findButtonByText('المستندات المحفوظة')?.click());
     expect(onOpenLibrary).toHaveBeenCalledTimes(1);
 

@@ -46,7 +46,10 @@ export const CameraView: React.FC<CameraViewProps> = ({
       return false;
     }
   });
-  const cropMode: CropMode = localStorage.getItem('otium_scan_crop_mode') === 'full' ? 'full' : 'auto';
+  let cropMode: CropMode = 'auto';
+  try {
+    if (localStorage.getItem('otium_scan_crop_mode') === 'full') cropMode = 'full';
+  } catch { /* Storage can be unavailable in a private WebView. */ }
   const [viewfinderFit] = useState<'contain' | 'cover'>(() => {
     try {
       return (localStorage.getItem('otium_scan_viewfinder_fit') as 'contain' | 'cover') || 'contain';
@@ -69,6 +72,8 @@ export const CameraView: React.FC<CameraViewProps> = ({
     videoRef,
     viewfinderRef,
     hasPermission,
+    cameraIssue,
+    scanHint,
     stream,
     capturing,
     flashAnimation,
@@ -109,7 +114,14 @@ export const CameraView: React.FC<CameraViewProps> = ({
       (file.type.startsWith('image/') && file.type !== 'image/svg+xml' || !file.type && /\.(jpe?g|png|webp|heic|heif|avif)$/i.test(file.name))
       && file.size <= 50 * 1024 * 1024
     ));
-    const saved = images.length ? await onCapture(images, cropMode === 'auto') : 0;
+    setCaptureToast('');
+    let saved = 0;
+    try {
+      if (images.length) saved = await onCapture(images, cropMode === 'auto');
+    } catch {
+      setCaptureToast(lang === 'ar' ? 'تعذّر استيراد الصور. أعد المحاولة.' : 'Could not import images. Try again.');
+      return;
+    }
     if (saved !== files.length) {
       setCaptureToast(lang === 'ar' ? `حُفظت ${saved} من ${files.length} صور` : `Saved ${saved} of ${files.length} images`);
     }
@@ -190,6 +202,8 @@ export const CameraView: React.FC<CameraViewProps> = ({
       viewfinderFit={viewfinderFit}
       focusPoint={focusPoint}
       hasPermission={hasPermission}
+      cameraIssue={cameraIssue}
+      scanHint={scanHint}
       onRetryCamera={() => {
         triggerHaptic(20);
         initCamera();
