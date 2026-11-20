@@ -188,7 +188,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({
             aria-label={t.closeDoc}
             className="fluid-press flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line-subtle bg-hover-subtle text-ink-muted active:bg-hover"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
           </button>
 
           <div className="shrink-0 px-0.5 text-accent">

@@ -132,7 +132,7 @@ export const SidebarNotesTab: React.FC<SidebarNotesTabProps> = ({
           </div>
           {bookmarks.map((bm) => (
             <div
-              key={bm.id}
+              key={bm.id || `bm-${bm.pageNumber}`}
               className="flex items-center justify-between p-2 rounded-xl bg-hover-subtle border border-line-subtle hover:border-line transition-all text-xs"
             >
               <button

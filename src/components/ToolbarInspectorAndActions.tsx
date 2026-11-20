@@ -173,7 +173,7 @@ export const ToolbarDocumentInspector: React.FC<ToolbarDocumentInspectorProps> =
 
             <div className="flex items-center justify-between text-ink-muted pt-1">
               <span className="font-sans">{ar ? 'الصفحات:' : 'Pages:'}</span>
-              <span>{currentPage} / {totalPages}</span>
+              <span dir="ltr">{currentPage} / {totalPages}</span>
             </div>
 
             {fileSizeBytes ? (

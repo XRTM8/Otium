@@ -64,3 +64,42 @@ export function formatLibrarySize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+export interface LibraryNavigationState {
+  fullLibrary: boolean;
+  query: string;
+  sort: 'recent' | 'name' | 'size';
+  lastOpenedId: string | null;
+}
+
+let libraryNavState: LibraryNavigationState = {
+  fullLibrary: false,
+  query: '',
+  sort: 'recent',
+  lastOpenedId: null,
+};
+
+export function getLibraryNavigationState(): LibraryNavigationState {
+  return { ...libraryNavState };
+}
+
+export function updateLibraryNavigationState(updates: Partial<LibraryNavigationState>): void {
+  libraryNavState = { ...libraryNavState, ...updates };
+}
+
+export function markOpeningRecentItem(itemId: string, fromFullLibrary: boolean): void {
+  libraryNavState = {
+    ...libraryNavState,
+    lastOpenedId: itemId,
+    fullLibrary: fromFullLibrary,
+  };
+}
+
+export function resetLibraryNavigationState(): void {
+  libraryNavState = {
+    fullLibrary: false,
+    query: '',
+    sort: 'recent',
+    lastOpenedId: null,
+  };
+}

@@ -5,7 +5,8 @@ import type { Language } from '../core/i18n/translations';
 import { getTranslations } from '../core/i18n/translations';
 import {
   SearchCancelledError,
-  searchDocumentPages
+  searchDocumentPages,
+  isDocumentScannedWithoutText,
 } from '../core/search/documentSearch';
 
 interface SearchResult {
@@ -181,8 +182,23 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         {isSearching && <Loader2 className="w-3.5 h-3.5 animate-spin text-accent shrink-0" />}
 
         {!isSearching && query.trim().length >= 2 && results.length === 0 && (
-          <span className={`text-[10px] text-ink-faint px-1 select-none ${lang === 'ar' ? 'font-sans' : 'font-mono'}`}>
-            {lang === 'ar' ? 'لا نتائج' : 'No results'}
+          <span
+            className={`text-[10px] px-1 select-none flex items-center gap-1 ${
+              doc && isDocumentScannedWithoutText(doc)
+                ? 'text-amber-500 dark:text-amber-400 font-sans cursor-help'
+                : `text-ink-faint ${lang === 'ar' ? 'font-sans' : 'font-mono'}`
+            }`}
+            title={
+              doc && isDocumentScannedWithoutText(doc)
+                ? (lang === 'ar'
+                    ? 'المستند مصور ولا يحتوي على طبقة نصية قابلة للبحث. يمكنك استخدام الماسح الضوئي لاستخراج النص (OCR).'
+                    : 'Scanned document with no searchable text layer. You can use the document scanner to extract text (OCR).')
+                : undefined
+            }
+          >
+            {doc && isDocumentScannedWithoutText(doc)
+              ? (lang === 'ar' ? 'مستند مصور (بدون نص) · OCR' : 'Scanned doc (no text) · OCR')
+              : (lang === 'ar' ? 'لا نتائج' : 'No results')}
           </span>
         )}
 

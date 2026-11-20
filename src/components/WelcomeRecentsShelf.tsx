@@ -1,11 +1,20 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Download, ExternalLink, Search, Trash2 } from 'lucide-react';
 import type { Language, getTranslations } from '../core/i18n/translations';
 import { isTauriRuntime, openExternalLink } from '../platform/runtime';
 import { getCurrentVersion } from '../core/updates/currentVersion';
 import { selectFiles, type LibrarySort } from '../library/model';
 import { BookCover } from './BookCover';
-import { formatLibraryDate, formatLibraryProgressLabel, formatLibrarySize, isPagedLibraryItem, type WelcomeLibraryItem } from './welcomeRecentsHelpers';
+import {
+  formatLibraryDate,
+  formatLibraryProgressLabel,
+  formatLibrarySize,
+  isPagedLibraryItem,
+  type WelcomeLibraryItem,
+  getLibraryNavigationState,
+  updateLibraryNavigationState,
+  markOpeningRecentItem,
+} from './welcomeRecentsHelpers';
 
 interface WelcomeRecentsShelfProps {
   fullLibrary: boolean;
@@ -25,11 +34,42 @@ interface WelcomeRecentsShelfProps {
 export function WelcomeRecentsShelf({ fullLibrary, loaded, currentLang, t, recents, libraryError, libraryLoadFailed,
   referenceNow, fileInputRef, onRetryLoad, onOpenRecent, onRequestDelete }: WelcomeRecentsShelfProps) {
   const ar = currentLang === 'ar';
-  const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<LibrarySort>('recent');
+  const initialNav = getLibraryNavigationState();
+  const [query, setQueryState] = useState(initialNav.query);
+  const [sort, setSortState] = useState<LibrarySort>(initialNav.sort);
+
+  const setQuery = (q: string) => {
+    updateLibraryNavigationState({ query: q });
+    setQueryState(q);
+  };
+
+  const setSort = (s: LibrarySort) => {
+    updateLibraryNavigationState({ sort: s });
+    setSortState(s);
+  };
+
   const items = useMemo(() => fullLibrary
     ? selectFiles(recents, query, 'all', [], false, sort)
     : recents.slice(0, 4), [fullLibrary, query, recents, sort]);
+
+  useEffect(() => {
+    const lastId = getLibraryNavigationState().lastOpenedId;
+    if (lastId && loaded && fullLibrary) {
+      const el = document.querySelector(`[data-shelf-id="${lastId}"]`);
+      if (el) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }, [loaded, fullLibrary]);
+
+  const handleOpenItem = (item: WelcomeLibraryItem) => {
+    markOpeningRecentItem(item.id, fullLibrary);
+    if (item.available) {
+      onOpenRecent(item);
+    } else {
+      fileInputRef.current?.click();
+    }
+  };
 
   return <section className="welcome-shelf">
     {(libraryError || libraryLoadFailed) && <div role="alert" className="mb-4 text-sm text-danger-ink">
@@ -52,26 +92,50 @@ export function WelcomeRecentsShelf({ fullLibrary, loaded, currentLang, t, recen
       {fullLibrary && !query.trim() && <button type="button" onClick={() => onRequestDelete('all')}>{t.clearAll}</button>}
     </div>}
     {items.length > 0 && <ul className={fullLibrary ? 'shelf-books' : 'shelf-recents'}>
-      {items.map(item => <li key={item.id} className="shelf-item">
-        <button type="button" className="shelf-file" aria-label={`${ar ? 'فتح' : 'Open'} ${item.name}`}
-          onClick={() => item.available ? onOpenRecent(item) : fileInputRef.current?.click()}>
+      {items.map(item => <li key={item.id} className="shelf-item" data-shelf-id={item.id}>
+        <button
+          type="button"
+          className="shelf-file"
+          title={!item.available ? (ar ? `الملف المحلي "${item.name}" غير متوفر على هذا الجهاز. انقر لاختيار الملف وإعادة فتحه.` : `Local file "${item.name}" is not cached. Click to select the file and restore it.`) : undefined}
+          aria-label={`${ar ? (item.available ? 'فتح' : 'إعادة استيراد') : (item.available ? 'Open' : 'Re-import')} ${item.name}`}
+          onClick={() => handleOpenItem(item)}
+        >
           <BookCover item={item} large={fullLibrary} />
           <span className="shelf-caption">
             <strong title={item.name}><bdi>{item.name}</bdi></strong>
-            <small>{item.available ? formatLibraryProgressLabel(item, currentLang, t) : (ar ? 'أعد استيراد الملف' : 'Re-import file')}</small>
+            <small className={!item.available ? 'text-amber-500 dark:text-amber-400 font-medium' : undefined}>
+              {item.available
+                ? formatLibraryProgressLabel(item, currentLang, t)
+                : (ar ? 'النسخة المحلية غير متوفرة · انقر للاستيراد' : 'Local copy missing · Click to re-import')}
+            </small>
             <small className="file-detail">{fullLibrary ? <bdi dir="ltr">{formatLibrarySize(item.sizeBytes)}</bdi> : formatLibraryDate(item.lastOpened, referenceNow, currentLang, t)}</small>
             {fullLibrary && isPagedLibraryItem(item) && item.totalPages > 0 &&
               <span className="shelf-progress"><i style={{width: `${Math.max(0, Math.min(100, item.lastPage / item.totalPages * 100))}%`}} /></span>}
           </span>
         </button>
-        <button type="button" className="shelf-delete" title={t.deleteTooltip}
-          aria-label={`${ar ? 'حذف من المكتبة:' : 'Delete from library:'} ${item.name}`} onClick={() => onRequestDelete(item)}><Trash2 size={15} /></button>
+        <button
+          type="button"
+          className="shelf-delete"
+          title={t.deleteTooltip}
+          aria-label={`${ar ? 'حذف من المكتبة:' : 'Delete from library:'} ${item.name}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            onRequestDelete(item);
+          }}
+        >
+          <Trash2 size={15} />
+        </button>
       </li>)}
     </ul>}
     {fullLibrary && !items.length && !libraryLoadFailed && <div className="shelf-empty" role="status">
       {!loaded ? (ar ? 'جارٍ تحميل المكتبة…' : 'Loading library…') : recents.length
         ? <>{ar ? 'لا توجد ملفات بهذا الاسم.' : 'No matching files.'} <button type="button" onClick={() => setQuery('')}>{ar ? 'مسح البحث' : 'Clear search'}</button></>
         : (ar ? 'مكتبتك فارغة. افتح ملفاً ليظهر هنا.' : 'Your library is empty. Open a file to add it here.')}
+    </div>}
+    {fullLibrary && libraryLoadFailed && !recents.length && <div className="shelf-empty shelf-storage-error" role="alert">
+      <p className="font-semibold text-danger-ink mb-1">{ar ? 'تعذر قراءة تخزين المكتبة' : 'Could not read library storage'}</p>
+      <p className="text-xs text-ink-muted mb-3 max-w-sm mx-auto">{ar ? 'تعذر الوصول إلى قاعدة البيانات المحلية لقراءة كتبك المحفوظة.' : 'Could not access local storage to load your saved books.'}</p>
+      <button type="button" className="px-3 py-1.5 rounded-lg bg-hover border border-line text-xs font-semibold" onClick={onRetryLoad}>{ar ? 'إعادة المحاولة' : 'Retry'}</button>
     </div>}
   </section>;
 }

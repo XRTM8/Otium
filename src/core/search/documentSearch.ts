@@ -33,7 +33,13 @@ function yieldToUi(): Promise<void> {
  */
 const pageTextCache = new WeakMap<PDFDocumentProxy, Map<number, string>>();
 const rustDocKeyMap = new WeakMap<PDFDocumentProxy, string>();
+const docTextLayerMap = new WeakMap<PDFDocumentProxy, boolean>();
 let nextDocKeySeq = 1;
+
+export function isDocumentScannedWithoutText(doc: PDFDocumentProxy | null): boolean {
+  if (!doc) return false;
+  return docTextLayerMap.get(doc) === false;
+}
 
 function getDocSearchKey(doc: PDFDocumentProxy): string {
   let key = rustDocKeyMap.get(doc);
@@ -57,6 +63,7 @@ export function clearSearchTextCache(doc: PDFDocumentProxy | null): void {
   if (doc) {
     pageTextCache.delete(doc);
     rustDocKeyMap.delete(doc);
+    docTextLayerMap.delete(doc);
   }
 }
 
@@ -119,11 +126,15 @@ export async function searchDocumentPages(
   }
 
   const matches: number[] = [];
+  let hasAnyText = false;
 
   for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber += 1) {
     if (signal?.aborted) throw new SearchCancelledError();
 
     const pageText = await getPageText(doc, pageNumber, signal);
+    if (pageText.trim().length > 0) {
+      hasAnyText = true;
+    }
 
     if (pageText.includes(term)) {
       matches.push(pageNumber);
@@ -133,6 +144,8 @@ export async function searchDocumentPages(
       await yieldToUi();
     }
   }
+
+  docTextLayerMap.set(doc, hasAnyText);
 
   // Warm the native Rust trigram index once extraction finishes so follow-up
   // queries run in sub-millisecond Rust without holding extra JS work.

@@ -57,7 +57,7 @@ export const ToolbarPageNavigation: React.FC<ToolbarPageNavigationProps> = ({
         aria-label={t.pageOf(currentPage, totalPages)}
         className="w-7 bg-transparent text-center text-ink outline-none focus:text-accent"
       />
-      <span className="select-none text-ink-faint">/ {totalPages}</span>
+      <span className="select-none text-ink-faint" dir="ltr">/ {totalPages}</span>
     </form>
 
     <button

@@ -62,6 +62,7 @@ function makeEnhanceProps(pages: ScannedPage[] = samplePages) {
 describe('EnhanceView', () => {
   beforeEach(() => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+    vi.mocked(loadPageCanvasFromDisk).mockResolvedValue(null);
     host = document.createElement('div');
     document.body.appendChild(host);
     root = createRoot(host);
@@ -152,5 +153,28 @@ describe('EnhanceView', () => {
     } finally {
       loadPage.mockReset();
     }
+  });
+
+  it('dismisses active submodal on Escape key press without exiting scan review', async () => {
+    const props = makeEnhanceProps();
+    await act(async () => {
+      root.render(<EnhanceView {...props} />);
+    });
+
+    const cancelAllBtn = [...host.querySelectorAll('button')].find((b) =>
+      b.textContent?.includes('إلغاء الكل')
+    );
+    await act(async () => cancelAllBtn?.click());
+    expect(host.textContent).toContain('حذف كافة الصور والعودة للرئيسية؟');
+
+    // Press Escape
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    });
+
+    // The submodal should be closed, and scan review should still be visible
+    expect(host.textContent).not.toContain('حذف كافة الصور والعودة للرئيسية؟');
+    expect(props.onBackToCamera).not.toHaveBeenCalled();
+    expect(props.onResetAll).not.toHaveBeenCalled();
   });
 });

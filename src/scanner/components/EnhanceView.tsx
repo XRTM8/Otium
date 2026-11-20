@@ -12,6 +12,7 @@ import { EnhanceModals } from './EnhanceModals';
 import { EnhanceHeaderBar } from './EnhanceHeaderBar';
 import { useEnhanceGestures } from './useEnhanceGestures';
 import { useEnhanceExportAndActions } from './useEnhanceExportAndActions';
+import { registerBackHandler } from '../../core/navigation/backHandler';
 
 interface EnhanceViewProps {
   lang?: Language;
@@ -215,6 +216,44 @@ export const EnhanceView: React.FC<EnhanceViewProps> = ({
     lang,
     triggerHaptic,
   });
+
+  useEffect(() => {
+    const handleBack = () => {
+      if (showCancelModal) { setShowCancelModal(false); return true; }
+      if (showDeletePageModal) { setShowDeletePageModal(false); return true; }
+      if (showMoreActions) { setShowMoreActions(false); return true; }
+      if (isSignatureOpen) { setIsSignatureOpen(false); return true; }
+      if (isWatermarkOpen) { setIsWatermarkOpen(false); return true; }
+      if (isAdvancedOptionsOpen) { setIsAdvancedOptionsOpen(false); return true; }
+      if (isOcrModalOpen) { setIsOcrModalOpen(false); return true; }
+      if (isGridView) { setIsGridView(false); return true; }
+      return false;
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (handleBack()) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }
+    };
+    const unregister = registerBackHandler(handleBack);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      unregister();
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [
+    showCancelModal,
+    showDeletePageModal,
+    showMoreActions,
+    isSignatureOpen,
+    isWatermarkOpen,
+    isAdvancedOptionsOpen,
+    isOcrModalOpen,
+    setIsOcrModalOpen,
+    isGridView,
+  ]);
 
   if (!currentPage) {
     return (

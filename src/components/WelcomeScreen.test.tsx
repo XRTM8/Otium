@@ -5,12 +5,20 @@ import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 import { WelcomeScreen } from './WelcomeScreen';
 import { removeMedia, listMedia } from '../media/library';
 import { getRecentDocumentsList } from '../core/storage/documents';
+import { resetLibraryNavigationState } from './welcomeRecentsHelpers';
 vi.mock('../core/storage/documents',()=>({ getRecentDocumentsList:vi.fn(async()=>[{id:'pdf',name:'Lesson.pdf',lastOpened:2,lastPage:2,totalPages:4,sizeBytes:200,available:true}]),removeDocumentFromStorage:vi.fn(),clearAllStoredDocuments:vi.fn() }));
 vi.mock('../media/library',()=>({ APP_FILE_ACCEPT:'.pdf,.mp4',listMedia:vi.fn(async()=>[{id:'media:video',name:'Video.mp4',mediaKind:'video',lastOpened:1,lastPage:1,totalPages:1,sizeBytes:400,available:true}]),removeMedia:vi.fn(async()=>{}) }));
 (globalThis as typeof globalThis & {IS_REACT_ACT_ENVIRONMENT:boolean}).IS_REACT_ACT_ENVIRONMENT=true;
 let host:HTMLDivElement,root:Root;
 const props={ currentTheme:'paper' as const,currentLang:'ar' as const,onThemeChange:vi.fn(),onToggleLanguage:vi.fn(),onOpenFile:vi.fn(),onOpenRecent:vi.fn() };
-beforeEach(async()=>{host=document.createElement('div');document.body.append(host);root=createRoot(host);await act(async()=>root.render(<WelcomeScreen {...props}/>));});
+beforeEach(async()=>{
+  resetLibraryNavigationState();
+  vi.clearAllMocks();
+  host=document.createElement('div');
+  document.body.append(host);
+  root=createRoot(host);
+  await act(async()=>root.render(<WelcomeScreen {...props}/>));
+});
 afterEach(async()=>{await act(async()=>root.unmount());host.remove();});
 it('opens a saved file from the classic recent list',async()=>{
  await act(async()=> (host.querySelector('[aria-label="فتح Lesson.pdf"]') as HTMLElement).click());
@@ -72,4 +80,25 @@ it('sorts the full library by size and restores recent order on Home', async () 
   expect(host.querySelector('.shelf-file')?.getAttribute('aria-label')).toBe('فتح Video.mp4');
   await act(async () => nav[0]!.click());
   expect(host.querySelector('.shelf-file')?.getAttribute('aria-label')).toBe('فتح Lesson.pdf');
+});
+
+it('preserves library search and sort navigation state across reopenings', async () => {
+  const nav = host.querySelectorAll<HTMLButtonElement>('nav button');
+  await act(async () => nav[1]!.click());
+  const searchInput = host.querySelector<HTMLInputElement>('input[type="search"]')!;
+  await act(async () => {
+    const valueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+    valueSetter?.call(searchInput, 'Lesson');
+    searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+    searchInput.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  // Opening the item preserves library tab & state
+  await act(async () => (host.querySelector('.shelf-file') as HTMLElement).click());
+  expect(props.onOpenRecent).toHaveBeenCalledWith(expect.objectContaining({ id: 'pdf' }));
+
+  // Re-mounting WelcomeScreen restores Library tab and search query
+  await act(async () => root.unmount());
+  root = createRoot(host);
+  await act(async () => root.render(<WelcomeScreen {...props} />));
+  expect(host.querySelector('input[type="search"]')?.getAttribute('value')).toBe('Lesson');
 });

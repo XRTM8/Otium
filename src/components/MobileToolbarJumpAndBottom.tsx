@@ -281,7 +281,7 @@ export const MobileToolbarBottomBar: React.FC<MobileToolbarBottomBarProps> = ({
         title={ar ? 'الانتقال إلى صفحة' : 'Go to page'}
         className="fluid-press px-3 py-1.5 rounded-xl bg-hover-subtle font-mono text-[11px] text-ink active:bg-hover-strong cursor-pointer"
       >
-        {currentPage} / {totalPages}
+        <bdi dir="ltr">{currentPage} / {totalPages}</bdi>
       </button>
 
       {/* Right Arrow: In RTL (Arabic) flipping right goes back to Prev Page; in LTR it goes to Next Page */}

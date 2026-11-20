@@ -3,6 +3,7 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearSearchTextCache,
+  isDocumentScannedWithoutText,
   SearchCancelledError,
   searchDocumentPages,
 } from './documentSearch';
@@ -98,5 +99,16 @@ describe('documentSearch', () => {
     vi.mocked(searchDocumentPagesWithRust).mockClear();
     expect(await searchDocumentPages(doc, 'صفحة')).toEqual([2]);
     expect(searchDocumentPagesWithRust).toHaveBeenCalledWith(expect.any(String), 'صفحة', null);
+  });
+
+  it('detects scanned documents with no extractable text layer', async () => {
+    const scannedDoc = makeDoc(['', '   ', '']);
+    expect(isDocumentScannedWithoutText(scannedDoc)).toBe(false);
+    expect(await searchDocumentPages(scannedDoc, 'كتاب')).toEqual([]);
+    expect(isDocumentScannedWithoutText(scannedDoc)).toBe(true);
+
+    const textDoc = makeDoc(['مرحبا']);
+    expect(await searchDocumentPages(textDoc, 'مرحبا')).toEqual([1]);
+    expect(isDocumentScannedWithoutText(textDoc)).toBe(false);
   });
 });

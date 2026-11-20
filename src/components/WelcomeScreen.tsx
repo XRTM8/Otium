@@ -26,7 +26,11 @@ import {
   WelcomeFooterDock,
   WelcomeRecentsShelf,
 } from './WelcomeRecentsShelf';
-import { type WelcomeLibraryItem } from './welcomeRecentsHelpers';
+import {
+  type WelcomeLibraryItem,
+  getLibraryNavigationState,
+  updateLibraryNavigationState,
+} from './welcomeRecentsHelpers';
 import { WelcomeThemeMenu } from './WelcomeThemeMenu';
 import { WelcomeHeroResumeCard } from './WelcomeHeroResumeCard';
 
@@ -58,14 +62,18 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onOpenSample: _onOpenSample
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [libraryOpen, setLibraryOpenState] = useState(() => getLibraryNavigationState().fullLibrary);
+  const setLibraryOpen = React.useCallback((open: boolean) => {
+    updateLibraryNavigationState({ fullLibrary: open });
+    setLibraryOpenState(open);
+  }, []);
   const [loaded, setLoaded] = useState(false);
   const ar = currentLang === 'ar';
 
   useEffect(() => {
     if (!libraryOpen) return;
     return registerBackHandler(() => { setLibraryOpen(false); return true; });
-  }, [libraryOpen]);
+  }, [libraryOpen, setLibraryOpen]);
 
   const [isDragging, setIsDragging] = useState(false);
   const [recents, setRecents] = useState<LibraryItem[]>([]);

@@ -230,7 +230,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           title={t.closeDoc}
           className="fluid-press flex shrink-0 items-center gap-1.5 rounded-xl border border-line-subtle bg-hover-subtle px-2 py-1.5 text-ink-muted hover:bg-hover hover:text-ink"
         >
-          <ArrowLeft className="w-3.5 h-3.5" />
+          <ArrowLeft className="w-3.5 h-3.5 rtl:rotate-180" />
           <span className="text-[11px] font-semibold hidden lg:inline">
             {ar ? 'المكتبة' : 'Library'}
           </span>
