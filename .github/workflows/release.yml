@@ -244,7 +244,8 @@ jobs:
           # redundant CLI runs, and skips building the unused arm/x86 split APKs.
           # Passing empty beforeBuildCommand skips redundant frontend rebuilds.
           chmod +x src-tauri/gen/android/gradlew
-          npm run tauri:android -- -c '{"build":{"beforeBuildCommand":""}}' -- --locked assembleArm64Release
+          npm run tauri:android:split -- -c '{"build":{"beforeBuildCommand":""}}' -- --locked
+          npm run tauri:android -- -c '{"build":{"beforeBuildCommand":""}}' -- --locked
 
       - name: Stage canonical APKs
         shell: bash
