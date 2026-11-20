@@ -271,14 +271,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
 
-        <div className="my-3 flex w-full shrink-0 gap-1 p-1 rounded-2xl bg-hover-subtle border border-line-subtle overflow-x-auto no-scrollbar">
+        <div className="my-3 flex w-full shrink-0 gap-1 p-1 rounded-2xl bg-hover-subtle border border-line-subtle overflow-x-auto no-scrollbar scroll-smooth">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`fluid-press flex-1 min-w-[56px] py-2 px-1 text-[11px] sm:text-xs font-bold rounded-xl cursor-pointer text-center transition-all truncate whitespace-nowrap ${
+              className={`fluid-press shrink-0 flex-1 min-w-fit py-2 px-2.5 text-[11px] sm:text-xs font-bold rounded-xl cursor-pointer text-center transition-all whitespace-nowrap ${
                 activeTab === tab.id
-                  ? 'bg-hover-strong text-ink border border-line-strong shadow-xs'
+                  ? 'bg-surface-2 text-ink border border-line shadow-xs font-extrabold'
                   : 'text-ink-muted hover:text-ink hover:bg-hover border border-transparent'
               }`}
             >

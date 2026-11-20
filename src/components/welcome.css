@@ -1,15 +1,26 @@
 .welcome-content {
   width: min(100% - 2rem, 64rem);
   margin-inline: auto;
-  padding-block: max(1rem, env(safe-area-inset-top)) max(2.5rem, env(safe-area-inset-bottom));
+  padding-block: max(0.75rem, env(safe-area-inset-top)) max(2.5rem, env(safe-area-inset-bottom));
 }
 .welcome-page button, .welcome-page select { cursor: pointer; }
 .welcome-page :is(button, select, input):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.welcome-header, .welcome-heading, .shelf-label { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-.welcome-header { position: relative; z-index: 3; flex-wrap: wrap; padding-block: .35rem 1rem; border-bottom: 1px solid var(--line); }
-.welcome-brand { font: 600 1.6rem/1.1 "Lora Variable", Georgia, serif; letter-spacing: -.04em; }
 
-/* Segmented floating pill navigation */
+/* Top Header Bar */
+.welcome-header {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-block: .45rem .85rem;
+  border-bottom: 1px solid var(--line-subtle);
+}
+.welcome-brand { font: 600 1.55rem/1.1 "Lora Variable", Georgia, serif; letter-spacing: -.035em; color: var(--ink); }
+
+/* Floating Segmented Navigation Bar */
 .welcome-nav {
   display: inline-flex;
   align-items: center;
@@ -19,25 +30,24 @@
   border: 1px solid var(--line-subtle);
   border-radius: 9999px;
   margin-top: 1.25rem;
+  margin-bottom: .25rem;
   width: fit-content;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
-.welcome-nav button, .welcome-open {
+.welcome-nav button {
   display: inline-flex;
   gap: .5rem;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
+  min-height: 38px;
   padding-inline: 1.15rem;
   border-radius: 9999px;
   font-size: .88rem;
   font-weight: 650;
+  color: var(--ink-muted);
   border: 1px solid transparent;
   transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.welcome-nav button {
-  color: var(--ink-muted);
 }
 .welcome-nav button:hover {
   background: var(--surface-hover);
@@ -46,32 +56,50 @@
 .welcome-nav button[aria-current] {
   background: var(--surface-1);
   color: var(--ink);
-  border-color: var(--line);
-  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border-color: var(--line-subtle);
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
-.welcome-heading { margin-block: clamp(1rem, 3vw, 2.25rem) 1.25rem; }
+/* Page Heading & Primary Action */
+.welcome-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-block: .75rem 1.4rem;
+}
 .welcome-heading h1 {
-  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  font-size: clamp(1.6rem, 3.8vw, 2.3rem);
   font-weight: 750;
   line-height: 1.35;
   letter-spacing: normal !important;
+  color: var(--ink);
 }
 .welcome-page[dir=ltr] h1 { font-family: "Lora Variable", Georgia, serif; letter-spacing: -.035em !important; }
 .welcome-page[dir=rtl] h1 { font-family: var(--font-sans); letter-spacing: normal !important; }
 
-/* Primary Action Button */
+/* Warm Elevated Primary Action Button */
 .welcome-open {
-  background: var(--ink);
-  color: var(--app-bg);
-  box-shadow: 0 3px 12px -2px rgba(0, 0, 0, 0.25);
+  display: inline-flex;
+  gap: .5rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding-inline: 1.25rem;
+  border-radius: 9999px;
+  font-size: .88rem;
+  font-weight: 700;
+  background: var(--accent);
+  color: var(--on-accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 75%, transparent);
+  box-shadow: 0 2px 10px -2px color-mix(in srgb, var(--accent) 45%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.25);
   transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 200ms ease, filter 140ms ease;
   will-change: transform;
 }
 .welcome-open:hover {
-  filter: brightness(1.1);
+  filter: brightness(1.08);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px -3px rgba(0, 0, 0, 0.32);
+  box-shadow: 0 6px 18px -2px color-mix(in srgb, var(--accent) 55%, transparent);
 }
 .welcome-open:active {
   transform: scale(0.95);
@@ -80,25 +108,23 @@
 
 /* Desk Area */
 .welcome-desk { display: flex; flex-wrap: wrap; gap: .85rem; }
-.welcome-desk.is-dragging { outline: 2px dashed var(--accent); border-radius: 1.15rem; }
-.welcome-import, .welcome-resume, .welcome-tools button {
-  color: var(--ink);
-  background: var(--surface-1);
-  border: 1px solid var(--line);
-  border-radius: 1.15rem;
-}
+.welcome-desk.is-dragging { outline: 2px dashed var(--accent); border-radius: 1.35rem; }
 
-/* Import / Dropzone */
-.welcome-import, .welcome-resume { flex: 2 1 23rem; min-width: 0; padding: 1.4rem 1.6rem; text-align: start; }
+/* Dropzone / Import Card */
 .welcome-import {
+  flex: 2 1 23rem;
+  min-width: 0;
   display: grid;
   align-content: center;
   justify-items: start;
   gap: .55rem;
   min-height: 9.5rem;
-  border-style: dashed;
-  border-width: 1.5px;
+  padding: 1.5rem 1.8rem;
+  background: var(--surface-1);
+  border: 1.5px dashed var(--line-strong);
+  border-radius: 1.35rem;
   box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.03);
+  text-align: start;
   transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), border-color 160ms ease, background-color 160ms ease;
   will-change: transform;
 }
@@ -111,127 +137,192 @@
   transform: scale(0.98);
   transition-duration: 65ms;
 }
-.welcome-import span, .resume-info small { color: var(--ink-muted); font-size: .82rem; }
-.welcome-import svg, .welcome-tools svg, .resume-info > span { color: var(--accent); }
+.welcome-import strong { font-size: 1.05rem; font-weight: 700; color: var(--ink); }
+.welcome-import span { color: var(--ink-muted); font-size: .84rem; }
+.welcome-import svg { color: var(--accent); }
 
-/* Quick Tools */
-.welcome-tools { display: grid; flex: 1 1 13rem; gap: .65rem; }
+/* Quick Tool Tiles */
+.welcome-tools { display: grid; flex: 1 1 13rem; gap: .75rem; }
 .welcome-tools button {
   display: flex;
   align-items: center;
-  gap: .85rem;
-  padding: .95rem 1.3rem;
+  gap: .9rem;
+  padding: 1rem 1.3rem;
   font-size: .92rem;
   font-weight: 650;
-  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  background: var(--surface-1);
+  border: 1px solid var(--line-subtle);
+  border-radius: 1.25rem;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 200ms ease, border-color 160ms ease, background-color 160ms ease;
   will-change: transform;
 }
+.welcome-tools button svg { color: var(--accent); flex-shrink: 0; }
 .welcome-tools button:hover {
   border-color: var(--accent);
   background: var(--surface-hover-subtle);
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.08);
 }
 .welcome-tools button:active {
   transform: scale(0.96);
   transition-duration: 65ms;
 }
 
-/* Resume Hero Card */
+/* Editorial Hero Resume Card ("متابعة القراءة") */
 .welcome-resume {
+  flex: 2 1 23rem;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: clamp(1rem, 2.5vw, 1.75rem);
-  box-shadow: 0 3px 14px -3px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 220ms ease, border-color 160ms ease;
+  padding: 1.25rem 1.5rem;
+  border-radius: 1.35rem;
+  background: var(--surface-1);
+  border: 1px solid var(--line-subtle);
+  box-shadow: 0 4px 18px -4px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  text-align: start;
   position: relative;
   overflow: hidden;
+  transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 220ms ease, border-color 160ms ease;
   will-change: transform;
-}
-.welcome-resume::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  inset-inline-start: 0;
-  width: 4px;
-  height: 100%;
-  background: var(--accent);
-  opacity: 0.85;
 }
 .welcome-resume:hover {
   transform: translateY(-2px);
   border-color: var(--accent);
-  box-shadow: 0 10px 28px -6px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-}
-.welcome-resume:hover .book-cover {
-  transform: scale(1.03) rotate(-1deg);
-}
-[dir="rtl"] .welcome-resume:hover .book-cover {
-  transform: scale(1.03) rotate(1deg);
+  box-shadow: 0 12px 30px -6px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 .welcome-resume:active {
   transform: scale(0.985);
   transition-duration: 65ms;
 }
 .welcome-resume .book-cover {
-  width: 5.5rem;
-  height: 7.4rem;
+  width: 5.2rem;
+  aspect-ratio: 1 / 1.414;
   flex: none;
-  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.15));
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.16));
   transition: transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1);
   will-change: transform;
 }
-.resume-info { display: grid; gap: .35rem; flex: 1; min-width: 0; }
-.resume-info > span { font-size: .82rem; font-weight: 650; }
-.resume-info strong, .shelf-caption strong { overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-.resume-info strong { font-size: clamp(1.05rem, 2.5vw, 1.45rem); line-height: 1.4; }
+.welcome-resume:hover .book-cover {
+  transform: scale(1.03) rotate(1deg);
+}
+[dir="rtl"] .welcome-resume:hover .book-cover {
+  transform: scale(1.03) rotate(-1deg);
+}
 
-/* Physical Book Aesthetics & Spine Crease Simulation */
-.book-cover {
+.resume-info { display: grid; gap: .35rem; flex: 1; min-width: 0; }
+.resume-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+.resume-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.resume-title {
+  font-size: clamp(1.05rem, 2.5vw, 1.35rem);
+  font-weight: 750;
+  line-height: 1.35;
+  color: var(--ink);
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.resume-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.resume-meta small {
+  font-size: .8rem;
+  color: var(--ink-muted);
+}
+.resume-progress-track {
+  width: 100%;
+  max-width: 180px;
+  height: 3.5px;
+  background: var(--line-subtle);
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+.resume-progress-track i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 9999px;
+}
+.resume-action-pill {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--surface-hover-subtle);
+  border: 1px solid var(--line-subtle);
   display: grid;
   place-items: center;
-  min-width: 0;
+  color: var(--ink-muted);
+  flex-shrink: 0;
+  transition: all 180ms ease;
+}
+.welcome-resume:hover .resume-action-pill {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: transparent;
+  transform: scale(1.06);
+}
+
+/* ==========================================================================
+   Full-Bleed Realistic Physical Book Aesthetics (No Box-in-a-Box Placeholder)
+   ========================================================================== */
+.book-cover {
+  display: block;
   position: relative;
+  min-width: 0;
 }
 .book-cover-frame {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   width: 100%;
   height: 100%;
-  max-height: 100%;
-  max-width: 100%;
-  border-radius: 2px 5px 5px 2px;
+  border-radius: 3px 8px 8px 3px;
   overflow: hidden;
-  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.14), 0 8px 18px -4px rgba(0, 0, 0, 0.18);
+  background: #ffffff;
+  box-shadow: 0 4px 10px -2px rgba(0, 0, 0, 0.12), 0 14px 28px -6px rgba(0, 0, 0, 0.16);
+  transition: transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 240ms ease;
 }
 [dir="rtl"] .book-cover-frame {
-  border-radius: 5px 2px 2px 5px;
+  border-radius: 8px 3px 3px 8px;
 }
-.book-cover img {
-  max-height: 100%;
-  max-width: 100%;
-  width: auto;
-  height: auto;
-  object-fit: contain;
+.book-cover-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
   display: block;
 }
 
-/* Subtle physical spine crease lighting */
+/* Spine Crease Lighting */
 .book-spine-crease {
   position: absolute;
   inset-block: 0;
   inset-inline-start: 0;
-  width: 16%;
-  max-width: 22px;
+  width: 14%;
+  max-width: 20px;
   min-width: 8px;
   pointer-events: none;
   z-index: 2;
   background: linear-gradient(
     to right,
-    rgba(0, 0, 0, 0.30) 0%,
+    rgba(0, 0, 0, 0.32) 0%,
     rgba(0, 0, 0, 0.08) 22%,
     rgba(255, 255, 255, 0.16) 44%,
     rgba(0, 0, 0, 0.04) 68%,
@@ -241,7 +332,7 @@
 [dir="rtl"] .book-spine-crease {
   background: linear-gradient(
     to left,
-    rgba(0, 0, 0, 0.30) 0%,
+    rgba(0, 0, 0, 0.32) 0%,
     rgba(0, 0, 0, 0.08) 22%,
     rgba(255, 255, 255, 0.16) 44%,
     rgba(0, 0, 0, 0.04) 68%,
@@ -249,7 +340,7 @@
   );
 }
 
-/* Layered paper edge reflection on the open side */
+/* Layered Paper Edge Highlight */
 .book-edge-highlight {
   position: absolute;
   inset-block: 0;
@@ -257,13 +348,13 @@
   width: 2px;
   pointer-events: none;
   z-index: 2;
-  box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.12), inset -2px 0 0 rgba(255, 255, 255, 0.22);
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.14), inset -2px 0 0 rgba(255, 255, 255, 0.25);
 }
 [dir="rtl"] .book-edge-highlight {
-  box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.12), inset 2px 0 0 rgba(255, 255, 255, 0.22);
+  box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.14), inset 2px 0 0 rgba(255, 255, 255, 0.25);
 }
 
-/* Tactile Hardcover Book Jacket (fallback when no image cover exists) */
+/* Luxury Editorial Hardcover Jacket */
 .book-jacket {
   position: relative;
   width: 100%;
@@ -273,31 +364,37 @@
   flex-direction: column;
   align-items: start;
   justify-content: space-between;
-  padding: 12%;
-  background: #2e473f;
+  padding: 11%;
+  background: #1d3c32;
   color: #f5f2e8;
-  border-inline-start: 5px solid rgba(0, 0, 0, 0.28);
-  border-radius: 2px 6px 6px 2px;
-  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.14), 0 8px 18px -4px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  border-inline-start: 7px solid rgba(0, 0, 0, 0.35);
+  border-radius: 3px 8px 8px 3px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+    inset 0 0 0 4px transparent,
+    inset 0 0 0 5px rgba(255, 255, 255, 0.08),
+    0 4px 10px -2px rgba(0, 0, 0, 0.14),
+    0 14px 28px -6px rgba(0, 0, 0, 0.18);
+  transition: transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 240ms ease;
 }
 [dir="rtl"] .book-jacket {
-  border-radius: 6px 2px 2px 6px;
+  border-radius: 8px 3px 3px 8px;
 }
-.cover-video .book-jacket, .cover-image .book-jacket { background: #2b3e50; }
-.cover-audio .book-jacket, .cover-presentation .book-jacket { background: #5a3d2c; }
-.cover-text .book-jacket { background: #3b3a36; }
+.cover-video .book-jacket, .cover-image .book-jacket { background: #1c2d3e; }
+.cover-audio .book-jacket, .cover-presentation .book-jacket { background: #482c1d; }
+.cover-text .book-jacket { background: #2a2927; }
 
 .book-jacket-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  opacity: 0.9;
+  opacity: .85;
 }
 .book-jacket bdi {
   font-family: var(--font-sans);
   letter-spacing: normal !important;
-  font-size: clamp(.82rem, 2.2vw, 1.15rem);
+  font-size: clamp(.84rem, 2.2vw, 1.05rem);
   font-weight: 700;
   line-height: 1.35;
   text-align: start;
@@ -306,19 +403,21 @@
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
-/* Shelf Section */
+/* ==========================================================================
+   Shelf Controls & Search
+   ========================================================================== */
 .welcome-shelf { margin-block: 2rem; }
 .shelf-controls { display: flex; gap: .75rem; margin-bottom: 1.4rem; }
 .shelf-search, .shelf-controls select {
   background: var(--surface-1);
-  border: 1px solid var(--line);
-  border-radius: .8rem;
-  min-height: 44px;
-  padding-inline: .9rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--line-subtle);
+  border-radius: 9999px;
+  min-height: 42px;
+  padding-inline: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 .shelf-search {
@@ -333,143 +432,139 @@
   width: 100%;
   min-width: 0;
   color: var(--ink);
-  font-size: .9rem;
+  font-size: .88rem;
   background: transparent;
   border: none;
   outline: none;
 }
-.shelf-controls select { color: var(--ink); font-size: .88rem; font-weight: 550; }
+.shelf-controls select {
+  color: var(--ink);
+  font-size: .84rem;
+  font-weight: 600;
+  padding-inline-end: 1.5rem;
+}
 .shelf-search:focus-within, .shelf-controls select:focus-visible {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
-.shelf-label { margin-bottom: .85rem; }
-.shelf-label h2 { font-weight: 750; font-size: 1.1rem; letter-spacing: normal !important; }
+.shelf-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: .85rem;
+}
+.shelf-label h2 { font-weight: 750; font-size: 1.1rem; letter-spacing: normal !important; color: var(--ink); }
 .shelf-label h2 span { color: var(--ink-muted); margin-inline-start: .35rem; font-size: .85rem; font-weight: 600; }
-.shelf-label button { color: var(--ink-muted); font-size: .84rem; min-height: 44px; transition: color 140ms ease; }
+.shelf-label button { color: var(--ink-muted); font-size: .84rem; min-height: 40px; transition: color 140ms ease; }
 .shelf-label button:hover { color: var(--danger-ink); }
 
-/* Shelf Grids & Lists */
-.shelf-books, .shelf-recents { display: grid; gap: .85rem; list-style: none; padding: 0; }
-.shelf-books { grid-template-columns: repeat(auto-fill, minmax(min(100%, 10.5rem), 1fr)); gap: 1.6rem 1.1rem; }
-.shelf-recents { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.shelf-item { position: relative; min-width: 0; }
-.shelf-file {
+/* ==========================================================================
+   Library Bookshelf Grid (.shelf-books) - Clean Gallery Mode
+   ========================================================================== */
+.shelf-books {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 10.5rem), 1fr));
+  gap: 1.8rem 1.15rem;
+  list-style: none;
+  padding: 0;
+}
+.shelf-books .shelf-item { position: relative; min-width: 0; }
+.shelf-books .shelf-file {
   display: flex;
+  flex-direction: column;
   width: 100%;
   text-align: start;
-  gap: .85rem;
+  gap: 0;
   border-radius: .85rem;
+  background: transparent;
+  border: none;
+  padding: 0;
 }
 
-/* Compact Recents List */
-.shelf-recents .shelf-file {
-  align-items: center;
-  padding: .85rem 1rem;
-  padding-inline-end: 2.85rem;
-  background: var(--surface-1);
-  border: 1px solid var(--line);
-  border-radius: 1rem;
-  box-shadow: 0 2px 6px -2px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), border-color 160ms ease, box-shadow 200ms ease, background-color 160ms ease;
-  will-change: transform;
-}
-.shelf-recents .shelf-file:hover {
-  border-color: var(--accent);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 18px -4px rgba(0, 0, 0, 0.1);
-}
-.shelf-recents .shelf-file:active {
-  transform: scale(0.98);
-  transition-duration: 65ms;
-}
-.shelf-recents .book-cover {
-  width: 3.1rem;
-  height: 4.1rem;
-  flex: none;
-  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.12));
-}
-
-.shelf-caption { min-width: 0; display: grid; gap: .2rem; align-content: start; }
-.shelf-caption strong { font-size: .92rem; line-height: 1.45; }
-.shelf-caption small { font-size: .78rem; color: var(--ink-muted); }
-.shelf-caption .file-detail { font-size: .72rem; }
-
-/* Tactile Delete Button */
-.shelf-delete {
-  position: absolute;
-  inset-inline-end: .35rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  color: var(--ink-muted);
-  opacity: .65;
-  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.shelf-delete:hover {
-  opacity: 1;
-  color: var(--danger-ink);
-  background: var(--surface-hover);
-  transform: translateY(-50%) scale(1.1);
-}
-.shelf-delete:active {
-  transform: translateY(-50%) scale(0.92);
-  transition-duration: 65ms;
-}
-
-/* Full Library Shelf Grid */
-.shelf-books .shelf-file {
-  flex-direction: column;
-  transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
-  will-change: transform;
-}
+/* The book cover stands directly on the shelf with real book proportions */
 .shelf-books .book-cover {
   width: 100%;
-  aspect-ratio: 4 / 5;
-  padding: 8%;
-  background: var(--surface-hover-subtle);
-  border: 1px solid var(--line-subtle);
-  border-radius: .85rem;
-  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
-  box-shadow: 0 2px 6px -2px rgba(0, 0, 0, 0.04);
-  transition: transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 240ms ease, border-color 160ms ease;
-  will-change: transform;
+  aspect-ratio: 1 / 1.414;
+  background: transparent;
+  border: none;
+  padding: 0;
 }
-.shelf-books .shelf-file:hover .book-cover {
-  transform: translateY(-4px) scale(1.015);
-  border-color: var(--accent);
-  box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.08);
+.shelf-books .shelf-file:hover .book-cover-frame,
+.shelf-books .shelf-file:hover .book-jacket {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 8px 18px -2px rgba(0, 0, 0, 0.16), 0 20px 38px -6px rgba(0, 0, 0, 0.24);
 }
-.shelf-books .shelf-file:active .book-cover {
+.shelf-books .shelf-file:active .book-cover-frame,
+.shelf-books .shelf-file:active .book-jacket {
   transform: scale(0.96);
   transition-duration: 65ms;
 }
-.shelf-books .book-cover img {
-  width: 100%;
-  height: 100%;
-  box-shadow: none;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.18));
-}
-.shelf-books .shelf-caption { padding-inline-end: 2.25rem; width: 100%; margin-top: .4rem; }
-.shelf-books .shelf-delete { top: auto; bottom: .35rem; transform: none; }
-.shelf-books .shelf-delete:hover { transform: scale(1.1); }
-.shelf-books .shelf-delete:active { transform: scale(0.92); transition-duration: 65ms; }
 
-/* Progress capsule */
-.shelf-progress {
+/* Elegant floating delete button on the top-corner of the book */
+.shelf-books .shelf-delete {
+  position: absolute;
+  top: 8px;
+  inset-inline-end: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.42);
+  color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  display: grid;
+  place-items: center;
+  opacity: .55;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 5;
+}
+.shelf-books .shelf-delete:hover {
+  opacity: 1;
+  background: var(--danger-ink);
+  color: #fff;
+  transform: scale(1.1);
+}
+.shelf-books .shelf-delete:active {
+  transform: scale(0.92);
+  transition-duration: 65ms;
+}
+
+/* Metadata below the book cover */
+.shelf-books .shelf-caption {
   width: 100%;
-  height: 4px;
+  padding-inline-end: 0;
+  margin-top: .65rem;
+  display: grid;
+  gap: .2rem;
+}
+.shelf-books .shelf-caption strong {
+  font-size: .88rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink);
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.shelf-books .shelf-caption small {
+  font-size: .74rem;
+  color: var(--ink-muted);
+}
+.shelf-books .shelf-progress {
+  width: 100%;
+  height: 3.5px;
   background: var(--line-subtle);
   border-radius: 9999px;
-  margin-top: .5rem;
+  margin-top: .4rem;
   overflow: hidden;
 }
-.shelf-progress i {
+.shelf-books .shelf-progress i {
   display: block;
   background: var(--accent);
   height: 100%;
@@ -477,31 +572,125 @@
   transition: width 400ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* ==========================================================================
+   Recents List (.shelf-recents) - High-End Inset Card List
+   ========================================================================== */
+.shelf-recents {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .85rem;
+  list-style: none;
+  padding: 0;
+}
+.shelf-recents .shelf-item { position: relative; min-width: 0; }
+.shelf-recents .shelf-file {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: start;
+  gap: .9rem;
+  padding: .85rem 1.1rem;
+  padding-inline-end: 2.85rem;
+  background: var(--surface-1);
+  border: 1px solid var(--line-subtle);
+  border-radius: 1.15rem;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), border-color 160ms ease, box-shadow 200ms ease;
+  will-change: transform;
+}
+.shelf-recents .shelf-file:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.08);
+}
+.shelf-recents .shelf-file:active {
+  transform: scale(0.98);
+  transition-duration: 65ms;
+}
+.shelf-recents .book-cover {
+  width: 3.2rem;
+  aspect-ratio: 1 / 1.414;
+  flex: none;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.12));
+}
+.shelf-recents .shelf-caption {
+  min-width: 0;
+  display: grid;
+  gap: .25rem;
+  align-content: start;
+}
+.shelf-recents .shelf-caption strong {
+  font-size: .92rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--ink);
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.shelf-recents .shelf-caption small {
+  font-size: .76rem;
+  color: var(--ink-muted);
+}
+.shelf-recents .shelf-caption .file-detail {
+  font-size: .72rem;
+}
+
+/* Subtle discreet delete button for recents row */
+.shelf-recents .shelf-delete {
+  position: absolute;
+  inset-inline-end: .65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--ink-muted);
+  opacity: .35;
+  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.shelf-recents .shelf-delete:hover {
+  opacity: 1;
+  color: var(--danger-ink);
+  background: var(--surface-hover);
+  transform: translateY(-50%) scale(1.1);
+}
+.shelf-recents .shelf-delete:active {
+  transform: translateY(-50%) scale(0.92);
+  transition-duration: 65ms;
+}
+
+/* Empty State */
 .shelf-empty {
-  padding: 3rem 1.5rem;
-  border: 1px dashed var(--line);
-  border-radius: 1.25rem;
+  padding: 3.5rem 1.5rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: 1.35rem;
   background: var(--surface-hover-subtle);
   text-align: center;
   color: var(--ink-muted);
-  font-size: .9rem;
+  font-size: .92rem;
 }
-.shelf-empty button { text-decoration: underline; color: var(--accent); }
+.shelf-empty button { text-decoration: underline; color: var(--accent); font-weight: 600; }
 
 @media (hover: hover) {
   .shelf-file:hover strong { color: var(--accent-strong); }
 }
 
+/* Mobile Responsive Optimization */
 @media (max-width: 600px) {
+  .welcome-content { width: min(100% - 1.5rem, 64rem); }
   .welcome-header { gap: .5rem; }
-  .welcome-header button { min-height: 44px; }
+  .welcome-header button { min-height: 42px; }
   .welcome-header button[aria-controls="home-reading-themes"] { padding-inline: .65rem; }
   .welcome-header button[aria-controls="home-reading-themes"] > span:nth-child(2),
   .welcome-header button[aria-controls="home-reading-themes"] > svg:last-child { display: none; }
-  .shelf-books .file-detail { text-align: start; }
-  .welcome-tools { grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); }
-  .welcome-tools button { justify-content: center; font-size: .82rem; padding-inline: .65rem; }
+  .welcome-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .welcome-tools button { justify-content: center; font-size: .84rem; padding-inline: .65rem; }
   .shelf-recents { grid-template-columns: 1fr; }
-  .shelf-books { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem .75rem; }
+  .shelf-books { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.4rem .85rem; }
   .welcome-page #home-reading-themes { position: fixed; inset-inline-end: 1rem; top: max(4.4rem, calc(env(safe-area-inset-top) + 4rem)); }
 }
