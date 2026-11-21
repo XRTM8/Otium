@@ -81,7 +81,7 @@ jobs:
 
       - run: npm ci
 
-      - name: Build signed NSIS installer and portable EXE
+      - name: Build signed NSIS installer
         run: npm run tauri:build -- --bundles nsis
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -105,12 +105,8 @@ jobs:
             throw 'No updater signature was produced. Check TAURI_SIGNING_PRIVATE_KEY.'
           }
 
-          $portable = 'target/release/otium.exe'
-          if (-not (Test-Path $portable)) { throw 'No portable EXE was produced.' }
-
           Copy-Item $setup.FullName "release/Otium_${env:VERSION}_x64-setup.exe"
           Copy-Item $signature "release/Otium_${env:VERSION}_x64-setup.exe.sig"
-          Copy-Item $portable "release/Otium_${env:VERSION}_x64-portable.exe"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -323,8 +319,8 @@ jobs:
             --tag "$TAG" \
             --installer "upload/Otium_${VERSION}_x64-setup.exe" \
             --signature "upload/Otium_${VERSION}_x64-setup.exe.sig" \
-            --portable "upload/Otium_${VERSION}_x64-portable.exe" \
-            --apk "upload/Otium_${VERSION}_universal.apk" \
+            --apk-universal "upload/Otium_${VERSION}_universal.apk" \
+            --apk-arm64 "upload/Otium_${VERSION}_arm64-v8a.apk" \
             --output-dir upload
 
       - name: Publish GitHub release

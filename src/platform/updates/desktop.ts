@@ -43,7 +43,7 @@ function toAvailableSnapshot(
   canAutoInstall: boolean
 ): UpdateSnapshot {
   const feed = releaseInfoFromUpdate(update);
-  const portable = feed?.assets.windowsPortable;
+  const targetAsset = feed?.assets.windowsInstaller || feed?.assets.windowsPortable;
 
   return {
     phase: 'available',
@@ -52,11 +52,11 @@ function toAvailableSnapshot(
     notes: update.body || feed?.notes || '',
     publishedAt: update.date || feed?.pubDate || '',
     canAutoInstall,
-    manualDownloadUrl: portable?.url,
-    downloadSha256: portable?.sha256,
+    manualDownloadUrl: targetAsset?.url,
+    downloadSha256: targetAsset?.sha256,
     message: canAutoInstall
       ? 'Download and install the new version.'
-      : 'Download the new portable EXE to your Downloads folder.'
+      : 'Download the official installer to your Downloads folder.'
   };
 }
 

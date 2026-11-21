@@ -23,15 +23,28 @@ describe('releaseFeed & platform update isolation', () => {
       notes: 'Release notes',
       pub_date: '2026-11-11T00:00:00Z',
       assets: {
-        androidApk: {
-          url: 'https://github.com/XRTM8/Otium/releases/download/lab-14/Otium-14-arm64-v8a.apk',
+        windowsInstaller: {
+          url: 'https://github.com/XRTM8/Otium/releases/download/v2.0.10/Otium_2.0.10_x64-setup.exe',
+          sha256: 'b'.repeat(64),
+          size: 789012
+        },
+        androidUniversal: {
+          url: 'https://github.com/XRTM8/Otium/releases/download/v2.0.10/Otium_2.0.10_universal.apk',
+          sha256: 'c'.repeat(64),
+          size: 456789
+        },
+        androidArm64: {
+          url: 'https://github.com/XRTM8/Otium/releases/download/v2.0.10/Otium_2.0.10_arm64-v8a.apk',
           sha256: 'a'.repeat(64),
           size: 123456
         }
       }
     });
     expect(info.version).toBe('1.9.17-lab.14');
-    expect(info.assets.androidApk?.sha256).toBe('a'.repeat(64));
+    expect(info.assets.windowsInstaller?.sha256).toBe('b'.repeat(64));
+    expect(info.assets.androidUniversal?.sha256).toBe('c'.repeat(64));
+    expect(info.assets.androidArm64?.sha256).toBe('a'.repeat(64));
+    expect(info.assets.androidApk?.sha256).toBe('c'.repeat(64)); // alias resolves to universal
   });
 
   it('returns null update adapter on web browsers so PWA does not prompt APK installs', () => {

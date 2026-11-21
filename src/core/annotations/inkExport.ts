@@ -2,48 +2,14 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { paintInk, type InkMark } from './ink';
 import { nativeSavePdf } from '../../scanner/core/nativeBridge';
 import type { TextAnnotation } from '../types';
+import {
+  attachStandardPdfAnnotations,
+  overlayPlacement,
+  parseHexColor,
+  toPageCoordinates,
+} from './standardPdfAnnotations';
 
-export function overlayPlacement(box: { x: number; y: number; width: number; height: number }, angle: number) {
-  const rotation = ((angle % 360) + 360) % 360;
-  return {
-    x: box.x + (rotation === 180 || rotation === 270 ? box.width : 0),
-    y: box.y + (rotation === 90 || rotation === 180 ? box.height : 0),
-    width: rotation % 180 ? box.height : box.width,
-    height: rotation % 180 ? box.width : box.height,
-    rotation: -rotation
-  };
-}
-
-export function toPageCoordinates(
-  u: number,
-  v: number,
-  placement: ReturnType<typeof overlayPlacement>
-): { x: number; y: number } {
-  const rad = (placement.rotation * Math.PI) / 180;
-  const localX = u * placement.width;
-  const localY = (1 - v) * placement.height;
-  return {
-    x: placement.x + localX * Math.cos(rad) - localY * Math.sin(rad),
-    y: placement.y + localX * Math.sin(rad) + localY * Math.cos(rad)
-  };
-}
-
-export function parseHexColor(hex: string): { r: number; g: number; b: number } {
-  let cleaned = hex.replace(/^#/, '');
-  if (cleaned.length === 3) {
-    cleaned = cleaned.split('').map(c => c + c).join('');
-  }
-  const match = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(cleaned);
-  const rHex = match?.[1];
-  const gHex = match?.[2];
-  const bHex = match?.[3];
-  if (!rHex || !gHex || !bHex) return { r: 0, g: 0, b: 0 };
-  return {
-    r: parseInt(rHex, 16) / 255,
-    g: parseInt(gHex, 16) / 255,
-    b: parseInt(bHex, 16) / 255
-  };
-}
+export { overlayPlacement, parseHexColor, toPageCoordinates };
 
 export async function exportInkPdf(
   doc: PDFDocumentProxy,
@@ -149,6 +115,9 @@ export async function exportInkPdf(
       }
       canvas.width = canvas.height = 1;
     }
+
+    // 4. Attach standard ISO 32000-1 PDF annotations (/Highlight, /Ink, /Text) to page /Annots
+    await attachStandardPdfAnnotations(pdf, page, textAnnotations, ink, placement);
   }
 
   const output = await pdf.save();

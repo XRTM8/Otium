@@ -1,3 +1,5 @@
+#![cfg_attr(test, allow(dead_code, unused_imports))]
+
 use std::env;
 use std::fs;
 use std::path::Path;

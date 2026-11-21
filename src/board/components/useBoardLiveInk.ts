@@ -26,6 +26,22 @@ interface UseBoardLiveInkOptions {
   laserTrailRef: React.MutableRefObject<LaserPoint[]>;
 }
 
+function predictLeadingPoint(pts: StrokePoint[]): StrokePoint | null {
+  if (pts.length < 2) return null;
+  const p1 = pts[pts.length - 2];
+  const p2 = pts[pts.length - 1];
+  if (!p1 || !p2) return null;
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist < 1 || dist > 80) return null;
+  return {
+    x: p2.x + dx * 0.45,
+    y: p2.y + dy * 0.45,
+    pressure: p2.pressure,
+  };
+}
+
 export function useBoardLiveInk({
   stageRef,
   canvasRef,
@@ -80,10 +96,16 @@ export function useBoardLiveInk({
     if (!ctx) return;
     ctx.clearRect(0, 0, liveCanvas.width, liveCanvas.height);
     const liveStroke = liveStrokeRef.current;
-    if (!liveStroke) return;
+    if (!liveStroke || !liveStroke.points.length) return;
     ctx.save();
     ctx.scale(liveCanvas.width / 1920, liveCanvas.height / 1080);
-    drawBoardInk(ctx, [liveStroke], isDarkBg);
+
+    const predicted = liveStroke.tool === 'pen' ? predictLeadingPoint(liveStroke.points) : null;
+    if (predicted) {
+      drawBoardInk(ctx, [{ ...liveStroke, points: [...liveStroke.points, predicted] }], isDarkBg);
+    } else {
+      drawBoardInk(ctx, [liveStroke], isDarkBg);
+    }
     ctx.restore();
   }, [isDarkBg, liveCanvasRef]);
 
@@ -169,7 +191,7 @@ export function useBoardLiveInk({
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!ready || target !== 'board' || presentation || activeTool === 'hand') return;
     if (e.pointerType === 'pen') lastPen.current = Date.now();
-    if (e.pointerType === 'touch' && (!e.isPrimary || e.width > 35 || e.height > 35 || Date.now() - lastPen.current < 800)) return;
+    if (e.pointerType === 'touch' && (!e.isPrimary || e.width > 25 || e.height > 25 || Date.now() - lastPen.current < 1200)) return;
     if (pointer.current !== null) return;
     if (stylusOnly && e.pointerType === 'touch') return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
@@ -232,6 +254,7 @@ export function useBoardLiveInk({
     if (e.pointerType === 'pen') lastPen.current = Date.now();
     if (pointer.current !== e.pointerId) return;
     if (stylusOnly && e.pointerType === 'touch') return;
+    if (e.pointerType === 'touch' && (e.width > 25 || e.height > 25 || Date.now() - lastPen.current < 1200)) return;
 
     const coords = getCanvasCoordinates(e);
 

@@ -133,7 +133,7 @@ async function runOcrTask<T>(
 export async function extractPageTextAndMetadata(
   canvas: HTMLCanvasElement,
   lang: string = 'ara+eng',
-  timeoutMs: number = 8000
+  timeoutMs: number = 25000
 ): Promise<ExtractedPageTextResult> {
   const isCached = isOcrLanguageCached(lang);
   const isOnline = typeof navigator === 'undefined' || navigator.onLine !== false;
@@ -197,7 +197,7 @@ export async function extractPageTextAndMetadata(
 export async function performOcr(
   canvas: HTMLCanvasElement,
   lang: string = 'ara+eng',
-  timeoutMs: number = 7000
+  timeoutMs: number = 25000
 ): Promise<OcrWordToken[]> {
   try {
     return (await extractPageTextAndMetadata(canvas, lang, timeoutMs)).words;

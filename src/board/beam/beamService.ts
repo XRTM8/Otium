@@ -309,7 +309,14 @@ export class BeamService {
   }
 
   public async downloadRelayChunks(chunks: string[], expectedSize?: number, expectedSha256?: string): Promise<ArrayBuffer> {
-    return downloadChunksViaRelay({ chunks, expectedSize, expectedSha256, fetchChunk: fetchRelayAttachmentBuffer, onTransferPatch: (p) => this.updateTransfer(p) });
+    return downloadChunksViaRelay({
+      chunks,
+      roomCode: this.connectedRoom || undefined,
+      expectedSize,
+      expectedSha256,
+      fetchChunk: fetchRelayAttachmentBuffer,
+      onTransferPatch: (p) => this.updateTransfer(p),
+    });
   }
   public async downloadRelayDocument(url: string): Promise<ArrayBuffer> { return fetchRelayAttachmentBuffer(url, MAX_FILE_BYTES); }
 

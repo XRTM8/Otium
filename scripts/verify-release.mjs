@@ -62,6 +62,13 @@ async function main() {
   const conf = JSON.parse(readFileSync(path.join(root, 'src-tauri', 'tauri.conf.json'), 'utf8'));
   const { keyId: pubKeyId, key: pubKey } = parsePublicKey(conf.plugins.updater.pubkey.trim());
 
+  const requiredAssets = ['windowsInstaller', 'androidUniversal', 'androidArm64'];
+  for (const assetKey of requiredAssets) {
+    if (!feed.assets || !feed.assets[assetKey]) {
+      fail(`required asset "${assetKey}" is missing from the feed`);
+    }
+  }
+
   for (const [key, asset] of Object.entries(feed.assets || {})) {
     if (!asset || !asset.url) {
       fail(`asset ${key} is missing from the feed`);

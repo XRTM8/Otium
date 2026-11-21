@@ -14,6 +14,8 @@ declare global {
       shareFile?: (base64Data: string, filename: string, mimeType: string) => void;
       savePdfToDownloads?: (base64Data: string, filename: string) => boolean;
       saveFileToDownloads?: (base64Data: string, filename: string, mimeType: string) => boolean;
+      saveFileInPlace?: (id: string, base64Data: string) => boolean;
+      canSaveInPlace?: (id: string) => boolean;
       printPdf?: (base64Data: string, filename: string) => void;
       openExternalUrl?: (url: string) => void;
       fetchUrl?: (url: string) => string;
@@ -22,15 +24,27 @@ declare global {
 }
 
 async function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const res = reader.result as string;
-      resolve(res);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
+  if (typeof FileReader !== 'undefined') {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const res = reader.result as string;
+        resolve(res);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  const buffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return `data:${blob.type || 'application/octet-stream'};base64,${btoa(binary)}`;
 }
 
 /**
@@ -127,6 +141,36 @@ async function nativeSaveFile(
 export async function nativeSavePdf(blob: Blob, filename: string): Promise<boolean> {
   const cleanFilename = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
   return nativeSaveFile(blob, cleanFilename, 'application/pdf');
+}
+
+/**
+ * Saves modified document bytes directly in-place to the original file/content URI (SAF on Android),
+ * avoiding duplicate copies in Downloads.
+ */
+export async function nativeSaveFileInPlace(id: string, blob: Blob, fallbackFilename?: string): Promise<boolean> {
+  if (id && window.OtiumNative?.saveFileInPlace) {
+    try {
+      const base64 = await blobToBase64(blob);
+      const saved = window.OtiumNative.saveFileInPlace(id, base64);
+      if (saved) return true;
+    } catch (e) {
+      console.warn('Native saveFileInPlace failed, falling back to download:', e);
+    }
+  }
+
+  if (fallbackFilename) {
+    return nativeSavePdf(blob, fallbackFilename);
+  }
+  return false;
+}
+
+export function canSaveFileInPlace(id?: string): boolean {
+  if (!id || !window.OtiumNative?.canSaveInPlace) return false;
+  try {
+    return window.OtiumNative.canSaveInPlace(id);
+  } catch {
+    return false;
+  }
 }
 
 export async function nativeSaveImage(blob: Blob, filename: string): Promise<boolean> {

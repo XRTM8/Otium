@@ -7,6 +7,8 @@ export interface ReleaseAsset {
 export interface ReleaseAssets {
   windowsInstaller?: ReleaseAsset;
   windowsPortable?: ReleaseAsset;
+  androidUniversal?: ReleaseAsset;
+  androidArm64?: ReleaseAsset;
   androidApk?: ReleaseAsset;
 }
 
@@ -127,7 +129,9 @@ export function parseReleaseInfo(value: unknown): ReleaseInfo {
     assets: {
       windowsInstaller: parseAsset(rawAssets.windowsInstaller),
       windowsPortable: parseAsset(rawAssets.windowsPortable),
-      androidApk: parseAsset(rawAssets.androidApk)
+      androidUniversal: parseAsset(rawAssets.androidUniversal) ?? parseAsset(rawAssets.androidApk),
+      androidArm64: parseAsset(rawAssets.androidArm64),
+      androidApk: parseAsset(rawAssets.androidApk) ?? parseAsset(rawAssets.androidUniversal)
     }
   };
 }

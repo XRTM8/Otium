@@ -6,6 +6,7 @@ import {
   OTIUM_RELEASE_FEED_FALLBACK_URL,
   isNewerVersion,
   parseReleaseInfo,
+  type ReleaseAsset,
   type ReleaseInfo
 } from '../../core/updates/releaseFeed';
 import type {
@@ -110,6 +111,19 @@ async function fetchReleaseFeed(): Promise<ReleaseInfo> {
   }
 }
 
+function selectOptimalAndroidApk(info: ReleaseInfo): ReleaseAsset | undefined {
+  const ua = typeof navigator !== 'undefined' ? (navigator.userAgent || '').toLowerCase() : '';
+  const is64Bit =
+    ua.includes('aarch64') ||
+    ua.includes('arm64') ||
+    (!ua.includes('armv7') && !ua.includes('armeabi'));
+
+  if (is64Bit && info.assets.androidArm64) {
+    return info.assets.androidArm64;
+  }
+  return info.assets.androidUniversal || info.assets.androidArm64 || info.assets.androidApk;
+}
+
 /**
  * Android updates never install silently. The native bridge downloads the APK,
  * verifies its SHA-256, and hands it to the system Package Installer UI.
@@ -128,7 +142,7 @@ export const androidUpdateAdapter: UpdateAdapter = {
       };
     }
 
-    const apk = feed.assets.androidApk;
+    const apk = selectOptimalAndroidApk(feed);
     const verifiable = Boolean(apk?.url && apk?.sha256);
     return {
       phase: 'available',

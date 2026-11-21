@@ -91,4 +91,45 @@ describe('documentLibrary storage', () => {
     expect(docs.length).toBe(1);
     expect(docs[0].title).toBe('Backup Target');
   });
+
+  it('exports and restores an encrypted vault backup with passphrase', async () => {
+    const fakePdf = new Blob(['%PDF-1.4 encrypted content'], { type: 'application/pdf' });
+
+    await saveDocumentToLibrary({
+      id: 'doc-secret',
+      title: 'Secret Document',
+      pageCount: 1,
+      thumbnail: 'thumb-secret',
+      pdfBlob: fakePdf,
+    });
+
+    const encryptedBlob = await exportVaultBackup('MyVaultPassword123');
+    expect(encryptedBlob).toBeDefined();
+
+    // Verify blob is encrypted binary (starts with OTMW1 magic bytes)
+    const arrayBuffer = await encryptedBlob.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    expect(bytes[0]).toBe(0x4f); // O
+    expect(bytes[1]).toBe(0x54); // T
+    expect(bytes[2]).toBe(0x4d); // M
+    expect(bytes[3]).toBe(0x57); // W
+    expect(bytes[4]).toBe(0x31); // 1
+
+    // Clear library
+    await deleteDocumentFromLibrary('doc-secret');
+
+    // Restoring without passphrase should throw
+    await expect(restoreVaultBackup(encryptedBlob)).rejects.toThrow('مشفر');
+
+    // Restoring with wrong passphrase should throw
+    await expect(restoreVaultBackup(encryptedBlob, 'WrongPassword')).rejects.toThrow('فشل فك تشفير');
+
+    // Restoring with correct passphrase should succeed
+    const count = await restoreVaultBackup(encryptedBlob, 'MyVaultPassword123');
+    expect(count).toBe(1);
+
+    const docs = await getAllLibraryDocuments();
+    expect(docs.length).toBe(1);
+    expect(docs[0].title).toBe('Secret Document');
+  });
 });

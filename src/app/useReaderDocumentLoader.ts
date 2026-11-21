@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { isPdfBuffer, openPdf, type PdfLoadingTaskHandle } from '../core/pdf/document';
 import { mergeTextAnnotations } from '../core/annotations/textSync';
+import { extractExistingPdfAnnotations } from '../core/annotations/standardPdfAnnotations';
 import {
   adoptLegacyDocumentRecord,
   saveDocumentToStorage,
@@ -256,11 +257,14 @@ export function useReaderDocumentLoader(opts: UseReaderDocumentLoaderOptions) {
       setDocId(documentId);
       setNumPages(opened.numPages);
       setAnnotations([]);
-      void loadStoredAnnotations(documentId, title)
-        .then((stored) => {
+      void Promise.all([
+        loadStoredAnnotations(documentId, title).catch(() => []),
+        extractExistingPdfAnnotations(opened.doc).catch(() => []),
+      ])
+        .then(([stored, embedded]) => {
           if (annotationGeneration !== annotationsGenerationRef.current) return;
           annotationsHydratedRef.current = true;
-          setAnnotations((current) => mergeTextAnnotations(current, stored));
+          setAnnotations((current) => mergeTextAnnotations(mergeTextAnnotations(current, embedded), stored));
         })
         .catch(() => {
           if (annotationGeneration !== annotationsGenerationRef.current) return;

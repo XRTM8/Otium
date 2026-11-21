@@ -9,7 +9,11 @@
  * settles, because `getTextContent()` allocates a large structure per page.
  */
 
-type RenderJob = () => Promise<void>;
+export interface RenderSignal {
+  readonly cancelled: boolean;
+}
+
+export type RenderJob = (signal: RenderSignal) => Promise<void>;
 
 interface QueueItem {
   id: number;
@@ -61,17 +65,26 @@ async function pump(): Promise<void> {
   }
 
   activeJobs = 1;
+  let timeoutId: number | null = null;
   try {
     // Safety timeout: prevents background WebView pause / phone lock from freezing the queue forever
     await Promise.race([
-      item.run(),
+      item.run(item),
       new Promise<void>((_, reject) => {
-        window.setTimeout(() => reject(new Error('Render task timeout')), 8000);
-      })
+        timeoutId = window.setTimeout(() => {
+          item.cancelled = true;
+          reject(new Error('Render task timeout'));
+        }, 8000);
+      }),
     ]);
   } catch {
+    item.cancelled = true;
     // Individual PDF pages already surface their own render errors.
   } finally {
+    if (timeoutId !== null) {
+      window.clearTimeout(timeoutId);
+      timeoutId = null;
+    }
     activeJobs = 0;
     schedulePump(0);
   }

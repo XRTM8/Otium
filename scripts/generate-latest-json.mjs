@@ -1,24 +1,21 @@
 #!/usr/bin/env node
 /**
- * Builds the release feed consumed by both Otium editions.
+ * Generates the unified, signed release feed (latest.json) for Otium.
  *
- * The Windows updater reads `platforms.windows-x86_64` (Tauri's signed
- * installer format). Otium's own update UI reads `assets` to offer the portable
- * EXE and the Android APK. One feed therefore carries one version and one set
- * of release notes for both platforms.
+ * Targets strictly 3 release artifacts:
+ * 1. Windows x64 NSIS Installer (.exe) with minisign updater signature.
+ * 2. Android Universal APK (.apk) for all supported device ABIs.
+ * 3. Android Modern ARM64-v8a APK (.apk) optimized for modern 64-bit devices.
  *
- * The script also stages the artifacts under stable names inside the output
- * directory, so the URLs written to latest.json always match the files that
- * get uploaded to the GitHub release.
+ * Compatible with existing Tauri v2 updater keys and previous signatures.
+ * Portable EXEs, legacy 32-bit ARM, and x86 APKs are deliberately excluded.
  *
  * Usage:
  *   node scripts/generate-latest-json.mjs \
- *     --installer path/to/Otium_0.1.0_x64-setup.exe \
- *     --signature path/to/Otium_0.1.0_x64-setup.exe.sig \
- *     --portable path/to/otium.exe \
- *     --apk path/to/app-universal-release.apk
- *
- * Without artifact flags the script looks in the standard Tauri output paths.
+ *     --installer path/to/Otium_2.0.10_x64-setup.exe \
+ *     --signature path/to/Otium_2.0.10_x64-setup.exe.sig \
+ *     --apk-universal path/to/Otium_2.0.10_universal.apk \
+ *     --apk-arm64 path/to/Otium_2.0.10_arm64-v8a.apk
  */
 import { createHash } from 'node:crypto';
 import {
@@ -113,16 +110,7 @@ function discoverInstaller(version) {
   );
 }
 
-function discoverPortable() {
-  const releaseDir = path.join(root, 'src-tauri', 'target', 'release');
-  for (const name of ['otium.exe', 'Otium.exe']) {
-    const candidate = path.join(releaseDir, name);
-    if (existsSync(candidate)) return candidate;
-  }
-  fail('no portable executable found. Run the Windows build or pass --portable.');
-}
-
-function discoverApk() {
+function discoverApk(flavorPattern) {
   const apkRoot = path.join(
     root,
     'src-tauri',
@@ -133,9 +121,7 @@ function discoverApk() {
     'outputs',
     'apk'
   );
-  if (!existsSync(apkRoot)) {
-    fail('no Android APK found. Run `npm run tauri:android` or pass --apk.');
-  }
+  if (!existsSync(apkRoot)) return null;
 
   const candidates = [];
   for (const flavor of readdirSync(apkRoot)) {
@@ -147,16 +133,7 @@ function discoverApk() {
     }
   }
 
-  const universal = candidates.find((file) => /universal/i.test(path.basename(file)));
-  if (universal) return universal;
-  if (candidates.length === 1) return candidates[0];
-  if (candidates.length === 0) {
-    fail('the Android build produced no release APK. Pass --apk explicitly.');
-  }
-  fail(
-    'multiple Android APKs found; pass the universal one explicitly with --apk.\n' +
-      candidates.map((file) => `  - ${path.relative(root, file)}`).join('\n')
-  );
+  return candidates.find((file) => flavorPattern.test(path.basename(file))) ?? null;
 }
 
 function sha256(file) {
@@ -203,6 +180,7 @@ const notesPath = requireFile(
 const notes = readFileSync(notesPath, 'utf8').trim();
 if (!notes) fail(`${path.relative(root, notesPath)} is empty`);
 
+// 1. Windows Installer (NSIS Setup .exe only)
 const installer = requireFile(
   stringOption(options, 'installer', '') || discoverInstaller(version),
   'Windows installer'
@@ -213,25 +191,35 @@ if (!path.basename(installer).includes(version)) {
       'Refusing to publish an artifact from another build.'
   );
 }
+
+// 2. Windows Updater Signature (.sig)
 const signature = requireFile(
   stringOption(options, 'signature', '') || `${installer}.sig`,
   'Windows installer signature'
 );
-const portable = requireFile(
-  stringOption(options, 'portable', '') || discoverPortable(),
-  'portable Windows executable'
-);
-const apk = requireFile(stringOption(options, 'apk', '') || discoverApk(), 'Android APK');
-
 const signatureText = readFileSync(signature, 'utf8').trim();
 if (!signatureText) fail('the Windows installer signature is empty');
+
+// 3. Android Universal APK
+const apkUniversalPath =
+  stringOption(options, 'apk-universal', '') ||
+  stringOption(options, 'apk', '') ||
+  discoverApk(/universal/i);
+const apkUniversal = requireFile(apkUniversalPath, 'Android Universal APK');
+
+// 4. Android Modern ARM64 APK
+const apkArm64Path =
+  stringOption(options, 'apk-arm64', '') ||
+  discoverApk(/arm64/i);
+const apkArm64 = requireFile(apkArm64Path, 'Android Modern ARM64 APK');
 
 const outputDir = absolute(stringOption(options, 'output-dir', 'release'));
 mkdirSync(outputDir, { recursive: true });
 
 const installerName = `Otium_${version}_x64-setup.exe`;
-const portableName = `Otium_${version}_x64-portable.exe`;
-const apkName = `Otium_${version}_universal.apk`;
+const installerSigName = `${installerName}.sig`;
+const apkUniversalName = `Otium_${version}_universal.apk`;
+const apkArm64Name = `Otium_${version}_arm64-v8a.apk`;
 
 function stage(source, name) {
   const destination = path.join(outputDir, name);
@@ -247,13 +235,15 @@ function stage(source, name) {
 }
 
 const installerAsset = stage(installer, installerName);
-const portableAsset = stage(portable, portableName);
-const apkAsset = stage(apk, apkName);
+stage(signature, installerSigName);
+const apkUniversalAsset = stage(apkUniversal, apkUniversalName);
+const apkArm64Asset = stage(apkArm64, apkArm64Name);
 
 const pubDate = stringOption(options, 'pub-date', new Date().toISOString());
 const parsedDate = new Date(pubDate);
 if (Number.isNaN(parsedDate.getTime())) fail(`invalid --pub-date "${pubDate}"`);
 
+// Build standard Tauri v2 update feed preserving exact signature structure
 const feed = {
   version,
   notes,
@@ -270,15 +260,21 @@ const feed = {
       size: installerAsset.size,
       sha256: installerAsset.sha256
     },
-    windowsPortable: {
-      url: portableAsset.url,
-      size: portableAsset.size,
-      sha256: portableAsset.sha256
+    androidUniversal: {
+      url: apkUniversalAsset.url,
+      size: apkUniversalAsset.size,
+      sha256: apkUniversalAsset.sha256
     },
+    androidArm64: {
+      url: apkArm64Asset.url,
+      size: apkArm64Asset.size,
+      sha256: apkArm64Asset.sha256
+    },
+    // Backwards-compatibility alias for older mobile clients
     androidApk: {
-      url: apkAsset.url,
-      size: apkAsset.size,
-      sha256: apkAsset.sha256
+      url: apkUniversalAsset.url,
+      size: apkUniversalAsset.size,
+      sha256: apkUniversalAsset.sha256
     }
   }
 };
@@ -290,10 +286,11 @@ function humanSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MiB`;
 }
 
-console.log(`Otium ${version} release feed`);
-console.log(`  tag:      ${tag}`);
-console.log(`  notes:    ${path.relative(root, notesPath)}`);
-console.log(`  feed:     ${path.relative(root, feedPath)}`);
-console.log(`  installer ${installerName} (${humanSize(installerAsset.size)})`);
-console.log(`  portable  ${portableName} (${humanSize(portableAsset.size)})`);
-console.log(`  apk       ${apkName} (${humanSize(apkAsset.size)})`);
+console.log(`Otium ${version} release feed (Universal + ARM64 + NSIS Setup EXE)`);
+console.log(`  tag:             ${tag}`);
+console.log(`  notes:           ${path.relative(root, notesPath)}`);
+console.log(`  feed:            ${path.relative(root, feedPath)}`);
+console.log(`  installer (.exe) ${installerName} (${humanSize(installerAsset.size)})`);
+console.log(`  signature (.sig) ${installerSigName}`);
+console.log(`  universal (.apk) ${apkUniversalName} (${humanSize(apkUniversalAsset.size)})`);
+console.log(`  arm64-v8a (.apk) ${apkArm64Name} (${humanSize(apkArm64Asset.size)})`);

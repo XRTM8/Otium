@@ -209,8 +209,8 @@ export function usePdfPageRender({
 
     let cancelled = false;
 
-    const run = async () => {
-      if (cancelled || !canvasRef.current) return;
+    const run = async (signal?: { cancelled: boolean }) => {
+      if (cancelled || signal?.cancelled || !canvasRef.current) return;
 
       try {
         const result = await renderPdfPageToCanvas({
@@ -220,12 +220,12 @@ export function usePdfPageRender({
           pageSize,
           theme,
           canvas: canvasRef.current,
-          isCancelled: () => cancelled || !canvasRef.current,
+          isCancelled: () => cancelled || (signal?.cancelled ?? false) || !canvasRef.current,
           setRenderTask: (task) => {
             currentRenderTaskRef.current = task;
           },
         });
-        if (!result.ok || cancelled) return;
+        if (!result.ok || cancelled || signal?.cancelled) return;
 
         currentRenderTaskRef.current = null;
         renderedKeyRef.current = renderKey;

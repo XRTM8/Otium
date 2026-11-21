@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { executeBackStep } from '../core/navigation/backHandler';
 import { observeDocumentFullscreen, toggleDocumentFullscreen } from './readerControllerHelpers';
@@ -103,12 +103,18 @@ export function useReaderBackNavigation({
     setSearchQuery,
   ]);
 
+  const handleBackStepRef = useRef(handleBackStep);
   useEffect(() => {
-    window.__OTIUM_HANDLE_BACK__ = handleBackStep;
+    handleBackStepRef.current = handleBackStep;
+  });
+
+  useEffect(() => {
+    const onBack = () => handleBackStepRef.current();
+    window.__OTIUM_HANDLE_BACK__ = onBack;
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
-      if (handleBackStep()) event.preventDefault();
+      if (onBack()) event.preventDefault();
     };
     window.addEventListener('keydown', handleEscape);
 
@@ -116,7 +122,7 @@ export function useReaderBackNavigation({
     const handlePopState = () => {
       if (isPopping) return;
       isPopping = true;
-      const stepped = handleBackStep();
+      const stepped = onBack();
       if (stepped) {
         window.history.pushState(null, '', window.location.href);
       }
@@ -133,7 +139,7 @@ export function useReaderBackNavigation({
       window.removeEventListener('keydown', handleEscape);
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [handleBackStep]);
+  }, []);
 
   return {
     isFullscreen,

@@ -81,11 +81,21 @@ export function registerIncomingDocumentHandler(handler: IncomingDocumentHandler
             ? otiumFile.readPendingDocumentChunkV2(info.id, offset, count)
             : '';
           if (!chunkBase64) throw new Error('توقفت قراءة ملف PDF قبل اكتماله. أعد فتح الملف من تلغرام.');
-          const binary = atob(chunkBase64);
-          const chunkLen = binary.length;
-          if (!chunkLen || chunkLen > count) throw new Error('بيانات الملف المستلم غير مكتملة أو غير صالحة.');
-          for (let i = 0; i < chunkLen; i++) {
-            uint8[offset + i] = binary.charCodeAt(i);
+          
+          let chunkLen = 0;
+          const fromBase64 = (Uint8Array as unknown as { fromBase64?: (s: string) => Uint8Array }).fromBase64;
+          if (typeof fromBase64 === 'function') {
+            const decoded = fromBase64(chunkBase64);
+            chunkLen = decoded.length;
+            if (!chunkLen || chunkLen > count) throw new Error('بيانات الملف المستلم غير مكتملة أو غير صالحة.');
+            uint8.set(decoded, offset);
+          } else {
+            const binary = atob(chunkBase64);
+            chunkLen = binary.length;
+            if (!chunkLen || chunkLen > count) throw new Error('بيانات الملف المستلم غير مكتملة أو غير صالحة.');
+            for (let i = 0; i < chunkLen; i++) {
+              uint8[offset + i] = binary.charCodeAt(i);
+            }
           }
           offset += chunkLen;
           await delay();
@@ -106,13 +116,41 @@ export function registerIncomingDocumentHandler(handler: IncomingDocumentHandler
 
     window.__OTIUM_CHECK_INCOMING_PDF__ = checkIncomingFromNativeBridge;
 
-    // Probe native bridge immediately on mount and after brief delay for cold launch
+    // Probe native bridge immediately on mount
     void checkIncomingFromNativeBridge();
-    const probeTimer = window.setInterval(() => { void checkIncomingFromNativeBridge(); }, 750);
+
+    // Adaptive backoff polling: start at 750ms, back off to 5s after 10 attempts
+    let pollInterval = 750;
+    let pollAttempts = 0;
+    let probeTimer: number | undefined;
+
+    const scheduleProbe = () => {
+      if (cancelled) return;
+      probeTimer = window.setTimeout(() => {
+        void checkIncomingFromNativeBridge().finally(() => {
+          pollAttempts++;
+          if (pollAttempts > 10) {
+            pollInterval = 5000;
+          }
+          scheduleProbe();
+        });
+      }, pollInterval);
+    };
+    scheduleProbe();
+
+    const onWake = () => {
+      void checkIncomingFromNativeBridge();
+    };
+    window.addEventListener('focus', onWake);
+    document.addEventListener('visibilitychange', onWake);
 
     return () => {
       cancelled = true;
-      window.clearInterval(probeTimer);
+      if (probeTimer !== undefined) {
+        window.clearTimeout(probeTimer);
+      }
+      window.removeEventListener('focus', onWake);
+      document.removeEventListener('visibilitychange', onWake);
       // Outstanding yield timers resolve so cancelled readers release buffers.
       if (window.__OTIUM_CHECK_INCOMING_PDF__ === checkIncomingFromNativeBridge) {
         delete window.__OTIUM_CHECK_INCOMING_PDF__;

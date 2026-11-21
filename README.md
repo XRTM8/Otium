@@ -18,7 +18,7 @@
   &nbsp;
   <img src="https://img.shields.io/badge/Engine-Rust%20·%20Tauri%20v2%20·%20React%2019-111827?style=flat-square" alt="Engine" />
   &nbsp;
-  <img src="https://img.shields.io/badge/Privacy-100%25%20Offline-10B981?style=flat-square" alt="Offline" />
+  <img src="https://img.shields.io/badge/Privacy-Local--First%20·%20Zero%20Telemetry-10B981?style=flat-square" alt="Privacy" />
   &nbsp;
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-GPL--3.0-111827?style=flat-square" alt="License" />
@@ -53,7 +53,7 @@
 
 Most modern document software has become *negotium*: subscription walls, intrusive telemetry, cloud lock-in, and visual clutter. **Otium** is designed to reclaim that quiet, undisturbed space.
 
-Unified in version 1.6.0, Otium brings together a distraction-free long-form reading environment and an on-device document capture studio into a single sovereign application for Windows and Android. Everything runs strictly on your machine — zero accounts, zero analytics, zero external network requests.
+Unified in version 1.6.0, Otium brings together a distraction-free long-form reading environment and an on-device document capture studio into a single sovereign application for Windows and Android. Core reading and scanning run strictly on your machine — zero accounts, zero analytics, zero telemetry.
 
 ---
 
@@ -72,9 +72,10 @@ Unified in version 1.6.0, Otium brings together a distraction-free long-form rea
 - **Batch & ID Cards** — Multi-page batch document capture and automated dual-sided ID card merging onto standard A4 format.
 
 ### 🛡️ Sovereign & Private
-- **Zero Telemetry** — No tracking scripts, no third-party APIs, no cloud sync requirements.
-- **Encrypted Local Vault** — Secure local document storage with optional PIN/password protection.
-- **State Preservation** — Automatically remembers reading progress, zoom scale, and page layout per document across sessions.
+- **Zero Telemetry** — No tracking scripts, no third-party analytics, no data harvesting.
+- **Local-First Architecture** — Reading, scanning, and OCR run entirely on-device without network dependency.
+- **Encrypted Local Vault** — Secure local document storage and backups with Argon2id + ChaCha20 / AES-GCM encryption.
+- **Smart Beam P2P Sync** — Encrypted device-to-device document beaming via local LAN / WebRTC, with encrypted relay fallback.
 
 ---
 

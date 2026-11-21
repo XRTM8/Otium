@@ -5,6 +5,7 @@ use chacha20poly1305::{
 };
 use rand::rngs::OsRng;
 use rand::RngCore;
+use zeroize::Zeroize;
 
 use otium_core::{OtiumError, Result};
 
@@ -70,8 +71,10 @@ impl VaultCrypto {
     pub fn seal_bytes(passphrase: &str, plaintext: &[u8]) -> Result<Vec<u8>> {
         let mut salt = [0u8; 16];
         OsRng.fill_bytes(&mut salt);
-        let key = Self::derive_key(passphrase, &salt)?;
-        let ciphertext = Self::encrypt(&key, plaintext)?;
+        let mut key = Self::derive_key(passphrase, &salt)?;
+        let ciphertext_res = Self::encrypt(&key, plaintext);
+        key.zeroize();
+        let ciphertext = ciphertext_res?;
 
         let mut sealed = Vec::with_capacity(Self::SEAL_MAGIC.len() + salt.len() + ciphertext.len());
         sealed.extend_from_slice(Self::SEAL_MAGIC);
@@ -88,7 +91,9 @@ impl VaultCrypto {
         }
         let mut salt = [0u8; 16];
         salt.copy_from_slice(&sealed[Self::SEAL_MAGIC.len()..header_len]);
-        let key = Self::derive_key(passphrase, &salt)?;
-        Self::decrypt(&key, &sealed[header_len..])
+        let mut key = Self::derive_key(passphrase, &salt)?;
+        let plaintext_res = Self::decrypt(&key, &sealed[header_len..]);
+        key.zeroize();
+        plaintext_res
     }
 }

@@ -17,6 +17,74 @@ import {
 } from './beamUtils';
 import type { BeamDocumentAttempt } from './beamDocumentCheckpoint';
 
+export const MAGIC_BEAM_ENC = new Uint8Array([0x4f, 0x54, 0x42, 0x31]); // OTB1
+
+export async function encryptBeamChunk(chunk: ArrayBuffer, roomCode: string): Promise<ArrayBuffer> {
+  if (typeof crypto === 'undefined' || !crypto.subtle || !roomCode) return chunk;
+  try {
+    const enc = new TextEncoder();
+    const rawKey = await crypto.subtle.importKey(
+      'raw',
+      enc.encode(`otium-beam:${roomCode}`) as unknown as BufferSource,
+      { name: 'PBKDF2' },
+      false,
+      ['deriveKey']
+    );
+    const salt = await crypto.subtle.digest('SHA-256', enc.encode(`salt:${roomCode}`) as unknown as BufferSource);
+    const key = await crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: salt as unknown as BufferSource, iterations: 1000, hash: 'SHA-256' },
+      rawKey,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv as unknown as BufferSource }, key, chunk as unknown as BufferSource);
+    const out = new Uint8Array(MAGIC_BEAM_ENC.length + iv.length + encrypted.byteLength);
+    out.set(MAGIC_BEAM_ENC, 0);
+    out.set(iv, MAGIC_BEAM_ENC.length);
+    out.set(new Uint8Array(encrypted), MAGIC_BEAM_ENC.length + iv.length);
+    return out.buffer;
+  } catch {
+    return chunk;
+  }
+}
+
+export async function decryptBeamChunk(buffer: ArrayBuffer, roomCode: string): Promise<ArrayBuffer> {
+  const bytes = new Uint8Array(buffer);
+  const isEncrypted =
+    bytes.length >= 4 + 12 + 16 &&
+    bytes[0] === 0x4f &&
+    bytes[1] === 0x54 &&
+    bytes[2] === 0x42 &&
+    bytes[3] === 0x31; // OTB1
+  if (!isEncrypted || typeof crypto === 'undefined' || !crypto.subtle || !roomCode) return buffer;
+
+  try {
+    const enc = new TextEncoder();
+    const rawKey = await crypto.subtle.importKey(
+      'raw',
+      enc.encode(`otium-beam:${roomCode}`) as unknown as BufferSource,
+      { name: 'PBKDF2' },
+      false,
+      ['deriveKey']
+    );
+    const salt = await crypto.subtle.digest('SHA-256', enc.encode(`salt:${roomCode}`) as unknown as BufferSource);
+    const key = await crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: salt as unknown as BufferSource, iterations: 1000, hash: 'SHA-256' },
+      rawKey,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+    const iv = bytes.subarray(4, 16);
+    const ciphertext = bytes.subarray(16);
+    return await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv as unknown as BufferSource }, key, ciphertext as unknown as BufferSource);
+  } catch {
+    return buffer;
+  }
+}
+
 export async function putRelayAttachment(
   topic: string,
   data: ArrayBuffer,
@@ -178,9 +246,10 @@ export async function uploadAndBroadcastViaRelay({
     const start = index * RELAY_CHUNK_SIZE;
     const end = Math.min(start + RELAY_CHUNK_SIZE, totalBytes);
     const chunk = options.buffer.slice(start, end);
+    const payloadChunk = connectedRoom ? await encryptBeamChunk(chunk, connectedRoom) : chunk;
     const topic = `${baseTopic}_${safeTopicPart(transferId)}_c${index}`;
     const filename = `${safeName}.part${index}`;
-    const url = await putChunk(topic, chunk, filename);
+    const url = await putChunk(topic, payloadChunk, filename);
     assertActive();
     chunks.push(url);
     onTransferPatch({

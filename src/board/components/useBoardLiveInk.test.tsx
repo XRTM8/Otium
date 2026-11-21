@@ -145,4 +145,68 @@ describe('useBoardLiveInk', () => {
       } as unknown as React.PointerEvent<HTMLCanvasElement>);
     });
   });
+
+  it('rejects stray palm touch inputs immediately after pen usage', async () => {
+    let currentStrokes: BoardStroke[] = [];
+    const setStrokes = vi.fn();
+
+    await act(async () => {
+      root.render(
+        <TestHost
+          activeTool="pen"
+          strokes={currentStrokes}
+          setStrokes={setStrokes}
+          setUndoStack={vi.fn()}
+          setRedoStack={vi.fn()}
+          setDrawingRevision={vi.fn()}
+        />
+      );
+    });
+
+    // 1. Pen touches down
+    await act(async () => {
+      hookResult.handlePointerDown({
+        pointerId: 1,
+        pointerType: 'pen',
+        button: 0,
+        clientX: 200,
+        clientY: 200,
+        nativeEvent: {},
+      } as unknown as React.PointerEvent<HTMLCanvasElement>);
+    });
+
+    await act(async () => {
+      hookResult.handlePointerUp({
+        pointerId: 1,
+        pointerType: 'pen',
+      } as unknown as React.PointerEvent<HTMLCanvasElement>);
+    });
+
+    // Pen committed exactly 1 stroke
+    expect(setStrokes).toHaveBeenCalledTimes(1);
+
+    // 2. Palm touches down immediately (width > 25, touch, < 1200ms from pen)
+    await act(async () => {
+      hookResult.handlePointerDown({
+        pointerId: 2,
+        pointerType: 'touch',
+        button: 0,
+        width: 40,
+        height: 40,
+        clientX: 250,
+        clientY: 250,
+        nativeEvent: {},
+      } as unknown as React.PointerEvent<HTMLCanvasElement>);
+    });
+
+    await act(async () => {
+      hookResult.handlePointerUp({
+        pointerId: 2,
+        pointerType: 'touch',
+      } as unknown as React.PointerEvent<HTMLCanvasElement>);
+    });
+
+    // Palm touch must be rejected, setStrokes must NOT be called again
+    expect(setStrokes).toHaveBeenCalledTimes(1);
+  });
 });

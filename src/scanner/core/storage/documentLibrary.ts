@@ -1,4 +1,6 @@
 import { appIndexedDB } from '../../../platform/storage';
+import { isTauriRuntime } from '../../../platform/runtime';
+import { sealBytesWithRust, unsealBytesWithRust } from '../../../platform/rustEngine';
 /**
  * Persistent Document Library Store for Otium Scan.
  * Saves compiled PDFs and scan sessions so users can access, re-read,
@@ -124,10 +126,95 @@ interface VaultBackupEnvelope {
   }[];
 }
 
+const MAGIC_WEB_SEAL = new Uint8Array([0x4f, 0x54, 0x4d, 0x57, 0x31]); // OTMW1
+
+async function sealWithWebCrypto(bytes: Uint8Array, passphrase: string): Promise<Uint8Array> {
+  const enc = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(passphrase),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveKey']
+  );
+
+  const aesKey = await crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt,
+      iterations: 100000,
+      hash: 'SHA-256',
+    },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt']
+  );
+
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv: iv as unknown as BufferSource },
+    aesKey,
+    bytes as unknown as BufferSource
+  );
+
+  const totalLen = MAGIC_WEB_SEAL.length + salt.length + iv.length + ciphertext.byteLength;
+  const result = new Uint8Array(totalLen);
+  result.set(MAGIC_WEB_SEAL, 0);
+  result.set(salt, MAGIC_WEB_SEAL.length);
+  result.set(iv, MAGIC_WEB_SEAL.length + salt.length);
+  result.set(new Uint8Array(ciphertext), MAGIC_WEB_SEAL.length + salt.length + iv.length);
+
+  return result;
+}
+
+async function unsealWithWebCrypto(sealed: Uint8Array, passphrase: string): Promise<Uint8Array> {
+  const headerLen = MAGIC_WEB_SEAL.length;
+  const salt = sealed.subarray(headerLen, headerLen + 16);
+  const iv = sealed.subarray(headerLen + 16, headerLen + 16 + 12);
+  const ciphertext = sealed.subarray(headerLen + 16 + 12);
+
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(passphrase) as unknown as BufferSource,
+    { name: 'PBKDF2' },
+    false,
+    ['deriveKey']
+  );
+
+  const aesKey = await crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt: salt as unknown as BufferSource,
+      iterations: 100000,
+      hash: 'SHA-256',
+    },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['decrypt']
+  );
+
+  try {
+    const plaintext = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: iv as unknown as BufferSource },
+      aesKey,
+      ciphertext as unknown as BufferSource
+    );
+    return new Uint8Array(plaintext);
+  } catch {
+    throw new Error('فشل فك تشفير النسخة الاحتياطية. تأكد من صحة كلمة المرور.');
+  }
+}
+
 /**
  * Exports entire document library into an offline portable .otiumvault backup package.
+ * Optionally encrypts with passphrase using Rust Argon2id+ChaCha20 or WebCrypto AES-GCM.
  */
-export async function exportVaultBackup(): Promise<Blob> {
+export async function exportVaultBackup(passphrase?: string): Promise<Blob> {
   const docs = await getAllLibraryDocuments();
 
   const serializedDocs = await Promise.all(
@@ -160,20 +247,76 @@ export async function exportVaultBackup(): Promise<Blob> {
     documents: serializedDocs,
   };
 
-  return new Blob([JSON.stringify(envelope)], { type: 'application/json' });
+  const jsonBytes = new TextEncoder().encode(JSON.stringify(envelope));
+
+  if (passphrase && passphrase.trim().length > 0) {
+    if (isTauriRuntime()) {
+      const rustSealed = await sealBytesWithRust(jsonBytes, passphrase);
+      if (rustSealed) {
+        return new Blob([rustSealed.buffer as ArrayBuffer], { type: 'application/octet-stream' });
+      }
+    }
+    const webSealed = await sealWithWebCrypto(jsonBytes, passphrase);
+    return new Blob([webSealed.buffer as ArrayBuffer], { type: 'application/octet-stream' });
+  }
+
+  return new Blob([jsonBytes.buffer as ArrayBuffer], { type: 'application/json' });
 }
 
 /**
  * Restores document library from an uploaded .otiumvault backup package.
- * Implements strict size gating, JSON prototype pollution prevention,
- * and binary PDF magic byte header verification.
+ * Implements strict size gating, password decryption for encrypted backups,
+ * JSON prototype pollution prevention, and binary PDF magic byte header verification.
  */
-export async function restoreVaultBackup(backupBlob: Blob): Promise<number> {
+export async function restoreVaultBackup(backupBlob: Blob, passphrase?: string): Promise<number> {
   if (backupBlob.size > 200 * 1024 * 1024) {
     throw new Error('حجم ملف النسخة الاحتياطية كبير جداً (الحد الأقصى 200 ميجابايت)');
   }
 
-  const text = await backupBlob.text();
+  const arrayBuffer = await backupBlob.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+
+  let text: string;
+
+  const isRustSealed =
+    bytes.length >= 5 &&
+    bytes[0] === 0x4f &&
+    bytes[1] === 0x54 &&
+    bytes[2] === 0x4d &&
+    bytes[3] === 0x56 &&
+    bytes[4] === 0x31; // OTMV1
+
+  const isWebSealed =
+    bytes.length >= 5 &&
+    bytes[0] === 0x4f &&
+    bytes[1] === 0x54 &&
+    bytes[2] === 0x4d &&
+    bytes[3] === 0x57 &&
+    bytes[4] === 0x31; // OTMW1
+
+  if (isRustSealed || isWebSealed) {
+    let pass = passphrase;
+    if (!pass && typeof window !== 'undefined' && typeof window.prompt === 'function') {
+      const prompted = window.prompt('أدخل كلمة المرور لفك تشفير النسخة الاحتياطية:');
+      if (prompted) pass = prompted;
+    }
+    if (!pass) {
+      throw new Error('ملف النسخة الاحتياطية مشفر ويتطلب كلمة مرور');
+    }
+
+    let decryptedBytes: Uint8Array | null = null;
+    if (isRustSealed) {
+      decryptedBytes = await unsealBytesWithRust(bytes, pass);
+      if (!decryptedBytes) {
+        throw new Error('فشل فك تشفير النسخة الاحتياطية. تأكد من صحة كلمة المرور.');
+      }
+    } else {
+      decryptedBytes = await unsealWithWebCrypto(bytes, pass);
+    }
+    text = new TextDecoder().decode(decryptedBytes);
+  } else {
+    text = new TextDecoder().decode(bytes);
+  }
   let envelope: VaultBackupEnvelope;
   try {
     envelope = JSON.parse(text, (key, value) => {

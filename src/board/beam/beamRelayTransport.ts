@@ -14,11 +14,21 @@ import {
   isBeamMessage,
 } from './beamUtils';
 
-export {
+import {
+  decryptBeamChunk,
+  encryptBeamChunk,
   publishRelayMessage,
   putRelayAttachment,
   uploadAndBroadcastViaRelay,
 } from './beamRelayUpload';
+
+export {
+  decryptBeamChunk,
+  encryptBeamChunk,
+  publishRelayMessage,
+  putRelayAttachment,
+  uploadAndBroadcastViaRelay,
+};
 
 export interface RelayAttachmentPayload {
   event?: string;
@@ -146,12 +156,14 @@ export async function extractMessagesFromRelayEvent(
 
 export async function downloadChunksViaRelay({
   chunks,
+  roomCode,
   expectedSize,
   expectedSha256,
   fetchChunk,
   onTransferPatch,
 }: {
   chunks: string[];
+  roomCode?: string;
   expectedSize?: number;
   expectedSha256?: string;
   fetchChunk: (url: string, maxBytes: number) => Promise<ArrayBuffer>;
@@ -186,8 +198,11 @@ export async function downloadChunksViaRelay({
 
     const downloadOne = async (url: string, index: number): Promise<void> => {
       if (failed) return;
-      const buffer = await fetchChunk(url, RELAY_CHUNK_SIZE + 1024);
+      let buffer = await fetchChunk(url, RELAY_CHUNK_SIZE + 2048);
       if (failed) return;
+      if (roomCode) {
+        buffer = await decryptBeamChunk(buffer, roomCode);
+      }
       parts[index] = buffer;
       downloaded += buffer.byteLength;
       if (downloaded > RELAY_MAX_BYTES || (expectedSize && downloaded > expectedSize)) {

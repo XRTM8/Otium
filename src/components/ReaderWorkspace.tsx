@@ -88,10 +88,22 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
     scrollToPage,
   });
 
-  const continuousPages = useMemo(
-    () => Array.from({ length: numPages }, (_, index) => index + 1),
-    [numPages]
-  );
+  const standardSlotHeight = Math.round((basePageSize?.height || 842) * zoom) + (compact ? 32 : 40);
+  const isVirtualWindowed = numPages > 30;
+  const windowRadius = compact ? 5 : 7;
+  const windowStart = isVirtualWindowed ? Math.max(1, currentPage - windowRadius) : 1;
+  const windowEnd = isVirtualWindowed ? Math.min(numPages, currentPage + windowRadius) : numPages;
+
+  const visiblePages = useMemo(() => {
+    const list: number[] = [];
+    for (let p = windowStart; p <= windowEnd; p++) {
+      list.push(p);
+    }
+    return list;
+  }, [windowStart, windowEnd]);
+
+  const topSpacerHeight = isVirtualWindowed ? (windowStart - 1) * standardSlotHeight : 0;
+  const bottomSpacerHeight = isVirtualWindowed ? (numPages - windowEnd) * standardSlotHeight : 0;
 
   const EMPTY_ANNOTATIONS = useMemo<TextAnnotation[]>(() => [], []);
   const annotationsByPage = useMemo(() => {
@@ -268,7 +280,13 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
 
       {viewMode === 'continuous' ? (
         <div className="w-max min-w-full flex flex-col items-center">
-          {continuousPages.map((pageNum) => {
+          {topSpacerHeight > 0 && (
+            <div
+              aria-hidden="true"
+              style={{ height: `${topSpacerHeight}px`, width: '100%', flexShrink: 0 }}
+            />
+          )}
+          {visiblePages.map((pageNum) => {
             const distance = Math.abs(pageNum - currentPage);
             const isNear = distance <= (compact ? 2 : 3);
             const pageAnnotations = annotationsByPage
@@ -295,6 +313,12 @@ export const ReaderWorkspace: React.FC<ReaderWorkspaceProps> = ({ reader, compac
               />
             );
           })}
+          {bottomSpacerHeight > 0 && (
+            <div
+              aria-hidden="true"
+              style={{ height: `${bottomSpacerHeight}px`, width: '100%', flexShrink: 0 }}
+            />
+          )}
         </div>
       ) : (
         <ReaderWorkspacePagedSpreads

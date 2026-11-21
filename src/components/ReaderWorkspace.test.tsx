@@ -151,4 +151,25 @@ describe('ReaderWorkspace', () => {
     // Page 6 is > 3 pages away from currentPage 1 so its PageSlot stays virtualized
     expect(host.querySelector('[data-testid="pdf-page-6"]')).toBeNull();
   });
+
+  it('virtualizes large continuous documents to prevent DOM and memory bloat', async () => {
+    await renderWorkspace(
+      makeReader({
+        viewMode: 'continuous',
+        currentPage: 250,
+        numPages: 500,
+      })
+    );
+
+    const mountedSlots = host.querySelectorAll('[data-page-slot]');
+    // Should mount only the sliding window (~15 slots) instead of 500 slots
+    expect(mountedSlots.length).toBeLessThan(20);
+    expect(mountedSlots.length).toBeGreaterThan(5);
+
+    // Slot for current page 250 must be present in DOM
+    expect(host.querySelector('[data-page-slot="250"]')).not.toBeNull();
+    // Faraway pages 1 and 500 must not be in the DOM
+    expect(host.querySelector('[data-page-slot="1"]')).toBeNull();
+    expect(host.querySelector('[data-page-slot="500"]')).toBeNull();
+  });
 });
